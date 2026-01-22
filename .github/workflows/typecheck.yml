@@ -1,0 +1,35 @@
+name: Expo App TypeScript typecheck
+
+on:
+    pull_request:
+        paths:
+            - 'expo-app/**'
+            - '.github/workflows/typecheck.yml'
+    push:
+        branches:
+            - main
+        paths:
+            - 'expo-app/**'
+            - '.github/workflows/typecheck.yml'
+
+jobs:
+    typecheck:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: yarn
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+              working-directory: expo-app
+
+            - name: TypeScript typecheck
+              run: yarn typecheck
+              working-directory: expo-app

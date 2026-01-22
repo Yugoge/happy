@@ -1,0 +1,19 @@
+{
+    "name": "monorepo",
+    "private": true,
+    "workspaces": {
+        "packages": [
+            "expo-app",
+            "hello-world"
+        ],
+        "nohoist": [
+           "**/react",
+           "**/react-dom",
+           "**/react-native",
+           "**/react-native/**",
+           "**/react-native-edge-to-edge/**",
+           "**/react-native-incall-manager/**"
+     ]
+    },
+    "packageManager": "yarn@1.22.22"
+}
