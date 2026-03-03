@@ -1,0 +1,46 @@
+# Stage 1: install dependencies (server + wire only, skipping happy-app react-native binaries)
+FROM node:20 AS deps
+
+RUN apt-get update && apt-get install -y python3 ffmpeg make g++ build-essential && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /repo
+
+COPY yarn.lock ./
+COPY scripts ./scripts
+
+RUN mkdir -p packages/happy-server packages/happy-wire
+
+COPY packages/happy-server/package.json packages/happy-server/
+COPY packages/happy-wire/package.json packages/happy-wire/
+COPY packages/happy-server/prisma packages/happy-server/prisma
+
+# Minimal workspace - only server-relevant packages
+RUN echo '{"name":"happy","private":true,"workspaces":["packages/happy-server","packages/happy-wire"],"scripts":{}}' > package.json
+
+RUN SKIP_HAPPY_WIRE_BUILD=1 yarn install --frozen-lockfile --ignore-engines
+
+# Stage 2: build
+FROM deps AS builder
+
+COPY packages/happy-wire ./packages/happy-wire
+COPY packages/happy-server ./packages/happy-server
+
+RUN yarn workspace @slopus/happy-wire build
+RUN yarn workspace happy-server build
+
+# Stage 3: runtime
+FROM node:20 AS runner
+
+WORKDIR /repo
+
+RUN apt-get update && apt-get install -y python3 ffmpeg && rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production
+
+COPY --from=builder /repo/node_modules /repo/node_modules
+COPY --from=builder /repo/packages/happy-wire /repo/packages/happy-wire
+COPY --from=builder /repo/packages/happy-server /repo/packages/happy-server
+
+EXPOSE 3000
+
+CMD ["yarn", "--cwd", "packages/happy-server", "start"]
