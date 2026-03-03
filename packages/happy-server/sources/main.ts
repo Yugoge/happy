@@ -7,6 +7,7 @@ import { startMetricsServer } from "@/app/monitoring/metrics";
 import { activityCache } from "@/app/presence/sessionCache";
 import { auth } from "./app/auth/auth";
 import { startDatabaseMetricsUpdater } from "@/app/monitoring/metrics2";
+import { protectActiveSessions } from "@/app/presence/protectSessions";
 import { initEncrypt } from "./modules/encrypt";
 import { initGithub } from "./modules/github";
 import { loadFiles } from "./storage/files";
@@ -20,6 +21,9 @@ async function main() {
     });
     onShutdown('activity-cache', async () => {
         activityCache.shutdown();
+    });
+    onShutdown('protect-sessions', async () => {
+        await protectActiveSessions();
     });
     if (process.env.REDIS_URL) {
         const { Redis } = await import('ioredis');
