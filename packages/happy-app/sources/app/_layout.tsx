@@ -176,6 +176,7 @@ export default function RootLayout() {
     // Init sequence
     //
     const [initState, setInitState] = React.useState<{ credentials: AuthCredentials | null } | null>(null);
+    const [initError, setInitError] = React.useState<Error | null>(null);
     React.useEffect(() => {
         (async () => {
             try {
@@ -190,6 +191,7 @@ export default function RootLayout() {
                 setInitState({ credentials });
             } catch (error) {
                 console.error('Error initializing:', error);
+                setInitError(error instanceof Error ? error : new Error(String(error)));
             }
         })();
     }, []);
@@ -209,6 +211,16 @@ export default function RootLayout() {
     //
     // Not inited
     //
+
+    if (initError) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                <Text style={{ color: 'red', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Init Error</Text>
+                <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{initError.message}</Text>
+                <Text style={{ color: '#666', textAlign: 'center', fontSize: 12 }}>{initError.stack}</Text>
+            </View>
+        );
+    }
 
     if (!initState) {
         return null;
