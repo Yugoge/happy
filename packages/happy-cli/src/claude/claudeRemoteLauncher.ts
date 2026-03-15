@@ -115,34 +115,24 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
         }
     }
 
-    // Start session scanner to upload .jsonl history to server
-    // If resuming, immediately scan the original session's .jsonl to upload history
-    // BEFORE Claude starts — so mobile app sees history first, then new messages
-    const scanner = await createSessionScanner({
-        sessionId: resumeClaudeSessionId,
-        sendExisting: !!resumeClaudeSessionId, // Send all history for recovery, mark-as-processed otherwise
-        workingDirectory: session.path,
-        onMessage: (message) => {
-            if (message.type !== 'summary') {
-                session.client.sendClaudeSessionMessage(message);
+    // Recovery mode only: upload .jsonl history to server before Claude starts
+    let scanner: Awaited<ReturnType<typeof createSessionScanner>> | null = null;
+    if (resumeClaudeSessionId) {
+        scanner = await createSessionScanner({
+            sessionId: resumeClaudeSessionId,
+            sendExisting: true,
+            workingDirectory: session.path,
+            onMessage: (message) => {
+                if (message.type !== 'summary') {
+                    session.client.sendClaudeSessionMessage(message);
+                }
             }
-        }
-    });
-
-    // When Claude session ID is discovered, tell scanner to watch that file
-    // BUT: in recovery mode, stop scanner after initial history upload to avoid duplicates
-    // (onMessage handler will send new messages from the live stream)
-    const originalOnSessionFound = session.onSessionFound.bind(session);
-    session.onSessionFound = (sessionId: string) => {
-        originalOnSessionFound(sessionId);
-        if (resumeClaudeSessionId) {
-            // Recovery mode: scanner already uploaded history, stop it now
-            logger.debug(`[claudeRemoteLauncher] Recovery mode: stopping scanner after history upload (new session: ${sessionId})`);
-            scanner.cleanup();
-        } else {
-            scanner.onNewSession(sessionId);
-        }
-    };
+        });
+        // Stop scanner after upload — onMessage handler will send new messages live
+        await scanner.cleanup();
+        scanner = null;
+        logger.debug(`[claudeRemoteLauncher] Recovery mode: history uploaded and scanner stopped`);
+    }
 
     // Set up callback to release delayed messages when permission is requested
     permissionHandler.setOnPermissionRequest((toolCallId: string) => {
@@ -479,9 +469,6 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             }
         }
     } finally {
-
-        // Clean up session scanner
-        await scanner.cleanup();
 
         // Clean up permission handler
         permissionHandler.reset();
