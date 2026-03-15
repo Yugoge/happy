@@ -81,13 +81,15 @@ export async function claudeRemote(opts: {
         });
     }
 
-    // Get initial message — for resume mode, auto-send a continuation prompt
-    // startFrom is set from claudeArgs --resume; after first use, consumeOneTimeFlags()
-    // removes --resume from claudeArgs, so on subsequent calls startFrom will be null
+    // Get initial message — for resume mode, auto-send a continuation prompt (once only)
     let initial: Awaited<ReturnType<typeof opts.nextMessage>>;
-    if (startFrom) {
+    if (startFrom && !(opts as any)._resumeAutoSendDone) {
         logger.debug(`[claudeRemote] Resume mode: auto-sending continuation prompt`);
-        initial = { message: 'Continue from where you left off. Do not recap or acknowledge this message.' };
+        (opts as any)._resumeAutoSendDone = true;
+        initial = {
+            message: 'Continue from where you left off. Do not recap or acknowledge this message.',
+            mode: { permissionMode: 'default' as any }
+        };
     } else {
         initial = await opts.nextMessage();
         if (!initial) { // No initial message - exit

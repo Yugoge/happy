@@ -435,8 +435,6 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                 }
             } catch (e) {
                 logger.debug('[remote]: launch error', e);
-                // Always consume one-time flags on error to prevent resume loop
-                session.consumeOneTimeFlags();
                 if (!exitReason) {
                     session.client.closeClaudeSessionTurn('failed');
                     session.client.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
