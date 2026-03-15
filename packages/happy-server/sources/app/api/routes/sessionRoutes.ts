@@ -22,6 +22,7 @@ export function sessionRoutes(app: Fastify) {
             take: 150,
             select: {
                 id: true,
+                tag: true,
                 seq: true,
                 createdAt: true,
                 updatedAt: true,
@@ -54,6 +55,7 @@ export function sessionRoutes(app: Fastify) {
 
                 return {
                     id: v.id,
+                    tag: v.tag,
                     seq: v.seq,
                     createdAt: v.createdAt.getTime(),
                     updatedAt: sessionUpdatedAt,
@@ -351,6 +353,92 @@ export function sessionRoutes(app: Fastify) {
                 createdAt: v.createdAt.getTime(),
                 updatedAt: v.updatedAt.getTime()
             }))
+        });
+    });
+
+    // Reactivate session (for recovery after reboot - preserves encryption key and history)
+    // Optionally accepts dataEncryptionKey and metadata to update (when CLI has saved key)
+    app.post('/v1/sessions/:sessionId/reactivate', {
+        schema: {
+            params: z.object({
+                sessionId: z.string()
+            }),
+            body: z.object({
+                dataEncryptionKey: z.string().nullish(),
+                metadata: z.string().nullish()
+            }).optional()
+        },
+        preHandler: app.authenticate
+    }, async (request, reply) => {
+        const userId = request.userId;
+        const { sessionId } = request.params;
+        const { dataEncryptionKey, metadata } = request.body || {};
+
+        const session = await db.session.findFirst({
+            where: {
+                id: sessionId,
+                accountId: userId
+            }
+        });
+
+        if (!session) {
+            return reply.code(404).send({ error: 'Session not found' });
+        }
+
+        if (dataEncryptionKey) {
+            // CLI has the original key - update via create-then-swap for correct byte storage
+            const tempTag = `_reactivate_${Date.now()}`;
+            const tempSession = await db.session.create({
+                data: {
+                    accountId: userId,
+                    tag: tempTag,
+                    metadata: metadata || session.metadata,
+                    dataEncryptionKey: new Uint8Array(Buffer.from(dataEncryptionKey, 'base64'))
+                }
+            });
+            await db.$executeRawUnsafe(
+                `UPDATE "Session" SET "dataEncryptionKey" = t."dataEncryptionKey", metadata = t.metadata, "metadataVersion" = "Session"."metadataVersion" + 1, active = true, "lastActiveAt" = NOW() FROM "Session" t WHERE t.id = $1 AND "Session".id = $2`,
+                tempSession.id, session.id
+            );
+            await db.session.delete({ where: { id: tempSession.id } });
+            log({ module: 'session-reactivate', sessionId: session.id, userId }, `Reactivated session with key update (create-then-swap): ${session.id}`);
+        } else {
+            // No key update - just reactivate
+            await db.session.update({
+                where: { id: session.id },
+                data: {
+                    active: true,
+                    lastActiveAt: new Date()
+                }
+            });
+            log({ module: 'session-reactivate', sessionId: session.id, userId }, `Reactivated session: ${session.id}`);
+        }
+
+        const updated = await db.session.findUniqueOrThrow({ where: { id: session.id } });
+
+        // Emit update so web picks up the reactivated session
+        const updSeq = await allocateUserSeq(userId);
+        const payload = buildNewSessionUpdate(updated, updSeq, randomKeyNaked(12));
+        eventRouter.emitUpdate({
+            userId,
+            payload,
+            recipientFilter: { type: 'user-scoped-only' }
+        });
+
+        return reply.send({
+            session: {
+                id: updated.id,
+                seq: updated.seq,
+                metadata: updated.metadata,
+                metadataVersion: updated.metadataVersion,
+                agentState: updated.agentState,
+                agentStateVersion: updated.agentStateVersion,
+                dataEncryptionKey: updated.dataEncryptionKey ? Buffer.from(updated.dataEncryptionKey).toString('base64') : null,
+                active: updated.active,
+                activeAt: updated.lastActiveAt.getTime(),
+                createdAt: updated.createdAt.getTime(),
+                updatedAt: updated.updatedAt.getTime(),
+            }
         });
     });
 
