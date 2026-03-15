@@ -129,11 +129,19 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
         }
     });
 
-    // When Claude session ID is discovered, tell scanner to start watching that file
+    // When Claude session ID is discovered, tell scanner to watch that file
+    // BUT: in recovery mode, stop scanner after initial history upload to avoid duplicates
+    // (onMessage handler will send new messages from the live stream)
     const originalOnSessionFound = session.onSessionFound.bind(session);
     session.onSessionFound = (sessionId: string) => {
         originalOnSessionFound(sessionId);
-        scanner.onNewSession(sessionId);
+        if (resumeClaudeSessionId) {
+            // Recovery mode: scanner already uploaded history, stop it now
+            logger.debug(`[claudeRemoteLauncher] Recovery mode: stopping scanner after history upload (new session: ${sessionId})`);
+            scanner.cleanup();
+        } else {
+            scanner.onNewSession(sessionId);
+        }
     };
 
     // Set up callback to release delayed messages when permission is requested
