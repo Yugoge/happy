@@ -105,11 +105,22 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
         (logMessage) => session.client.sendClaudeSessionMessage(logMessage)
     );
 
-    // Start session scanner to upload .jsonl history to server (for recovery mode)
-    // Scanner reads Claude's local .jsonl files and sends messages to happy-server
-    // so the mobile app can see historical conversations
+    // Extract resume session ID from claudeArgs (if --resume <id> is present)
+    let resumeClaudeSessionId: string | null = null;
+    if (session.claudeArgs) {
+        const resumeIdx = session.claudeArgs.indexOf('--resume');
+        if (resumeIdx !== -1 && resumeIdx + 1 < session.claudeArgs.length) {
+            resumeClaudeSessionId = session.claudeArgs[resumeIdx + 1];
+            logger.debug(`[claudeRemoteLauncher] Found resume session ID: ${resumeClaudeSessionId}`);
+        }
+    }
+
+    // Start session scanner to upload .jsonl history to server
+    // If resuming, immediately scan the original session's .jsonl to upload history
+    // BEFORE Claude starts — so mobile app sees history first, then new messages
     const scanner = await createSessionScanner({
-        sessionId: null, // Don't mark any existing messages as "processed" — send everything
+        sessionId: resumeClaudeSessionId,
+        sendExisting: !!resumeClaudeSessionId, // Send all history for recovery, mark-as-processed otherwise
         workingDirectory: session.path,
         onMessage: (message) => {
             if (message.type !== 'summary') {
