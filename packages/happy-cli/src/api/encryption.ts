@@ -59,6 +59,19 @@ export function libsodiumPublicKeyFromSecretKey(seed: Uint8Array): Uint8Array {
   return new Uint8Array(tweetnacl.box.keyPair.fromSecretKey(secretKey).publicKey);
 }
 
+export function libsodiumDecryptForPrivateKey(bundle: Uint8Array, recipientSeed: Uint8Array): Uint8Array | null {
+  // Derive the actual secret key from the seed (matches libsodiumPublicKeyFromSecretKey)
+  const hashedSeed = new Uint8Array(createHash('sha512').update(recipientSeed).digest());
+  const secretKey = hashedSeed.slice(0, 32);
+
+  // Parse bundle: ephemeral public key (32) + nonce (24) + encrypted data
+  const ephemeralPublicKey = bundle.slice(0, 32);
+  const nonce = bundle.slice(32, 32 + tweetnacl.box.nonceLength);
+  const encrypted = bundle.slice(32 + tweetnacl.box.nonceLength);
+
+  return tweetnacl.box.open(encrypted, nonce, ephemeralPublicKey, secretKey);
+}
+
 export function libsodiumEncryptForPublicKey(data: Uint8Array, recipientPublicKey: Uint8Array): Uint8Array {
   // Generate ephemeral keypair for this encryption
   const ephemeralKeyPair = tweetnacl.box.keyPair();

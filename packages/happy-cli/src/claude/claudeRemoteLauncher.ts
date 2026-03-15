@@ -15,6 +15,7 @@ import { EnhancedMode } from "./loop";
 import { RawJSONLines } from "@/claude/types";
 import { OutgoingMessageQueue } from "./utils/OutgoingMessageQueue";
 import { getToolName } from "./utils/getToolName";
+import { createSessionScanner } from "./utils/sessionScanner";
 
 interface PermissionsField {
     date: number;
@@ -103,6 +104,26 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
     const messageQueue = new OutgoingMessageQueue(
         (logMessage) => session.client.sendClaudeSessionMessage(logMessage)
     );
+
+    // Start session scanner to upload .jsonl history to server (for recovery mode)
+    // Scanner reads Claude's local .jsonl files and sends messages to happy-server
+    // so the mobile app can see historical conversations
+    const scanner = await createSessionScanner({
+        sessionId: null, // Don't mark any existing messages as "processed" — send everything
+        workingDirectory: session.path,
+        onMessage: (message) => {
+            if (message.type !== 'summary') {
+                session.client.sendClaudeSessionMessage(message);
+            }
+        }
+    });
+
+    // When Claude session ID is discovered, tell scanner to start watching that file
+    const originalOnSessionFound = session.onSessionFound.bind(session);
+    session.onSessionFound = (sessionId: string) => {
+        originalOnSessionFound(sessionId);
+        scanner.onNewSession(sessionId);
+    };
 
     // Set up callback to release delayed messages when permission is requested
     permissionHandler.setOnPermissionRequest((toolCallId: string) => {
@@ -439,6 +460,9 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             }
         }
     } finally {
+
+        // Clean up session scanner
+        await scanner.cleanup();
 
         // Clean up permission handler
         permissionHandler.reset();

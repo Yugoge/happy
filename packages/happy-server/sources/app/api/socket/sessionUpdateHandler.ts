@@ -11,7 +11,7 @@ import { Socket } from "socket.io";
 export function sessionUpdateHandler(userId: string, socket: Socket, connection: ClientConnection) {
     socket.on('update-metadata', async (data: any, callback: (response: any) => void) => {
         try {
-            const { sid, metadata, expectedVersion } = data;
+            const { sid, metadata, expectedVersion, dataEncryptionKey } = data;
 
             // Validate input
             if (!sid || typeof metadata !== 'string' || typeof expectedVersion !== 'number') {
@@ -35,13 +35,17 @@ export function sessionUpdateHandler(userId: string, socket: Socket, connection:
                 return null;
             }
 
-            // Update metadata
+            // Update metadata (and optionally dataEncryptionKey for session recovery)
+            const updateData: Record<string, any> = {
+                metadata: metadata,
+                metadataVersion: expectedVersion + 1
+            };
+            if (dataEncryptionKey && typeof dataEncryptionKey === 'string') {
+                updateData.dataEncryptionKey = Buffer.from(dataEncryptionKey, 'base64');
+            }
             const { count } = await db.session.updateMany({
                 where: { id: sid, metadataVersion: expectedVersion },
-                data: {
-                    metadata: metadata,
-                    metadataVersion: expectedVersion + 1
-                }
+                data: updateData
             });
             if (count === 0) {
                 callback({ result: 'version-mismatch', version: session.metadataVersion, metadata: session.metadata });
