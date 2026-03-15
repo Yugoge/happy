@@ -424,9 +424,6 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                     signal: abortController.signal,
                 });
                 
-                // Consume one-time Claude flags after spawn
-                session.consumeOneTimeFlags();
-                
                 if (!exitReason && abortController.signal.aborted) {
                     session.client.closeClaudeSessionTurn('cancelled');
                     session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
@@ -439,6 +436,9 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                     continue;
                 }
             } finally {
+                // Always consume one-time flags (--resume) after first launch attempt,
+                // whether it succeeded, errored, or was aborted
+                session.consumeOneTimeFlags();
 
                 logger.debug('[remote]: launch finally');
 
