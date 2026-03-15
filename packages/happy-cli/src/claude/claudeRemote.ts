@@ -81,10 +81,17 @@ export async function claudeRemote(opts: {
         });
     }
 
-    // Get initial message
-    const initial = await opts.nextMessage();
-    if (!initial) { // No initial message - exit
-        return;
+    // Get initial message — for resume mode, auto-send a continuation prompt
+    let initial: Awaited<ReturnType<typeof opts.nextMessage>>;
+    if (startFrom) {
+        // Resume mode: don't wait for user, auto-activate with continuation prompt
+        logger.debug(`[claudeRemote] Resume mode: auto-sending continuation prompt`);
+        initial = { message: 'Continue from where you left off. Do not recap or acknowledge this message.' };
+    } else {
+        initial = await opts.nextMessage();
+        if (!initial) { // No initial message - exit
+            return;
+        }
     }
 
     // Handle special commands
