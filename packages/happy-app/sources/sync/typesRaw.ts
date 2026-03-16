@@ -63,6 +63,7 @@ const sessionToolCallStartEventSchema = z.object({
 const sessionToolCallEndEventSchema = z.object({
     t: z.literal('tool-call-end'),
     call: z.string(),
+    output: z.string().optional(),
 });
 
 const sessionFileEventSchema = z.object({
@@ -592,10 +593,8 @@ function normalizeSessionEnvelope(
 
     if (envelope.ev.t === 'text') {
         if (envelope.role === 'user') {
-            if (!isSessionProtocolSendEnabled()) {
-                return null;
-            }
-
+            // Always show user messages from session protocol
+            // (needed for scanner-uploaded history and CLI-forwarded messages)
             return {
                 id: messageId,
                 localId,
@@ -663,7 +662,7 @@ function normalizeSessionEnvelope(
             content: [{
                 type: 'tool-result',
                 tool_use_id: envelope.ev.call,
-                content: null,
+                content: envelope.ev.output ?? null,
                 is_error: false,
                 uuid: contentUUID,
                 parentUUID

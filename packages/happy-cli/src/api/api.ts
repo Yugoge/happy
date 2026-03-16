@@ -3,7 +3,7 @@ import { logger } from '@/ui/logger'
 import type { AgentState, CreateSessionResponse, Metadata, Session, Machine, MachineMetadata, DaemonState } from '@/api/types'
 import { ApiSessionClient } from './apiSession';
 import { ApiMachineClient } from './apiMachine';
-import { decodeBase64, encodeBase64, getRandomBytes, encrypt, decrypt, libsodiumEncryptForPublicKey } from './encryption';
+import { decodeBase64, encodeBase64, getRandomBytes, encrypt, decrypt, libsodiumEncryptForPublicKey, libsodiumDecryptForPrivateKey } from './encryption';
 import { PushNotificationClient } from './pushNotifications';
 import { configuration } from '@/configuration';
 import chalk from 'chalk';
@@ -133,6 +133,115 @@ export class ApiClient {
       }
 
       throw new Error(`Failed to get or create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Reconnect to an existing session by ID (for session recovery after reboot)
+   * Fetches the session from server and decrypts its encryption key
+   */
+  async reconnectSession(sessionId: string, metadata: Metadata): Promise<Session | null> {
+    try {
+      // Fetch all sessions and find the target
+      const response = await axios.get(
+        `${configuration.serverUrl}/v1/sessions`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.credential.token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000
+        }
+      );
+
+      const sessions = response.data.sessions as Array<{
+        id: string;
+        seq: number;
+        metadata: string;
+        metadataVersion: number;
+        agentState: string | null;
+        agentStateVersion: number;
+        dataEncryptionKey: string | null;
+        active: boolean;
+      }>;
+
+      const target = sessions.find(s => s.id === sessionId);
+      if (!target) {
+        logger.debug(`[API] Session ${sessionId} not found on server`);
+        return null;
+      }
+
+      // Decrypt the session's encryption key
+      let encryptionKey: Uint8Array;
+      let encryptionVariant: 'legacy' | 'dataKey';
+      if (target.dataEncryptionKey && this.credential.encryption.type === 'dataKey') {
+        let encryptedKeyRaw: Uint8Array;
+        try {
+          encryptedKeyRaw = decodeBase64(target.dataEncryptionKey);
+        } catch (e) {
+          logger.debug(`[API] Failed to decode dataEncryptionKey for session ${sessionId}: ${e instanceof Error ? e.message : e}`);
+          return null;
+        }
+        if (encryptedKeyRaw.length < 1 + 32 + 24 + 1) {
+          logger.debug(`[API] dataEncryptionKey too short for session ${sessionId}: ${encryptedKeyRaw.length} bytes`);
+          return null;
+        }
+        if (encryptedKeyRaw[0] !== 0) {
+          logger.debug(`[API] Unknown dataEncryptionKey version: ${encryptedKeyRaw[0]}`);
+          return null;
+        }
+        const decryptedKey = libsodiumDecryptForPrivateKey(
+          encryptedKeyRaw.slice(1),
+          this.credential.encryption.machineKey
+        );
+        if (!decryptedKey) {
+          logger.debug(`[API] Failed to decrypt dataEncryptionKey for session ${sessionId}`);
+          return null;
+        }
+        encryptionKey = decryptedKey;
+        encryptionVariant = 'dataKey';
+      } else if (this.credential.encryption.type === 'legacy') {
+        encryptionKey = this.credential.encryption.secret;
+        encryptionVariant = 'legacy';
+      } else {
+        logger.debug(`[API] Cannot decrypt session ${sessionId}: no compatible key`);
+        return null;
+      }
+
+      // Reactivate the session on server
+      await axios.post(
+        `${configuration.serverUrl}/v1/sessions/${sessionId}/reactivate`,
+        {
+          metadata: encodeBase64(encrypt(encryptionKey, encryptionVariant, metadata)),
+          dataEncryptionKey: target.dataEncryptionKey,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.credential.token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000
+        }
+      ).catch((err) => {
+        logger.debug(`[API] Session reactivation failed for ${sessionId}:`, err?.message || err);
+      });
+
+      const session: Session = {
+        id: target.id,
+        seq: target.seq,
+        metadata: decrypt(encryptionKey, encryptionVariant, decodeBase64(target.metadata)),
+        metadataVersion: target.metadataVersion,
+        agentState: target.agentState ? decrypt(encryptionKey, encryptionVariant, decodeBase64(target.agentState)) : null,
+        agentStateVersion: target.agentStateVersion,
+        encryptionKey,
+        encryptionVariant
+      };
+
+      logger.debug(`[API] Reconnected to existing session: ${sessionId}`);
+      return session;
+    } catch (error) {
+      logger.debug(`[API] Failed to reconnect session ${sessionId}:`, error);
+      return null;
     }
   }
 
