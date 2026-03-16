@@ -23,6 +23,22 @@ type ClaudeMapperResult = {
     envelopes: SessionEnvelope[];
 };
 
+/**
+ * Extract text output from a tool_result block's content field.
+ * Claude API sends content as either a string or Array<{type: 'text', text: string}>.
+ */
+function extractToolResultOutput(block: { content?: unknown }): string | undefined {
+    if (!block.content) return undefined;
+    if (typeof block.content === 'string') return block.content || undefined;
+    if (Array.isArray(block.content)) {
+        const texts = block.content
+            .filter((c: any) => c.type === 'text' && typeof c.text === 'string')
+            .map((c: any) => c.text);
+        return texts.length > 0 ? texts.join('\n') : undefined;
+    }
+    return undefined;
+}
+
 function pickProviderSubagent(message: RawJSONLines): string | undefined {
     const raw = message as { parent_tool_use_id?: unknown; parentToolUseId?: unknown };
     if (typeof raw.parent_tool_use_id === 'string' && raw.parent_tool_use_id.length > 0) {
@@ -588,6 +604,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                         envelopes.push(createEnvelope('agent', {
                             t: 'tool-call-end',
                             call: block.tool_use_id,
+                            output: extractToolResultOutput(block),
                         }, { turn: turnId, subagent }));
                     }
                 }
@@ -612,6 +629,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     envelopes.push(createEnvelope('agent', {
                         t: 'tool-call-end',
                         call: block.tool_use_id,
+                        output: extractToolResultOutput(block),
                     }, { turn: turnId, subagent }));
                     continue;
                 }
