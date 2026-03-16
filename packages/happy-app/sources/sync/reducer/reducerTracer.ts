@@ -118,6 +118,11 @@ function isUuidLike(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+// Matches CUID2 format used by session protocol subagent IDs (e.g. "clhrd2mkz000001mnxhdbfgva")
+function isCuid2Like(value: string): boolean {
+    return /^[a-z][a-z0-9]{15,}$/.test(value);
+}
+
 // Process orphan messages recursively when their parent becomes available
 function processOrphans(state: TracerState, parentUuid: string, sidechainId: string): TracedMessage[] {
     const results: TracedMessage[] = [];
@@ -264,22 +269,20 @@ export function traceMessages(state: TracerState, messages: NormalizedMessage[])
                     results.push(...orphanResults);
                 }
             } else {
-                // For non-UUID parent references (e.g. subagent ids), treat as standalone
-                // when no parent mapping exists. CLI mapper is expected to resolve/sequence
-                // subagent ownership, so app should not permanently orphan these messages.
-                if (!isUuidLike(parentUuid)) {
+                // Buffer as orphan if parent looks like a UUID or CUID2 (session protocol
+                // subagent IDs are CUID2). The parent tool-call-start will flush them when
+                // it arrives. Other unrecognized formats fall through as standalone.
+                if (isUuidLike(parentUuid) || isCuid2Like(parentUuid)) {
+                    const orphans = state.orphanMessages.get(parentUuid) || [];
+                    orphans.push(message);
+                    state.orphanMessages.set(parentUuid, orphans);
+                } else {
                     state.processedIds.add(message.id);
                     const tracedMessage: TracedMessage = {
                         ...message
                     };
                     results.push(tracedMessage);
-                    continue;
                 }
-
-                // Parent not yet processed - buffer this message as an orphan
-                const orphans = state.orphanMessages.get(parentUuid) || [];
-                orphans.push(message);
-                state.orphanMessages.set(parentUuid, orphans);
             }
         } else {
             // Sidechain message with no parent and not a root - process as standalone

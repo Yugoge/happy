@@ -502,13 +502,25 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                 const args = toToolArgs(block.input);
                 const title = toolTitle(name, block.input);
                 const sessionSubagentForCall = ensureSessionSubagentIdForProviderSubagent(state, call);
-                if (name === 'Task') {
+                if (name === 'Task' || name === 'Agent') {
                     const prompt = pickTaskPrompt(block.input);
                     if (prompt) {
                         queueTaskPromptSubagent(state, prompt, call);
                     }
                     setSubagentTitle(state, sessionSubagentForCall, pickTaskTitle(block.input) ?? prompt);
                     getHiddenParentToolCalls(state).add(call);
+
+                    // Emit tool-call-start using the session subagent CUID2 as call id.
+                    // This lets the app tracer link subsequent subagent messages (which carry
+                    // the same CUID2 as envelope.subagent / parentUUID) to this tool call.
+                    envelopes.push(createEnvelope('agent', {
+                        t: 'tool-call-start',
+                        call: sessionSubagentForCall,
+                        name,
+                        title,
+                        description: title,
+                        args,
+                    }, { turn: turnId, subagent }));
 
                     const buffered = consumeBufferedSubagentMessages(state, call);
                     for (const bufferedMessage of buffered) {
@@ -594,6 +606,12 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                         if (getHiddenParentToolCalls(state).has(block.tool_use_id)) {
                             if (sessionSubagentForToolResult) {
                                 maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
+                                // Emit tool-call-end with the CUID2 that was used in tool-call-start
+                                envelopes.push(createEnvelope('agent', {
+                                    t: 'tool-call-end',
+                                    call: sessionSubagentForToolResult,
+                                    output: extractToolResultOutput(block),
+                                }, { turn: turnId, subagent }));
                             }
                             getHiddenParentToolCalls(state).delete(block.tool_use_id);
                             continue;
@@ -619,6 +637,12 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     if (getHiddenParentToolCalls(state).has(block.tool_use_id)) {
                         if (sessionSubagentForToolResult) {
                             maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
+                            // Emit tool-call-end with the CUID2 that was used in tool-call-start
+                            envelopes.push(createEnvelope('agent', {
+                                t: 'tool-call-end',
+                                call: sessionSubagentForToolResult,
+                                output: extractToolResultOutput(block),
+                            }, { turn: turnId, subagent }));
                         }
                         getHiddenParentToolCalls(state).delete(block.tool_use_id);
                         continue;
