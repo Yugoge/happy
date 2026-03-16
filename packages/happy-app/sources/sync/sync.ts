@@ -63,6 +63,7 @@ type OutboxMessage = {
 
 class Sync {
     private static readonly BACKGROUND_SEND_TIMEOUT_MS = 30_000;
+    private static readonly SESSION_READY_TIMEOUT_MS = 10_000;
     encryption!: Encryption;
     serverID!: string;
     anonID!: string;
@@ -501,6 +502,12 @@ class Sync {
         const normalizedMessage = normalizeRawMessage(localId, localId, createdAt, content);
         if (normalizedMessage) {
             this.enqueueMessages(sessionId, [normalizedMessage]);
+        }
+
+        // Wait for CLI agent to be ready before sending
+        const ready = await this.waitForAgentReady(sessionId);
+        if (!ready) {
+            log.log(`Session ${sessionId} not ready after timeout, sending anyway`);
         }
 
         let pending = this.pendingOutbox.get(sessionId);
@@ -2257,6 +2264,39 @@ class Sync {
                 voiceHooks.onSessionOnline(s.id, s.metadata ?? undefined);
             }
         }
+    }
+
+    /**
+     * Waits for the CLI agent to be ready by watching agentStateVersion.
+     *
+     * When a session is created, agentStateVersion starts at 0. Once the CLI
+     * connects and sends its first state update (via updateAgentState()), the
+     * version becomes > 0. This serves as a reliable signal that the CLI's
+     * WebSocket is connected and ready to receive messages.
+     */
+    private waitForAgentReady(sessionId: string, timeoutMs: number = Sync.SESSION_READY_TIMEOUT_MS): Promise<boolean> {
+        const startedAt = Date.now();
+
+        return new Promise((resolve) => {
+            const done = (ready: boolean, reason: string) => {
+                clearTimeout(timeout);
+                unsubscribe();
+                const duration = Date.now() - startedAt;
+                log.log(`Session ${sessionId} ${reason} after ${duration}ms`);
+                resolve(ready);
+            };
+
+            const check = () => {
+                const s = storage.getState().sessions[sessionId];
+                if (s && s.agentStateVersion > 0) {
+                    done(true, `ready (agentStateVersion=${s.agentStateVersion})`);
+                }
+            };
+
+            const timeout = setTimeout(() => done(false, 'ready wait timed out'), timeoutMs);
+            const unsubscribe = storage.subscribe(check);
+            check(); // Check current state immediately
+        });
     }
 
 }

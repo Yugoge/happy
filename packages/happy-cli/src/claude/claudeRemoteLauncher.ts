@@ -15,6 +15,7 @@ import { EnhancedMode } from "./loop";
 import { RawJSONLines } from "@/claude/types";
 import { OutgoingMessageQueue } from "./utils/OutgoingMessageQueue";
 import { getToolName } from "./utils/getToolName";
+import { createSessionScanner } from "./utils/sessionScanner";
 
 interface PermissionsField {
     date: number;
@@ -103,6 +104,35 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
     const messageQueue = new OutgoingMessageQueue(
         (logMessage) => session.client.sendClaudeSessionMessage(logMessage)
     );
+
+    // Extract resume session ID from claudeArgs (if --resume <id> is present)
+    let resumeClaudeSessionId: string | null = null;
+    if (session.claudeArgs) {
+        const resumeIdx = session.claudeArgs.indexOf('--resume');
+        if (resumeIdx !== -1 && resumeIdx + 1 < session.claudeArgs.length) {
+            resumeClaudeSessionId = session.claudeArgs[resumeIdx + 1];
+            logger.debug(`[claudeRemoteLauncher] Found resume session ID: ${resumeClaudeSessionId}`);
+        }
+    }
+
+    // Recovery mode only: upload .jsonl history to server before Claude starts
+    let scanner: Awaited<ReturnType<typeof createSessionScanner>> | null = null;
+    if (resumeClaudeSessionId) {
+        scanner = await createSessionScanner({
+            sessionId: resumeClaudeSessionId,
+            sendExisting: true,
+            workingDirectory: session.path,
+            onMessage: (message) => {
+                if (message.type !== 'summary') {
+                    session.client.sendClaudeSessionMessage(message);
+                }
+            }
+        });
+        // Stop scanner after upload — onMessage handler will send new messages live
+        await scanner.cleanup();
+        scanner = null;
+        logger.debug(`[claudeRemoteLauncher] Recovery mode: history uploaded and scanner stopped`);
+    }
 
     // Set up callback to release delayed messages when permission is requested
     permissionHandler.setOnPermissionRequest((toolCallId: string) => {
@@ -394,9 +424,6 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                     signal: abortController.signal,
                 });
                 
-                // Consume one-time Claude flags after spawn
-                session.consumeOneTimeFlags();
-                
                 if (!exitReason && abortController.signal.aborted) {
                     session.client.closeClaudeSessionTurn('cancelled');
                     session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
@@ -409,6 +436,9 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                     continue;
                 }
             } finally {
+                // Always consume one-time flags (--resume) after first launch attempt,
+                // whether it succeeded, errored, or was aborted
+                session.consumeOneTimeFlags();
 
                 logger.debug('[remote]: launch finally');
 

@@ -19,8 +19,10 @@ const INTERNAL_CLAUDE_EVENT_TYPES = new Set([
 
 export async function createSessionScanner(opts: {
     sessionId: string | null,
-    workingDirectory: string
-    onMessage: (message: RawJSONLines) => void
+    workingDirectory: string,
+    onMessage: (message: RawJSONLines) => void,
+    /** If true, send all existing messages immediately instead of marking them as processed */
+    sendExisting?: boolean,
 }) {
 
     // Resolve project directory
@@ -33,12 +35,20 @@ export async function createSessionScanner(opts: {
     let watchers = new Map<string, (() => void)>();
     let processedMessageKeys = new Set<string>();
 
-    // Mark existing messages as processed and start watching the initial session
+    // Mark existing messages as processed (or send them if sendExisting is true)
     if (opts.sessionId) {
         let messages = await readSessionLog(projectDir, opts.sessionId);
-        logger.debug(`[SESSION_SCANNER] Marking ${messages.length} existing messages as processed from session ${opts.sessionId}`);
-        for (let m of messages) {
-            processedMessageKeys.add(messageKey(m));
+        if (opts.sendExisting) {
+            logger.debug(`[SESSION_SCANNER] Sending ${messages.length} existing messages from session ${opts.sessionId}`);
+            for (let m of messages) {
+                processedMessageKeys.add(messageKey(m));
+                opts.onMessage(m);
+            }
+        } else {
+            logger.debug(`[SESSION_SCANNER] Marking ${messages.length} existing messages as processed from session ${opts.sessionId}`);
+            for (let m of messages) {
+                processedMessageKeys.add(messageKey(m));
+            }
         }
         // IMPORTANT: Also start watching the initial session file because Claude Code
         // may continue writing to it even after creating a new session with --resume

@@ -23,6 +23,22 @@ type ClaudeMapperResult = {
     envelopes: SessionEnvelope[];
 };
 
+/**
+ * Extract text output from a tool_result block's content field.
+ * Claude API sends content as either a string or Array<{type: 'text', text: string}>.
+ */
+function extractToolResultOutput(block: { content?: unknown }): string | undefined {
+    if (!block.content) return undefined;
+    if (typeof block.content === 'string') return block.content || undefined;
+    if (Array.isArray(block.content)) {
+        const texts = block.content
+            .filter((c: any) => c.type === 'text' && typeof c.text === 'string')
+            .map((c: any) => c.text);
+        return texts.length > 0 ? texts.join('\n') : undefined;
+    }
+    return undefined;
+}
+
 function pickProviderSubagent(message: RawJSONLines): string | undefined {
     const raw = message as { parent_tool_use_id?: unknown; parentToolUseId?: unknown };
     if (typeof raw.parent_tool_use_id === 'string' && raw.parent_tool_use_id.length > 0) {
@@ -549,14 +565,57 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
             };
         }
 
-        const turnId = ensureTurn(state, envelopes);
-        if (message.isSidechain) {
+        // Non-sidechain user messages with array content: extract text as user envelope,
+        // and handle tool_results as agent envelopes (they are Claude's tool responses)
+        if (!message.isSidechain) {
+            // Collect user text from blocks
+            const userTexts: string[] = [];
+            const toolResultBlocks: typeof blocks = [];
+            for (const block of blocks) {
+                if (block.type === 'text' && typeof block.text === 'string' && block.text.trim().length > 0) {
+                    userTexts.push(block.text);
+                } else if (block.type === 'tool_result') {
+                    toolResultBlocks.push(block);
+                }
+            }
+
+            // Emit user text as a single user envelope (same as string path)
+            if (userTexts.length > 0) {
+                closeTurn(state, 'completed', envelopes);
+                envelopes.push(createEnvelope('user', { t: 'text', text: userTexts.join('\n') }));
+            }
+
+            // Handle tool_results as agent envelopes (need a turn)
+            if (toolResultBlocks.length > 0) {
+                const turnId = ensureTurn(state, envelopes);
+                for (const block of toolResultBlocks) {
+                    if (block.type === 'tool_result' && typeof block.tool_use_id === 'string' && block.tool_use_id.length > 0) {
+                        const sessionSubagentForToolResult = getSessionSubagentIdForProviderSubagent(state, block.tool_use_id);
+                        if (getHiddenParentToolCalls(state).has(block.tool_use_id)) {
+                            if (sessionSubagentForToolResult) {
+                                maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
+                            }
+                            getHiddenParentToolCalls(state).delete(block.tool_use_id);
+                            continue;
+                        }
+                        if (sessionSubagentForToolResult) {
+                            maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
+                        }
+                        envelopes.push(createEnvelope('agent', {
+                            t: 'tool-call-end',
+                            call: block.tool_use_id,
+                            output: extractToolResultOutput(block),
+                        }, { turn: turnId, subagent }));
+                    }
+                }
+            }
+        } else {
+            // Sidechain user messages: keep original behavior (agent role)
+            const turnId = ensureTurn(state, envelopes);
             maybeEmitSubagentStart(state, turnId, subagent, envelopes);
-        }
-        for (const block of blocks) {
-            if (block.type === 'tool_result' && typeof block.tool_use_id === 'string' && block.tool_use_id.length > 0) {
-                const sessionSubagentForToolResult = getSessionSubagentIdForProviderSubagent(state, block.tool_use_id);
-                if (!message.isSidechain) {
+            for (const block of blocks) {
+                if (block.type === 'tool_result' && typeof block.tool_use_id === 'string' && block.tool_use_id.length > 0) {
+                    const sessionSubagentForToolResult = getSessionSubagentIdForProviderSubagent(state, block.tool_use_id);
                     if (getHiddenParentToolCalls(state).has(block.tool_use_id)) {
                         if (sessionSubagentForToolResult) {
                             maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
@@ -567,16 +626,17 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     if (sessionSubagentForToolResult) {
                         maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
                     }
+                    envelopes.push(createEnvelope('agent', {
+                        t: 'tool-call-end',
+                        call: block.tool_use_id,
+                        output: extractToolResultOutput(block),
+                    }, { turn: turnId, subagent }));
+                    continue;
                 }
-                envelopes.push(createEnvelope('agent', {
-                    t: 'tool-call-end',
-                    call: block.tool_use_id,
-                }, { turn: turnId, subagent }));
-                continue;
-            }
 
-            if (block.type === 'text' && typeof block.text === 'string' && block.text.trim().length > 0) {
-                envelopes.push(createEnvelope('agent', { t: 'text', text: block.text }, { turn: turnId, subagent }));
+                if (block.type === 'text' && typeof block.text === 'string' && block.text.trim().length > 0) {
+                    envelopes.push(createEnvelope('agent', { t: 'text', text: block.text }, { turn: turnId, subagent }));
+                }
             }
         }
 

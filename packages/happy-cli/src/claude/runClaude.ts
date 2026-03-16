@@ -43,6 +43,8 @@ export interface StartOptions {
     noSandbox?: boolean
     /** JavaScript runtime to use for spawning Claude Code (default: 'node') */
     jsRuntime?: JsRuntime
+    /** Existing happy session ID to reconnect to (for recovery after reboot) */
+    recoverSessionId?: string
 }
 
 export async function runClaude(credentials: Credentials, options: StartOptions = {}): Promise<void> {
@@ -50,11 +52,11 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     logger.debug(`[CLAUDE] This is the Claude agent, NOT Gemini`);
     
     const workingDirectory = process.cwd();
-    const sessionTag = randomUUID();
+    const sessionTag = options.recoverSessionId || randomUUID();
 
     // Log environment info at startup
     logger.debugLargeJson('[START] Happy process started', getEnvironmentInfo());
-    logger.debug(`[START] Options: startedBy=${options.startedBy}, startingMode=${options.startingMode}`);
+    logger.debug(`[START] Options: startedBy=${options.startedBy}, startingMode=${options.startingMode}, recoverSession=${options.recoverSessionId || 'none'}`);
 
     // Validate daemon spawn requirements - fail fast on invalid config
     if (options.startedBy === 'daemon' && options.startingMode === 'local') {
@@ -116,7 +118,26 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
         sandbox: sandboxConfig?.enabled ? sandboxConfig : null,
         dangerouslySkipPermissions,
     };
-    const response = await api.getOrCreateSession({ tag: sessionTag, metadata, state });
+    const response = options.recoverSessionId
+        ? await api.reconnectSession(options.recoverSessionId, metadata)
+        : await api.getOrCreateSession({ tag: sessionTag, metadata, state });
+
+    // If recovering, extract Claude session ID from server metadata and pass --resume
+    if (options.recoverSessionId && response) {
+        const serverMeta = response.metadata as Metadata | null;
+        const claudeSessionId = serverMeta?.claudeSessionId;
+        if (claudeSessionId) {
+            logger.debug(`[START] Recovery: found claudeSessionId=${claudeSessionId} in server metadata, adding --resume`);
+            if (!options.claudeArgs) options.claudeArgs = [];
+            // Remove any existing --resume to avoid duplicates
+            const resumeIdx = options.claudeArgs.indexOf('--resume');
+            if (resumeIdx === -1) {
+                options.claudeArgs.push('--resume', claudeSessionId);
+            }
+        } else {
+            logger.debug(`[START] Recovery: no claudeSessionId in server metadata — Claude will start fresh`);
+        }
+    }
 
     // Handle server unreachable case - run Claude locally with hot reconnection
     // Note: connectionState.notifyOffline() was already called by api.ts with error details

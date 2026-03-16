@@ -49,24 +49,24 @@ export async function claudeRemote(opts: {
     }
     
     // Extract --resume from claudeArgs if present (for first spawn)
+    // Track separately from startFrom — isResumeFromFlag is ONLY true for --resume CLI flag,
+    // not for normal session continuation via opts.sessionId
+    let isResumeFromFlag = false;
     if (!startFrom && opts.claudeArgs) {
         for (let i = 0; i < opts.claudeArgs.length; i++) {
             if (opts.claudeArgs[i] === '--resume') {
-                // Check if next arg exists and looks like a session ID
                 if (i + 1 < opts.claudeArgs.length) {
                     const nextArg = opts.claudeArgs[i + 1];
-                    // If next arg doesn't start with dash and contains dashes, it's likely a UUID
                     if (!nextArg.startsWith('-') && nextArg.includes('-')) {
                         startFrom = nextArg;
+                        isResumeFromFlag = true;
                         logger.debug(`[claudeRemote] Found --resume with session ID: ${startFrom}`);
                         break;
                     } else {
-                        // Just --resume without UUID - SDK doesn't support this
                         logger.debug('[claudeRemote] Found --resume without session ID - not supported in remote mode');
                         break;
                     }
                 } else {
-                    // --resume at end of args - SDK doesn't support this
                     logger.debug('[claudeRemote] Found --resume without session ID - not supported in remote mode');
                     break;
                 }
@@ -81,10 +81,18 @@ export async function claudeRemote(opts: {
         });
     }
 
-    // Get initial message
-    const initial = await opts.nextMessage();
-    if (!initial) { // No initial message - exit
-        return;
+    // Get initial message — for --resume flag sessions, auto-send continuation prompt
+    // so user doesn't need to send a message to activate the restored session.
+    // Normal sessions (including session continuation via sessionId) always wait for user.
+    let initial: Awaited<ReturnType<typeof opts.nextMessage>>;
+    if (isResumeFromFlag) {
+        logger.debug(`[claudeRemote] Resume mode (--resume flag): auto-sending continuation prompt`);
+        initial = { message: 'Continue.', mode: { permissionMode: 'default' as any } };
+    } else {
+        initial = await opts.nextMessage();
+        if (!initial) { // No initial message - exit
+            return;
+        }
     }
 
     // Handle special commands
@@ -113,11 +121,12 @@ export async function claudeRemote(opts: {
 
     // Prepare SDK options
     let mode = initial.mode;
+    const mappedPermissionMode = mapToClaudeMode(initial.mode.permissionMode);
     const sdkOptions: QueryOptions = {
         cwd: opts.path,
         resume: startFrom ?? undefined,
         mcpServers: opts.mcpServers,
-        permissionMode: mapToClaudeMode(initial.mode.permissionMode),
+        permissionMode: mappedPermissionMode,
         model: initial.mode.model,
         fallbackModel: initial.mode.fallbackModel,
         customSystemPrompt: initial.mode.customSystemPrompt ? initial.mode.customSystemPrompt + '\n\n' + systemPrompt : undefined,
