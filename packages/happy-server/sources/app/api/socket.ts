@@ -111,14 +111,14 @@ export function startSocket(app: Fastify) {
             });
         }
 
-        socket.on('disconnect', () => {
+        socket.on('disconnect', (reason) => {
             websocketEventsCounter.inc({ event_type: 'disconnect' });
 
             // Cleanup connections
             eventRouter.removeConnection(userId, connection);
             decrementWebSocketConnection(connection.connectionType);
 
-            log({ module: 'websocket' }, `User disconnected: ${userId}`);
+            log({ module: 'websocket' }, `User disconnected: ${userId}, reason: ${reason}, type: ${connection.connectionType}, socketId: ${socket.id}`);
 
             // Broadcast daemon offline status
             if (connection.connectionType === 'machine-scoped') {

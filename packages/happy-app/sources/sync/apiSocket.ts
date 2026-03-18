@@ -217,8 +217,7 @@ class ApiSocket {
 
         // Connection events
         this.socket.on('connect', () => {
-            // console.log('🔌 SyncSocket: Connected, recovered: ' + this.socket?.recovered);
-            // console.log('🔌 SyncSocket: Socket ID:', this.socket?.id);
+            console.log(`🔌 SyncSocket: Connected, recovered: ${this.socket?.recovered}, id: ${this.socket?.id}, ts: ${new Date().toISOString()}`);
             this.updateStatus('connected');
             if (!this.socket?.recovered) {
                 this.reconnectedListeners.forEach(listener => listener());
@@ -226,18 +225,18 @@ class ApiSocket {
         });
 
         this.socket.on('disconnect', (reason) => {
-            // console.log('🔌 SyncSocket: Disconnected', reason);
+            console.log(`🔌 SyncSocket: Disconnected, reason: ${reason}, ts: ${new Date().toISOString()}`);
             this.updateStatus('disconnected');
         });
 
         // Error events
         this.socket.on('connect_error', (error) => {
-            // console.error('🔌 SyncSocket: Connection error', error);
+            console.log(`🔌 SyncSocket: Connection error: ${error?.message}, ts: ${new Date().toISOString()}`);
             this.updateStatus('error');
         });
 
         this.socket.on('error', (error) => {
-            // console.error('🔌 SyncSocket: Error', error);
+            console.log(`🔌 SyncSocket: Error: ${error}, ts: ${new Date().toISOString()}`);
             this.updateStatus('error');
         });
 
