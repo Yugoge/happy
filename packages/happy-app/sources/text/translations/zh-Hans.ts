@@ -506,6 +506,7 @@ export const zhHans: TranslationStructure = {
             applyChanges: '更新文件',
             viewDiff: '当前文件更改',
             question: '问题',
+            agent: '代理',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `终端(命令: ${cmd})`,

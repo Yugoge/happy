@@ -5,7 +5,7 @@
  * Environment files should be loaded using Node's --env-file flag
  */
 
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import packageJson from '../package.json'
@@ -28,8 +28,21 @@ class Configuration {
   public readonly disableCaffeinate: boolean
 
   constructor() {
-    // Server configuration - priority: parameter > environment > default
-    this.serverUrl = process.env.HAPPY_SERVER_URL || 'https://api.cluster-fluster.com'
+    // Server configuration - priority: env var > settings.json > hardcoded default
+    const happyHomeDir = process.env.HAPPY_HOME_DIR?.replace(/^~/, homedir()) ?? join(homedir(), '.happy')
+    let settingsServerUrl: string | undefined
+    try {
+      const settingsPath = join(happyHomeDir, 'settings.json')
+      if (existsSync(settingsPath)) {
+        const raw = JSON.parse(readFileSync(settingsPath, 'utf8'))
+        if (typeof raw.serverUrl === 'string' && raw.serverUrl.length > 0) {
+          settingsServerUrl = raw.serverUrl
+        }
+      }
+    } catch {
+      // ignore - fall through to default
+    }
+    this.serverUrl = process.env.HAPPY_SERVER_URL || settingsServerUrl || 'https://api.cluster-fluster.com'
     this.webappUrl = process.env.HAPPY_WEBAPP_URL || 'https://app.happy.engineering'
 
     // Check if we're running as daemon based on process args

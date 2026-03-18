@@ -109,6 +109,7 @@ interface StorageState {
     applyPurchases: (customerInfo: CustomerInfo) => void;
     applyProfile: (profile: Profile) => void;
     applyGitStatus: (sessionId: string, status: GitStatus | null) => void;
+    applySessionUsage: (sessionId: string, usage: { inputTokens: number; outputTokens: number; cacheCreation: number; cacheRead: number; contextSize: number; timestamp: number }) => void;
     applyNativeUpdateStatus: (status: { available: boolean; updateUrl?: string } | null) => void;
     isMutableToolCall: (sessionId: string, callId: string) => boolean;
     setRealtimeStatus: (status: 'disconnected' | 'connecting' | 'connected' | 'error') => void;
@@ -613,8 +614,22 @@ export const storage = create<StorageState>()((set, get) => {
                     }
                 };
             } else {
+                // Extract latestUsage from reducerState and update session
+                const session = state.sessions[sessionId];
+                let updatedSessions = state.sessions;
+                if (session && existingSession.reducerState.latestUsage) {
+                    updatedSessions = {
+                        ...state.sessions,
+                        [sessionId]: {
+                            ...session,
+                            latestUsage: { ...existingSession.reducerState.latestUsage }
+                        }
+                    };
+                }
+
                 result = {
                     ...state,
+                    sessions: updatedSessions,
                     sessionMessages: {
                         ...state.sessionMessages,
                         [sessionId]: {
@@ -682,6 +697,34 @@ export const storage = create<StorageState>()((set, get) => {
                 sessionGitStatus: {
                     ...state.sessionGitStatus,
                     [sessionId]: status
+                }
+            };
+        }),
+        applySessionUsage: (sessionId: string, usage: { inputTokens: number; outputTokens: number; cacheCreation: number; cacheRead: number; contextSize: number; timestamp: number }) => set((state) => {
+            const existingSessionMessages = state.sessionMessages[sessionId];
+            const session = state.sessions[sessionId];
+            if (!session) {
+                return state;
+            }
+            // Only update if this usage is newer than what we have
+            const currentTimestamp = existingSessionMessages?.reducerState.latestUsage?.timestamp ?? session.latestUsage?.timestamp;
+            if (currentTimestamp !== undefined && usage.timestamp <= currentTimestamp) {
+                return state;
+            }
+            // Mutate reducerState in-place if sessionMessages exists (consistent with existing applyMessages pattern)
+            // On web cold start sessionMessages may not yet be populated, but session always is — writing to
+            // session.latestUsage is enough for SessionView's fallback rendering path to display context remaining.
+            if (existingSessionMessages) {
+                existingSessionMessages.reducerState.latestUsage = { ...usage };
+            }
+            return {
+                ...state,
+                sessions: {
+                    ...state.sessions,
+                    [sessionId]: {
+                        ...session,
+                        latestUsage: { ...usage }
+                    }
                 }
             };
         }),

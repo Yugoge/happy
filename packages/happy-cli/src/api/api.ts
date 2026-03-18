@@ -208,11 +208,24 @@ export class ApiClient {
         return null;
       }
 
+      // Preserve claudeSessionId from the server's stored metadata so recovery
+      // doesn't silently wipe the link between the happy session and the Claude session.
+      let mergedMetadata = metadata;
+      try {
+        const serverMetadata = decrypt(encryptionKey, encryptionVariant, decodeBase64(target.metadata)) as Metadata;
+        if (serverMetadata?.claudeSessionId && !metadata.claudeSessionId) {
+          mergedMetadata = { ...metadata, claudeSessionId: serverMetadata.claudeSessionId };
+          logger.debug(`[API] Preserving claudeSessionId=${serverMetadata.claudeSessionId} from server metadata`);
+        }
+      } catch {
+        // Non-fatal: proceed with original metadata
+      }
+
       // Reactivate the session on server
       await axios.post(
         `${configuration.serverUrl}/v1/sessions/${sessionId}/reactivate`,
         {
-          metadata: encodeBase64(encrypt(encryptionKey, encryptionVariant, metadata)),
+          metadata: encodeBase64(encrypt(encryptionKey, encryptionVariant, mergedMetadata)),
           dataEncryptionKey: target.dataEncryptionKey,
         },
         {

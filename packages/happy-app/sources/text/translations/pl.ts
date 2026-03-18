@@ -514,6 +514,7 @@ export const pl: TranslationStructure = {
             applyChanges: 'Zaktualizuj plik',
             viewDiff: 'Bieżące zmiany pliku',
             question: 'Pytanie',
+            agent: 'Agent',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Terminal(cmd: ${cmd})`,

@@ -37,6 +37,10 @@ const agentEventSchema = z.discriminatedUnion('type', [z.object({
     endsAt: z.number(),
 }), z.object({
     type: z.literal('ready'),
+}), z.object({
+    type: z.literal('wrapped'),
+    label: z.string(),
+    content: z.string(),
 })]);
 export type AgentEvent = z.infer<typeof agentEventSchema>;
 
@@ -575,6 +579,22 @@ function normalizeSessionEnvelope(
             return null;
         }
 
+        // Wrapped service events: "\x01WRAP\x01label\x01content" → wrapped agent event
+        if (envelope.ev.text.startsWith('\x01WRAP\x01')) {
+            const parts = envelope.ev.text.substring(6).split('\x01');
+            const label = parts[0] || '';
+            const content = parts.slice(1).join('\x01');
+            return {
+                id: messageId,
+                localId,
+                createdAt: messageCreatedAt,
+                role: 'event',
+                isSidechain: false,
+                content: { type: 'wrapped', label, content } as AgentEvent,
+                meta
+            } satisfies NormalizedMessage;
+        }
+
         return {
             id: messageId,
             localId,
@@ -593,8 +613,6 @@ function normalizeSessionEnvelope(
 
     if (envelope.ev.t === 'text') {
         if (envelope.role === 'user') {
-            // Always show user messages from session protocol
-            // (needed for scanner-uploaded history and CLI-forwarded messages)
             return {
                 id: messageId,
                 localId,
@@ -711,7 +729,14 @@ function normalizeSessionEnvelope(
     return null;
 }
 
+
 export function normalizeRawMessage(id: string, localId: string | null, createdAt: number, raw: RawRecord): NormalizedMessage | null {
+    // Skip legacy duplex messages — these are backward-compatibility copies sent alongside
+    // session protocol envelopes. New clients already process the session protocol version.
+    if ((raw as any).meta?.duplex) {
+        return null;
+    }
+
     // Zod transform handles normalization during validation
     let parsed = rawRecordSchema.safeParse(raw);
     if (!parsed.success) {
@@ -753,9 +778,16 @@ export function normalizeRawMessage(id: string, localId: string | null, createdA
                 return null;
             }
 
-            // Skip compact summary messages
+            // Convert compact summary messages to visible event markers
             if (raw.content.data.isCompactSummary) {
-                return null;
+                return {
+                    id,
+                    localId,
+                    createdAt,
+                    role: 'event',
+                    content: { type: 'message', message: 'Context compacted' } as AgentEvent,
+                    isSidechain: false,
+                };
             }
 
             // Handle Assistant messages (including sidechains)

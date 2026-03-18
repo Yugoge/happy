@@ -540,6 +540,7 @@ export const it: TranslationStructure = {
             applyChanges: 'Aggiorna file',
             viewDiff: 'Modifiche file attuali',
             question: 'Domanda',
+            agent: 'Agente',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Terminale(cmd: ${cmd})`,

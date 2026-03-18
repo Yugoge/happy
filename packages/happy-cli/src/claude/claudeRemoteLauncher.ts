@@ -353,6 +353,7 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             abortFuture = new Future<void>();
             let modeHash: string | null = null;
             let mode: EnhancedMode | null = null;
+            let metaMessageScanner: Awaited<ReturnType<typeof createSessionScanner>> | null = null;
             try {
                 const remoteResult = await claudeRemote({
                     sessionId: session.sessionId,
@@ -398,6 +399,21 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                         // Update converter's session ID when new session is found
                         sdkToLogConverter.updateSessionId(sessionId);
                         session.onSessionFound(sessionId);
+                        // For new (non-restore) sessions, start a JSONL meta-scanner to pick up
+                        // isMeta=true skill prompts. The SDK writes these to JSONL but does NOT
+                        // emit them as live stream events, so we must read them from the file.
+                        if (!resumeClaudeSessionId && !metaMessageScanner) {
+                            createSessionScanner({
+                                sessionId,
+                                workingDirectory: session.path,
+                                sendExisting: false,
+                                onMessage: (message) => {
+                                    if ((message as { isMeta?: boolean }).isMeta === true) {
+                                        session.client.sendClaudeSessionMessage(message);
+                                    }
+                                },
+                            }).then(s => { metaMessageScanner = s; });
+                        }
                     },
                     onThinkingChange: session.onThinkingChange,
                     claudeEnvVars: session.claudeEnvVars,
@@ -466,6 +482,10 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                 permissionHandler.reset();
                 modeHash = null;
                 mode = null;
+                if (metaMessageScanner) {
+                    await metaMessageScanner.cleanup();
+                    metaMessageScanner = null;
+                }
             }
         }
     } finally {

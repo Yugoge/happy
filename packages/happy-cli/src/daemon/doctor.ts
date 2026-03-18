@@ -5,6 +5,7 @@
  * Helps diagnose and fix issues with hung or orphaned processes
  */
 
+import fs from 'fs';
 import psList from 'ps-list';
 import spawn from 'cross-spawn';
 
@@ -57,22 +58,42 @@ export async function findAllHappyProcesses(): Promise<Array<{ pid: number, comm
 }
 
 /**
- * Find all runaway Happy CLI processes that should be killed
+ * Read HAPPY_HOME_DIR from a process's environment via /proc/<pid>/environ (Linux only).
+ * Returns empty string if not set or unreadable.
+ */
+function getProcessHappyHomeDir(pid: number): string {
+  if (process.platform !== 'linux') return '';
+  try {
+    const environ = fs.readFileSync(`/proc/${pid}/environ`);
+    const entry = environ.toString().split('\0').find((e: string) => e.startsWith('HAPPY_HOME_DIR='));
+    return entry ? entry.slice('HAPPY_HOME_DIR='.length) : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Find all runaway Happy CLI processes that should be killed.
+ * Only targets daemon processes belonging to the same HAPPY_HOME_DIR instance,
+ * so that jade and happy daemons never kill each other.
  */
 export async function findRunawayHappyProcesses(): Promise<Array<{ pid: number, command: string }>> {
   const allProcesses = await findAllHappyProcesses();
-  
-  // Filter to just runaway processes (excluding current process)
+  const myHomeDir = process.env['HAPPY_HOME_DIR'] ?? '';
+
+  // Only kill stale daemon processes - never kill sessions.
+  // Sessions survive daemon restarts; the new daemon reconnects to them.
+  // Only kill daemons from the same HAPPY_HOME_DIR to avoid killing a sibling daemon instance.
   return allProcesses
-    .filter(p => 
-      p.pid !== process.pid && (
+    .filter(p =>
+      p.pid !== process.pid &&
+      p.pid !== process.ppid && (
         p.type === 'daemon' ||
         p.type === 'dev-daemon' ||
-        p.type === 'daemon-spawned-session' ||
-        p.type === 'dev-daemon-spawned' ||
         p.type === 'daemon-version-check' ||
         p.type === 'dev-daemon-version-check'
-      )
+      ) &&
+      getProcessHappyHomeDir(p.pid) === myHomeDir
     )
     .map(p => ({ pid: p.pid, command: p.command }));
 }

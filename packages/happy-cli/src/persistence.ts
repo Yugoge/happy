@@ -214,6 +214,8 @@ interface Settings {
   // Schema version for backwards compatibility
   schemaVersion: number
   onboardingCompleted: boolean
+  // Persisted server URL - overrides hardcoded default, but env var still wins
+  serverUrl?: string
   // This ID is used as the actual database ID on the server
   // All machine operations use this ID
   machineId?: string

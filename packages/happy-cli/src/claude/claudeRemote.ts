@@ -49,9 +49,6 @@ export async function claudeRemote(opts: {
     }
     
     // Extract --resume from claudeArgs if present (for first spawn)
-    // Track separately from startFrom — isResumeFromFlag is ONLY true for --resume CLI flag,
-    // not for normal session continuation via opts.sessionId
-    let isResumeFromFlag = false;
     if (!startFrom && opts.claudeArgs) {
         for (let i = 0; i < opts.claudeArgs.length; i++) {
             if (opts.claudeArgs[i] === '--resume') {
@@ -59,7 +56,6 @@ export async function claudeRemote(opts: {
                     const nextArg = opts.claudeArgs[i + 1];
                     if (!nextArg.startsWith('-') && nextArg.includes('-')) {
                         startFrom = nextArg;
-                        isResumeFromFlag = true;
                         logger.debug(`[claudeRemote] Found --resume with session ID: ${startFrom}`);
                         break;
                     } else {
@@ -81,18 +77,10 @@ export async function claudeRemote(opts: {
         });
     }
 
-    // Get initial message — for --resume flag sessions, auto-send continuation prompt
-    // so user doesn't need to send a message to activate the restored session.
-    // Normal sessions (including session continuation via sessionId) always wait for user.
-    let initial: Awaited<ReturnType<typeof opts.nextMessage>>;
-    if (isResumeFromFlag) {
-        logger.debug(`[claudeRemote] Resume mode (--resume flag): auto-sending continuation prompt`);
-        initial = { message: 'Continue.', mode: { permissionMode: 'default' as any } };
-    } else {
-        initial = await opts.nextMessage();
-        if (!initial) { // No initial message - exit
-            return;
-        }
+    // Get initial message — always wait for user input, even on --resume
+    const initial = await opts.nextMessage();
+    if (!initial) { // No initial message - exit
+        return;
     }
 
     // Handle special commands

@@ -13,7 +13,7 @@ import { initialWindowMetrics, SafeAreaProvider, useSafeAreaInsets } from 'react
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SidebarNavigator } from '@/components/SidebarNavigator';
 import sodium from '@/encryption/libsodium.lib';
-import { View, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { ModalProvider } from '@/modal';
 import { PostHogProvider } from 'posthog-react-native';
 import { tracking } from '@/track/tracking';

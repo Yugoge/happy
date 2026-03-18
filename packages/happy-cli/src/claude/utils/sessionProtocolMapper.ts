@@ -16,6 +16,10 @@ export type ClaudeSessionProtocolState = {
     hiddenParentToolCalls?: Set<string>;
     startedSubagents?: Set<string>;
     activeSubagents?: Set<string>;
+    /** UUID of the command-message whose next child is the skill prompt to wrap */
+    pendingSkillCommandUuid?: string;
+    /** Slash command name (e.g. "/review") for the pending skill prompt label */
+    pendingSkillCommandName?: string;
 };
 
 type ClaudeMapperResult = {
@@ -553,14 +557,61 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
     }
 
     if (message.type === 'user') {
+        // Compact summary messages → service event (not user message)
+        if ((message as any).isCompactSummary) {
+            const turnId = ensureTurn(state, envelopes);
+            envelopes.push(createEnvelope('agent', { t: 'service', text: 'Context compacted' }, { turn: turnId }));
+            return { currentTurnId: state.currentTurnId, envelopes };
+        }
+
         if (typeof message.message.content === 'string') {
+            let text = message.message.content;
+
+            // /compact command → service event (not user message)
+            const trimmedText = text.trim();
+            if (trimmedText === '/compact' || trimmedText.startsWith('/compact ')) {
+                const turnId = ensureTurn(state, envelopes);
+                envelopes.push(createEnvelope('agent', { t: 'service', text: 'Compacting conversation...' }, { turn: turnId }));
+                return { currentTurnId: state.currentTurnId, envelopes };
+            }
+
+            // Skill/slash command messages:
+            // <command-message> = user-visible short message → normal user text
+            // <command-name> = slash command name (e.g. /review)
+            // <command-args> = user's arguments → normal user text
+            // Both message and args are shown as plain text; no collapsing.
+            if (text.includes('<command-message>')) {
+                const msgMatch = text.match(/<command-message>([\s\S]*?)<\/command-message>/);
+                const nameMatch = text.match(/<command-name>\s*(\/?\S+)\s*<\/command-name>/);
+                const argsMatch = text.match(/<command-args>([\s\S]*?)<\/command-args>/);
+                if (nameMatch) {
+                    const displayMsg = msgMatch ? msgMatch[1].trim() : '';
+                    const args = argsMatch ? argsMatch[1].trim() : '';
+                    const combined = [displayMsg, args].filter(Boolean).join(' ');
+
+                    // Track this command so the next user message (skill prompt) gets wrapped
+                    const uuid = pickUuid(message);
+                    if (uuid) {
+                        state.pendingSkillCommandUuid = uuid;
+                        state.pendingSkillCommandName = nameMatch[1].trim();
+                    }
+
+                    closeTurn(state, 'completed', envelopes);
+                    if (combined) {
+                        envelopes.push(createEnvelope('user', { t: 'text', text: combined }));
+                    }
+
+                    return { currentTurnId: state.currentTurnId, envelopes };
+                }
+            }
+
             if (message.isSidechain) {
                 const turnId = ensureTurn(state, envelopes);
                 maybeEmitSubagentStart(state, turnId, subagent, envelopes);
-                envelopes.push(createEnvelope('agent', { t: 'text', text: message.message.content }, { turn: turnId, subagent }));
+                envelopes.push(createEnvelope('agent', { t: 'text', text }, { turn: turnId, subagent }));
             } else {
                 closeTurn(state, 'completed', envelopes);
-                envelopes.push(createEnvelope('user', { t: 'text', text: message.message.content }));
+                envelopes.push(createEnvelope('user', { t: 'text', text }));
             }
 
             return {
@@ -580,6 +631,26 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
         // Non-sidechain user messages with array content: extract text as user envelope,
         // and handle tool_results as agent envelopes (they are Claude's tool responses)
         if (!message.isSidechain) {
+            // Check if this message is a skill prompt (child of a command-message).
+            // Two paths:
+            // 1. Restored session: JSONL replayed with original uuids, parentUuid matches directly.
+            // 2. New session: SDK writes skill prompt to JSONL with isMeta=true but never emits
+            //    it in the live stream. The JSONL meta-scanner forwards it, but sdkToLogConverter
+            //    already assigned a different random uuid to the command-message so parentUuid
+            //    won't match — use isMeta=true as the fallback signal instead.
+            const parentUuid = pickParentUuid(message);
+            const isMeta = (message as { isMeta?: boolean }).isMeta === true;
+            const isSkillPrompt = state.pendingSkillCommandUuid !== undefined
+                && (
+                    (parentUuid !== undefined && parentUuid === state.pendingSkillCommandUuid)
+                    || isMeta
+                );
+            const skillCommandName = isSkillPrompt ? state.pendingSkillCommandName : undefined;
+            if (isSkillPrompt) {
+                state.pendingSkillCommandUuid = undefined;
+                state.pendingSkillCommandName = undefined;
+            }
+
             // Collect user text from blocks
             const userTexts: string[] = [];
             const toolResultBlocks: typeof blocks = [];
@@ -591,8 +662,17 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                 }
             }
 
-            // Emit user text as a single user envelope (same as string path)
-            if (userTexts.length > 0) {
+            if (isSkillPrompt && userTexts.length > 0) {
+                // Skill prompt → emit as a wrapped (collapsible) service event
+                const label = skillCommandName ?? 'command prompt';
+                const content = userTexts.join('\n');
+                const turnId = ensureTurn(state, envelopes);
+                envelopes.push(createEnvelope('agent', {
+                    t: 'service',
+                    text: `\x01WRAP\x01${label}\x01${content}`,
+                }, { turn: turnId }));
+            } else if (userTexts.length > 0) {
+                // Regular user text
                 closeTurn(state, 'completed', envelopes);
                 envelopes.push(createEnvelope('user', { t: 'text', text: userTexts.join('\n') }));
             }
