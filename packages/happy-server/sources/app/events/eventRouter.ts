@@ -309,22 +309,31 @@ class EventRouter {
     }): void {
         const connections = this.userConnections.get(params.userId);
         if (!connections) {
-            log({ module: 'websocket', level: 'warn' }, `No connections found for user ${params.userId}`);
+            log({ module: 'websocket', level: 'warn' }, `No connections for user ${params.userId} — ${params.eventName} dropped`);
             return;
         }
 
+        let sent = 0;
+        let skipped = 0;
         for (const connection of connections) {
             // Skip message echo
             if (params.skipSenderConnection && connection === params.skipSenderConnection) {
+                skipped++;
                 continue;
             }
 
             // Apply recipient filter
             if (!this.shouldSendToConnection(connection, params.recipientFilter)) {
+                skipped++;
                 continue;
             }
 
             connection.socket.emit(params.eventName, params.payload);
+            sent++;
+        }
+
+        if (sent === 0 && connections.size > 0) {
+            log({ module: 'websocket', level: 'warn' }, `${params.eventName} matched 0/${connections.size} connections (skipped=${skipped}) for user ${params.userId}`);
         }
     }
 }
