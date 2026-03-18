@@ -1575,7 +1575,14 @@ class Sync {
                         maxSeq = message.seq;
                     }
                 }
-                this.sessionLastSeq.set(sessionId, maxSeq);
+                // If there is a seq gap, missed messages exist between currentLastSeq and maxSeq.
+                // Trigger fetchMessages to recover them instead of blindly advancing the cursor.
+                if (maxSeq > currentLastSeq + data.messages.length) {
+                    log.log(`⚠️ flushOutbox: seq gap detected for ${sessionId} — currentLastSeq=${currentLastSeq}, maxSeq=${maxSeq}, sent=${data.messages.length}. Triggering fetchMessages to recover missed messages.`);
+                    this.getMessagesSync(sessionId).invalidate();
+                } else {
+                    this.sessionLastSeq.set(sessionId, maxSeq);
+                }
             }
         } catch (error) {
             this.maybeStartBackgroundSendWatchdog();
@@ -1625,24 +1632,8 @@ class Sync {
                     }
                 }
 
-                const decryptedMessages = await encryption.decryptMessages(messages);
-                const normalizedMessages: NormalizedMessage[] = [];
-                for (let i = 0; i < decryptedMessages.length; i++) {
-                    const decrypted = decryptedMessages[i];
-                    if (!decrypted) {
-                        continue;
-                    }
-                    const normalized = normalizeRawMessage(decrypted.id, decrypted.localId, decrypted.createdAt, decrypted.content);
-                    if (normalized) {
-                        normalizedMessages.push(normalized);
-                    }
-                }
-
-                if (normalizedMessages.length > 0) {
-                    totalNormalized += normalizedMessages.length;
-                    this.enqueueMessages(sessionId, normalizedMessages);
-                }
-
+                // Advance cursor BEFORE decrypt/normalize — if a bad message throws,
+                // the next retry skips past it instead of getting stuck forever.
                 this.sessionLastSeq.set(sessionId, maxSeq);
                 hasMore = !!data.hasMore;
                 if (hasMore && maxSeq === afterSeq) {
@@ -1650,6 +1641,47 @@ class Sync {
                     break;
                 }
                 afterSeq = maxSeq;
+
+                let decryptedMessages: Awaited<ReturnType<typeof encryption.decryptMessages>>;
+                try {
+                    decryptedMessages = await encryption.decryptMessages(messages);
+                } catch (e) {
+                    const seqs = messages.map(m => m.seq);
+                    log.log(`💬 fetchMessages: decryptMessages THREW for session ${sessionId}, seqs=${JSON.stringify(seqs)}, error=${e} — retrying per-message`);
+                    // Batch decrypt failed; fall back to per-message decryption to recover as many messages as possible.
+                    decryptedMessages = [];
+                    for (const msg of messages) {
+                        try {
+                            const results = await encryption.decryptMessages([msg]);
+                            decryptedMessages.push(results[0] ?? null);
+                        } catch (msgErr) {
+                            log.log(`💬 fetchMessages: per-message decrypt failed for seq=${msg.seq}, error=${msgErr}`);
+                            decryptedMessages.push(null);
+                        }
+                    }
+                }
+
+                const normalizedMessages: NormalizedMessage[] = [];
+                for (let i = 0; i < decryptedMessages.length; i++) {
+                    const decrypted = decryptedMessages[i];
+                    if (!decrypted) {
+                        continue;
+                    }
+                    try {
+                        const normalized = normalizeRawMessage(decrypted.id, decrypted.localId, decrypted.createdAt, decrypted.content);
+                        if (normalized) {
+                            normalizedMessages.push(normalized);
+                        }
+                    } catch (e) {
+                        log.log(`💬 fetchMessages: normalizeRawMessage THREW for message id=${decrypted.id}, seq=${messages[i]?.seq}, error=${e}`);
+                        log.log(`💬 fetchMessages: raw content keys: ${decrypted.content ? Object.keys(decrypted.content).join(',') : 'NULL'}`);
+                    }
+                }
+
+                if (normalizedMessages.length > 0) {
+                    totalNormalized += normalizedMessages.length;
+                    this.enqueueMessages(sessionId, normalizedMessages);
+                }
             }
 
             storage.getState().applyMessagesLoaded(sessionId);
@@ -2216,6 +2248,19 @@ class Sync {
                 };
                 storage.getState().applyMachines([updatedMachine]);
             }
+        }
+
+        // Handle usage/context window updates
+        if (updateData.type === 'usage') {
+            const { id, timestamp, tokens } = updateData;
+            storage.getState().applySessionUsage(id, {
+                inputTokens: tokens.input,
+                outputTokens: tokens.output,
+                cacheCreation: tokens.cache_creation,
+                cacheRead: tokens.cache_read,
+                contextSize: tokens.cache_creation + tokens.cache_read + tokens.input,
+                timestamp
+            });
         }
 
         // daemon-status ephemeral updates are deprecated, machine status is handled via machine-activity
