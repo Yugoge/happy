@@ -328,7 +328,15 @@ class EventRouter {
                 continue;
             }
 
-            connection.socket.emit(params.eventName, params.payload);
+            // Use timeout + ACK to detect degraded connections (alive ping/pong but dropping payloads).
+        // If no ACK within 5s, the socket is degraded — force disconnect so client reconnects
+        // cleanly and triggers onReconnected → fetchMessages catch-up.
+        connection.socket.timeout(5000).emit(params.eventName, params.payload, (err: Error | null) => {
+                if (err) {
+                    log({ module: 'websocket', level: 'warn' }, `${params.eventName} ACK timeout for user ${params.userId} — disconnecting degraded socket ${connection.socket.id}`);
+                    connection.socket.disconnect(true);
+                }
+            });
             sent++;
         }
 
