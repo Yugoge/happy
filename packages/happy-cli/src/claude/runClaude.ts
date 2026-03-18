@@ -11,7 +11,6 @@ import { EnhancedMode, PermissionMode } from './loop';
 import { MessageQueue2 } from '@/utils/MessageQueue2';
 import { hashObject } from '@/utils/deterministicJson';
 import { startCaffeinate, stopCaffeinate } from '@/utils/caffeinate';
-import { extractSDKMetadataAsync } from '@/claude/sdk/metadataExtractor';
 import { parseSpecialCommand } from '@/parsers/specialCommands';
 import { getEnvironmentInfo } from '@/ui/doctor';
 import { configuration } from '@/configuration';
@@ -199,21 +198,8 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
         logger.debug('[START] Failed to report to daemon (may not be running):', error);
     }
 
-    // Extract SDK metadata in background and update session when ready
-    extractSDKMetadataAsync(async (sdkMetadata) => {
-        logger.debug('[start] SDK metadata extracted, updating session:', sdkMetadata);
-        try {
-            // Update session metadata with tools and slash commands
-            api.sessionSyncClient(response).updateMetadata((currentMetadata) => ({
-                ...currentMetadata,
-                tools: sdkMetadata.tools,
-                slashCommands: sdkMetadata.slashCommands
-            }));
-            logger.debug('[start] Session metadata updated with SDK capabilities');
-        } catch (error) {
-            logger.debug('[start] Failed to update session metadata:', error);
-        }
-    });
+    // Note: SDK metadata extraction (tools/slash commands) was removed because it
+    // created a blank Claude session with prompt 'hello' on every startup/recovery.
 
     // Create realtime session
     const session = api.sessionSyncClient(response);
@@ -225,12 +211,16 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     // Variable to track current session instance (updated via onSessionReady callback)
     // Used by hook server to notify Session when Claude changes session ID
     let currentSession: Session | null = null;
+    // For --resume sessions, Claude fires the SessionStart hook before onSessionReady sets
+    // currentSession (resumed sessions start faster than fresh ones). Store the pending ID
+    // so it can be applied the moment currentSession becomes available.
+    let pendingSessionId: string | null = null;
 
     // Start Hook server for receiving Claude session notifications
     const hookServer = await startHookServer({
         onSessionHook: (sessionId, data) => {
             logger.debug(`[START] Session hook received: ${sessionId}`, data);
-            
+
             // Update session ID in the Session instance
             if (currentSession) {
                 const previousSessionId = currentSession.sessionId;
@@ -238,6 +228,10 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
                     logger.debug(`[START] Claude session ID changed: ${previousSessionId} -> ${sessionId}`);
                     currentSession.onSessionFound(sessionId);
                 }
+            } else {
+                // currentSession not ready yet (race condition on --resume): store for later
+                logger.debug(`[START] Session hook arrived before session ready, storing pending ID: ${sessionId}`);
+                pendingSessionId = sessionId;
             }
         }
     });
@@ -483,6 +477,12 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
         onSessionReady: (sessionInstance) => {
             // Store reference for hook server callback
             currentSession = sessionInstance;
+            // Apply any session ID that arrived before we were ready (--resume race condition)
+            if (pendingSessionId && pendingSessionId !== sessionInstance.sessionId) {
+                logger.debug(`[START] Applying pending session ID: ${pendingSessionId}`);
+                sessionInstance.onSessionFound(pendingSessionId);
+                pendingSessionId = null;
+            }
         },
         mcpServers: {
             'happy': {

@@ -359,6 +359,24 @@ export class ApiSessionClient extends EventEmitter {
         for (const envelope of mapped.envelopes) {
             this.sendSessionProtocolMessage(envelope);
         }
+
+        // Also send legacy output format for backward compatibility with old app clients.
+        // Marked with meta.duplex so new clients can skip it (they already got the session protocol version).
+        if (body.type === 'assistant' || body.type === 'user') {
+            const legacyContent = {
+                role: 'agent',
+                content: {
+                    type: 'output',
+                    data: body
+                },
+                meta: {
+                    sentFrom: 'cli',
+                    duplex: true
+                }
+            };
+            this.enqueueMessage(legacyContent);
+        }
+
         // Track usage from assistant messages
         if (body.type === 'assistant' && body.message?.usage) {
             try {

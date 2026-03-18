@@ -50,9 +50,13 @@ export const knownTools = {
             if (opts.tool.input && opts.tool.input.description && typeof opts.tool.input.description === 'string') {
                 return opts.tool.input.description;
             }
-            return t('tools.names.task');
+            const subType = opts.tool.input?.subagent_type;
+            if (typeof subType === 'string' && subType.length > 0) {
+                return subType;
+            }
+            return t('tools.names.agent');
         },
-        icon: ICON_TASK,
+        icon: ICON_SEARCH,
         isMutable: true,
         minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
             const messages = opts.messages || [];

@@ -17,6 +17,7 @@ import { writeDaemonState, DaemonLocallyPersistedState, readDaemonState, acquire
 
 import { cleanupDaemonState, isDaemonRunningCurrentlyInstalledHappyVersion, stopDaemon } from './controlClient';
 import { startDaemonControlServer } from './controlServer';
+import { findRunawayHappyProcesses, killRunawayHappyProcesses } from './doctor';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { projectPath } from '@/projectPath';
@@ -140,6 +141,18 @@ export async function startDaemon(): Promise<void> {
     logger.debug('[DAEMON RUN] Daemon version matches, keeping existing daemon');
     console.log('Daemon already running with matching version');
     process.exit(0);
+  }
+
+  // Kill orphaned happy-coder processes from previous daemon instance
+  try {
+    const orphans = await findRunawayHappyProcesses();
+    if (orphans.length > 0) {
+      logger.debug(`[DAEMON RUN] Found ${orphans.length} orphaned processes, killing...`);
+      const result = await killRunawayHappyProcesses();
+      logger.debug(`[DAEMON RUN] Orphan cleanup: killed=${result.killed}, errors=${result.errors.length}`);
+    }
+  } catch (error) {
+    logger.debug('[DAEMON RUN] Orphan cleanup failed (non-fatal):', error);
   }
 
   // Acquire exclusive lock (proves daemon is running)

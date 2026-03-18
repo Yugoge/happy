@@ -505,6 +505,7 @@ export const zhHant: TranslationStructure = {
             applyChanges: '更新檔案',
             viewDiff: '目前檔案更改',
             question: '問題',
+            agent: '代理',
         },
         askUserQuestion: {
             submit: '提交答案',

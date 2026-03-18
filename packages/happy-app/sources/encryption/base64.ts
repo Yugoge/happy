@@ -24,7 +24,13 @@ export function decodeBase64(base64: string, encoding: 'base64' | 'base64url' = 
 }
 
 export function encodeBase64(buffer: Uint8Array, encoding: 'base64' | 'base64url' = 'base64'): string {
-    const binaryString = String.fromCharCode.apply(null, Array.from(buffer));
+    // Use chunked approach to avoid RangeError for large buffers (>65536 elements)
+    // String.fromCharCode.apply(null, largeArray) throws "Maximum call stack size exceeded"
+    let binaryString = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < buffer.length; i += chunkSize) {
+        binaryString += String.fromCharCode.apply(null, buffer.subarray(i, i + chunkSize) as unknown as number[]);
+    }
     const base64 = btoa(binaryString);
     
     if (encoding === 'base64url') {

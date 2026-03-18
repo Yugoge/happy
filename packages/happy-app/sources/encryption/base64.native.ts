@@ -4,7 +4,7 @@ export function decodeBase64(base64: string, encoding: 'base64' | 'base64url' = 
     if (encoding === 'base64url') {
         return toByteArray(base64, true);
     }
-    return toByteArray(base64, true);
+    return toByteArray(base64, false);
 }
 
 export function encodeBase64(buffer: Uint8Array, encoding: 'base64' | 'base64url' = 'base64'): string {

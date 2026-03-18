@@ -1,6 +1,7 @@
 import * as React from "react";
-import { View, Text } from "react-native";
-import { StyleSheet } from 'react-native-unistyles';
+import { View, Text, TouchableOpacity, Platform, ScrollView } from "react-native";
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { Ionicons } from '@expo/vector-icons';
 import { MarkdownView } from "./markdown/MarkdownView";
 import { t } from '@/text';
 import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage } from "@/sync/typesMessage";
@@ -124,6 +125,9 @@ function AgentEventBlock(props: {
       </View>
     );
   }
+  if (props.event.type === 'wrapped') {
+    return <WrappedEventBlock label={props.event.label} content={props.event.content} />;
+  }
   if (props.event.type === 'limit-reached') {
     const formatTime = (timestamp: number): string => {
       try {
@@ -145,6 +149,38 @@ function AgentEventBlock(props: {
   return (
     <View style={styles.agentEventContainer}>
       <Text style={styles.agentEventText}>{t('message.unknownEvent')}</Text>
+    </View>
+  );
+}
+
+// Collapsible wrapped event block (e.g., expanded command prompts)
+function WrappedEventBlock(props: { label: string; content: string }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const { theme } = useUnistyles();
+  const toggle = React.useCallback(() => setExpanded(v => !v), []);
+
+  return (
+    <View style={wrappedStyles.container}>
+      <TouchableOpacity style={wrappedStyles.header} onPress={toggle} activeOpacity={0.7}>
+        <View style={wrappedStyles.headerLeft}>
+          <Ionicons name="code-slash-outline" size={16} color={theme.colors.textSecondary} />
+          <Text style={wrappedStyles.label} numberOfLines={1}>{props.label}</Text>
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={theme.colors.textSecondary}
+        />
+      </TouchableOpacity>
+      {expanded && (
+        Platform.OS === 'web'
+          ? <View style={wrappedStyles.content}>
+              <Text style={wrappedStyles.contentText} selectable>{props.content}</Text>
+            </View>
+          : <ScrollView style={wrappedStyles.content} nestedScrollEnabled>
+              <Text style={wrappedStyles.contentText} selectable>{props.content}</Text>
+            </ScrollView>
+      )}
     </View>
   );
 }
@@ -218,5 +254,47 @@ const styles = StyleSheet.create((theme) => ({
   debugText: {
     color: theme.colors.agentEventText,
     fontSize: 12,
+  },
+}));
+
+const wrappedStyles = StyleSheet.create((theme) => ({
+  container: {
+    marginHorizontal: 8,
+    marginVertical: 4,
+    backgroundColor: theme.colors.surfaceHigh,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.surfaceHighest,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    // On web we render a plain View (no inner scroll) so maxHeight is not needed;
+    // on native the ScrollView needs it to cap the collapsible region height.
+    maxHeight: Platform.OS === 'web' ? undefined : 400,
+  },
+  contentText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
 }));

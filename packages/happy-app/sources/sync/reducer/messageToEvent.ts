@@ -57,8 +57,16 @@ export function parseMessageAsEvent(msg: NormalizedMessage): AgentEvent | null {
         }
     }
 
-    // Additional parsing logic can be added here
-    // For example, checking specific metadata patterns or other message types
+    // Convert /compact user messages to system events
+    if (msg.role === 'user' && msg.content.type === 'text') {
+        const trimmed = msg.content.text.trim();
+        if (trimmed === '/compact' || trimmed.startsWith('/compact ')) {
+            return {
+                type: 'message',
+                message: 'Compacting conversation...',
+            } as AgentEvent;
+        }
+    }
 
     // No event conversion needed
     return null;
