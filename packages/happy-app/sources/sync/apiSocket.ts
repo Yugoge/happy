@@ -241,14 +241,17 @@ class ApiSocket {
         });
 
         // Message handling
-        this.socket.onAny((event, data) => {
-            // console.log(`📥 SyncSocket: Received event '${event}':`, JSON.stringify(data).substring(0, 200));
+        this.socket.onAny((event, ...args) => {
+            // If server used timeout().emit() with ACK, last arg is the ack callback.
+            // Call it immediately to confirm TCP delivery — before any async processing
+            // so the 5s server-side timeout is not triggered by slow decryption.
+            const lastArg = args[args.length - 1];
+            if (typeof lastArg === 'function') {
+                (lastArg as () => void)();
+            }
             const handler = this.messageHandlers.get(event);
             if (handler) {
-                // console.log(`📥 SyncSocket: Calling handler for '${event}'`);
-                handler(data);
-            } else {
-                // console.log(`📥 SyncSocket: No handler registered for '${event}'`);
+                handler(args[0]);
             }
         });
     }
