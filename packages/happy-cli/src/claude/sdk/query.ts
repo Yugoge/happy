@@ -386,9 +386,8 @@ export function query(config: {
             }
             if (code !== 0) {
                 query.setError(new Error(`Claude Code process exited with code ${code}`))
-            } else {
-                resolve()
             }
+            resolve() // Always resolve to prevent hanging promise leak
         })
     })
 
@@ -408,6 +407,7 @@ export function query(config: {
     processExitPromise.finally(() => {
         cleanup()
         config.options?.abort?.removeEventListener('abort', cleanup)
+        process.removeListener('exit', cleanup) // Prevent listener leak on repeated spawns
         if (process.env.CLAUDE_SDK_MCP_SERVERS) {
             delete process.env.CLAUDE_SDK_MCP_SERVERS
         }
