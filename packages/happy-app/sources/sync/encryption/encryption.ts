@@ -161,6 +161,12 @@ export class Encryption {
 
     async decryptEncryptionKey(encrypted: string) {
         const encryptedKey = decodeBase64(encrypted, 'base64');
+
+        // Version 1: plaintext key (used for cross-account machine migration)
+        if (encryptedKey[0] === 1) {
+            return encryptedKey.slice(1);
+        }
+
         if (encryptedKey[0] !== 0) {
             return null;
         }

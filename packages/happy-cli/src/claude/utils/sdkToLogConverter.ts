@@ -288,6 +288,7 @@ export class SDKToLogConverter {
         
         const logMessage: RawJSONLines = {
             type: 'user',
+            isMeta: true,
             isSidechain: isSidechain,
             ...(parentToolUseId ? { parent_tool_use_id: parentToolUseId } : {}),
             uuid,

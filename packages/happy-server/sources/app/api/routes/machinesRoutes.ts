@@ -31,7 +31,28 @@ export function machinesRoutes(app: Fastify) {
         });
 
         if (machine) {
-            // Machine exists - just return it
+            // Machine exists - update dataEncryptionKey if provided (supports re-auth with new account keys)
+            if (dataEncryptionKey) {
+                const updated = await db.machine.update({
+                    where: { id: machine.id },
+                    data: { dataEncryptionKey: new Uint8Array(Buffer.from(dataEncryptionKey, 'base64')) }
+                });
+                log({ module: 'machines', machineId: id, userId }, 'Updated existing machine dataEncryptionKey');
+                return reply.send({
+                    machine: {
+                        id: updated.id,
+                        metadata: updated.metadata,
+                        metadataVersion: updated.metadataVersion,
+                        daemonState: updated.daemonState,
+                        daemonStateVersion: updated.daemonStateVersion,
+                        dataEncryptionKey: updated.dataEncryptionKey ? Buffer.from(updated.dataEncryptionKey).toString('base64') : null,
+                        active: updated.active,
+                        activeAt: updated.lastActiveAt.getTime(),
+                        createdAt: updated.createdAt.getTime(),
+                        updatedAt: updated.updatedAt.getTime()
+                    }
+                });
+            }
             log({ module: 'machines', machineId: id, userId }, 'Found existing machine');
             return reply.send({
                 machine: {
@@ -42,7 +63,7 @@ export function machinesRoutes(app: Fastify) {
                     daemonStateVersion: machine.daemonStateVersion,
                     dataEncryptionKey: machine.dataEncryptionKey ? Buffer.from(machine.dataEncryptionKey).toString('base64') : null,
                     active: machine.active,
-                    activeAt: machine.lastActiveAt.getTime(),  // Return as activeAt for API consistency
+                    activeAt: machine.lastActiveAt.getTime(),
                     createdAt: machine.createdAt.getTime(),
                     updatedAt: machine.updatedAt.getTime()
                 }

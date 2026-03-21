@@ -64,6 +64,7 @@ export function startDaemonControlServer({
             children: z.array(z.object({
               startedBy: z.string(),
               happySessionId: z.string(),
+              claudeSessionId: z.string().optional(),
               pid: z.number()
             }))
           })
@@ -72,12 +73,13 @@ export function startDaemonControlServer({
     }, async () => {
       const children = getChildren();
       logger.debug(`[CONTROL SERVER] Listing ${children.length} sessions`);
-      return { 
+      return {
         children: children
           .filter(child => child.happySessionId !== undefined)
           .map(child => ({
             startedBy: child.startedBy,
             happySessionId: child.happySessionId!,
+            claudeSessionId: child.happySessionMetadataFromLocalWebhook?.claudeSessionId,
             pid: child.pid
           }))
       }

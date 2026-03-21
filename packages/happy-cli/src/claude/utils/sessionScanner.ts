@@ -48,6 +48,13 @@ export async function createSessionScanner(opts: {
             logger.debug(`[SESSION_SCANNER] Marking ${messages.length} existing messages as processed from session ${opts.sessionId}`);
             for (let m of messages) {
                 processedMessageKeys.add(messageKey(m));
+                // Forward isMeta messages even when sendExisting=false.
+                // The SDK writes skill prompts to JSONL with isMeta=true but
+                // never emits them via live stream — skipping them here means
+                // the file watcher will never re-deliver them either.
+                if ((m as { isMeta?: boolean }).isMeta === true) {
+                    opts.onMessage(m);
+                }
             }
         }
         // IMPORTANT: Also start watching the initial session file because Claude Code

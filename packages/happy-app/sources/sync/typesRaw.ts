@@ -100,6 +100,12 @@ const sessionStopEventSchema = z.object({
     t: z.literal('stop'),
 });
 
+const sessionWrapEventSchema = z.object({
+    t: z.literal('wrap'),
+    label: z.string(),
+    content: z.string(),
+});
+
 const sessionEventSchema = z.discriminatedUnion('t', [
     sessionTextEventSchema,
     sessionServiceMessageEventSchema,
@@ -110,6 +116,7 @@ const sessionEventSchema = z.discriminatedUnion('t', [
     sessionStartEventSchema,
     sessionTurnEndEventSchema,
     sessionStopEventSchema,
+    sessionWrapEventSchema,
 ]);
 
 const sessionEnvelopeSchema = z.object({
@@ -574,25 +581,21 @@ function normalizeSessionEnvelope(
         } satisfies NormalizedMessage;
     }
 
+    if (envelope.ev.t === 'wrap') {
+        return {
+            id: messageId,
+            localId,
+            createdAt: messageCreatedAt,
+            role: 'event',
+            isSidechain: false,
+            content: { type: 'wrapped', label: envelope.ev.label, content: envelope.ev.content } as AgentEvent,
+            meta
+        } satisfies NormalizedMessage;
+    }
+
     if (envelope.ev.t === 'service') {
         if (envelope.role !== 'agent') {
             return null;
-        }
-
-        // Wrapped service events: "\x01WRAP\x01label\x01content" → wrapped agent event
-        if (envelope.ev.text.startsWith('\x01WRAP\x01')) {
-            const parts = envelope.ev.text.substring(6).split('\x01');
-            const label = parts[0] || '';
-            const content = parts.slice(1).join('\x01');
-            return {
-                id: messageId,
-                localId,
-                createdAt: messageCreatedAt,
-                role: 'event',
-                isSidechain: false,
-                content: { type: 'wrapped', label, content } as AgentEvent,
-                meta
-            } satisfies NormalizedMessage;
         }
 
         return {

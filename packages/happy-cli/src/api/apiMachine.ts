@@ -319,6 +319,17 @@ export class ApiMachineClient {
         }
     }
 
+    /**
+     * Notify server that a session has ended (child process exited).
+     * Allows immediate offline status instead of waiting for heartbeat timeout.
+     */
+    notifySessionEnd(sessionId: string) {
+        if (this.socket?.connected) {
+            this.socket.emit('session-end' as any, { sid: sessionId, time: Date.now() });
+            logger.debug(`[API MACHINE] Emitted session-end for ${sessionId}`);
+        }
+    }
+
     shutdown() {
         logger.debug('[API MACHINE] Shutting down');
         this.stopKeepAlive();
