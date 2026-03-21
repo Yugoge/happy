@@ -353,7 +353,7 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             abortFuture = new Future<void>();
             let modeHash: string | null = null;
             let mode: EnhancedMode | null = null;
-            let metaMessageScanner: Awaited<ReturnType<typeof createSessionScanner>> | null = null;
+            let metaMessageScanner: { cleanup: () => Promise<void>; onNewSession: (id: string) => void } | null = null;
             try {
                 const remoteResult = await claudeRemote({
                     sessionId: session.sessionId,
@@ -399,10 +399,12 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                         // Update converter's session ID when new session is found
                         sdkToLogConverter.updateSessionId(sessionId);
                         session.onSessionFound(sessionId);
-                        // For new (non-restore) sessions, start a JSONL meta-scanner to pick up
-                        // isMeta=true skill prompts. The SDK writes these to JSONL but does NOT
-                        // emit them as live stream events, so we must read them from the file.
-                        if (!resumeClaudeSessionId && !metaMessageScanner) {
+                        // Start a JSONL meta-scanner to pick up isMeta=true skill prompts.
+                        // The SDK writes these to JSONL but does NOT emit them as live stream
+                        // events, so we must read them from the file. This is needed for BOTH
+                        // new and resume sessions — the initial history scanner is cleaned up
+                        // before this point, so new commands need a fresh meta-scanner.
+                        if (!metaMessageScanner) {
                             createSessionScanner({
                                 sessionId,
                                 workingDirectory: session.path,
@@ -482,8 +484,8 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                 permissionHandler.reset();
                 modeHash = null;
                 mode = null;
-                if (metaMessageScanner) {
-                    await metaMessageScanner.cleanup();
+                if (metaMessageScanner !== null) {
+                    await (metaMessageScanner as { cleanup: () => Promise<void> }).cleanup();
                     metaMessageScanner = null;
                 }
             }

@@ -241,17 +241,10 @@ class ApiSocket {
         });
 
         // Message handling
-        this.socket.onAny((event, ...args) => {
-            // If server used timeout().emit() with ACK, last arg is the ack callback.
-            // Call it immediately to confirm TCP delivery — before any async processing
-            // so the 5s server-side timeout is not triggered by slow decryption.
-            const lastArg = args[args.length - 1];
-            if (typeof lastArg === 'function') {
-                (lastArg as () => void)();
-            }
+        this.socket.onAny((event, data) => {
             const handler = this.messageHandlers.get(event);
             if (handler) {
-                handler(args[0]);
+                handler(data);
             }
         });
     }

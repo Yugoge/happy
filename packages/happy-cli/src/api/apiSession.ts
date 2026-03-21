@@ -358,11 +358,36 @@ export class ApiSessionClient extends EventEmitter {
         this.claudeSessionProtocolState.currentTurnId = mapped.currentTurnId;
         for (const envelope of mapped.envelopes) {
             this.sendSessionProtocolMessage(envelope);
+
+            // Send legacy fallback for wrap events so old clients (without t:'wrap' in their
+            // Zod schema) still see a clean command label. New clients skip via meta.duplex.
+            if (envelope.ev.t === 'wrap') {
+                this.enqueueMessage({
+                    role: 'agent',
+                    content: {
+                        type: 'event',
+                        id: envelope.id,
+                        data: {
+                            type: 'message',
+                            message: envelope.ev.label,
+                        }
+                    },
+                    meta: {
+                        sentFrom: 'cli',
+                        duplex: true
+                    }
+                });
+            }
         }
 
         // Also send legacy output format for backward compatibility with old app clients.
         // Marked with meta.duplex so new clients can skip it (they already got the session protocol version).
-        if (body.type === 'assistant' || body.type === 'user') {
+        // Skip system-injected user messages (e.g. <task-notification>) that were already
+        // swallowed by the session protocol mapper — don't leak them via the legacy path (Bug 12B).
+        const isSwallowedByMapper = body.type === 'user'
+            && typeof body.message?.content === 'string'
+            && body.message.content.trim().startsWith('<task-notification>');
+        if (!isSwallowedByMapper && (body.type === 'assistant' || body.type === 'user')) {
             const legacyContent = {
                 role: 'agent',
                 content: {

@@ -56,7 +56,7 @@ export const knownTools = {
             }
             return t('tools.names.agent');
         },
-        icon: ICON_SEARCH,
+        icon: ICON_TASK,
         isMutable: true,
         minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
             const messages = opts.messages || [];

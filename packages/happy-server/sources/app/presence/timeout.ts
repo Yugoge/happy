@@ -12,7 +12,7 @@ export function startTimeout() {
                 where: {
                     active: true,
                     lastActiveAt: {
-                        lte: new Date(Date.now() - 1000 * 60 * 20) // 20 minutes
+                        lte: new Date(Date.now() - 1000 * 60 * 2) // 2 minutes (safety net for missed session-end events)
                     }
                 }
             });

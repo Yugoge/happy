@@ -585,9 +585,8 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                 const nameMatch = text.match(/<command-name>\s*(\/?\S+)\s*<\/command-name>/);
                 const argsMatch = text.match(/<command-args>([\s\S]*?)<\/command-args>/);
                 if (nameMatch) {
-                    const displayMsg = msgMatch ? msgMatch[1].trim() : '';
                     const args = argsMatch ? argsMatch[1].trim() : '';
-                    const combined = [displayMsg, args].filter(Boolean).join(' ');
+                    const combined = [nameMatch[1].trim(), args].filter(Boolean).join(' ');
 
                     // Track this command so the next user message (skill prompt) gets wrapped
                     const uuid = pickUuid(message);
@@ -603,6 +602,15 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
 
                     return { currentTurnId: state.currentTurnId, envelopes };
                 }
+            }
+
+            // System-injected protocol messages — silently swallow.
+            // These are Claude Code internal messages (e.g. <task-notification>, [Request interrupted])
+            // written to JSONL but not meant for the user. Emitting them as service envelopes
+            // caused the app to render them as agent reply bubbles (Bug 12B).
+            const systemServiceText = getSystemInjectedServiceText(trimmedText, message);
+            if (systemServiceText !== null) {
+                return { currentTurnId: state.currentTurnId, envelopes };
             }
 
             if (message.isSidechain) {
@@ -663,18 +671,28 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
             }
 
             if (isSkillPrompt && userTexts.length > 0) {
-                // Skill prompt → emit as a wrapped (collapsible) service event
+                // Skill prompt → emit as a structured wrap event (collapsible on new clients,
+                // silently dropped by old clients whose Zod schema lacks t:'wrap')
                 const label = skillCommandName ?? 'command prompt';
                 const content = userTexts.join('\n');
                 const turnId = ensureTurn(state, envelopes);
                 envelopes.push(createEnvelope('agent', {
-                    t: 'service',
-                    text: `\x01WRAP\x01${label}\x01${content}`,
+                    t: 'wrap',
+                    label,
+                    content,
                 }, { turn: turnId }));
             } else if (userTexts.length > 0) {
-                // Regular user text
-                closeTurn(state, 'completed', envelopes);
-                envelopes.push(createEnvelope('user', { t: 'text', text: userTexts.join('\n') }));
+                const joined = userTexts.join('\n');
+                const systemText = getSystemInjectedServiceText(joined.trim(), message);
+                if (systemText !== null) {
+                    // System-injected message in array format → service event
+                    const turnId = ensureTurn(state, envelopes);
+                    envelopes.push(createEnvelope('agent', { t: 'service', text: systemText }, { turn: turnId }));
+                } else {
+                    // Regular user text
+                    closeTurn(state, 'completed', envelopes);
+                    envelopes.push(createEnvelope('user', { t: 'text', text: joined }));
+                }
             }
 
             // Handle tool_results as agent envelopes (need a turn)
@@ -754,4 +772,42 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
         currentTurnId: state.currentTurnId,
         envelopes,
     };
+}
+
+/**
+ * Detect system-injected user messages that Claude Code writes to JSONL
+ * but never emits via SDK stdout stream. These are internal protocol
+ * elements (same pattern as <command-message> detection in the mapper).
+ *
+ * Returns a human-readable service label if the message is system-injected,
+ * or null if it's a real user message.
+ */
+function getSystemInjectedServiceText(trimmedContent: string, message: RawJSONLines): string | null {
+    // Task completion notifications (Claude Code background task protocol)
+    if (trimmedContent.startsWith('<task-notification>')) {
+        return 'Task completed';
+    }
+
+    // User interruption markers (written by Claude Code or happy-cli)
+    if (trimmedContent.startsWith('[Request interrupted')) {
+        return 'Request interrupted';
+    }
+
+    // Session start errors (daemon/SDK errors injected as user messages)
+    if (trimmedContent.startsWith('Failed to start session') || trimmedContent.startsWith('Error\nFailed to start session')) {
+        return 'Session error';
+    }
+
+    // API errors injected as user messages
+    if (trimmedContent.startsWith('API Error:')) {
+        return 'API error';
+    }
+
+    // isMeta=true messages that weren't caught as skill prompts
+    // (e.g. "Continue from where you left off" without a preceding command-message)
+    if ((message as { isMeta?: boolean }).isMeta === true) {
+        return 'Session continued';
+    }
+
+    return null;
 }

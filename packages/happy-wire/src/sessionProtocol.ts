@@ -65,6 +65,12 @@ export const sessionStopEventSchema = z.object({
   t: z.literal('stop'),
 });
 
+export const sessionWrapEventSchema = z.object({
+  t: z.literal('wrap'),
+  label: z.string(),
+  content: z.string(),
+});
+
 export const sessionEventSchema = z.discriminatedUnion('t', [
   sessionTextEventSchema,
   sessionServiceMessageEventSchema,
@@ -75,6 +81,7 @@ export const sessionEventSchema = z.discriminatedUnion('t', [
   sessionStartEventSchema,
   sessionTurnEndEventSchema,
   sessionStopEventSchema,
+  sessionWrapEventSchema,
 ]);
 
 export type SessionEvent = z.infer<typeof sessionEventSchema>;

@@ -2,6 +2,7 @@ import { ApiClient, ApiSessionClient } from "@/lib";
 import { MessageQueue2 } from "@/utils/MessageQueue2";
 import { EnhancedMode } from "./loop";
 import { logger } from "@/ui/logger";
+import { notifyDaemonSessionStarted } from "@/daemon/controlClient";
 import type { JsRuntime } from "./runClaude";
 import type { SandboxConfig } from "@/persistence";
 
@@ -105,14 +106,19 @@ export class Session {
      */
     onSessionFound = (sessionId: string) => {
         this.sessionId = sessionId;
-        
+
         // Update metadata with Claude Code session ID
-        this.client.updateMetadata((metadata) => ({
-            ...metadata,
-            claudeSessionId: sessionId
-        }));
+        this.client.updateMetadata((metadata) => {
+            // Re-notify daemon with updated metadata containing claudeSessionId
+            // The initial webhook (before Claude starts) lacks this field
+            const updated = { ...metadata, claudeSessionId: sessionId };
+            notifyDaemonSessionStarted(this.client.sessionId, updated).catch(err =>
+                logger.debug(`[Session] Failed to update daemon with claudeSessionId: ${err}`)
+            );
+            return updated;
+        });
         logger.debug(`[Session] Claude Code session ID ${sessionId} added to metadata`);
-        
+
         // Notify all registered callbacks
         for (const callback of this.sessionFoundCallbacks) {
             callback(sessionId);

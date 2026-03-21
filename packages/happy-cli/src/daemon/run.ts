@@ -202,20 +202,20 @@ export async function startDaemon(): Promise<void> {
       // Check if we already have this PID (daemon-spawned)
       const existingSession = pidToTrackedSession.get(pid);
 
-      if (existingSession && existingSession.startedBy === 'daemon') {
-        // Update daemon-spawned session with reported data
+      if (existingSession) {
+        // Update existing session with latest metadata (handles both initial and follow-up webhooks)
         existingSession.happySessionId = sessionId;
         existingSession.happySessionMetadataFromLocalWebhook = sessionMetadata;
-        logger.debug(`[DAEMON RUN] Updated daemon-spawned session ${sessionId} with metadata`);
+        logger.debug(`[DAEMON RUN] Updated session ${sessionId} with metadata (claudeSessionId=${sessionMetadata.claudeSessionId || 'none'})`);
 
-        // Resolve any awaiter for this PID
+        // Resolve any awaiter for this PID (only relevant on first webhook)
         const awaiter = pidToAwaiter.get(pid);
         if (awaiter) {
           pidToAwaiter.delete(pid);
           awaiter(existingSession);
           logger.debug(`[DAEMON RUN] Resolved session awaiter for PID ${pid}`);
         }
-      } else if (!existingSession) {
+      } else {
         // New session started externally
         const trackedSession: TrackedSession = {
           startedBy: 'happy directly - likely by user from terminal',
@@ -648,8 +648,16 @@ export async function startDaemon(): Promise<void> {
       return false;
     };
 
+    // Mutable ref for apiMachine (assigned after control server start, used in onChildExited)
+    let apiMachineRef: { notifySessionEnd: (sid: string) => void } | null = null;
+
     // Handle child process exit
     const onChildExited = (pid: number) => {
+      const session = pidToTrackedSession.get(pid);
+      if (session?.happySessionId && apiMachineRef) {
+        apiMachineRef.notifySessionEnd(session.happySessionId);
+        logger.debug(`[DAEMON RUN] Notified server of session end: ${session.happySessionId}`);
+      }
       logger.debug(`[DAEMON RUN] Removing exited process PID ${pid} from tracking`);
       pidToTrackedSession.delete(pid);
     };
@@ -695,6 +703,7 @@ export async function startDaemon(): Promise<void> {
 
     // Create realtime machine session
     const apiMachine = api.machineSyncClient(machine);
+    apiMachineRef = apiMachine;
 
     // Set RPC handlers
     apiMachine.setRPCHandlers({
