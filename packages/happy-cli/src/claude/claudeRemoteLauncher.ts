@@ -331,6 +331,8 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
         // actually changes (e.g., new session started or /clear command used).
         // See: https://github.com/anthropics/happy-cli/issues/143
         let previousSessionId: string | null = null;
+        let consecutiveCrashes = 0;
+        const MAX_CONSECUTIVE_CRASHES = 5;
         while (!exitReason) {
             logger.debug('[remote]: launch');
             messageBuffer.addMessage('═'.repeat(40), 'status');
@@ -354,6 +356,7 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             let modeHash: string | null = null;
             let mode: EnhancedMode | null = null;
             let metaMessageScanner: { cleanup: () => Promise<void>; onNewSession: (id: string) => void } | null = null;
+            let metaMessageScannerPromise: Promise<void> | null = null;
             try {
                 const remoteResult = await claudeRemote({
                     sessionId: session.sessionId,
@@ -404,8 +407,8 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                         // events, so we must read them from the file. This is needed for BOTH
                         // new and resume sessions — the initial history scanner is cleaned up
                         // before this point, so new commands need a fresh meta-scanner.
-                        if (!metaMessageScanner) {
-                            createSessionScanner({
+                        if (!metaMessageScanner && !metaMessageScannerPromise) {
+                            metaMessageScannerPromise = createSessionScanner({
                                 sessionId,
                                 workingDirectory: session.path,
                                 sendExisting: false,
@@ -442,15 +445,34 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                     signal: abortController.signal,
                 });
                 
+                // Claude completed normally — reset crash counter
+                consecutiveCrashes = 0;
+
                 if (!exitReason && abortController.signal.aborted) {
                     session.client.closeClaudeSessionTurn('cancelled');
                     session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
                 }
+
+                // Claude exited but no exit reason — stay alive and wait for next command
+                if (!exitReason) {
+                    logger.debug('[remote]: Claude exited normally, waiting for next command');
+                    messageBuffer.addMessage('Claude session ended. Waiting for next command...', 'status');
+                    session.client.sendSessionEvent({ type: 'message', message: 'Claude process exited, waiting for next command' });
+                }
             } catch (e) {
                 logger.debug('[remote]: launch error', e);
                 if (!exitReason) {
+                    consecutiveCrashes++;
                     session.client.closeClaudeSessionTurn('failed');
-                    session.client.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
+
+                    if (consecutiveCrashes >= MAX_CONSECUTIVE_CRASHES) {
+                        logger.debug(`[remote]: ${consecutiveCrashes} consecutive crashes, stopping`);
+                        session.client.sendSessionEvent({ type: 'message', message: `Claude crashed ${consecutiveCrashes} times consecutively, stopping session` });
+                        exitReason = 'exit';
+                    } else {
+                        session.client.sendSessionEvent({ type: 'message', message: `Claude process exited unexpectedly (crash ${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}), waiting for next command` });
+                        messageBuffer.addMessage(`Claude crashed (${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}). Waiting for next command...`, 'status');
+                    }
                     continue;
                 }
             } finally {
@@ -484,6 +506,11 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                 permissionHandler.reset();
                 modeHash = null;
                 mode = null;
+                // Await pending scanner creation before cleanup to prevent leak
+                if (metaMessageScannerPromise !== null) {
+                    await (metaMessageScannerPromise as Promise<void>).catch(() => {});
+                    metaMessageScannerPromise = null;
+                }
                 if (metaMessageScanner !== null) {
                     await (metaMessageScanner as { cleanup: () => Promise<void> }).cleanup();
                     metaMessageScanner = null;
