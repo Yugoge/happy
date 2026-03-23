@@ -23,31 +23,21 @@ function parseTable(lines: string[], startIndex: number): { table: MarkdownBlock
         return { table: null, nextIndex: startIndex };
     }
 
-    // Extract header cells from the first line, filtering out empty cells that may result from leading/trailing pipes
+    // Extract header cells from the first line, stripping leading/trailing pipes but preserving empty cells
     const headerLine = tableLines[0].trim();
-    const headers = headerLine
-        .split('|')
-        .map(cell => cell.trim())
-        .filter(cell => cell.length > 0);
+    const headers = headerLine.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
 
     if (headers.length === 0) {
         return { table: null, nextIndex: startIndex };
     }
 
-    // Extract data rows from remaining lines (skipping the separator line), preserving valid cell content
+    // Extract data rows from remaining lines (skipping the separator line), preserving empty cells
     const rows: string[][] = [];
     for (let i = 2; i < tableLines.length; i++) {
         const rowLine = tableLines[i].trim();
-        if (rowLine.startsWith('|')) {
-            const rowCells = rowLine
-                .split('|')
-                .map(cell => cell.trim())
-                .filter(cell => cell.length > 0);
-
-            // Include rows that contain actual content, filtering out empty rows
-            if (rowCells.length > 0) {
-                rows.push(rowCells);
-            }
+        if (rowLine.includes('|')) {
+            const rowCells = rowLine.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+            rows.push(rowCells);
         }
     }
 
@@ -78,6 +68,29 @@ export function parseMarkdownBlock(markdown: string) {
 
         // Trim
         let trimmed = line.trim();
+
+        // LaTeX block: $$...$$
+        if (trimmed.startsWith('$$')) {
+            // Single-line: $$E = mc^2$$
+            if (trimmed.endsWith('$$') && trimmed.length > 4) {
+                blocks.push({ type: 'latex', content: trimmed.slice(2, -2).trim() });
+                continue;
+            }
+            // Multi-line: consume until closing $$
+            let latexContent = [trimmed.slice(2)];
+            while (index < lines.length) {
+                const nextLine = lines[index];
+                index++;
+                if (nextLine.trim().endsWith('$$')) {
+                    const last = nextLine.trim().slice(0, -2);
+                    if (last) latexContent.push(last);
+                    break;
+                }
+                latexContent.push(nextLine);
+            }
+            blocks.push({ type: 'latex', content: latexContent.join('\n').trim() });
+            continue;
+        }
 
         // Code block
         if (trimmed.startsWith('```')) {

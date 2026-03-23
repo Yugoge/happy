@@ -1,5 +1,6 @@
 import { AgentEvent } from "./typesRaw";
 import { MessageMeta } from "./typesMessageMeta";
+import { AttachmentMetadata } from "@slopus/happy-wire";
 
 export type ToolCall = {
     name: string;
@@ -29,6 +30,7 @@ export type UserTextMessage = {
     createdAt: number;
     text: string;
     displayText?: string; // Optional text to display in UI instead of actual text
+    attachments?: AttachmentMetadata[];
     meta?: MessageMeta;
 }
 

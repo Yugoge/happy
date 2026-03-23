@@ -1,3 +1,4 @@
+import { AttachmentMetadata } from '@slopus/happy-wire';
 import * as z from 'zod';
 import { isCuid } from '@paralleldrive/cuid2';
 import { MessageMetaSchema, MessageMeta } from './typesMessageMeta';
@@ -527,6 +528,7 @@ export type NormalizedMessage = ({
         type: 'text';
         text: string;
     }
+    attachments?: AttachmentMetadata[];
 } | {
     role: 'agent'
     content: NormalizedAgentContent[]
@@ -602,14 +604,9 @@ function normalizeSessionEnvelope(
             id: messageId,
             localId,
             createdAt: messageCreatedAt,
-            role: 'agent',
-            isSidechain,
-            content: [{
-                type: 'text',
-                text: envelope.ev.text,
-                uuid: contentUUID,
-                parentUUID
-            }],
+            role: 'event',
+            isSidechain: false,
+            content: { type: 'message', message: envelope.ev.text } as AgentEvent,
             meta
         } satisfies NormalizedMessage;
     }
@@ -763,6 +760,7 @@ export function normalizeRawMessage(id: string, localId: string | null, createdA
             content: raw.content,
             isSidechain: false,
             meta: raw.meta,
+            attachments: (raw.meta as any)?.attachments,
         };
     }
     if (raw.role === 'session') {

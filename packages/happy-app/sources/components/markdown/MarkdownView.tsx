@@ -13,6 +13,7 @@ import { storeTempText } from '@/sync/persistence';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { MermaidRenderer } from './MermaidRenderer';
+import { LatexRenderer } from './LatexRenderer';
 import { t } from '@/text';
 
 // Option type for callback
@@ -62,10 +63,12 @@ export const MarkdownView = React.memo((props: {
                         return <RenderCodeBlock content={block.content} language={block.language} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
                     } else if (block.type === 'mermaid') {
                         return <MermaidRenderer content={block.content} key={index} />;
+                    } else if (block.type === 'latex') {
+                        return <LatexRenderer content={block.content} key={index} />;
                     } else if (block.type === 'options') {
                         return <RenderOptionsBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onOptionPress={props.onOptionPress} />;
                     } else if (block.type === 'table') {
-                        return <RenderTableBlock headers={block.headers} rows={block.rows} key={index} first={index === 0} last={index === blocks.length - 1} />;
+                        return <RenderTableBlock headers={block.headers} rows={block.rows} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
                     } else {
                         return null;
                     }
@@ -228,14 +231,100 @@ function RenderSpans(props: { spans: MarkdownSpan[], baseStyle?: any }) {
     </>)
 }
 
-// Table rendering uses column-first layout to ensure consistent column widths.
-// Each column is rendered as a vertical container with all its cells (header + data).
-// This ensures that cells in the same column have the same width, determined by the widest content.
+// Web: row-first HTML <table> for correct copy-paste and semantic structure.
+// Native: column-first layout for consistent column widths (copy handled by markdownCopyV2).
 function RenderTableBlock(props: {
     headers: string[],
     rows: string[][],
     first: boolean,
-    last: boolean
+    last: boolean,
+    selectable: boolean
+}) {
+    if (Platform.OS === 'web') {
+        return <RenderTableBlockWeb {...props} />;
+    }
+    return <RenderTableBlockNative {...props} />;
+}
+
+function RenderTableBlockWeb(props: {
+    headers: string[],
+    rows: string[][],
+    first: boolean,
+    last: boolean,
+    selectable: boolean
+}) {
+    const { theme } = require('react-native-unistyles').useStyles();
+
+    const tableStyle: React.CSSProperties = {
+        borderCollapse: 'collapse',
+        width: 'auto',
+        fontSize: 16,
+        lineHeight: '24px',
+    };
+
+    const thStyle: React.CSSProperties = {
+        padding: '8px 12px',
+        borderBottom: `1px solid ${theme.colors.divider}`,
+        borderRight: `1px solid ${theme.colors.divider}`,
+        backgroundColor: theme.colors.surfaceHigh,
+        fontWeight: 600,
+        textAlign: 'left',
+        whiteSpace: 'nowrap',
+    };
+
+    const tdStyle: React.CSSProperties = {
+        padding: '8px 12px',
+        borderBottom: `1px solid ${theme.colors.divider}`,
+        borderRight: `1px solid ${theme.colors.divider}`,
+        textAlign: 'left',
+        whiteSpace: 'nowrap',
+    };
+
+    return (
+        <View style={[style.tableContainer, props.first && style.first, props.last && style.last]}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled={true}
+                style={style.tableScrollView}
+            >
+                {/* @ts-ignore - Web-only HTML table element */}
+                <table style={tableStyle}>
+                    <thead>
+                        <tr>
+                            {props.headers.map((header, i) => (
+                                <th key={i} style={{
+                                    ...thStyle,
+                                    borderRight: i === props.headers.length - 1 ? 'none' : thStyle.borderRight,
+                                }}>{header}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {props.rows.map((row, rowIndex) => (
+                            <tr key={rowIndex}>
+                                {props.headers.map((_, colIndex) => (
+                                    <td key={colIndex} style={{
+                                        ...tdStyle,
+                                        borderBottom: rowIndex === props.rows.length - 1 ? 'none' : tdStyle.borderBottom,
+                                        borderRight: colIndex === props.headers.length - 1 ? 'none' : tdStyle.borderRight,
+                                    }}>{row[colIndex] ?? ''}</td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </ScrollView>
+        </View>
+    );
+}
+
+function RenderTableBlockNative(props: {
+    headers: string[],
+    rows: string[][],
+    first: boolean,
+    last: boolean,
+    selectable: boolean
 }) {
     const columnCount = props.headers.length;
     const rowCount = props.rows.length;
@@ -245,12 +334,11 @@ function RenderTableBlock(props: {
         <View style={[style.tableContainer, props.first && style.first, props.last && style.last]}>
             <ScrollView
                 horizontal
-                showsHorizontalScrollIndicator={Platform.OS !== 'web'}
+                showsHorizontalScrollIndicator={true}
                 nestedScrollEnabled={true}
                 style={style.tableScrollView}
             >
                 <View style={style.tableContent}>
-                    {/* Render each column as a vertical container */}
                     {props.headers.map((header, colIndex) => (
                         <View
                             key={`column-${colIndex}`}
@@ -259,11 +347,9 @@ function RenderTableBlock(props: {
                                 colIndex === columnCount - 1 && style.tableColumnLast
                             ]}
                         >
-                            {/* Header cell for this column */}
                             <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
-                                <Text style={style.tableHeaderText}>{header}</Text>
+                                <Text selectable={props.selectable} style={style.tableHeaderText}>{header}</Text>
                             </View>
-                            {/* Data cells for this column */}
                             {props.rows.map((row, rowIndex) => (
                                 <View
                                     key={`cell-${rowIndex}-${colIndex}`}
@@ -272,7 +358,7 @@ function RenderTableBlock(props: {
                                         isLastRow(rowIndex) && style.tableCellLast
                                     ]}
                                 >
-                                    <Text style={style.tableCellText}>{row[colIndex] ?? ''}</Text>
+                                    <Text selectable={props.selectable} style={style.tableCellText}>{row[colIndex] ?? ''}</Text>
                                 </View>
                             ))}
                         </View>

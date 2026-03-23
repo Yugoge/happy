@@ -3,88 +3,67 @@ import { View, Platform, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Typography } from '@/constants/Typography';
-import { t } from '@/text';
 
-// Style for Web platform
 const webStyle: any = {
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
     padding: 16,
     overflow: 'auto',
+    textAlign: 'center',
 };
 
-// Mermaid render component that works on all platforms
-export const MermaidRenderer = React.memo((props: {
+export const LatexRenderer = React.memo((props: {
     content: string;
 }) => {
     const { theme } = useUnistyles();
-    const [dimensions, setDimensions] = React.useState({ width: 0, height: 200 });
-    const [svgContent, setSvgContent] = React.useState<string | null>(null);
+    const [dimensions, setDimensions] = React.useState({ width: 0, height: 80 });
 
     const onLayout = React.useCallback((event: any) => {
         const { width } = event.nativeEvent.layout;
         setDimensions(prev => ({ ...prev, width }));
     }, []);
 
-    // Web platform uses direct SVG rendering for better performance and native DOM integration
     if (Platform.OS === 'web') {
+        const [htmlContent, setHtmlContent] = React.useState<string | null>(null);
         const [hasError, setHasError] = React.useState(false);
 
         React.useEffect(() => {
             let isMounted = true;
             setHasError(false);
 
-            const renderMermaid = async () => {
+            const renderLatex = async () => {
                 try {
-                    const mermaidModule: any = await import('mermaid');
-                    const mermaid = mermaidModule.default || mermaidModule;
-
-                    if (mermaid.initialize) {
-                        mermaid.initialize({
-                            startOnLoad: false,
-                            theme: 'dark'
-                        });
-                    }
-
-                    if (mermaid.render) {
-                        const { svg } = await mermaid.render(
-                            `mermaid-${Date.now()}`,
-                            props.content
-                        );
-
-                        if (isMounted) {
-                            setSvgContent(svg);
-                        }
+                    const katex = await import('katex');
+                    const rendered = (katex.default || katex).renderToString(props.content, {
+                        displayMode: true,
+                        throwOnError: false,
+                    });
+                    if (isMounted) {
+                        setHtmlContent(rendered);
                     }
                 } catch (error) {
                     if (isMounted) {
-                        console.warn(`[Mermaid] ${t('markdown.mermaidRenderFailed')}: ${error instanceof Error ? error.message : String(error)}`);
+                        console.warn(`[LaTeX] Render failed: ${error instanceof Error ? error.message : String(error)}`);
                         setHasError(true);
                     }
                 }
             };
 
-            renderMermaid();
-
-            return () => {
-                isMounted = false;
-            };
+            renderLatex();
+            return () => { isMounted = false; };
         }, [props.content]);
 
         if (hasError) {
             return (
                 <View style={[style.container, style.errorContainer]}>
-                    <View style={style.errorContent}>
-                        <Text style={style.errorText}>Mermaid diagram syntax error</Text>
-                        <View style={style.codeBlock}>
-                            <Text style={style.codeText}>{props.content}</Text>
-                        </View>
+                    <View style={style.codeBlock}>
+                        <Text style={style.codeText}>{props.content}</Text>
                     </View>
                 </View>
             );
         }
 
-        if (!svgContent) {
+        if (!htmlContent) {
             return (
                 <View style={[style.container, style.loadingContainer]}>
                     <View style={style.loadingPlaceholder} />
@@ -97,55 +76,59 @@ export const MermaidRenderer = React.memo((props: {
                 {/* @ts-ignore - Web only */}
                 <div
                     style={webStyle}
-                    dangerouslySetInnerHTML={{ __html: svgContent }}
+                    dangerouslySetInnerHTML={{ __html: htmlContent }}
                 />
             </View>
         );
     }
 
-    // For iOS/Android, use WebView
+    // Native: WebView with KaTeX CDN
+    const escapedContent = props.content
+        .replace(/\\/g, '\\\\')
+        .replace(/`/g, '\\`')
+        .replace(/\$/g, '\\$');
+
     const html = `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
             <style>
                 body {
                     margin: 0;
                     padding: 16px;
                     background-color: ${theme.colors.surfaceHighest};
-                }
-                #mermaid-container {
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    width: 100%;
                 }
-                .mermaid {
+                #latex-container {
                     text-align: center;
                     width: 100%;
+                    color: ${theme.colors.text};
                 }
-                .mermaid svg {
-                    max-width: 100%;
-                    height: auto;
-                }
+                .katex { font-size: 1.2em; }
+                .katex-error { color: #ff6b6b; font-family: monospace; font-size: 14px; }
             </style>
         </head>
         <body>
-            <div id="mermaid-container" class="mermaid">
-                ${props.content}
-            </div>
+            <div id="latex-container"></div>
             <script>
-                mermaid.initialize({
-                    startOnLoad: true,
-                    theme: 'dark'
-                });
-                mermaid.run().then(function() {
+                try {
+                    katex.render(\`${escapedContent}\`, document.getElementById('latex-container'), {
+                        displayMode: true,
+                        throwOnError: false
+                    });
+                } catch (e) {
+                    document.getElementById('latex-container').textContent = \`${escapedContent}\`;
+                }
+                setTimeout(function() {
                     var height = document.body.scrollHeight;
                     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dimensions', height: height }));
-                });
+                }, 100);
             </script>
         </body>
         </html>
@@ -186,7 +169,7 @@ const style = StyleSheet.create((theme) => ({
     loadingContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        height: 100,
+        height: 60,
     },
     loadingPlaceholder: {
         width: 200,
@@ -198,15 +181,6 @@ const style = StyleSheet.create((theme) => ({
         backgroundColor: theme.colors.surfaceHighest,
         borderRadius: 8,
         padding: 16,
-    },
-    errorContent: {
-        flexDirection: 'column',
-        gap: 12,
-    },
-    errorText: {
-        ...Typography.default('semiBold'),
-        color: theme.colors.text,
-        fontSize: 16,
     },
     codeBlock: {
         backgroundColor: theme.colors.surfaceHigh,

@@ -2,6 +2,8 @@ import { buildNewMessageUpdate, eventRouter } from "@/app/events/eventRouter";
 import { db } from "@/storage/db";
 import { allocateSessionSeqBatch, allocateUserSeq } from "@/storage/seq";
 import { randomKeyNaked } from "@/utils/randomKeyNaked";
+import { getPublicUrl, isLocalStorage, putLocalFile, s3bucket, s3client } from "@/storage/files";
+import { randomKey } from "@/utils/randomKey";
 import { z } from "zod";
 import { type Fastify } from "../types";
 
@@ -217,5 +219,59 @@ export function v3SessionRoutes(app: Fastify) {
         return reply.send({
             messages: txResult.responseMessages.map(toSendResponseMessage)
         });
+    });
+}
+
+const uploadBodySchema = z.object({
+    filename: z.string().min(1).max(255),
+    content: z.string().min(1), // base64
+    mimeType: z.string().min(1).max(100)
+});
+
+async function storeUploadedFile(userId: string, sessionId: string, filename: string, mimeType: string, buffer: Buffer): Promise<string> {
+    const sanitized = filename.replace(/[/\\]/g, '_').replace(/\.\./g, '_').replace(/\s+/g, '_').slice(0, 200) || 'upload';
+    const key = randomKey('att');
+    const filePath = `attachments/${userId}/${sessionId}/${key}-${sanitized}`;
+
+    if (isLocalStorage()) {
+        await putLocalFile(filePath, buffer);
+    } else {
+        await s3client.putObject(s3bucket, filePath, buffer);
+    }
+
+    return filePath;
+}
+
+export function v3SessionUploadRoutes(app: Fastify) {
+    /** Upload a file attachment for a session. Returns a URL the CLI can download from. */
+    app.post('/v3/sessions/:sessionId/upload', {
+        preHandler: app.authenticate,
+        schema: {
+            params: z.object({ sessionId: z.string() }),
+            body: uploadBodySchema
+        }
+    }, async (request, reply) => {
+        const userId = request.userId;
+        const { sessionId } = request.params;
+        const { filename, content, mimeType } = request.body;
+
+        const session = await db.session.findFirst({
+            where: { id: sessionId, accountId: userId },
+            select: { id: true }
+        });
+        if (!session) {
+            return reply.code(404).send({ error: 'Session not found' });
+        }
+
+        const decoded = Buffer.from(content, 'base64');
+        const maxBytes = 10 * 1024 * 1024; // 10 MB
+        if (decoded.length > maxBytes) {
+            return reply.code(413).send({ error: 'File too large (max 10 MB)' });
+        }
+
+        const filePath = await storeUploadedFile(userId, sessionId, filename, mimeType, decoded);
+        const url = getPublicUrl(filePath);
+
+        return reply.send({ url, path: filePath });
     });
 }

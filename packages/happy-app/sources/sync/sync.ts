@@ -30,6 +30,7 @@ import { projectManager } from './projectManager';
 import { AsyncLock } from '@/utils/lock';
 import { voiceHooks } from '@/realtime/hooks/voiceHooks';
 import { Message } from './typesMessage';
+import { AttachmentMetadata } from '@slopus/happy-wire';
 import { EncryptionCache } from './encryption/encryptionCache';
 import { systemPrompt } from './prompt/systemPrompt';
 import { fetchArtifact, fetchArtifacts, createArtifact, updateArtifact } from './apiArtifacts';
@@ -439,7 +440,7 @@ class Sync {
         this.backgroundSendStartedAt = null;
     }
 
-    async sendMessage(sessionId: string, text: string, displayText?: string) {
+    async sendMessage(sessionId: string, text: string, displayText?: string, attachments?: AttachmentMetadata[]) {
 
         // Get encryption
         const encryption = this.encryption.getSessionEncryption(sessionId);
@@ -492,7 +493,8 @@ class Sync {
                 model,
                 fallbackModel,
                 appendSystemPrompt: systemPrompt,
-                ...(displayText && { displayText }) // Add displayText if provided
+                ...(displayText && { displayText }), // Add displayText if provided
+                ...(attachments && attachments.length > 0 && { attachments })
             }
         };
         const encryptedRawRecord = await encryption.encryptRawRecord(content);
@@ -522,6 +524,45 @@ class Sync {
 
         this.getSendSync(sessionId).invalidate();
         this.maybeStartBackgroundSendWatchdog();
+    }
+
+    /**
+     * Uploads a file attachment to happy-server and returns metadata with URL.
+     * The URL is passed to happy-cli so it can download the file and give it to Claude.
+     */
+    async uploadAttachment(sessionId: string, filename: string, base64Content: string, mimeType: string, size: number): Promise<AttachmentMetadata> {
+        const session = storage.getState().sessions[sessionId];
+        if (!session) {
+            throw new Error('Session not found');
+        }
+        const serverUrl = getServerUrl();
+        const token = this.credentials?.token;
+        if (!token) {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${serverUrl}/v3/sessions/${encodeURIComponent(sessionId)}/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ filename, content: base64Content, mimeType }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error((err as any).error || 'Upload failed');
+        }
+
+        const data = await response.json() as { url: string; path: string };
+        return {
+            id: randomUUID(),
+            filename,
+            mimeType,
+            size,
+            url: data.url,
+        };
     }
 
     applySettings = (delta: Partial<Settings>) => {
@@ -1899,9 +1940,14 @@ class Sync {
                 const agentState = updateData.body.agentState && sessionEncryption
                     ? await sessionEncryption.decryptAgentState(updateData.body.agentState.version, updateData.body.agentState.value)
                     : session.agentState;
-                const metadata = updateData.body.metadata && sessionEncryption
-                    ? await sessionEncryption.decryptMetadata(updateData.body.metadata.version, updateData.body.metadata.value)
-                    : session.metadata;
+                let metadata = session.metadata;
+                if (updateData.body.metadata && sessionEncryption) {
+                    try {
+                        metadata = await sessionEncryption.decryptMetadata(updateData.body.metadata.version, updateData.body.metadata.value);
+                    } catch (e) {
+                        console.error(`Failed to decrypt metadata for session ${updateData.body.id}:`, e);
+                    }
+                }
 
                 this.applySessions([{
                     ...session,

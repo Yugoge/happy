@@ -1,10 +1,13 @@
 import os from 'node:os';
 import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import axios from 'axios';
 
 import { ApiClient } from '@/api/api';
 import { logger } from '@/ui/logger';
 import { loop } from '@/claude/loop';
-import { AgentState, Metadata } from '@/api/types';
+import { AgentState, AttachmentMetadata, Metadata } from '@/api/types';
 import packageJson from '../../package.json';
 import { Credentials, readSettings } from '@/persistence';
 import { EnhancedMode, PermissionMode } from './loop';
@@ -44,6 +47,31 @@ export interface StartOptions {
     jsRuntime?: JsRuntime
     /** Existing happy session ID to reconnect to (for recovery after reboot) */
     recoverSessionId?: string
+}
+
+/**
+ * Downloads message attachments to a temp directory and returns their local paths.
+ * Allows Claude to access attached files via @path references.
+ */
+async function downloadAttachments(attachments: AttachmentMetadata[]): Promise<string[]> {
+    const tmpDir = path.join(os.tmpdir(), 'happy-attachments');
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const localPaths: string[] = [];
+
+    for (const att of attachments) {
+        try {
+            const sanitized = att.filename.replace(/[/\\]/g, '_').replace(/\.\./g, '_').slice(0, 100) || 'file';
+            const localPath = path.join(tmpDir, `${att.id}-${sanitized}`);
+            const response = await axios.get(att.url, { responseType: 'arraybuffer', timeout: 30000 });
+            fs.writeFileSync(localPath, Buffer.from(response.data));
+            localPaths.push(localPath);
+            logger.debug(`[attachments] Downloaded ${att.filename} → ${localPath}`);
+        } catch (e) {
+            logger.debug(`[attachments] Failed to download ${att.filename}: ${e}`);
+        }
+    }
+
+    return localPaths;
 }
 
 export async function runClaude(credentials: Credentials, options: StartOptions = {}): Promise<void> {
@@ -395,8 +423,20 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
             allowedTools: messageAllowedTools,
             disallowedTools: messageDisallowedTools
         };
-        messageQueue.push(message.content.text, enhancedMode);
-        logger.debugLargeJson('User message pushed to queue:', message)
+        // Attach files: download first, then prepend @path refs to message text
+        const attachments = message.meta?.attachments;
+        if (attachments && attachments.length > 0) {
+            (async () => {
+                const localPaths = await downloadAttachments(attachments);
+                const refs = localPaths.map(p => `@${p}`).join(' ');
+                const textWithAttachments = refs ? `${refs}\n\n${message.content.text}` : message.content.text;
+                messageQueue.push(textWithAttachments, enhancedMode);
+                logger.debugLargeJson('User message with attachments pushed to queue:', message);
+            })();
+        } else {
+            messageQueue.push(message.content.text, enhancedMode);
+            logger.debugLargeJson('User message pushed to queue:', message);
+        }
     });
 
     // Setup signal handlers for graceful shutdown

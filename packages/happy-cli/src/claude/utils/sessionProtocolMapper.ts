@@ -558,7 +558,16 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
 
     if (message.type === 'user') {
         // Compact summary messages → service event (not user message)
-        if ((message as any).isCompactSummary) {
+        // Check isCompactSummary flag first (set in JSONL logs), then fall back to content
+        // prefix detection (SDK stream-json output does not include isCompactSummary)
+        const rawContent = message.message.content;
+        const compactCheckText = typeof rawContent === 'string'
+            ? rawContent
+            : (Array.isArray(rawContent) && rawContent.length > 0 && rawContent[0].type === 'text')
+                ? rawContent[0].text
+                : null;
+        if ((message as any).isCompactSummary
+            || (compactCheckText && compactCheckText.startsWith('This session is being continued from a previous conversation'))) {
             const turnId = ensureTurn(state, envelopes);
             envelopes.push(createEnvelope('agent', { t: 'service', text: 'Context compacted' }, { turn: turnId }));
             return { currentTurnId: state.currentTurnId, envelopes };
@@ -806,7 +815,7 @@ function getSystemInjectedServiceText(trimmedContent: string, message: RawJSONLi
     // isMeta=true messages that weren't caught as skill prompts
     // (e.g. "Continue from where you left off" without a preceding command-message)
     if ((message as { isMeta?: boolean }).isMeta === true) {
-        return 'Session continued';
+        return null;  // SDK protocol msg — silently ignore
     }
 
     return null;
