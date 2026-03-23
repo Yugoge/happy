@@ -21,7 +21,7 @@ import { enableAuthentication } from "./utils/enableAuthentication";
 import { userRoutes } from "./routes/userRoutes";
 import { feedRoutes } from "./routes/feedRoutes";
 import { kvRoutes } from "./routes/kvRoutes";
-import { v3SessionRoutes } from "./routes/v3SessionRoutes";
+import { v3SessionRoutes, v3SessionUploadRoutes } from "./routes/v3SessionRoutes";
 import { isLocalStorage, getLocalFilesDir } from "@/storage/files";
 import * as path from "path";
 import * as fs from "fs";
@@ -90,6 +90,7 @@ export async function startApi() {
     feedRoutes(typed);
     kvRoutes(typed);
     v3SessionRoutes(typed);
+    v3SessionUploadRoutes(typed);
 
     // Start HTTP 
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3005;

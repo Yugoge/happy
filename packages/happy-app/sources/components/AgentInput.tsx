@@ -1,4 +1,6 @@
 import { Ionicons, Octicons } from '@expo/vector-icons';
+import { AttachmentStrip } from './AttachmentStrip';
+import type { PendingAttachment } from '@/hooks/useAttachments';
 import * as React from 'react';
 import { View, Platform, useWindowDimensions, ViewStyle, Text, ActivityIndicator, TouchableWithoutFeedback, Image as RNImage, Pressable } from 'react-native';
 import { Image } from 'expo-image';
@@ -65,6 +67,10 @@ interface AgentInputProps {
     };
     alwaysShowContextSize?: boolean;
     onFileViewerPress?: () => void;
+    pendingAttachments?: PendingAttachment[];
+    onAttachImage?: () => void;
+    onAttachDocument?: () => void;
+    onRemoveAttachment?: (id: string) => void;
     agentType?: 'claude' | 'codex' | 'gemini';
     onAgentClick?: () => void;
     machineName?: string | null;
@@ -941,6 +947,10 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
                 {/* Box 2: Action Area (Input + Send) */}
                 <View style={styles.unifiedPanel}>
+                    {/* Pending attachment strip */}
+                    {props.pendingAttachments && props.pendingAttachments.length > 0 && props.onRemoveAttachment && (
+                        <AttachmentStrip attachments={props.pendingAttachments} onRemove={props.onRemoveAttachment} />
+                    )}
                     {/* Input field */}
                     <View style={[styles.inputContainer, props.minHeight ? { minHeight: props.minHeight } : undefined]}>
                         <MultiTextInput
@@ -1095,6 +1105,12 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
                                 {/* Git Status Badge */}
                                 <GitStatusButton sessionId={props.sessionId} onPress={props.onFileViewerPress} />
+                                {/* Attach image button */}
+                                {props.onAttachImage && (
+                                    <Pressable onPress={props.onAttachImage} hitSlop={8} style={{ marginLeft: 4, padding: 4 }}>
+                                        <Ionicons name="image-outline" size={20} color="#888" />
+                                    </Pressable>
+                                )}
                                 </View>
 
                                 {/* Send/Voice button - aligned with first row */}

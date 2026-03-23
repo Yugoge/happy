@@ -26,9 +26,8 @@ export const AgentContentView: React.FC<AgentContentViewProps> = React.memo(({ i
             animatedPadding.value = 0;
         },
     },[safeArea.bottom]);
-    const animatedStyle = useAnimatedStyle(() => ({
-        paddingTop: animatedPadding.value,
-        transform: [{ translateY: height.height.value + safeArea.bottom * height.progress.value }]
+    const animatedContentStyle = useAnimatedStyle(() => ({
+        paddingBottom: -height.height.value - safeArea.bottom * height.progress.value,
     }), [safeArea.bottom]);
     const animatedInputStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: height.height.value + safeArea.bottom * height.progress.value }]
@@ -39,14 +38,14 @@ export const AgentContentView: React.FC<AgentContentViewProps> = React.memo(({ i
     }), [safeArea.bottom]);
     return (
         <View style={{ flexBasis:0, flexGrow:1 }}>
-            <View style={{ flexBasis:0, flexGrow:1 }}>
+            <Animated.View style={[{ flexBasis:0, flexGrow:1 }, animatedContentStyle]}>
                 {content && (
-                    <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, animatedStyle]}>
+                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
                         {content}
-                    </Animated.View>
+                    </View>
                 )}
                 {placeholder && (
-                    <Animated.ScrollView 
+                    <Animated.ScrollView
                         style={[{ position: 'absolute', top: safeArea.top + headerHeight, left: 0, right: 0, bottom: 0 }, animatePlaceholderdStyle]}
                         contentContainerStyle={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}
                         keyboardShouldPersistTaps="handled"
@@ -55,16 +54,10 @@ export const AgentContentView: React.FC<AgentContentViewProps> = React.memo(({ i
                         {placeholder}
                     </Animated.ScrollView>
                 )}
-            </View>
+            </Animated.View>
             <Animated.View style={[animatedInputStyle]}>
                 {input}
             </Animated.View>
         </View>
     );
 });
-
-// const FallbackKeyboardAvoidingView: React.FC<AgentContentViewProps> = React.memo(({
-//     children,
-// }) => {
-    
-// });

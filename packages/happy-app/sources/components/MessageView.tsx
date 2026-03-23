@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Platform, ScrollView } from "react-native
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { MarkdownView } from "./markdown/MarkdownView";
+import { MessageAttachments } from "./MessageAttachments";
 import { t } from '@/text';
 import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage } from "@/sync/typesMessage";
 import { Metadata } from "@/sync/storageTypes";
@@ -77,6 +78,9 @@ function UserTextBlock(props: {
   return (
     <View style={styles.userMessageContainer}>
       <View style={styles.userMessageBubble}>
+        {props.message.attachments && props.message.attachments.length > 0 && (
+          <MessageAttachments attachments={props.message.attachments} />
+        )}
         <MarkdownView markdown={props.message.displayText || props.message.text} onOptionPress={handleOptionPress} />
         {/* {__DEV__ && (
           <Text style={styles.debugText}>{JSON.stringify(props.message.meta)}</Text>

@@ -21,7 +21,9 @@ interface PermissionResponse {
     approved: boolean;
     reason?: string;
     mode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+    allowedTools?: string[];
     allowTools?: string[];
+    answers?: Record<string, string>;
     receivedAt?: number;
 }
 
@@ -47,6 +49,7 @@ export class PermissionHandler {
     constructor(session: Session) {
         this.session = session;
         this.setupClientHandler();
+        this.advertiseCapabilities();
     }
     
     /**
@@ -60,6 +63,22 @@ export class PermissionHandler {
         this.permissionMode = mode;
     }
 
+    private advertiseCapabilities(): void {
+        this.session.client.updateAgentState((currentState) => {
+            const currentCaps = (currentState as any).capabilities;
+            if (currentCaps && currentCaps.askUserQuestionAnswersInPermission === true) {
+                return currentState;
+            }
+            return {
+                ...currentState,
+                capabilities: {
+                    ...(currentCaps && typeof currentCaps === 'object' ? currentCaps : {}),
+                    askUserQuestionAnswersInPermission: true,
+                },
+            };
+        });
+    }
+
     /**
      * Handler response
      */
@@ -69,8 +88,9 @@ export class PermissionHandler {
     ): void {
 
         // Update allowed tools
-        if (response.allowTools && response.allowTools.length > 0) {
-            response.allowTools.forEach(tool => {
+        const allowedTools = response.allowedTools ?? response.allowTools;
+        if (allowedTools && allowedTools.length > 0) {
+            allowedTools.forEach(tool => {
                 if (tool.startsWith('Bash(') || tool === 'Bash') {
                     this.parseBashPermission(tool);
                 } else {
@@ -100,8 +120,22 @@ export class PermissionHandler {
             } else {
                 pending.resolve({ behavior: 'deny', message: response.reason || 'Plan rejected' });
             }
+        } else if (pending.toolName === 'AskUserQuestion' && response.approved && response.answers) {
+            const baseInput =
+                pending.input && typeof pending.input === 'object' && !Array.isArray(pending.input)
+                    ? (pending.input as Record<string, unknown>)
+                    : {};
+            logger.debug(
+                `[AskUserQuestion] Resolving with ${Object.keys(response.answers).length} answer(s)`,
+            );
+            pending.resolve({
+                behavior: 'allow',
+                updatedInput: {
+                    ...baseInput,
+                    answers: response.answers,
+                },
+            });
         } else {
-            // Handle default case for all other tools
             const result: PermissionResult = response.approved
                 ? { behavior: 'allow', updatedInput: (pending.input as Record<string, unknown>) || {} }
                 : { behavior: 'deny', message: response.reason || `The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed.` };
@@ -141,7 +175,7 @@ export class PermissionHandler {
         // Handle special cases
         //
 
-        if (this.permissionMode === 'bypassPermissions') {
+        if (this.permissionMode === 'bypassPermissions' && toolName !== 'AskUserQuestion') {
             return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
         }
 
@@ -215,6 +249,12 @@ export class PermissionHandler {
             // Update agent state
             this.session.client.updateAgentState((currentState) => ({
                 ...currentState,
+                capabilities: {
+                    ...(currentState.capabilities && typeof currentState.capabilities === 'object'
+                        ? currentState.capabilities
+                        : {}),
+                    askUserQuestionAnswersInPermission: true,
+                },
                 requests: {
                     ...currentState.requests,
                     [id]: {
@@ -411,7 +451,9 @@ export class PermissionHandler {
                             status: message.approved ? 'approved' : 'denied',
                             reason: message.reason,
                             mode: message.mode,
-                            allowTools: message.allowTools
+                            ...(Array.isArray(message.allowedTools ?? message.allowTools)
+                                ? { allowedTools: (message.allowedTools ?? message.allowTools)! }
+                                : null),
                         }
                     }
                 };

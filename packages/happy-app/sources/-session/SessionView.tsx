@@ -26,6 +26,7 @@ import { sync } from '@/sync/sync';
 import { t } from '@/text';
 import { tracking, trackMessageSent } from '@/track';
 import { isRunningOnMac } from '@/utils/platform';
+import { useAttachments } from '@/hooks/useAttachments';
 import { useDeviceType, useHeaderHeight, useIsLandscape, useIsTablet } from '@/utils/responsive';
 import { formatPathRelativeToHome, getSessionAvatarId, getSessionName, useSessionStatus } from '@/utils/sessionUtils';
 import { isVersionSupported, MINIMUM_CLI_VERSION } from '@/utils/versionUtils';
@@ -204,6 +205,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
 
     // Use draft hook for auto-saving message drafts
     const { clearDraft } = useDraft(sessionId, message, setMessage);
+    const { attachments, readyAttachments, pickImage, pickDocument, removeAttachment, clearAttachments, hasAttachments } = useAttachments(sessionId);
 
     // Handle dismissing CLI version warning
     const handleDismissCliWarning = React.useCallback(() => {
@@ -317,10 +319,13 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
                 isPulsing: sessionStatus.isPulsing
             }}
             onSend={() => {
-                if (message.trim()) {
+                if (message.trim() || hasAttachments) {
+                    const text = message.trim();
+                    const pending = [...readyAttachments];
                     setMessage('');
                     clearDraft();
-                    sync.sendMessage(sessionId, message);
+                    clearAttachments();
+                    sync.sendMessage(sessionId, text, undefined, pending.length > 0 ? pending : undefined);
                     trackMessageSent();
                 }
             }}
@@ -329,6 +334,10 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
             onAbort={() => sessionAbort(sessionId)}
             showAbortButton={sessionStatus.state === 'thinking' || sessionStatus.state === 'waiting'}
             onFileViewerPress={experiments ? () => router.push(`/session/${sessionId}/files`) : undefined}
+            pendingAttachments={attachments}
+            onAttachImage={pickImage}
+            onAttachDocument={pickDocument}
+            onRemoveAttachment={removeAttachment}
             // Autocomplete configuration
             autocompletePrefixes={['@', '/']}
             autocompleteSuggestions={(query) => getSuggestions(sessionId, query)}

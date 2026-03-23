@@ -123,7 +123,8 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             sendExisting: true,
             workingDirectory: session.path,
             onMessage: (message) => {
-                if (message.type !== 'summary') {
+                const isMetaMessage = (message as { isMeta?: boolean }).isMeta === true;
+                if (message.type !== 'summary' && !isMetaMessage) {
                     session.client.sendClaudeSessionMessage(message);
                 }
             }

@@ -170,6 +170,19 @@ export type Machine = {
 }
 
 /**
+ * Attachment metadata (file or image attached to a user message)
+ */
+export const AttachmentMetadataSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+  url: z.string() // URL to download the file from happy-server
+})
+
+export type AttachmentMetadata = z.infer<typeof AttachmentMetadataSchema>
+
+/**
  * Message metadata schema
  */
 export const MessageMetaSchema = z.object({
@@ -180,7 +193,8 @@ export const MessageMetaSchema = z.object({
   customSystemPrompt: z.string().nullable().optional(), // Custom system prompt for this message (null = reset)
   appendSystemPrompt: z.string().nullable().optional(), // Append to system prompt for this message (null = reset)
   allowedTools: z.array(z.string()).nullable().optional(), // Allowed tools for this message (null = reset)
-  disallowedTools: z.array(z.string()).nullable().optional() // Disallowed tools for this message (null = reset)
+  disallowedTools: z.array(z.string()).nullable().optional(), // Disallowed tools for this message (null = reset)
+  attachments: z.array(AttachmentMetadataSchema).optional() // File/image attachments for this message
 })
 
 export type MessageMeta = z.infer<typeof MessageMetaSchema>
@@ -280,6 +294,10 @@ export type AgentState = {
       arguments: any,
       createdAt: number
     }
+  }
+  capabilities?: {
+    askUserQuestionAnswersInPermission?: boolean
+    [key: string]: unknown
   }
   completedRequests?: {
     [id: string]: {

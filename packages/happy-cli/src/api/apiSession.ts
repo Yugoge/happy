@@ -419,7 +419,9 @@ export class ApiSessionClient extends EventEmitter {
                     text: body.summary,
                     updatedAt: Date.now()
                 }
-            }));
+            })).catch((error) => {
+                logger.debug('[SOCKET] Failed to update metadata with summary:', error);
+            });
         }
     }
 
@@ -573,7 +575,7 @@ export class ApiSessionClient extends EventEmitter {
      * @param handler - Handler function that returns the updated metadata
      */
     updateMetadata(handler: (metadata: Metadata) => Metadata) {
-        this.metadataLock.inLock(async () => {
+        return this.metadataLock.inLock(async () => {
             await backoff(async () => {
                 let updated = handler(this.metadata!); // Weird state if metadata is null - should never happen but here we are
                 const answer = await this.socket.emitWithAck('update-metadata', { sid: this.sessionId, expectedVersion: this.metadataVersion, metadata: encodeBase64(encrypt(this.encryptionKey, this.encryptionVariant, updated)) });
@@ -587,7 +589,8 @@ export class ApiSessionClient extends EventEmitter {
                     }
                     throw new Error('Metadata version mismatch');
                 } else if (answer.result === 'error') {
-                    // Hard error - ignore
+                    logger.debug('[SOCKET] updateMetadata received error from server');
+                    throw new Error('Server returned error for update-metadata');
                 }
             });
         });
