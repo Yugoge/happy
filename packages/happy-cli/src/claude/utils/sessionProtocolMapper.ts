@@ -597,6 +597,11 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     const args = argsMatch ? argsMatch[1].trim() : '';
                     const combined = [nameMatch[1].trim(), args].filter(Boolean).join(' ');
 
+                    // Close the current turn BEFORE setting pending state, so that
+                    // pendingSkillCommandUuid/Name survive the turn boundary and are
+                    // available when the next message (skill prompt) arrives.
+                    closeTurn(state, 'completed', envelopes);
+
                     // Track this command so the next user message (skill prompt) gets wrapped
                     const uuid = pickUuid(message);
                     if (uuid) {
@@ -604,7 +609,6 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                         state.pendingSkillCommandName = nameMatch[1].trim();
                     }
 
-                    closeTurn(state, 'completed', envelopes);
                     if (combined) {
                         envelopes.push(createEnvelope('user', { t: 'text', text: combined }));
                     }
@@ -697,6 +701,12 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     // System-injected message in array format → service event
                     const turnId = ensureTurn(state, envelopes);
                     envelopes.push(createEnvelope('agent', { t: 'service', text: systemText }, { turn: turnId }));
+                } else if (isMeta) {
+                    // isMeta=true message that wasn't caught as isSkillPrompt (race condition:
+                    // skill prompt arrived before command-message set pending state).
+                    // Silently swallow -- the command label was already emitted from the
+                    // <command-message> processing path, and the expanded template is
+                    // collapsed by default anyway.
                 } else {
                     // Regular user text
                     closeTurn(state, 'completed', envelopes);
