@@ -20,8 +20,6 @@ export type ClaudeSessionProtocolState = {
     pendingSkillCommandUuid?: string;
     /** Slash command name (e.g. "/review") for the pending skill prompt label */
     pendingSkillCommandName?: string;
-    /** Set of message uuids that have already been processed as skill prompts (Bug #7 fix: deduplication) */
-    processedSkillPrompts?: Set<string>;
 };
 
 type ClaudeMapperResult = {
@@ -411,10 +409,6 @@ function closeTurn(
 
     envelopes.push(createEnvelope('agent', { t: 'turn-end', status }, { turn: state.currentTurnId }));
     state.currentTurnId = null;
-    // Clear pendingSkillCommandUuid/Name at turn boundary to prevent stale state
-    // from leaking into the next turn. (Bug #7 fix: turn boundary clearing)
-    state.pendingSkillCommandUuid = undefined;
-    state.pendingSkillCommandName = undefined;
     clearSubagentTracking(state);
 }
 
@@ -663,26 +657,13 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
             //    won't match — use isMeta=true as the fallback signal instead.
             const parentUuid = pickParentUuid(message);
             const isMeta = (message as { isMeta?: boolean }).isMeta === true;
-            // Path 1: Restored session with parentUuid matching (existing behavior)
-            const isParentUuidMatch = parentUuid !== undefined && parentUuid === state.pendingSkillCommandUuid;
-            // Path 2: New session (sendExisting=false) where command was never forwarded.
-            // In this case pendingSkillCommandUuid is never set, but pendingSkillCommandName
-            // is set when the command text was parsed. Use isMeta=true as the fallback signal
-            // to detect the skill prompt. (Bug #7 fix)
-            const isMetaOnlyPath = isMeta && state.pendingSkillCommandName !== undefined && state.pendingSkillCommandUuid === undefined;
-            const isSkillPrompt = (state.pendingSkillCommandUuid !== undefined && (isParentUuidMatch || isMeta))
-                || isMetaOnlyPath;
-            // Deduplication: skip if this message uuid was already processed as a skill prompt (Bug #7 fix)
-            const messageUuid = pickUuid(message);
-            if (state.processedSkillPrompts === undefined) {
-                state.processedSkillPrompts = new Set<string>();
-            }
-            const isAlreadyProcessed = messageUuid !== undefined && state.processedSkillPrompts.has(messageUuid);
-            const skillCommandName = isSkillPrompt && !isAlreadyProcessed ? state.pendingSkillCommandName : undefined;
-            if (isSkillPrompt && !isAlreadyProcessed) {
-                if (messageUuid !== undefined) {
-                    state.processedSkillPrompts.add(messageUuid);
-                }
+            const isSkillPrompt = state.pendingSkillCommandUuid !== undefined
+                && (
+                    (parentUuid !== undefined && parentUuid === state.pendingSkillCommandUuid)
+                    || isMeta
+                );
+            const skillCommandName = isSkillPrompt ? state.pendingSkillCommandName : undefined;
+            if (isSkillPrompt) {
                 state.pendingSkillCommandUuid = undefined;
                 state.pendingSkillCommandName = undefined;
             }
