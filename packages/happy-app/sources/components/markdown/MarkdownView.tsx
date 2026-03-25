@@ -3,7 +3,7 @@ import { Link } from 'expo-router';
 import * as React from 'react';
 import { Pressable, ScrollView, View, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Text } from '../StyledText';
 import { Typography } from '@/constants/Typography';
 import { SimpleSyntaxHighlighter } from '../SimpleSyntaxHighlighter';
@@ -47,7 +47,7 @@ export const MarkdownView = React.memo((props: {
     }, [props.markdown, router]);
     const renderContent = () => {
         return (
-            <View style={{ width: '100%' }}>
+            <View style={{ width: '100%', overflow: 'hidden' }}>
                 {blocks.map((block, index) => {
                     if (block.type === 'text') {
                         return <RenderTextBlock spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
@@ -96,7 +96,7 @@ export const MarkdownView = React.memo((props: {
 
     return (
         <GestureDetector gesture={longPressGesture}>
-            <View style={{ width: '100%' }}>
+            <View style={{ width: '100%', overflow: 'hidden' }}>
                 {renderContent()}
             </View>
         </GestureDetector>
@@ -253,7 +253,7 @@ function RenderTableBlockWeb(props: {
     last: boolean,
     selectable: boolean
 }) {
-    const { theme } = require('react-native-unistyles').useStyles();
+    const { theme } = useUnistyles();
 
     const tableStyle: React.CSSProperties = {
         borderCollapse: 'collapse',
@@ -267,6 +267,8 @@ function RenderTableBlockWeb(props: {
         borderBottom: `1px solid ${theme.colors.divider}`,
         borderRight: `1px solid ${theme.colors.divider}`,
         backgroundColor: theme.colors.surfaceHigh,
+        color: theme.colors.text,
+        fontFamily: 'IBMPlexSans-Regular',
         fontWeight: 600,
         textAlign: 'left',
         whiteSpace: 'nowrap',
@@ -276,20 +278,29 @@ function RenderTableBlockWeb(props: {
         padding: '8px 12px',
         borderBottom: `1px solid ${theme.colors.divider}`,
         borderRight: `1px solid ${theme.colors.divider}`,
+        color: theme.colors.text,
+        fontFamily: 'IBMPlexSans-Regular',
+        fontWeight: 400,
         textAlign: 'left',
         whiteSpace: 'nowrap',
     };
 
+    const containerStyle: React.CSSProperties = {
+        marginTop: 8,
+        marginBottom: 8,
+        border: `1px solid ${theme.colors.divider}`,
+        borderRadius: 8,
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        width: 'fit-content',
+        maxWidth: 'min(100%, calc(100vw - 32px))',
+    };
+
     return (
-        <View style={[style.tableContainer, props.first && style.first, props.last && style.last]}>
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                nestedScrollEnabled={true}
-                style={style.tableScrollView}
-            >
-                {/* @ts-ignore - Web-only HTML table element */}
-                <table style={tableStyle}>
+        // @ts-ignore - Web-only div for proper overflow scrolling
+        <div style={containerStyle}>
+            {/* @ts-ignore - Web-only HTML table element */}
+            <table style={tableStyle}>
                     <thead>
                         <tr>
                             {props.headers.map((header, i) => (
@@ -314,8 +325,7 @@ function RenderTableBlockWeb(props: {
                         ))}
                     </tbody>
                 </table>
-            </ScrollView>
-        </View>
+        </div>
     );
 }
 
