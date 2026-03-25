@@ -217,6 +217,7 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: 'center',
   },
   messageContent: {
+    minWidth: 0,
     flexDirection: 'column',
     flexGrow: 1,
     flexBasis: 0,
@@ -242,6 +243,8 @@ const styles = StyleSheet.create((theme) => ({
     marginBottom: 12,
     borderRadius: 16,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   agentEventContainer: {
     marginHorizontal: 8,
