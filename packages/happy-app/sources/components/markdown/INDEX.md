@@ -5,14 +5,15 @@ disable-model-invocation: true
 
 # markdown Index
 
-Auto-generated folder inventory. Last updated: 2026-03-21T19:40:20Z
+Auto-generated folder inventory. Last updated: 2026-03-23T18:16:30Z
 
 ## Structure
 
-- Total files: 5
+- Total files: 6
 
 ## Files
 
+- `LatexRenderer.tsx` - tsx file
 - `MarkdownView.tsx` - tsx file
 - `MermaidRenderer.tsx` - tsx file
 - `parseMarkdown.ts` - ts file

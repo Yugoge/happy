@@ -119,7 +119,8 @@ export async function claudeRemote(opts: {
         fallbackModel: initial.mode.fallbackModel,
         customSystemPrompt: initial.mode.customSystemPrompt ? initial.mode.customSystemPrompt + '\n\n' + systemPrompt : undefined,
         appendSystemPrompt: initial.mode.appendSystemPrompt ? initial.mode.appendSystemPrompt + '\n\n' + systemPrompt : systemPrompt,
-        allowedTools: initial.mode.allowedTools ? initial.mode.allowedTools.concat(opts.allowedTools) : opts.allowedTools,
+        allowedTools: (initial.mode.allowedTools ? initial.mode.allowedTools.concat(opts.allowedTools) : opts.allowedTools)
+            .filter(t => t !== 'ExitPlanMode' && t !== 'exit_plan_mode'),
         disallowedTools: initial.mode.disallowedTools,
         canCallTool: (toolName: string, input: unknown, options: { signal: AbortSignal }) => opts.canCallTool(toolName, input, mode, options),
         executable: opts.jsRuntime ?? 'node',

@@ -30,11 +30,13 @@ const AttachmentChip = React.memo(({ attachment, onRemove }: {
     onRemove: (id: string) => void;
 }) => {
     const isImage = attachment.mimeType.startsWith('image/');
+    // Use previewUri if available, fall back to server URL for restored attachments
+    const imageUri = attachment.previewUri || (isImage ? attachment.metadata?.url : undefined);
 
     return (
         <View style={styles.chip}>
-            {isImage && attachment.previewUri ? (
-                <Image source={{ uri: attachment.previewUri }} style={styles.preview} />
+            {isImage && imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.preview} />
             ) : (
                 <View style={styles.fileIcon}>
                     <Ionicons name="document-outline" size={24} color="#666" />
@@ -90,7 +92,7 @@ const styles = StyleSheet.create(theme => ({
     overlay: {
         position: 'absolute',
         top: 0,
-        left: 0,
+        left: 4,
         width: 64,
         height: 64,
         borderRadius: 8,

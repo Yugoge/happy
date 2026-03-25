@@ -4,18 +4,23 @@ import { WebView } from 'react-native-webview';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Typography } from '@/constants/Typography';
 
-const webStyle: any = {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    padding: 16,
-    overflow: 'auto',
-    textAlign: 'center',
-};
+
 
 export const LatexRenderer = React.memo((props: {
     content: string;
 }) => {
     const { theme } = useUnistyles();
+
+    const webStyle: React.CSSProperties = {
+        backgroundColor: theme.colors.surfaceHighest as string,
+        borderRadius: 8,
+        padding: 16,
+        overflow: 'auto',
+        textAlign: 'center',
+        color: theme.colors.text as string,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+    };
     const [dimensions, setDimensions] = React.useState({ width: 0, height: 80 });
 
     const onLayout = React.useCallback((event: any) => {
@@ -34,6 +39,14 @@ export const LatexRenderer = React.memo((props: {
             const renderLatex = async () => {
                 try {
                     const katex = await import('katex');
+                    // Inject KaTeX CSS from CDN if not already present
+                    if (!document.querySelector('link[data-katex]')) {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.setAttribute('data-katex', '');
+                        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css';
+                        document.head.appendChild(link);
+                    }
                     const rendered = (katex.default || katex).renderToString(props.content, {
                         displayMode: true,
                         throwOnError: false,
@@ -110,7 +123,7 @@ export const LatexRenderer = React.memo((props: {
                     width: 100%;
                     color: ${theme.colors.text};
                 }
-                .katex { font-size: 1.2em; }
+                .katex { font-size: 1.2em; color: ${theme.colors.text}; }
                 .katex-error { color: #ff6b6b; font-family: monospace; font-size: 14px; }
             </style>
         </head>

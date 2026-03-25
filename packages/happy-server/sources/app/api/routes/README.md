@@ -1,19 +1,18 @@
-# markdown
+# routes
 
-Organization and usage documentation for `markdown/`.
+Organization and usage documentation for `routes/`.
 
 <!-- AUTO:readme-stats -->
 ## Overview
 
-- **Total files**: 6
+- **Total files**: 17
 - **Naming convention**: mixed
 
 ## File Types
 
-- `.tsx`: 3 files
-- `.ts`: 3 files
+- `.ts`: 17 files
 
-*Last updated: 2026-03-23T18:18:58Z*
+*Last updated: 2026-03-23T14:35:27Z*
 <!-- /AUTO:readme-stats -->
 
 ---

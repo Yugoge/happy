@@ -4,6 +4,7 @@ import { LocalSettings, localSettingsDefaults, localSettingsParse } from './loca
 import { Purchases, purchasesDefaults, purchasesParse } from './purchases';
 import { Profile, profileDefaults, profileParse } from './profile';
 import type { PermissionModeKey } from '@/components/PermissionModeSelector';
+import type { PendingAttachment } from '@/hooks/useAttachments';
 
 const mmkv = new MMKV();
 const NEW_SESSION_DRAFT_KEY = 'new-session-draft-v1';
@@ -221,6 +222,28 @@ export function retrieveTempText(id: string): string | null {
         return content;
     }
     return null;
+}
+
+
+// Serializable subset of PendingAttachment for MMKV persistence.
+// Only 'ready' attachments with valid metadata are stored.
+type PersistedAttachment = Omit<PendingAttachment, 'previewUri'>;
+
+export function loadSessionAttachments(): Record<string, PersistedAttachment[]> {
+    const raw = mmkv.getString('session-attachments');
+    if (raw) {
+        try {
+            return JSON.parse(raw);
+        } catch (e) {
+            console.error('Failed to parse session attachments', e);
+            return {};
+        }
+    }
+    return {};
+}
+
+export function saveSessionAttachments(attachments: Record<string, PersistedAttachment[]>) {
+    mmkv.set('session-attachments', JSON.stringify(attachments));
 }
 
 export function clearPersistence() {

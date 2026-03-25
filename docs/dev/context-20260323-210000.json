@@ -1,0 +1,114 @@
+{
+  "request_id": "dev-20260323-210000",
+  "timestamp": "2026-03-23T21:00:00Z",
+  "requirement": {
+    "original": "Analyze the current sidebar collapse/expand UI implementation and propose improvements. The user says it looks ugly.",
+    "clarified": "Replace Ionicons (chevron-back, menu-outline, add-outline) in sidebar header with brutalist image assets matching the existing design language. Improve expand button styling. Reorder icons so collapse is rightmost.",
+    "what": "Visual redesign of sidebar collapse/expand controls and new-session button to use brutalist icon assets instead of Ionicons",
+    "why": "Current UI mixes two icon systems (brutalist PNGs and Ionicons) creating visual inconsistency that the user perceives as ugly",
+    "where": [
+      "packages/happy-app/sources/components/SidebarView.tsx",
+      "packages/happy-app/sources/components/SidebarNavigator.tsx"
+    ],
+    "scope": {
+      "included": [
+        "Replace collapse chevron with brutalist asset in SidebarView.tsx",
+        "Replace expand hamburger with brutalist asset in SidebarNavigator.tsx",
+        "Replace add-outline with brutalist asset in SidebarView.tsx",
+        "Improve expand button styling",
+        "Reorder header icons (collapse rightmost)"
+      ],
+      "excluded": [
+        "Changing sidebar collapse/expand animation or behavior",
+        "Modifying mobile drawer behavior",
+        "Creating new custom icon assets",
+        "Updating add-outline in HomeHeader.tsx or MainView.tsx",
+        "Changing logo or title area layout"
+      ]
+    },
+    "success_criteria": [
+      "All sidebar header icons use the same visual style (brutalist image assets, 32x32, with tintColor)",
+      "Expand button styling is cohesive with the rest of the UI",
+      "All collapse/expand/new-session behaviors remain functionally identical",
+      "Works correctly in both light and dark themes"
+    ],
+    "constraints": [
+      "Must use existing brutalist icon assets (no new assets)",
+      "Must maintain hitSlop and press handler behavior",
+      "Web/tablet only feature (collapse/expand)",
+      "Follow existing Image pattern: contentFit='contain', inline width/height, tintColor on component"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Sidebar header icons look ugly / visually inconsistent",
+    "root_cause": "Two different icon systems used in the same icon row: brutalist PNG assets for inbox/settings, Ionicons for collapse/expand/new-session",
+    "root_cause_commit": "N/A - gradual accumulation as features were added",
+    "why_introduced": "Icons were added incrementally; Ionicons are the quick default while brutalist assets require choosing from the set",
+    "why_problematic": "Brutalist icons have thick, hand-drawn, geometric aesthetics; Ionicons are thin, uniform-weight system icons. Mixing them creates jarring visual contrast.",
+    "timeline": "N/A - design debt",
+    "affected_files": [
+      "packages/happy-app/sources/components/SidebarView.tsx",
+      "packages/happy-app/sources/components/SidebarNavigator.tsx"
+    ]
+  },
+  "context": {
+    "codebase_state": "Sidebar collapse/expand is functional, only visual issues",
+    "recent_commits": "N/A - not related to recent changes",
+    "file_contents": {
+      "SidebarView.tsx": {
+        "icon_row_lines": "239-287",
+        "brutalist_pattern": "Image source={require('@/assets/images/brutalist/Brutalism N.png')} contentFit='contain' style={[{ width: 32, height: 32 }]} tintColor={theme.colors.header.tint}",
+        "ionicons_used": [
+          { "name": "chevron-back-outline", "size": 22, "line": 278, "purpose": "collapse sidebar" },
+          { "name": "add-outline", "size": 28, "line": 285, "purpose": "new session" }
+        ],
+        "brutalist_used": [
+          { "asset": "Brutalism 27.png", "line": 246, "purpose": "inbox (starburst icon)" },
+          { "asset": "Brutalism 9.png", "line": 267, "purpose": "settings (grid pattern icon)" }
+        ]
+      },
+      "SidebarNavigator.tsx": {
+        "expand_button_lines": "68-86",
+        "ionicons_used": [
+          { "name": "menu-outline", "size": 18, "line": 84, "purpose": "expand collapsed sidebar" }
+        ],
+        "expand_button_style": "position absolute, top:12, left:12, 32x32, borderRadius:8, bg:theme.colors.surface"
+      }
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Replace all three Ionicons in sidebar collapse/expand UI with brutalist image assets. Reorder icon group. Improve expand button styling.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/SidebarView.tsx",
+      "packages/happy-app/sources/components/SidebarNavigator.tsx"
+    ],
+    "icon_candidates": {
+      "new_session": {
+        "primary": "Brutalism 14.png (sparkle wand - conveys create/new)",
+        "alternative": "Brutalism 26.png (cross sparkle)"
+      },
+      "collapse_sidebar": {
+        "note": "No clean sidebar/arrow icon in brutalist set. Options: (1) Use Brutalism 15 (4-point star, outline) as abstract 'minimize', (2) Use Brutalism 22 (cubes) for 'panels', (3) Keep a simple styled approach. User should choose.",
+        "candidates": ["Brutalism 15.png", "Brutalism 22.png", "Brutalism 25.png"]
+      },
+      "expand_sidebar": {
+        "note": "Could reuse the H logo as expand button for visual connection to collapsed sidebar, or use same icon as collapse for symmetry"
+      }
+    },
+    "validation_approach": "Visual inspection on web, verify both light and dark themes, verify collapse/expand/new-session functionality unchanged"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI consistency fix using existing design system assets; no architectural decisions or novel patterns involved"
+  }
+}

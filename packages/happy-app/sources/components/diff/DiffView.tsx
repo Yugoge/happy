@@ -173,8 +173,8 @@ export const DiffView: React.FC<DiffViewProps> = ({
                     >
                         {showLineNumbers && (
                             <Text style={{
-                                color: colors.lineNumberText,
-                                backgroundColor: colors.lineNumberBg,
+                                color: isAdded ? colors.lineNumberAddedText : isRemoved ? colors.lineNumberRemovedText : colors.lineNumberText,
+                                backgroundColor: isAdded ? colors.lineNumberAddedBg : isRemoved ? colors.lineNumberRemovedBg : colors.lineNumberBg,
                             }}>
                                 {String(line.type === 'remove' ? line.oldLineNumber :
                                        line.type === 'add' ? line.newLineNumber :

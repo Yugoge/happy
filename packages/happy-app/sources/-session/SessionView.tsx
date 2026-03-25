@@ -205,7 +205,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
 
     // Use draft hook for auto-saving message drafts
     const { clearDraft } = useDraft(sessionId, message, setMessage);
-    const { attachments, readyAttachments, pickImage, pickDocument, removeAttachment, clearAttachments, hasAttachments } = useAttachments(sessionId);
+    const { attachments, readyAttachments, pickImage, pickDocument, removeAttachment, clearAttachments, hasAttachments, addFileFromPaste } = useAttachments(sessionId);
 
     // Handle dismissing CLI version warning
     const handleDismissCliWarning = React.useCallback(() => {
@@ -338,6 +338,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
             onAttachImage={pickImage}
             onAttachDocument={pickDocument}
             onRemoveAttachment={removeAttachment}
+            onFilePaste={addFileFromPaste}
             // Autocomplete configuration
             autocompletePrefixes={['@', '/']}
             autocompleteSuggestions={(query) => getSuggestions(sessionId, query)}

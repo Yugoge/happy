@@ -162,13 +162,40 @@ The project has pending Prisma migrations that need to be applied:
 - Always validate inputs using Zod
 - **Idempotency**: Design all operations to be idempotent - clients may retry requests automatically and the backend must handle multiple invocations of the same operation gracefully, producing the same result as a single invocation
 
-## Docker Deployment
+## Production Deployment
 
-The project includes a multi-stage Dockerfile:
-1. Builder stage: Installs dependencies and builds the application
-2. Runner stage: Minimal runtime with only necessary files
-3. Exposes port 3000
-4. Requires FFmpeg and Python3 in the runtime
+### Docker Build & Run
+- **Dockerfile**: `/root/happy/Dockerfile.server-slim` (3-stage: deps → builder → runner)
+- **Build context**: `/root/happy` (monorepo root)
+- **Compose file**: `/root/deploy/docker-compose.yml`
+- **Container name**: `happy-server`
+- **Image**: `happy-server-happy-server`
+- **Port mapping**: `3000 → 3005` (host:container)
+- **Dependencies**: postgres (healthy), redis (healthy), minio (started)
+
+### Build & Deploy Commands
+```bash
+# Rebuild image
+cd /root/deploy && docker compose build happy-server
+
+# Deploy (restart with new image)
+cd /root/deploy && docker compose up -d happy-server
+
+# View logs
+docker logs -f happy-server
+```
+
+### Build Stages (Dockerfile.server-slim)
+1. **deps**: node:20, installs yarn deps for happy-server + happy-wire only (skips happy-app)
+2. **builder**: builds happy-wire then happy-server (`yarn workspace build`)
+3. **runner**: node:20 + ffmpeg + python3, copies built artifacts, `CMD yarn start`
+
+### Environment (set in docker-compose.yml)
+- `NODE_ENV=production`, `PORT=3005`
+- `DATABASE_URL` → postgres container
+- `REDIS_URL` → redis container
+- `S3_*` → minio container
+- `PUBLIC_URL=https://api.life-ai.app`
 
 ## Important Reminders
 

@@ -48,9 +48,21 @@ const ImageAttachment = React.memo(({ attachment }: { attachment: AttachmentMeta
     </View>
 ));
 
+function getFileIcon(mimeType: string): keyof typeof Ionicons.glyphMap {
+    if (mimeType === 'application/pdf') return 'document-text-outline';
+    if (mimeType.startsWith('audio/')) return 'musical-notes-outline';
+    if (mimeType.startsWith('video/')) return 'videocam-outline';
+    if (mimeType.includes('zip') || mimeType.includes('tar') || mimeType.includes('rar') || mimeType.includes('compress')) return 'archive-outline';
+    if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv') return 'grid-outline';
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'easel-outline';
+    if (mimeType.includes('word') || mimeType.includes('document') || mimeType === 'application/rtf') return 'document-outline';
+    if (mimeType.startsWith('text/') || mimeType === 'application/json' || mimeType === 'application/xml') return 'code-slash-outline';
+    return 'attach-outline';
+}
+
 const FileAttachment = React.memo(({ attachment }: { attachment: AttachmentMetadata }) => (
     <View style={styles.fileCard}>
-        <Ionicons name="document-outline" size={20} color="#666" />
+        <Ionicons name={getFileIcon(attachment.mimeType)} size={20} color="#666" />
         <View style={styles.fileInfo}>
             <Text style={styles.fileName} numberOfLines={1}>{attachment.filename}</Text>
             <Text style={styles.fileSize}>{formatBytes(attachment.size)}</Text>

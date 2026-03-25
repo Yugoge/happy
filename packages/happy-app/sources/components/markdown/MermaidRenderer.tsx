@@ -5,19 +5,30 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Typography } from '@/constants/Typography';
 import { t } from '@/text';
 
-// Style for Web platform
-const webStyle: any = {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    padding: 16,
-    overflow: 'auto',
-};
+
 
 // Mermaid render component that works on all platforms
 export const MermaidRenderer = React.memo((props: {
     content: string;
 }) => {
     const { theme } = useUnistyles();
+
+    const webStyle: React.CSSProperties = {
+        backgroundColor: theme.colors.surfaceHighest as string,
+        borderRadius: 8,
+        padding: 16,
+        overflow: 'auto',
+        color: theme.colors.text as string,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        border: `1px solid \${theme.colors.divider as string}`,
+        marginTop: 8,
+        marginBottom: 8,
+    };
+
+    const svgConstraintStyle = `
+        svg { max-width: 100%; height: auto; }
+    `;
     const [dimensions, setDimensions] = React.useState({ width: 0, height: 200 });
     const [svgContent, setSvgContent] = React.useState<string | null>(null);
 
@@ -42,7 +53,17 @@ export const MermaidRenderer = React.memo((props: {
                     if (mermaid.initialize) {
                         mermaid.initialize({
                             startOnLoad: false,
-                            theme: 'dark'
+                            theme: theme.dark ? 'dark' : 'default',
+                            themeVariables: {
+                                fontFamily: '"IBM Plex Sans", sans-serif',
+                                fontSize: '14px',
+                                primaryColor: theme.dark ? '#2C2C2E' : '#f0f0f0',
+                                primaryTextColor: theme.dark ? '#E5E5EA' : '#1C1C1E',
+                                primaryBorderColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                lineColor: theme.dark ? '#8E8E93' : '#636366',
+                                secondaryColor: theme.dark ? '#38383A' : '#F8F8F8',
+                                tertiaryColor: theme.dark ? '#1C1C1E' : '#ffffff',
+                            },
                         });
                     }
 
@@ -69,7 +90,7 @@ export const MermaidRenderer = React.memo((props: {
             return () => {
                 isMounted = false;
             };
-        }, [props.content]);
+        }, [props.content, theme.dark]);
 
         if (hasError) {
             return (
@@ -95,10 +116,10 @@ export const MermaidRenderer = React.memo((props: {
         return (
             <View style={style.container}>
                 {/* @ts-ignore - Web only */}
-                <div
-                    style={webStyle}
-                    dangerouslySetInnerHTML={{ __html: svgContent }}
-                />
+                <div style={webStyle}>
+                    <style dangerouslySetInnerHTML={{ __html: svgConstraintStyle }} />
+                    <div dangerouslySetInnerHTML={{ __html: svgContent }} />
+                </div>
             </View>
         );
     }
@@ -110,6 +131,7 @@ export const MermaidRenderer = React.memo((props: {
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
             <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
             <style>
                 body {
@@ -140,7 +162,17 @@ export const MermaidRenderer = React.memo((props: {
             <script>
                 mermaid.initialize({
                     startOnLoad: true,
-                    theme: 'dark'
+                    theme: '${theme.dark ? 'dark' : 'default'}',
+                    themeVariables: {
+                        fontFamily: '"IBM Plex Sans", sans-serif',
+                        fontSize: '14px',
+                        primaryColor: '${theme.dark ? '#2C2C2E' : '#f0f0f0'}',
+                        primaryTextColor: '${theme.dark ? '#E5E5EA' : '#1C1C1E'}',
+                        primaryBorderColor: '${theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}',
+                        lineColor: '${theme.dark ? '#8E8E93' : '#636366'}',
+                        secondaryColor: '${theme.dark ? '#38383A' : '#F8F8F8'}',
+                        tertiaryColor: '${theme.dark ? '#1C1C1E' : '#ffffff'}',
+                    },
                 });
                 mermaid.run().then(function() {
                     var height = document.body.scrollHeight;
@@ -182,6 +214,9 @@ const style = StyleSheet.create((theme) => ({
         width: '100%',
         backgroundColor: theme.colors.surfaceHighest,
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.divider,
+        overflow: 'hidden',
     },
     loadingContainer: {
         justifyContent: 'center',

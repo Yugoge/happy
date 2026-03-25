@@ -423,16 +423,19 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
             allowedTools: messageAllowedTools,
             disallowedTools: messageDisallowedTools
         };
-        // Attach files: download first, then prepend @path refs to message text
+        // Attach files: download first, then append @path refs after message text
         const attachments = message.meta?.attachments;
         if (attachments && attachments.length > 0) {
-            (async () => {
-                const localPaths = await downloadAttachments(attachments);
+            downloadAttachments(attachments).then(localPaths => {
                 const refs = localPaths.map(p => `@${p}`).join(' ');
-                const textWithAttachments = refs ? `${refs}\n\n${message.content.text}` : message.content.text;
+                const text = message.content.text;
+                const textWithAttachments = refs ? (text ? `${text}\n\n${refs}` : refs) : text;
                 messageQueue.push(textWithAttachments, enhancedMode);
                 logger.debugLargeJson('User message with attachments pushed to queue:', message);
-            })();
+            }).catch(err => {
+                logger.debug(`[WARN] Attachment download failed: ${err?.message}, sending message without attachments`);
+                messageQueue.push(message.content.text, enhancedMode);
+            });
         } else {
             messageQueue.push(message.content.text, enhancedMode);
             logger.debugLargeJson('User message pushed to queue:', message);
