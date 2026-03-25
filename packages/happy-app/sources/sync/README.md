@@ -13,7 +13,7 @@ Organization and usage documentation for `sync/`.
 
 - `.ts`: 44 files
 
-*Last updated: 2026-03-22T22:52:29Z*
+*Last updated: 2026-03-23T20:16:13Z*
 <!-- /AUTO:readme-stats -->
 
 ---

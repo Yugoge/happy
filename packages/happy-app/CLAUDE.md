@@ -25,6 +25,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Production
 - `yarn ota` - Deploy over-the-air updates via EAS Update to production branch
 
+## Production Deployment (Web)
+
+### Docker Build & Run
+- **Dockerfile**: `/root/happy/Dockerfile.webapp` (3-stage: deps → builder → nginx)
+- **Build context**: `/root/happy` (monorepo root)
+- **Compose file**: `/root/deploy/docker-compose.yml`
+- **Container name**: `happy-web`
+- **Image**: `happy-app:message-fixes` (pre-built, no `build:` in compose)
+- **Port mapping**: `8090 → 80` (host:container)
+- **Runtime**: nginx:alpine serving static Expo web export
+
+### Build & Deploy Commands
+```bash
+# Rebuild image (must be done manually, compose has no build: section)
+cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:message-fixes .
+
+# Deploy (restart with new image)
+cd /root/deploy && docker compose up -d happy-web
+
+# View logs
+docker logs -f happy-web
+```
+
+### Build Stages (Dockerfile.webapp)
+1. **deps**: node:20-alpine, installs all workspace deps
+2. **builder**: builds happy-wire, then `expo export --platform web --output-dir dist`
+3. **runner**: nginx:alpine, copies static files to `/usr/share/nginx/html`, SPA fallback config
+
+### Access
+- Via Cloudflare tunnel: `https://life-ai.app` (port 8090)
+
 ## Changelog Management
 
 The app includes an in-app changelog feature that displays version history to users. When making changes:

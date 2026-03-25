@@ -1,19 +1,18 @@
-# markdown
+# storage
 
-Organization and usage documentation for `markdown/`.
+Organization and usage documentation for `storage/`.
 
 <!-- AUTO:readme-stats -->
 ## Overview
 
-- **Total files**: 6
+- **Total files**: 13
 - **Naming convention**: mixed
 
 ## File Types
 
-- `.tsx`: 3 files
-- `.ts`: 3 files
+- `.ts`: 13 files
 
-*Last updated: 2026-03-23T18:18:58Z*
+*Last updated: 2026-03-23T14:33:53Z*
 <!-- /AUTO:readme-stats -->
 
 ---

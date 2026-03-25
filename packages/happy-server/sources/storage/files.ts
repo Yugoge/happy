@@ -40,11 +40,8 @@ export async function loadFiles() {
 }
 
 export function getPublicUrl(filePath: string) {
-    if (useLocalStorage) {
-        const baseUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || '3005'}`;
-        return `${baseUrl}/files/${filePath}`;
-    }
-    return `${s3public}/${filePath}`;
+    const baseUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || '3005'}`;
+    return `${baseUrl}/files/${filePath}`;
 }
 
 export function isLocalStorage() {

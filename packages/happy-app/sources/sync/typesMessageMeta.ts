@@ -10,7 +10,14 @@ export const MessageMetaSchema = z.object({
     appendSystemPrompt: z.string().nullable().optional(), // Append to system prompt for this message (null = reset)
     allowedTools: z.array(z.string()).nullable().optional(), // Allowed tools for this message (null = reset)
     disallowedTools: z.array(z.string()).nullable().optional(), // Disallowed tools for this message (null = reset)
-    displayText: z.string().optional() // Optional text to display in UI instead of actual message text
+    displayText: z.string().optional(), // Optional text to display in UI instead of actual message text
+    attachments: z.array(z.object({
+        id: z.string(),
+        filename: z.string(),
+        mimeType: z.string(),
+        size: z.number(),
+        url: z.string(),
+    })).optional() // File/image attachments uploaded via happy-app
 });
 
 export type MessageMeta = z.infer<typeof MessageMetaSchema>;

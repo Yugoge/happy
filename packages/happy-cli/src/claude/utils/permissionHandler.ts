@@ -149,23 +149,28 @@ export class PermissionHandler {
      */
     handleToolCall = async (toolName: string, input: unknown, mode: EnhancedMode, options: { signal: AbortSignal }): Promise<PermissionResult> => {
 
+        // ExitPlanMode and AskUserQuestion always require user approval - never auto-approve
+        const alwaysRequiresApproval = toolName === 'ExitPlanMode' || toolName === 'exit_plan_mode' || toolName === 'AskUserQuestion';
+
         // Check if tool is explicitly allowed
-        if (toolName === 'Bash') {
-            const inputObj = input as { command?: string };
-            if (inputObj?.command) {
-                // Check literal matches
-                if (this.allowedBashLiterals.has(inputObj.command)) {
-                    return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
-                }
-                // Check prefix matches
-                for (const prefix of this.allowedBashPrefixes) {
-                    if (inputObj.command.startsWith(prefix)) {
+        if (!alwaysRequiresApproval) {
+            if (toolName === 'Bash') {
+                const inputObj = input as { command?: string };
+                if (inputObj?.command) {
+                    // Check literal matches
+                    if (this.allowedBashLiterals.has(inputObj.command)) {
                         return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
                     }
+                    // Check prefix matches
+                    for (const prefix of this.allowedBashPrefixes) {
+                        if (inputObj.command.startsWith(prefix)) {
+                            return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
+                        }
+                    }
                 }
+            } else if (this.allowedTools.has(toolName)) {
+                return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
             }
-        } else if (this.allowedTools.has(toolName)) {
-            return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
         }
 
         // Calculate descriptor
@@ -175,7 +180,7 @@ export class PermissionHandler {
         // Handle special cases
         //
 
-        if (this.permissionMode === 'bypassPermissions' && toolName !== 'AskUserQuestion') {
+        if (this.permissionMode === 'bypassPermissions' && !alwaysRequiresApproval) {
             return { behavior: 'allow', updatedInput: input as Record<string, unknown> };
         }
 

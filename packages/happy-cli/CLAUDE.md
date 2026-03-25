@@ -136,7 +136,47 @@ User interface components.
 - Testing: Vitest 
 
 
-# Running the Daemon
+# Production Deployment
+
+## How it Runs
+happy-cli runs as **systemd services** on the host (NOT Docker). Two daemon instances:
+
+| Service | systemd unit | HAPPY_HOME_DIR | PID file |
+|---------|-------------|----------------|----------|
+| Default | `happy-daemon.service` | `/root/.happy/` (default) | `/root/.happy/daemon.pid` |
+| Jade | `happy-daemon-jade.service` | `/root/.happy-jade/` | `/root/.happy-jade/daemon.pid` |
+
+## Binary
+- Installed globally: `/usr/bin/happy` (npm package `happy-coder`)
+- Working directory: `/root`
+
+## Systemd Commands
+```bash
+# Status
+systemctl status happy-daemon
+systemctl status happy-daemon-jade
+
+# Restart (use with caution)
+systemctl restart happy-daemon
+
+# Logs
+journalctl -u happy-daemon -f
+journalctl -u happy-daemon-jade -f
+```
+
+## Key Environment (from systemd unit)
+- `HAPPY_SERVER_URL=http://188.245.32.161:3000` (direct IP, bypasses Cloudflare)
+- `NODE_OPTIONS=--max-old-space-size=512`
+- `IS_SANDBOX=1`
+- Memory limits: `MemoryMax=1G`, `MemoryHigh=800M`
+
+## Updating the CLI
+```bash
+npm install -g happy-coder@latest
+# Daemon auto-detects version mismatch via heartbeat and restarts itself
+```
+
+# Running the Daemon (Development)
 
 ## Starting the Daemon
 ```bash

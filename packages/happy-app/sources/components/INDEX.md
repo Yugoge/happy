@@ -5,11 +5,11 @@ disable-model-invocation: true
 
 # components Index
 
-Auto-generated folder inventory. Last updated: 2026-03-21T21:13:07Z
+Auto-generated folder inventory. Last updated: 2026-03-23T21:50:23Z
 
 ## Structure
 
-- Total files: 80
+- Total files: 82
 - Subdirectories: 9 (CommandPalette, autocomplete, diff, markdown, navigation, qr, tools, usage, web)
 
 ## Files
@@ -36,6 +36,7 @@ Auto-generated folder inventory. Last updated: 2026-03-21T21:13:07Z
 │   ├── `calculateDiff.ts` - ts file
 │   └── `DiffView.tsx` - tsx file
 ├── markdown/
+│   ├── `LatexRenderer.tsx` - tsx file
 │   ├── `MarkdownView.tsx` - tsx file
 │   ├── `MermaidRenderer.tsx` - tsx file
 │   ├── `parseMarkdown.ts` - ts file
@@ -90,6 +91,7 @@ Auto-generated folder inventory. Last updated: 2026-03-21T21:13:07Z
 ├── `AgentInput.tsx` - tsx file
 ├── `AgentInputAutocomplete.tsx` - tsx file
 ├── `AgentInputSuggestionView.tsx` - tsx file
+├── `AttachmentStrip.tsx` - tsx file
 ├── `Avatar.tsx` - tsx file
 ├── `AvatarBrutalist.tsx` - tsx file
 ├── `AvatarGradient.tsx` - tsx file
@@ -126,6 +128,7 @@ Auto-generated folder inventory. Last updated: 2026-03-21T21:13:07Z
 ├── `ItemList.tsx` - tsx file
 ├── `layout.ts` - ts file
 ├── `MainView.tsx` - tsx file
+├── `MessageAttachments.tsx` - tsx file
 ├── `MessageView.tsx` - tsx file
 ├── `modelModeOptions.test.ts` - ts file
 ├── `modelModeOptions.ts` - ts file

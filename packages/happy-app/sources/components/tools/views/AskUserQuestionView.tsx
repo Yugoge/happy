@@ -238,10 +238,23 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
 
         const responseText = responseLines.join('\n');
 
+        // Build answers record matching CLI's expected format: { questionHeader: "selectedLabels" }
+        const answersRecord: Record<string, string> = {};
+        for (const [qIdx, optIndices] of selections.entries()) {
+            const q = questions[qIdx];
+            if (q) {
+                const labels = Array.from(optIndices)
+                    .map(i => q.options[i]?.label)
+                    .filter(Boolean)
+                    .join(', ');
+                answersRecord[q.header || q.question] = labels;
+            }
+        }
+
         try {
-            // Approve the permission with the answer in the reason field
+            // Approve the permission with both reason text and structured answers
             if (tool.permission?.id) {
-                await sessionAllow(sessionId, tool.permission.id, undefined, undefined, undefined, responseText);
+                await sessionAllow(sessionId, tool.permission.id, undefined, undefined, undefined, responseText, answersRecord);
             }
         } catch (error) {
             console.error('Failed to submit answer:', error);
@@ -251,18 +264,32 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
     }, [sessionId, questions, selections, allQuestionsAnswered, isSubmitting, tool.permission?.id]);
 
     // Show submitted state
+    // When component remounts after completion, local selections state is empty.
+    // Fall back to the tool result or permission reason to recover the displayed answers.
     if (isSubmitted || tool.state === 'completed') {
+        // Try to extract saved answers from tool result
+        const savedAnswers: Record<string, string> | undefined =
+            (tool.result as any)?.answers
+            ?? (tool.permission as any)?.answers;
+
         return (
             <ToolSectionView>
                 <View style={styles.submittedContainer}>
                     {questions.map((q, qIndex) => {
+                        // First try local state (available right after submission)
                         const selected = selections.get(qIndex);
-                        const selectedLabels = selected
-                            ? Array.from(selected)
+                        let selectedLabels: string;
+                        if (selected && selected.size > 0) {
+                            selectedLabels = Array.from(selected)
                                 .map(optIndex => q.options[optIndex]?.label)
                                 .filter(Boolean)
-                                .join(', ')
-                            : '-';
+                                .join(', ');
+                        } else if (savedAnswers) {
+                            // Fall back to saved answers from tool result/permission
+                            selectedLabels = savedAnswers[q.header] || savedAnswers[q.question] || '-';
+                        } else {
+                            selectedLabels = '-';
+                        }
                         return (
                             <View key={qIndex} style={styles.submittedItem}>
                                 <Text style={styles.submittedHeader}>{q.header}:</Text>

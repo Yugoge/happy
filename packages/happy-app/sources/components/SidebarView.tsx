@@ -1,6 +1,6 @@
 import { useSocketStatus, useFriendRequests, useSettings } from '@/sync/storage';
 import * as React from 'react';
-import { Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { Text, View, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useHeaderHeight } from '@/utils/responsive';
@@ -129,7 +129,7 @@ const stylesheet = StyleSheet.create((theme, runtime) => ({
     },
 }));
 
-export const SidebarView = React.memo(() => {
+export const SidebarView = React.memo((props: { onCollapse?: () => void }) => {
     const styles = stylesheet;
     const { theme } = useUnistyles();
     const safeArea = useSafeAreaInsets();
@@ -218,6 +218,23 @@ export const SidebarView = React.memo(() => {
     return (
         <>
             <View style={[styles.container, { paddingTop: safeArea.top }]}>
+                {props.onCollapse && Platform.OS === 'web' && (
+                    // @ts-ignore
+                    <div
+                        onClick={props.onCollapse}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            width: 6,
+                            cursor: 'col-resize',
+                            zIndex: 10,
+                        }}
+                        onMouseEnter={(e: any) => { e.currentTarget.style.backgroundColor = theme.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'; }}
+                        onMouseLeave={(e: any) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    />
+                )}
                 <View style={[styles.header, { height: headerHeight }]}>
                     {/* Logo - always first */}
                     <View style={styles.logoContainer}>

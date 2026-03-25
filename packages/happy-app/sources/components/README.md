@@ -5,16 +5,16 @@ Organization and usage documentation for `components/`.
 <!-- AUTO:readme-stats -->
 ## Overview
 
-- **Total files**: 80
+- **Total files**: 82
 - **Subdirectories**: 9
 - **Naming convention**: mixed
 
 ## File Types
 
-- `.tsx`: 74 files
+- `.tsx`: 76 files
 - `.ts`: 6 files
 
-*Last updated: 2026-03-21T21:13:07Z*
+*Last updated: 2026-03-23T21:50:23Z*
 <!-- /AUTO:readme-stats -->
 
 ---
