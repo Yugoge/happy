@@ -26,19 +26,27 @@ This document contains the development guidelines and instructions for the Happy
 
 ## Development Environment
 
+### Local Development (Recommended)
+
+Use standalone mode for local development — no Docker, PostgreSQL, or Redis needed:
+
+```bash
+yarn standalone:dev
+```
+
+This loads env from `.env.dev`, runs migrations with PGlite (embedded Postgres), and starts the server on port 3005. Data is stored in `./data/pglite/`.
+
+Only two env vars are required for standalone (both already in `.env.dev`):
+- `HANDY_MASTER_SECRET` - master secret for auth/encryption
+- `PORT` - server port (default: 3005)
+
 ### Commands
 - `yarn build` - TypeScript type checking
-- `yarn start` - Start the server
+- `yarn standalone:dev` - Start server with PGlite + .env.dev (recommended for local dev)
+- `yarn standalone` - Start server with PGlite (no env file, you provide env vars)
+- `yarn dev` - Start with external Postgres + Redis (requires Docker, see Production section)
 - `yarn test` - Run tests
-- `yarn migrate` - Run Prisma migrations
 - `yarn generate` - Generate Prisma client
-- `yarn db` - Start local PostgreSQL in Docker
-
-### Environment Requirements
-- FFmpeg installed (for media processing)
-- Python3 installed
-- PostgreSQL database
-- Redis (for event bus and caching)
 
 ## Code Style and Structure
 
@@ -162,40 +170,31 @@ The project has pending Prisma migrations that need to be applied:
 - Always validate inputs using Zod
 - **Idempotency**: Design all operations to be idempotent - clients may retry requests automatically and the backend must handle multiple invocations of the same operation gracefully, producing the same result as a single invocation
 
-## Production Deployment
+## Production Deployment (NOT needed for local standalone dev)
 
-### Docker Build & Run
-- **Dockerfile**: `/root/happy/Dockerfile.server-slim` (3-stage: deps → builder → runner)
-- **Build context**: `/root/happy` (monorepo root)
-- **Compose file**: `/root/deploy/docker-compose.yml`
-- **Container name**: `happy-server`
-- **Image**: `happy-server-happy-server`
-- **Port mapping**: `3000 → 3005` (host:container)
-- **Dependencies**: postgres (healthy), redis (healthy), minio (started)
+The following is only relevant for production or when running with `yarn dev` (external Postgres + Redis mode).
 
-### Build & Deploy Commands
-```bash
-# Rebuild image
-cd /root/deploy && docker compose build happy-server
+### External Dependencies (production only)
+- PostgreSQL database (`DATABASE_URL`)
+- Redis (`REDIS_URL`) - for event bus and cross-process pub/sub
+- S3/MinIO (`S3_HOST`, `S3_ACCESS_KEY`, etc.) - for file storage
+- FFmpeg - for media processing
+- Python3
 
-# Deploy (restart with new image)
-cd /root/deploy && docker compose up -d happy-server
+### Commands (production only)
+- `yarn dev` - Start with .env and .env.dev (requires external Postgres + Redis)
+- `yarn migrate` - Run Prisma migrations against external Postgres
+- `yarn db` - Start local PostgreSQL in Docker
+- `yarn redis` - Start local Redis in Docker
+- `yarn s3` - Start local MinIO in Docker
 
-# View logs
-docker logs -f happy-server
-```
+### Docker Deployment
 
-### Build Stages (Dockerfile.server-slim)
-1. **deps**: node:20, installs yarn deps for happy-server + happy-wire only (skips happy-app)
-2. **builder**: builds happy-wire then happy-server (`yarn workspace build`)
-3. **runner**: node:20 + ffmpeg + python3, copies built artifacts, `CMD yarn start`
-
-### Environment (set in docker-compose.yml)
-- `NODE_ENV=production`, `PORT=3005`
-- `DATABASE_URL` → postgres container
-- `REDIS_URL` → redis container
-- `S3_*` → minio container
-- `PUBLIC_URL=https://api.life-ai.app`
+The project includes a multi-stage Dockerfile:
+1. Builder stage: Installs dependencies and builds the application
+2. Runner stage: Minimal runtime with only necessary files
+3. Exposes port 3000
+4. Requires FFmpeg and Python3 in the runtime
 
 ## Important Reminders
 

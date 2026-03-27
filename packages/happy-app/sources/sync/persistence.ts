@@ -8,8 +8,9 @@ import type { PendingAttachment } from '@/hooks/useAttachments';
 
 const mmkv = new MMKV();
 const NEW_SESSION_DRAFT_KEY = 'new-session-draft-v1';
+const REGISTERED_PUSH_TOKEN_KEY = 'registered-push-token-v1';
 
-export type NewSessionAgentType = 'claude' | 'codex' | 'gemini';
+export type NewSessionAgentType = 'claude' | 'codex' | 'gemini' | 'openclaw';
 export type NewSessionSessionType = 'simple' | 'worktree';
 
 export interface NewSessionDraft {
@@ -18,6 +19,7 @@ export interface NewSessionDraft {
     selectedPath: string | null;
     agentType: NewSessionAgentType;
     permissionMode: PermissionModeKey;
+    modelMode: string;
     sessionType: NewSessionSessionType;
     updatedAt: number;
 }
@@ -140,12 +142,13 @@ export function loadNewSessionDraft(): NewSessionDraft | null {
         const input = typeof parsed.input === 'string' ? parsed.input : '';
         const selectedMachineId = typeof parsed.selectedMachineId === 'string' ? parsed.selectedMachineId : null;
         const selectedPath = typeof parsed.selectedPath === 'string' ? parsed.selectedPath : null;
-        const agentType: NewSessionAgentType = parsed.agentType === 'codex' || parsed.agentType === 'gemini'
+        const agentType: NewSessionAgentType = parsed.agentType === 'codex' || parsed.agentType === 'gemini' || parsed.agentType === 'openclaw'
             ? parsed.agentType
             : 'claude';
         const permissionMode: PermissionModeKey = typeof parsed.permissionMode === 'string'
             ? parsed.permissionMode
             : 'default';
+        const modelMode: string = typeof parsed.modelMode === 'string' ? parsed.modelMode : 'default';
         const sessionType: NewSessionSessionType = parsed.sessionType === 'worktree' ? 'worktree' : 'simple';
         const updatedAt = typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now();
 
@@ -155,6 +158,7 @@ export function loadNewSessionDraft(): NewSessionDraft | null {
             selectedPath,
             agentType,
             permissionMode,
+            modelMode,
             sessionType,
             updatedAt,
         };
@@ -170,6 +174,18 @@ export function saveNewSessionDraft(draft: NewSessionDraft) {
 
 export function clearNewSessionDraft() {
     mmkv.delete(NEW_SESSION_DRAFT_KEY);
+}
+
+export function loadRegisteredPushToken(): string | null {
+    return mmkv.getString(REGISTERED_PUSH_TOKEN_KEY) ?? null;
+}
+
+export function saveRegisteredPushToken(token: string) {
+    mmkv.set(REGISTERED_PUSH_TOKEN_KEY, token);
+}
+
+export function clearRegisteredPushToken() {
+    mmkv.delete(REGISTERED_PUSH_TOKEN_KEY);
 }
 
 export function loadSessionPermissionModes(): Record<string, string> {

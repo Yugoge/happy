@@ -1,4 +1,4 @@
-import type { MarkdownBlock } from "./parseMarkdown";
+import type { MarkdownBlock, MarkdownSpan } from "./parseMarkdown";
 import { parseMarkdownSpans } from "./parseMarkdownSpans";
 
 function parseTable(lines: string[], startIndex: number): { table: MarkdownBlock | null; nextIndex: number } {
@@ -23,21 +23,33 @@ function parseTable(lines: string[], startIndex: number): { table: MarkdownBlock
         return { table: null, nextIndex: startIndex };
     }
 
-    // Extract header cells from the first line, stripping leading/trailing pipes but preserving empty cells
+    // Extract header cells from the first line, filtering out empty cells that may result from leading/trailing pipes
     const headerLine = tableLines[0].trim();
-    const headers = headerLine.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+    const headers = headerLine
+        .split('|')
+        .map(cell => cell.trim())
+        .filter(cell => cell.length > 0)
+        .map(cell => parseMarkdownSpans(cell, false));
 
     if (headers.length === 0) {
         return { table: null, nextIndex: startIndex };
     }
 
-    // Extract data rows from remaining lines (skipping the separator line), preserving empty cells
-    const rows: string[][] = [];
+    // Extract data rows from remaining lines (skipping the separator line), preserving valid cell content
+    const rows: MarkdownSpan[][][] = [];
     for (let i = 2; i < tableLines.length; i++) {
         const rowLine = tableLines[i].trim();
-        if (rowLine.includes('|')) {
-            const rowCells = rowLine.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
-            rows.push(rowCells);
+        if (rowLine.startsWith('|')) {
+            const rowCells = rowLine
+                .split('|')
+                .map(cell => cell.trim())
+                .filter(cell => cell.length > 0)
+                .map(cell => parseMarkdownSpans(cell, false));
+
+            // Include rows that contain actual content, filtering out empty rows
+            if (rowCells.length > 0) {
+                rows.push(rowCells);
+            }
         }
     }
 
@@ -68,29 +80,6 @@ export function parseMarkdownBlock(markdown: string) {
 
         // Trim
         let trimmed = line.trim();
-
-        // LaTeX block: $$...$$
-        if (trimmed.startsWith('$$')) {
-            // Single-line: $$E = mc^2$$
-            if (trimmed.endsWith('$$') && trimmed.length > 4) {
-                blocks.push({ type: 'latex', content: trimmed.slice(2, -2).trim() });
-                continue;
-            }
-            // Multi-line: consume until closing $$
-            let latexContent = [trimmed.slice(2)];
-            while (index < lines.length) {
-                const nextLine = lines[index];
-                index++;
-                if (nextLine.trim().endsWith('$$')) {
-                    const last = nextLine.trim().slice(0, -2);
-                    if (last) latexContent.push(last);
-                    break;
-                }
-                latexContent.push(nextLine);
-            }
-            blocks.push({ type: 'latex', content: latexContent.join('\n').trim() });
-            continue;
-        }
 
         // Code block
         if (trimmed.startsWith('```')) {
@@ -144,13 +133,20 @@ export function parseMarkdownBlock(markdown: string) {
             continue;
         }
 
+        // Image block
+        const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+        if (imageMatch) {
+            blocks.push({ type: 'image', alt: imageMatch[1], url: imageMatch[2].trim() });
+            continue;
+        }
+
         // If it is a numbered list
-        const numberedListMatch = trimmed.match(/^(\d+)\.\s/);
+        const numberedListMatch = trimmed.match(/^(\d+)\.\s+/);
         if (numberedListMatch) {
             let allLines = [{ number: parseInt(numberedListMatch[1]), content: trimmed.slice(numberedListMatch[0].length) }];
             while (index < lines.length) {
                 const nextLine = lines[index].trim();
-                const nextMatch = nextLine.match(/^(\d+)\.\s/);
+                const nextMatch = nextLine.match(/^(\d+)\.\s+/);
                 if (!nextMatch) break;
                 allLines.push({ number: parseInt(nextMatch[1]), content: nextLine.slice(nextMatch[0].length) });
                 index++;
@@ -160,10 +156,16 @@ export function parseMarkdownBlock(markdown: string) {
         }
 
         // If it is a list
-        if (trimmed.startsWith('- ')) {
-            let allLines = [trimmed.slice(2)];
-            while (index < lines.length && lines[index].trim().startsWith('- ')) {
-                allLines.push(lines[index].trim().slice(2));
+        const listMatch = trimmed.match(/^([-*+])\s+/);
+        if (listMatch) {
+            let allLines = [trimmed.slice(listMatch[0].length)];
+            while (index < lines.length) {
+                const nextLine = lines[index].trim();
+                const nextMatch = nextLine.match(/^([-*+])\s+/);
+                if (!nextMatch) {
+                    break;
+                }
+                allLines.push(nextLine.slice(nextMatch[0].length));
                 index++;
             }
             blocks.push({ type: 'list', items: allLines.map((l) => parseMarkdownSpans(l, false)) });

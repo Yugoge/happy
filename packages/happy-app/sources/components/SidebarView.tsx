@@ -192,7 +192,7 @@ export const SidebarView = React.memo((props: { onCollapse?: () => void }) => {
     const shouldLeftJustify = settings.experiments || sidebarWidth < 340;
 
     const handleNewSession = React.useCallback(() => {
-        router.push('/new');
+        router.navigate('/new');
     }, [router]);
 
     // Title content used in both centered and left-justified modes (DRY)
@@ -260,7 +260,7 @@ export const SidebarView = React.memo((props: { onCollapse?: () => void }) => {
                             style={styles.notificationButton}
                         >
                             <Image
-                                source={require('@/assets/images/brutalist/Brutalism 27.png')}
+                                source={require('@/assets/images/brutalist/Brutalism-27.png')}
                                 contentFit="contain"
                                 style={[{ width: 32, height: 32 }]}
                                 tintColor={theme.colors.header.tint}
@@ -281,7 +281,7 @@ export const SidebarView = React.memo((props: { onCollapse?: () => void }) => {
                             hitSlop={15}
                         >
                             <Image
-                                source={require('@/assets/images/brutalist/Brutalism 9.png')}
+                                source={require('@/assets/images/brutalist/Brutalism-9.png')}
                                 contentFit="contain"
                                 style={[{ width: 32, height: 32 }]}
                                 tintColor={theme.colors.header.tint}
