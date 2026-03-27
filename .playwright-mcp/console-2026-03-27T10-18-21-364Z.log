@@ -1,0 +1,130 @@
+[     300ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[     322ms] [ERROR] Failed to decrypt data encryption key for machine 4184abab-83a9-4b4b-9e68-368e90d965b8 @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[     324ms] [ERROR] Machine encryption not found for 4184abab-83a9-4b4b-9e68-368e90d965b8 - this should never happen @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    1780ms] [ERROR] Failed to decrypt data encryption key for machine 4184abab-83a9-4b4b-9e68-368e90d965b8 @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    1780ms] [ERROR] Machine encryption not found for 4184abab-83a9-4b4b-9e68-368e90d965b8 - this should never happen @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15553ms] [WARNING] Unrecognized message type: user (id: cmn8pcqqd5vd3nr1473d43xkc) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15555ms] [WARNING] Unrecognized message type: user (id: cmn8pcqqq5vdxnr14xakwde49) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15556ms] [WARNING] Unrecognized message type: user (id: cmn8pcqr45vernr14vhafbaxv) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61017ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn0w5v21nr14qo1vyiph) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61789ms] [WARNING] Unrecognized message type: user (id: cmn8pcn605v65nr14230ljl9m) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61789ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn6g5v69nr144tpl5upx) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61789ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn765v6dnr14x3pqpaig) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61790ms] [WARNING] Unrecognized message type: user (id: cmn8pcn825v6xnr14vt73xt8s) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61790ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn8f5v71nr14dzdlzw8s) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61790ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn8w5v75nr14ytr83p52) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61791ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcnek5v8fnr14r1f0bkgw) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61791ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcnfc5v8lnr14rbivybzi) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   61791ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcnfy5v8pnr14jsk45kan) @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   62073ms] [ERROR] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   69470ms] [WARNING] Sync already initialized: ignoring @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   69506ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   69510ms] [WARNING] Voice session already registered, replacing with new one @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983

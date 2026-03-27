@@ -1,12 +1,12 @@
-# happy
+# happy-dev
 
-*Last updated: 2026-03-26T23:22:33Z*
-**Total entries**: 105
+*Last updated: 2026-03-27T10:11:58Z*
+**Total entries**: 111
 **Convention**: kebab
 
 ## Tree
 ```
-happy/
+happy-dev/
 ├── docs/
 │   ├── dev/
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
@@ -101,16 +101,22 @@ happy/
 │   ├── `postinstall.cjs` - cjs file
 │   └── `release.cjs` - cjs file
 ├── `bun.lock` - lock file
-├── `CLAUDE.md` - Happy Monorepo
+├── `CLAUDE.md` - CLAUDE.md
 ├── `Dockerfile` - unknown file
 ├── `Dockerfile.server` - server file
 ├── `Dockerfile.server-slim` - server-slim file
 ├── `Dockerfile.webapp` - webapp file
 ├── `expo-env.d.ts` - ts file
+├── `happy-sessions-list.png` - png file
 ├── `LICENCE` - unknown file
 ├── `logo.png` - png file
 ├── `package-lock.json` - json config
 ├── `package.json` - json config
+├── `qa-applio-session.png` - png file
+├── `qa-console-messages.log` - log file
+├── `qa-happy-dev-session.png` - png file
+├── `qa-pipeline0-duplicates-evidence.png` - png file
+├── `qa-pipeline0-duplicates.png` - png file
 └── `yarn.lock` - lock file
 ```
 
