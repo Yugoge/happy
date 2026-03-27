@@ -1,0 +1,321 @@
+[     632ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2061ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    2062ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2063ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    2063ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2064ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    2064ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2066ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    2066ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2067ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    2067ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2217ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    2217ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2219ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/machines:0
+[    2219ms] [ERROR] Failed to fetch machines: 401 @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2844ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    2844ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2846ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    2847ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2944ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    2944ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3013ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    3013ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3074ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    3074ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3418ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    3419ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3420ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    3421ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3423ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    3423ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3577ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    3578ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3687ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/machines:0
+[    3687ms] [ERROR] Failed to fetch machines: 401 @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    3993ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    3994ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4230ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    4230ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4386ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    4386ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4479ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    4479ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4548ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    4548ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4758ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    4758ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4841ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    4842ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4843ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    4843ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4911ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    4911ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    4972ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    4972ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    5117ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    5117ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    5407ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    5407ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    5464ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    5465ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    5503ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    5503ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    5848ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    5848ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    5853ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    5853ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    6623ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    6624ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    6876ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    6877ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    6938ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    6938ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    6940ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    6940ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    6942ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    6942ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    7057ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    7058ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    7179ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    7180ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    7697ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    7697ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    7699ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    7699ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    7915ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    7916ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    8035ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    8035ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    8168ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    8169ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    8170ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    8171ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    8650ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    8650ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    8824ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[    8824ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    8942ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[    8942ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    9069ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    9069ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    9212ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[    9212ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    9288ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    9288ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    9322ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[    9322ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    9642ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[    9643ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    9795ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[    9795ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   10156ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   10156ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   10196ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   10197ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   10220ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   10220ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   10362ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   10362ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   10388ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   10388ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   10562ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   10563ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   11379ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   11380ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   11983ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   11983ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   11989ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   11990ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   11992ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   11992ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   11995ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   11995ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   12285ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   12286ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   12382ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   12382ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   12712ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   12712ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   12896ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   12897ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   12986ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   12986ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13074ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   13074ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13226ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   13226ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13279ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   13279ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13405ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   13406ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13593ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   13594ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13649ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   13649ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   13826ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   13826ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14012ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   14013ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14217ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   14218ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14220ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   14220ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14269ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   14269ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14475ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   14475ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14516ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   14516ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14657ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   14658ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14660ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   14660ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   14806ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   14806ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15164ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   15165ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15343ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   15343ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15455ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   15456ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   15545ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   15545ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   16269ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   16269ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   16397ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   16397ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   16554ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   16554ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   16556ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   16556ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   16600ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   16601ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   16625ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   16625ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17098ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   17098ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17220ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   17220ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17232ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   17232ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17401ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   17401ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17724ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   17724ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17834ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   17834ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17837ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   17838ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18127ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   18128ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18131ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   18131ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18268ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   18268ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18444ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   18444ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18686ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   18687ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18692ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   18693ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18758ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   18759ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18848ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   18848ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   19208ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   19208ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   19340ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   19340ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   19610ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   19610ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   19809ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   19810ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   19958ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   19959ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   20121ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   20122ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   20539ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   20539ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   20664ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   20664ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   20665ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   20666ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   20668ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   20668ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   21782ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   21783ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   22035ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   22036ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   22200ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   22200ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   22203ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   22203ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   22205ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/friends:0
+[   22206ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   22303ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   22304ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   22848ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/profile:0
+[   22848ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   23410ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/artifacts:0
+[   23410ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   23542ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/sessions:0
+[   23542ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   23544ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/feed?limit=100:0
+[   23545ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   23674ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.cluster-fluster.com/v1/account/settings:0
+[   23674ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
