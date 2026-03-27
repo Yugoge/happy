@@ -1,0 +1,185 @@
+[     632ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[     682ms] [ERROR] Failed to decrypt data encryption key for machine 4184abab-83a9-4b4b-9e68-368e90d965b8 @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[     684ms] [ERROR] Machine encryption not found for 4184abab-83a9-4b4b-9e68-368e90d965b8 - this should never happen @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2965ms] [ERROR] Failed to decrypt data encryption key for machine 4184abab-83a9-4b4b-9e68-368e90d965b8 @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[    2965ms] [ERROR] Machine encryption not found for 4184abab-83a9-4b4b-9e68-368e90d965b8 - this should never happen @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   17825ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn0w5v21nr14qo1vyiph) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18618ms] [WARNING] Unrecognized message type: user (id: cmn8pcn605v65nr14230ljl9m) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18619ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn6g5v69nr144tpl5upx) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18619ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn765v6dnr14x3pqpaig) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18619ms] [WARNING] Unrecognized message type: user (id: cmn8pcn825v6xnr14vt73xt8s) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18620ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn8f5v71nr14dzdlzw8s) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18620ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcn8w5v75nr14ytr83p52) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18620ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcnek5v8fnr14r1f0bkgw) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18620ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcnfc5v8lnr14rbivybzi) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   18620ms] [WARNING] Unrecognized message type: unknown (id: cmn8pcnfy5v8pnr14jsk45kan) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   19045ms] [ERROR] {} @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   27681ms] [WARNING] Sync already initialized: ignoring @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   27712ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   27718ms] [WARNING] Voice session already registered, replacing with new one @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41086ms] [WARNING] Unrecognized message type: unknown (id: cmn86ohpl2whrnr14931xdony) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41086ms] [WARNING] Unrecognized message type: unknown (id: cmn86p6og308znr14wantjvpn) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41087ms] [WARNING] Unrecognized message type: unknown (id: cmn86phxk30z9nr146bctf4b8) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41087ms] [WARNING] Unrecognized message type: unknown (id: cmn86pv8w32bxnr14nnrnc1gr) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41088ms] [WARNING] Unrecognized message type: unknown (id: cmn86qee833ebnr14msp6ew7e) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41088ms] [WARNING] Unrecognized message type: user (id: cmn86qlxe349bnr1499k19jbl) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41709ms] [WARNING] Unrecognized message type: user (id: cmn86wl0s39wdnr14d58chmyg) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41841ms] [WARNING] Unrecognized message type: user (id: cmn86wsfj39zbnr14wihtewb5) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41841ms] [WARNING] Unrecognized message type: user (id: cmn86wzi53a19nr14dpe2iq3q) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   41843ms] [WARNING] Unrecognized message type: user (id: cmn86xftr3a71nr14q78o4zz9) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42058ms] [WARNING] Unrecognized message type: user (id: cmn86zwt83awpnr145og1gtl0) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42059ms] [WARNING] Unrecognized message type: user (id: cmn86zym63awznr14bgzrdfa4) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42328ms] [WARNING] Unrecognized message type: user (id: cmn872r6r3blrnr14a6qu76la) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42480ms] [WARNING] Unrecognized message type: user (id: cmn873afm3bobnr14rzg19u4l) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42481ms] [WARNING] Unrecognized message type: user (id: cmn8749dr3bvvnr1461p2lucb) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42669ms] [WARNING] Unrecognized message type: user (id: cmn875ac63c31nr14ev6bmkwm) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42670ms] [WARNING] Unrecognized message type: user (id: cmn875pp13c6pnr1496o4nme7) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42671ms] [WARNING] Unrecognized message type: user (id: cmn875wv83c8tnr1409nej153) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42998ms] [WARNING] Unrecognized message type: user (id: cmn8760k43ca1nr143d12u9cy) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   42999ms] [WARNING] Unrecognized message type: user (id: cmn876c193cdpnr14cosb5jek) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   43000ms] [WARNING] Unrecognized message type: user (id: cmn876mt53cglnr14qw9f1z4v) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   43001ms] [WARNING] Unrecognized message type: unknown (id: cmn8771jz3cjbnr140xosot2w) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   43412ms] [WARNING] Unrecognized message type: user (id: cmn8773mj3cjxnr14he7ntevp) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   43412ms] [WARNING] Unrecognized message type: unknown (id: cmn877beq3cmtnr14qq19f5bc) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44519ms] [WARNING] Unrecognized message type: user (id: cmn878fyp3czdnr147882usid) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44520ms] [WARNING] Unrecognized message type: user (id: cmn878l793d05nr145aehr4wn) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44520ms] [WARNING] Unrecognized message type: user (id: cmn878p853d17nr14np5wqmpe) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44521ms] [WARNING] Unrecognized message type: unknown (id: cmn878x8b3d2znr14wp2i6waw) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44521ms] [WARNING] Unrecognized message type: unknown (id: cmn8791j73d4pnr143fnapfll) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44521ms] [WARNING] Unrecognized message type: unknown (id: cmn8791vb3d5bnr14n9lw0k22) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   44522ms] [WARNING] Unrecognized message type: unknown (id: cmn879chq3d6vnr1401zac2hw) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45237ms] [WARNING] Unrecognized message type: unknown (id: cmn879f1m3d7rnr14e71jzx58) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45237ms] [WARNING] Unrecognized message type: unknown (id: cmn879n3z3d9fnr14paschgx2) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45238ms] [WARNING] Unrecognized message type: unknown (id: cmn879pt33dafnr147rrt1ci2) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45238ms] [WARNING] Unrecognized message type: user (id: cmn87a4393dcjnr14xmiat5q8) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45238ms] [WARNING] Unrecognized message type: unknown (id: cmn87a7ai3dd9nr146rexqk7x) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45822ms] [WARNING] Unrecognized message type: user (id: cmn87au3p3dihnr1459q18gcn) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45823ms] [WARNING] Unrecognized message type: user (id: cmn87azd83dj7nr14khaci5tp) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45823ms] [WARNING] Unrecognized message type: unknown (id: cmn87beox3dmnnr14ysh5pmod) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   45824ms] [WARNING] Unrecognized message type: unknown (id: cmn87bjxf3dnlnr14j8qxcbbu) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46022ms] [WARNING] Unrecognized message type: unknown (id: cmn87bybt3drznr14udu3x768) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46244ms] [WARNING] Unrecognized message type: unknown (id: cmn87e2eb3e7bnr14fcax3eux) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46244ms] [WARNING] Unrecognized message type: user (id: cmn87e8nz3e8bnr144qoor3ki) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46561ms] [WARNING] Unrecognized message type: user (id: cmn87gl9o3emnnr14sbxgll3k) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46562ms] [WARNING] Unrecognized message type: user (id: cmn87gx353enrnr14o1mxia1v) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46563ms] [WARNING] Unrecognized message type: user (id: cmn87i2hn3es9nr147yks6i9n) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46979ms] [WARNING] Unrecognized message type: user (id: cmn87isl73eurnr141vhu662j) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46980ms] [WARNING] Unrecognized message type: user (id: cmn87j9or3ewpnr14nlzpdccj) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   46980ms] [WARNING] Unrecognized message type: user (id: cmn87jil83exlnr14df4ud3l4) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   47984ms] [WARNING] Unrecognized message type: user (id: cmn8805143indnr14i79j29yv) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   47985ms] [WARNING] Unrecognized message type: user (id: cmn880bwh3io1nr14d3u0l86f) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   47985ms] [WARNING] Unrecognized message type: user (id: cmn880ht63iolnr14d02ck4z5) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   51052ms] [WARNING] Unrecognized message type: user (id: cmn8koj8c3qkjnr14aljglgkq) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   52255ms] [WARNING] Unrecognized message type: assistant (id: cmn8m3ab63uvrnr14gfio9nxa) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   54042ms] [WARNING] Unrecognized message type: unknown (id: cmn8ol1u73wqdnr14gxgc03q7) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   54043ms] [WARNING] Unrecognized message type: unknown (id: cmn8oljpi3wrhnr143e24s4ic) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   54043ms] [WARNING] Unrecognized message type: unknown (id: cmn8on2143wudnr14jz0rsth7) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
+[   54492ms] [WARNING] Unrecognized message type: unknown (id: cmn8oom193wznnr14oi8dfsb5) @ http://127.0.0.1:8097/_expo/static/js/web/index-6b540a4d76e4d26093233202804fe25c.js:2983
