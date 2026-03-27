@@ -1,3 +1,10 @@
+# CLAUDE.md
+
+> Project-specific settings for happy
+> Last updated: 2026-03-25
+
+---
+
 # Happy Monorepo
 
 Yarn workspaces monorepo for the Happy platform.
@@ -168,12 +175,33 @@ deriveKey(master, usage, path):
 }
 ```
 
+### Key Derivation Pitfall: CLI vs App
+
+Both CLI and App derive the same keypair, but use different code paths:
+- **CLI** (`encryption.ts`): `SHA512(contentDataKey).slice(0,32)` → `tweetnacl.box.keyPair.fromSecretKey`
+- **App** (`encryption.ts`): `sodium.crypto_box_seed_keypair(contentDataKey)` (internally also SHA512)
+
+These produce **identical** keys. But when manually creating `access.key`, you MUST use the correct derivation — the publicKey must match what the browser derives from the same masterSecret, or machine data decryption silently fails.
+
+### Machine Registration: dataEncryptionKey
+
+When daemon registers with `POST /v1/machines`, it encrypts `machineKey` with `publicKey`:
+```
+dataEncryptionKey = [version=0x00] + NaCl.box(machineKey, nonce, publicKey, ephemeralSecretKey)
+```
+Server stores this as bytea, returns as base64 in GET responses. Browser decrypts with `contentKeyPair.privateKey`.
+
+**Critical**: `POST /v1/machines` does NOT update `dataEncryptionKey` for existing machines unless explicitly coded. If you change `publicKey` in `access.key`, delete the machine from DB first, then restart daemon.
+
 ### Key Source Files
 
 - Derivation: `happy-app/sources/encryption/deriveKey.ts`
 - Encryption.create(): `happy-app/sources/sync/encryption/encryption.ts`
-- NaCl box: `happy-app/sources/encryption/libsodium.ts`
+- NaCl box: `happy-app/sources/encryption/libsodium.ts` (native) / `libsodium.lib.web.ts` (web uses `libsodium-wrappers`)
 - CLI encryption: `happy-cli/src/api/encryption.ts`
+- Machine DEK encrypt: `happy-cli/src/api/api.ts:279` (`libsodiumEncryptForPublicKey`)
+- Machine DEK decrypt: `happy-app/sources/sync/encryption/encryption.ts:162` (`decryptEncryptionKey`)
+- Server serialization: `happy-server/sources/app/api/routes/machinesRoutes.ts:149` (`Buffer.from(bytea).toString('base64')`)
 
 ---
 
@@ -359,18 +387,22 @@ AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMH
 
 #### Playwright Login Flow
 
+**IMPORTANT**: You must also set the server URL in MMKV, otherwise all API calls go to the wrong server (`api.cluster-fluster.com`).
+
 ```javascript
 // 1. Navigate to the app domain first (localStorage is domain-scoped)
 await page.goto('https://life-ai.app');
 
-// 2. Inject auth credentials into localStorage
+// 2. Inject auth credentials AND server URL
 await page.evaluate(() => {
     localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
+    // Server URL in MMKV (id='server-config', NOT 'default')
+    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
 
 // 3. Reload to trigger auth flow
 await page.reload();
-// App will read localStorage, derive keys, connect WebSocket, and show sessions
+// App reads localStorage, derives keys, connects WebSocket to correct API, shows sessions
 ```
 
 #### Alternative: Generate Fresh Token for CLI access.key
@@ -509,14 +541,54 @@ The `happy-dev` instance is dedicated for autonomous development and testing. Se
 
 ### Playwright Debug for Dev Web
 
+**CRITICAL**: The web app needs THREE localStorage entries to work properly:
+1. `auth_credentials` -- token + masterSecret for authentication and encryption
+2. `mmkv.server-config\custom-server-url` -- API server URL (without this, app defaults to `api.cluster-fluster.com` which is wrong)
+3. Sessions must exist for machine cards to appear (empty account shows "Ready to code?" even if machine is online)
+
 ```javascript
-// Connect to dev web instance (localhost or public domain both work)
-await page.goto('http://localhost:8097');  // or 'https://dev.life-ai.app'
+// Complete Playwright login flow (all 3 entries required)
+await page.goto('https://dev.life-ai.app');
 await page.evaluate(() => {
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
+    // 1. Auth credentials (dev bot account)
+    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}');
+    // 2. Server URL (MMKV id='server-config', NOT 'default')
+    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
 await page.reload();
-// App loads with dev account, can inspect sessions, UI, etc.
+// App loads with dev account, connects to correct API
+```
+
+### Web App Server URL Architecture
+
+The server URL is determined by `sync/serverConfig.ts` with this priority:
+1. MMKV `server-config` storage key `custom-server-url` (highest)
+2. `process.env.EXPO_PUBLIC_HAPPY_SERVER_URL` (build-time env)
+3. Hardcoded default `https://api.cluster-fluster.com` (lowest -- WRONG for our server)
+
+**Key gotcha**: MMKV instances are domain-scoped. Each MMKV `id` maps to a separate localStorage prefix:
+- `mmkv.default\...` -- general app storage (profile, settings, changelog)
+- `mmkv.server-config\...` -- server config (custom URL, persists across logouts)
+
+### UI Behavior with No Sessions
+
+`SessionsListWrapper.tsx` decides what to show:
+- `sessionListViewData === null` → loading spinner
+- `sessionListViewData.length === 0` → `EmptyMainScreen` ("Ready to code?")
+- `sessionListViewData.length > 0` → `SessionsList` (machine cards + sessions)
+
+Machine cards are rendered as part of the session list, NOT independently. So a machine can be online and decrypted correctly, but if there are zero sessions, the UI shows the empty state instead.
+
+### Spawning a Test Session via Daemon HTTP
+
+```bash
+# Get dev daemon port
+DEV_PORT=$(python3 -c "import json; d=json.load(open('/root/.happy-dev/daemon.state.json')); print(d['httpPort'])")
+
+# Spawn a session (creates Claude process in /root/happy)
+curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
+  -H "Content-Type: application/json" \
+  -d '{"directory": "/root/happy"}'
 ```
 
 ---
@@ -530,47 +602,6 @@ await page.reload();
 5. **NEVER** restart daemon from within a daemon-managed Claude session (cgroup kill)
 6. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
 7. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
-
----
-
-## Critical Build & Recovery Rules (from 2026-03-26 postmortem)
-
-### Build: ALWAYS from /root/happy, NEVER from /root/happy-dev
-
-```bash
-# CORRECT — production source
-cd /root/happy/packages/happy-cli && yarn build
-cd /root/happy && npm install -g .
-
-# WRONG — dev branch may have regressions from overnight worktrees
-cd /root/happy-dev/packages/happy-cli && yarn build  # NEVER DO THIS
-```
-
-After every build, verify the `sendExisting` variable exists in the compiled output:
-```bash
-grep -c "sendExisting" /usr/lib/node_modules/happy-coder/dist/index-*.mjs
-# At least one file MUST return > 0. If all return 0, the build is broken.
-```
-
-**Why**: `sendExisting` in `sessionScanner.ts` controls whether .jsonl history is uploaded to server on session resume. Without it, resumed sessions appear empty in the app. This was lost once when building from happy-dev where an overnight worktree commit (`1612a409`) rewrote the file without this parameter.
-
-### Recovery: spawn interval must be >= 5 seconds
-
-When mass-spawning sessions (recovery, restart), each process needs time to initialize (auth, WebSocket, Claude SDK). Spawning at 3-second intervals causes resource contention and process death. The recovery script uses `sleep 5` between spawns.
-
-### Recovery: `--resume` is the ONLY viable path, `--recover-session` does NOT work
-
-`daemon_spawn_session()` uses `--resume $claude_uuid` (passed to Claude SDK as unknownArg). `--recover-session` is NOT an alternative — it triggers `runClaude.ts` full startup which fails with "Claude Code is not installed" because this server doesn't have a global Claude Code binary. `--resume` works because it flows through happy-cli's built-in SDK wrapper (`claude_remote_launcher.cjs`), bypassing the global binary check.
-
-The full recovery chain: `--resume` loads Claude .jsonl history + `sendExisting=true` uploads it to happy-server = app sees complete conversation. If `sendExisting` is missing from the build, resumed sessions appear empty in the app. **This is the life-or-death variable.**
-
-### Session recovery system: three-layer defense
-
-1. **Cold boot detection** (`is_cold_boot()` via boot_id): prevents `ExecStartPre save` from overwriting `session_dirs.txt` after reboot
-2. **Peak merge** (`PEAK_PROTECT_SECONDS=28800`): even if overwritten, merges with best historical snapshot within 8h window
-3. **Periodic snapshots** (`PERIODIC_SNAPSHOT_INTERVAL=900`): writes JSON snapshot every 15min even during stable state, keeps peak window fresh
-
-Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 
 ---
 
@@ -589,4 +620,3 @@ Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 | Server Setup | `/root/docs/SERVER-SETUP.md` | Systemd services, IS_SANDBOX |
 | Claude Exit Investigation | `/root/docs/CLAUDE-SESSION-EXIT-INVESTIGATION.md` | Mode hash, context compaction |
 | Implementation Notes | `/root/docs/IMPLEMENTATION-NOTES.md` | AsyncLock, backoff, protocol internals |
-| Reboot Recovery Postmortem | `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md` | Cold-boot bug, sendExisting regression, recovery fixes |
