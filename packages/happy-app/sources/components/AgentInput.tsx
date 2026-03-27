@@ -1,6 +1,4 @@
 import { Ionicons, Octicons } from '@expo/vector-icons';
-import { AttachmentStrip } from './AttachmentStrip';
-import type { PendingAttachment } from '@/hooks/useAttachments';
 import * as React from 'react';
 import { View, Platform, useWindowDimensions, ViewStyle, Text, ActivityIndicator, TouchableWithoutFeedback, Image as RNImage, Pressable } from 'react-native';
 import { Image } from 'expo-image';
@@ -19,14 +17,11 @@ import { TextInputState, MultiTextInputHandle } from './MultiTextInput';
 import { applySuggestion } from './autocomplete/applySuggestion';
 import { GitStatusBadge, useHasMeaningfulGitStatus } from './GitStatusBadge';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { useSetting, useLocalSetting } from '@/sync/storage';
-import { useIsTablet } from '@/utils/responsive';
+import { useSetting } from '@/sync/storage';
 import { hackMode, hackModes } from '@/sync/modeHacks';
 import { Theme } from '@/theme';
 import { t } from '@/text';
 import { Metadata } from '@/sync/storageTypes';
-import { AIBackendProfile, getProfileEnvironmentVariables, validateProfileForAgent } from '@/sync/settings';
-import { getBuiltInProfile } from '@/sync/profileUtils';
 
 interface AgentInputProps {
     value: string;
@@ -68,22 +63,16 @@ interface AgentInputProps {
     };
     alwaysShowContextSize?: boolean;
     onFileViewerPress?: () => void;
-    pendingAttachments?: PendingAttachment[];
-    onAttachImage?: () => void;
-    onAttachDocument?: () => void;
-    onRemoveAttachment?: (id: string) => void;
-    onFilePaste?: (file: File) => void;
-    agentType?: 'claude' | 'codex' | 'gemini';
+    agentType?: 'claude' | 'codex' | 'gemini' | 'openclaw';
     onAgentClick?: () => void;
     machineName?: string | null;
     onMachineClick?: () => void;
     currentPath?: string | null;
     onPathClick?: () => void;
+    blockSend?: boolean;
     isSendDisabled?: boolean;
     isSending?: boolean;
     minHeight?: number;
-    profileId?: string | null;
-    onProfileClick?: () => void;
 }
 
 const MAX_CONTEXT_SIZE = 190000;
@@ -274,6 +263,11 @@ const stylesheet = StyleSheet.create((theme, runtime) => ({
     sendButtonInactive: {
         backgroundColor: theme.colors.button.primary.disabled,
     },
+    sendButtonLocked: {
+        backgroundColor: theme.colors.surfaceHigh,
+        borderWidth: 1,
+        borderColor: theme.colors.divider,
+    },
     sendButtonInner: {
         width: '100%',
         height: '100%',
@@ -307,13 +301,18 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     const styles = stylesheet;
     const { theme } = useUnistyles();
     const screenWidth = useWindowDimensions().width;
+    const isSendBlocked = props.blockSend ?? false;
 
     const hasText = props.value.trim().length > 0;
+    const canPressSendButton = !props.isSending
+        && !props.isSendDisabled
+        && (isSendBlocked ? hasText : (hasText || !!props.onMicPress));
 
-    // Check if this is a Codex or Gemini session
+    // Check if this is a Codex, Gemini, or OpenClaw session
     // Use metadata.flavor for existing sessions, agentType prop for new sessions
     const isCodex = props.metadata?.flavor === 'codex' || props.agentType === 'codex';
     const isGemini = props.metadata?.flavor === 'gemini' || props.agentType === 'gemini';
+    const isOpenClaw = props.metadata?.flavor === 'openclaw' || props.agentType === 'openclaw';
     const displayPermissionMode = React.useMemo(() => (
         props.permissionMode ? hackMode(props.permissionMode) : null
     ), [props.permissionMode]);
@@ -346,17 +345,6 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         return label;
     }, [isSandboxEnabled]);
 
-    // Profile data
-    const profiles = useSetting('profiles');
-    const currentProfile = React.useMemo(() => {
-        if (!props.profileId) return null;
-        // Check custom profiles first
-        const customProfile = profiles.find(p => p.id === props.profileId);
-        if (customProfile) return customProfile;
-        // Check built-in profiles
-        return getBuiltInProfile(props.profileId);
-    }, [profiles, props.profileId]);
-
     // Calculate context warning
     const contextWarning = props.usageData?.contextSize
         ? getContextWarning(props.usageData.contextSize, props.alwaysShowContextSize ?? false, theme)
@@ -368,68 +356,8 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     // Abort button state
     const [isAborting, setIsAborting] = React.useState(false);
     const shakerRef = React.useRef<ShakeInstance>(null);
+    const sendBlockShakerRef = React.useRef<ShakeInstance>(null);
     const inputRef = React.useRef<MultiTextInputHandle>(null);
-
-    // Web: listen for paste events with files/images
-    const containerRef = React.useRef<View>(null);
-    React.useEffect(() => {
-        if (Platform.OS !== 'web' || !props.onFilePaste) return;
-        const handler = (e: ClipboardEvent) => {
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                if (item.kind === 'file') {
-                    const file = item.getAsFile();
-                    if (file) {
-                        e.preventDefault();
-                        props.onFilePaste!(file);
-                    }
-                }
-            }
-        };
-        document.addEventListener('paste', handler as any);
-        return () => document.removeEventListener('paste', handler as any);
-    }, [props.onFilePaste]);
-
-    // Web: drag-and-drop file upload
-    const isTablet = useIsTablet();
-    const sidebarCollapsed = useLocalSetting('sidebarCollapsed');
-    const sidebarLeft = (isTablet && !sidebarCollapsed && Platform.OS === 'web')
-        ? Math.min(Math.max(Math.floor(screenWidth * 0.3), 250), 360)
-        : 0;
-    const [isDragOver, setIsDragOver] = React.useState(false);
-    React.useEffect(() => {
-        if (Platform.OS !== 'web' || !props.onFilePaste) return;
-        const onDragOver = (e: DragEvent) => {
-            if (e.dataTransfer?.types?.includes('Files')) {
-                e.preventDefault();
-                setIsDragOver(true);
-            }
-        };
-        const onDragLeave = (e: DragEvent) => {
-            if (!(e.currentTarget as HTMLElement)?.contains(e.relatedTarget as Node)) {
-                setIsDragOver(false);
-            }
-        };
-        const onDrop = (e: DragEvent) => {
-            e.preventDefault();
-            setIsDragOver(false);
-            const files = e.dataTransfer?.files;
-            if (!files) return;
-            for (let i = 0; i < files.length; i++) {
-                props.onFilePaste!(files[i]);
-            }
-        };
-        document.addEventListener('dragover', onDragOver as any);
-        document.addEventListener('dragleave', onDragLeave as any);
-        document.addEventListener('drop', onDrop as any);
-        return () => {
-            document.removeEventListener('dragover', onDragOver as any);
-            document.removeEventListener('dragleave', onDragLeave as any);
-            document.removeEventListener('drop', onDrop as any);
-        };
-    }, [props.onFilePaste]);
 
     // Forward ref to the MultiTextInput
     React.useImperativeHandle(ref, () => inputRef.current!, []);
@@ -532,6 +460,27 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         }
     }, [props.onAbort]);
 
+    const handleBlockedSendAttempt = React.useCallback(() => {
+        if (!isSendBlocked || !hasText || props.isSending) return;
+        hapticsError();
+        sendBlockShakerRef.current?.shake();
+    }, [hasText, isSendBlocked, props.isSending]);
+
+    const handleSendPress = React.useCallback(() => {
+        if (isSendBlocked) {
+            handleBlockedSendAttempt();
+            return;
+        }
+        if (props.isSendDisabled || props.isSending) return;
+
+        hapticsLight();
+        if (hasText) {
+            props.onSend();
+        } else {
+            props.onMicPress?.();
+        }
+    }, [handleBlockedSendAttempt, hasText, isSendBlocked, props]);
+
     // Handle keyboard navigation
     const handleKeyPress = React.useCallback((event: KeyPressEvent): boolean => {
         // Handle autocomplete navigation first
@@ -569,9 +518,16 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
         // Original key handling
         if (Platform.OS === 'web') {
-            if (agentInputEnterToSend && event.key === 'Enter' && !event.shiftKey) {
+            // On mobile web (touch devices), Enter should insert a newline since
+            // there's no Shift key available. Users send via the send button instead.
+            const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+            if (agentInputEnterToSend && event.key === 'Enter' && !event.shiftKey && !isTouchDevice) {
                 if (props.value.trim()) {
-                    props.onSend();
+                    if (isSendBlocked) {
+                        handleBlockedSendAttempt();
+                    } else if (!props.isSendDisabled) {
+                        props.onSend();
+                    }
                     return true; // Key was handled
                 }
             }
@@ -586,7 +542,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
         }
         return false; // Key was not handled
-    }, [suggestions, moveUp, moveDown, selected, handleSuggestionSelect, props.showAbortButton, props.onAbort, isAborting, handleAbortPress, agentInputEnterToSend, props.value, props.onSend, props.onPermissionModeChange, availableModes, permissionModeKey]);
+    }, [suggestions, moveUp, moveDown, selected, handleSuggestionSelect, props.showAbortButton, props.onAbort, isAborting, handleAbortPress, agentInputEnterToSend, props.value, props.onSend, props.onPermissionModeChange, availableModes, permissionModeKey, isSendBlocked, handleBlockedSendAttempt, props.isSendDisabled]);
 
 
 
@@ -594,48 +550,12 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     return (
         <View style={[
             styles.container,
-            { paddingHorizontal: screenWidth > 700 ? 16 : 8 }
+            { paddingHorizontal: screenWidth > 700 ? 12 : 8 }
         ]}>
             <View style={[
                 styles.innerContainer,
                 { maxWidth: layout.maxWidth }
             ]}>
-                {/* Drag-and-drop overlay */}
-                {isDragOver && Platform.OS === 'web' && (
-                    // @ts-ignore - Web-only fixed overlay
-                    <div style={{
-                        position: 'fixed', top: 0, left: sidebarLeft, right: 0, bottom: 0,
-                        backgroundColor: theme.dark ? 'rgba(0, 0, 0, 0.15)' : 'rgba(245, 245, 247, 0.5)',
-                        backdropFilter: 'blur(8px) saturate(180%)',
-                        WebkitBackdropFilter: 'blur(8px) saturate(180%)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 9999, pointerEvents: 'none',
-                    }}>
-                        <div style={{
-                            backgroundColor: theme.dark
-                                ? 'rgba(44, 44, 46, 0.72)'
-                                : 'rgba(255, 255, 255, 0.72)',
-                            backdropFilter: 'blur(40px) saturate(200%)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-                            borderRadius: 16, padding: '14px 28px',
-                            border: theme.dark
-                                ? '0.5px solid rgba(255, 255, 255, 0.18)'
-                                : '0.5px solid rgba(0, 0, 0, 0.06)',
-                            boxShadow: theme.dark
-                                ? '0 2px 16px rgba(0, 0, 0, 0.3)'
-                                : '0 2px 16px rgba(0, 0, 0, 0.06)',
-                        }}>
-                            <span style={{
-                                color: theme.colors.textSecondary,
-                                fontSize: 14, fontWeight: 500,
-                                fontFamily: 'IBMPlexSans-Regular, IBM Plex Sans, system-ui, sans-serif',
-                                letterSpacing: '-0.01em',
-                            }}>
-                                Drop files here
-                            </span>
-                        </div>
-                    </div>
-                )}
                 {/* Autocomplete suggestions overlay */}
                 {suggestions.length > 0 && (
                     <View style={[
@@ -823,7 +743,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 )}
 
                 {/* Connection status, context warning, and permission mode */}
-                {(props.connectionStatus || contextWarning || displayPermissionMode || props.modelMode) && (
+                {(props.connectionStatus || contextWarning || (displayPermissionMode && permissionModeKey !== 'default')) && (
                     <View style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -929,37 +849,32 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                 </Text>
                             )}
                         </View>
-                        <View style={{
-                            flexDirection: 'column',
-                            alignItems: 'flex-end',
-                            minWidth: 150, // Fixed minimum width to prevent layout shift
-                        }}>
-                            {displayPermissionMode && (
-                                <Text style={{
-                                    fontSize: 11,
-                                    color: isSandboxedYoloMode ? '#4169E1' :
-                                        permissionModeKey === 'acceptEdits' ? theme.colors.permission.acceptEdits :
-                                            permissionModeKey === 'bypassPermissions' ? theme.colors.permission.bypass :
-                                                permissionModeKey === 'plan' ? theme.colors.permission.plan :
-                                                    permissionModeKey === 'read-only' ? theme.colors.permission.readOnly :
-                                                        permissionModeKey === 'safe-yolo' ? theme.colors.permission.safeYolo :
-                                                            permissionModeKey === 'yolo' ? theme.colors.permission.yolo :
-                                                                theme.colors.textSecondary, // Use secondary text color for default
-                                    ...Typography.default()
-                                }}>
-                                    {withSandboxSuffix(displayPermissionMode.name, permissionModeKey)}
-                                </Text>
-                            )}
-                            {props.modelMode && (
-                                <Text style={{
-                                    fontSize: 11,
-                                    color: theme.colors.textSecondary,
-                                    ...Typography.default()
-                                }}>
-                                    {props.modelMode.name}
-                                </Text>
-                            )}
-                        </View>
+                        {/* Permission badge — only shown when non-default */}
+                        {displayPermissionMode && permissionModeKey !== 'default' && (() => {
+                            const permColor = isSandboxedYoloMode ? '#4169E1' :
+                                permissionModeKey === 'acceptEdits' ? theme.colors.permission.acceptEdits :
+                                    permissionModeKey === 'bypassPermissions' ? theme.colors.permission.bypass :
+                                        permissionModeKey === 'plan' ? theme.colors.permission.plan :
+                                            permissionModeKey === 'read-only' ? theme.colors.permission.readOnly :
+                                                permissionModeKey === 'safe-yolo' ? theme.colors.permission.safeYolo :
+                                                    permissionModeKey === 'yolo' ? theme.colors.permission.yolo :
+                                                        theme.colors.textSecondary;
+                            const permIcon: 'play-forward' | 'pause' =
+                                permissionModeKey === 'plan' || permissionModeKey === 'read-only'
+                                    ? 'pause' : 'play-forward';
+                            return (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Ionicons name={permIcon} size={11} color={permColor} />
+                                    <Text style={{
+                                        fontSize: 11,
+                                        color: permColor,
+                                        ...Typography.default()
+                                    }}>
+                                        {withSandboxSuffix(displayPermissionMode.name, permissionModeKey)}
+                                    </Text>
+                                </View>
+                            );
+                        })()}
                     </View>
                 )}
 
@@ -1045,11 +960,8 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 )}
 
                 {/* Box 2: Action Area (Input + Send) */}
+                <Shaker ref={sendBlockShakerRef}>
                 <View style={styles.unifiedPanel}>
-                    {/* Pending attachment strip */}
-                    {props.pendingAttachments && props.pendingAttachments.length > 0 && props.onRemoveAttachment && (
-                        <AttachmentStrip attachments={props.pendingAttachments} onRemove={props.onRemoveAttachment} />
-                    )}
                     {/* Input field */}
                     <View style={[styles.inputContainer, props.minHeight ? { minHeight: props.minHeight } : undefined]}>
                         <MultiTextInput
@@ -1096,42 +1008,6 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                     </Pressable>
                                 )}
 
-                                {/* Profile selector button - FIRST */}
-                                {props.profileId && props.onProfileClick && (
-                                    <Pressable
-                                        onPress={() => {
-                                            hapticsLight();
-                                            props.onProfileClick?.();
-                                        }}
-                                        hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
-                                        style={(p) => ({
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            borderRadius: Platform.select({ default: 16, android: 20 }),
-                                            paddingHorizontal: 10,
-                                            paddingVertical: 6,
-                                            justifyContent: 'center',
-                                            height: 32,
-                                            opacity: p.pressed ? 0.7 : 1,
-                                            gap: 6,
-                                        })}
-                                    >
-                                        <Ionicons
-                                            name="person-outline"
-                                            size={14}
-                                            color={theme.colors.button.secondary.tint}
-                                        />
-                                        <Text style={{
-                                            fontSize: 13,
-                                            color: theme.colors.button.secondary.tint,
-                                            fontWeight: '600',
-                                            ...Typography.default('semiBold'),
-                                        }}>
-                                            {currentProfile?.name || 'Select Profile'}
-                                        </Text>
-                                    </Pressable>
-                                )}
-
                                 {/* Agent selector button */}
                                 {props.agentType && props.onAgentClick && (
                                     <Pressable
@@ -1163,7 +1039,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                             fontWeight: '600',
                                             ...Typography.default('semiBold'),
                                         }}>
-                                            {props.agentType === 'claude' ? t('agentInput.agent.claude') : props.agentType === 'codex' ? t('agentInput.agent.codex') : t('agentInput.agent.gemini')}
+                                            {props.agentType === 'claude' ? t('agentInput.agent.claude') : props.agentType === 'codex' ? t('agentInput.agent.codex') : props.agentType === 'openclaw' ? t('agentInput.agent.openclaw') : t('agentInput.agent.gemini')}
                                         </Text>
                                     </Pressable>
                                 )}
@@ -1204,24 +1080,13 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
                                 {/* Git Status Badge */}
                                 <GitStatusButton sessionId={props.sessionId} onPress={props.onFileViewerPress} />
-                                {/* Attach file button */}
-                                {props.onAttachDocument && (
-                                    <Pressable onPress={props.onAttachDocument} hitSlop={8} style={{ marginLeft: 4, padding: 4 }}>
-                                        <Ionicons name="attach-outline" size={20} color="#888" />
-                                    </Pressable>
-                                )}
-                                {/* Attach image button */}
-                                {props.onAttachImage && (
-                                    <Pressable onPress={props.onAttachImage} hitSlop={8} style={{ marginLeft: 4, padding: 4 }}>
-                                        <Ionicons name="image-outline" size={20} color="#888" />
-                                    </Pressable>
-                                )}
                                 </View>
 
                                 {/* Send/Voice button - aligned with first row */}
                                 <View
                                     style={[
                                         styles.sendButton,
+                                        isSendBlocked ? styles.sendButtonLocked :
                                         (hasText || props.isSending || (props.onMicPress && !props.isMicActive))
                                             ? styles.sendButtonActive
                                             : styles.sendButtonInactive
@@ -1236,20 +1101,19 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                             opacity: p.pressed ? 0.7 : 1,
                                         })}
                                         hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
-                                        onPress={() => {
-                                            hapticsLight();
-                                            if (hasText) {
-                                                props.onSend();
-                                            } else {
-                                                props.onMicPress?.();
-                                            }
-                                        }}
-                                        disabled={props.isSendDisabled || props.isSending || (!hasText && !props.onMicPress)}
+                                        onPress={handleSendPress}
+                                        disabled={!canPressSendButton}
                                     >
                                         {props.isSending ? (
                                             <ActivityIndicator
                                                 size="small"
                                                 color={theme.colors.button.primary.tint}
+                                            />
+                                        ) : isSendBlocked ? (
+                                            <Ionicons
+                                                name="lock-closed"
+                                                size={15}
+                                                color={theme.colors.textSecondary}
                                             />
                                         ) : hasText ? (
                                             <Octicons
@@ -1287,6 +1151,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                         </View>
                     </View>
                 </View>
+                </Shaker>
             </View>
         </View>
     );

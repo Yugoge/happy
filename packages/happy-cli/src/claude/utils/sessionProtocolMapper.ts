@@ -43,6 +43,14 @@ function extractToolResultOutput(block: { content?: unknown }): string | undefin
     return undefined;
 }
 
+function isSubagentTool(name: string): boolean {
+    return name === 'Task' || name === 'Agent';
+}
+
+function shouldHideParentToolCall(name: string): boolean {
+    return name === 'Task';
+}
+
 function pickProviderSubagent(message: RawJSONLines): string | undefined {
     const raw = message as { parent_tool_use_id?: unknown; parentToolUseId?: unknown };
     if (typeof raw.parent_tool_use_id === 'string' && raw.parent_tool_use_id.length > 0) {
@@ -503,15 +511,17 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
             if (block.type === 'tool_use') {
                 const call = typeof block.id === 'string' && block.id.length > 0 ? block.id : createId();
                 const name = typeof block.name === 'string' && block.name.length > 0 ? block.name : 'unknown';
-                const args = toToolArgs(block.input);
+                const baseArgs = toToolArgs(block.input);
                 const title = toolTitle(name, block.input);
                 const sessionSubagentForCall = ensureSessionSubagentIdForProviderSubagent(state, call);
-                if (name === 'Task' || name === 'Agent') {
+                if (isSubagentTool(name)) {
                     const prompt = pickTaskPrompt(block.input);
                     if (prompt) {
                         queueTaskPromptSubagent(state, prompt, call);
                     }
                     setSubagentTitle(state, sessionSubagentForCall, pickTaskTitle(block.input) ?? prompt);
+                }
+                if (shouldHideParentToolCall(name)) {
                     getHiddenParentToolCalls(state).add(call);
 
                     // Emit tool-call-start using the session subagent CUID2 as call id.
@@ -533,6 +543,9 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     }
                     continue;
                 }
+                const args = isSubagentTool(name)
+                    ? { ...baseArgs, sessionSubagent: sessionSubagentForCall }
+                    : baseArgs;
 
                 envelopes.push(createEnvelope('agent', {
                     t: 'tool-call-start',

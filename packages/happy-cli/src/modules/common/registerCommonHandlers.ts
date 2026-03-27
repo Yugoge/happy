@@ -120,23 +120,11 @@ export interface SpawnSessionOptions {
     directory: string;
     sessionId?: string;
     approvedNewDirectoryCreation?: boolean;
-    agent?: 'claude' | 'codex' | 'gemini';
+    agent?: 'claude' | 'codex' | 'gemini' | 'openclaw';
+    environmentVariables?: Record<string, string>;
     token?: string;
     /** Claude session ID to resume via --resume (for session recovery after reboot) */
     resumeSessionId?: string;
-    environmentVariables?: {
-        // Anthropic Claude API configuration
-        ANTHROPIC_BASE_URL?: string;        // Custom API endpoint (overrides default)
-        ANTHROPIC_AUTH_TOKEN?: string;      // API authentication token
-        ANTHROPIC_MODEL?: string;           // Model to use (e.g., claude-3-5-sonnet-20241022)
-
-        // Tmux session management environment variables
-        // Based on tmux(1) manual and common tmux usage patterns
-        TMUX_SESSION_NAME?: string;         // Name for tmux session (creates/attaches to named session)
-        TMUX_TMPDIR?: string;               // Temporary directory for tmux server socket files
-        // Note: TMUX_TMPDIR is used by tmux to store socket files when default /tmp is not suitable
-        // Common use case: When /tmp has limited space or different permissions
-    };
 }
 
 export type SpawnSessionResult =
@@ -161,6 +149,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
             if (!validation.valid) {
                 return { success: false, error: validation.error };
             }
+            data.cwd = validation.resolvedPath;
         }
 
         try {
@@ -244,7 +233,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
         }
 
         try {
-            const buffer = await readFile(data.path);
+            const buffer = await readFile(validation.resolvedPath!);
             const content = buffer.toString('base64');
             return { success: true, content };
         } catch (error) {
@@ -267,7 +256,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
             // If expectedHash is provided (not null), verify existing file
             if (data.expectedHash !== null && data.expectedHash !== undefined) {
                 try {
-                    const existingBuffer = await readFile(data.path);
+                    const existingBuffer = await readFile(validation.resolvedPath!);
                     const existingHash = createHash('sha256').update(existingBuffer).digest('hex');
 
                     if (existingHash !== data.expectedHash) {
@@ -290,7 +279,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
             } else {
                 // expectedHash is null - expecting new file
                 try {
-                    await stat(data.path);
+                    await stat(validation.resolvedPath!);
                     // File exists but we expected it to be new
                     return {
                         success: false,
@@ -307,7 +296,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
 
             // Write the file
             const buffer = Buffer.from(data.content, 'base64');
-            await writeFile(data.path, buffer);
+            await writeFile(validation.resolvedPath!, buffer);
 
             // Calculate and return hash of written file
             const hash = createHash('sha256').update(buffer).digest('hex');
@@ -330,11 +319,12 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
         }
 
         try {
-            const entries = await readdir(data.path, { withFileTypes: true });
+            const directoryPath = validation.resolvedPath!;
+            const entries = await readdir(directoryPath, { withFileTypes: true });
 
             const directoryEntries: DirectoryEntry[] = await Promise.all(
                 entries.map(async (entry) => {
-                    const fullPath = join(data.path, entry.name);
+                    const fullPath = join(directoryPath, entry.name);
                     let type: 'file' | 'directory' | 'other' = 'other';
                     let size: number | undefined;
                     let modified: number | undefined;
@@ -448,10 +438,9 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
             }
 
             // Get the base name for the root node
-            const baseName = data.path === '/' ? '/' : data.path.split('/').pop() || data.path;
-
-            // Build the tree starting from the requested path
-            const tree = await buildTree(data.path, baseName, 0);
+            const rootPath = validation.resolvedPath!;
+            const baseName = rootPath === '/' ? '/' : rootPath.split('/').pop() || rootPath;
+            const tree = await buildTree(rootPath, baseName, 0);
 
             if (!tree) {
                 return { success: false, error: 'Failed to access the specified path' };
@@ -474,6 +463,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
             if (!validation.valid) {
                 return { success: false, error: validation.error };
             }
+            data.cwd = validation.resolvedPath;
         }
 
         try {
@@ -503,6 +493,7 @@ export function registerCommonHandlers(rpcHandlerManager: RpcHandlerManager, wor
             if (!validation.valid) {
                 return { success: false, error: validation.error };
             }
+            data.cwd = validation.resolvedPath;
         }
 
         try {

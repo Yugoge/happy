@@ -30,8 +30,12 @@ export type MarkdownBlock = {
     items: string[]
 } | {
     type: 'table',
-    headers: string[],
-    rows: string[][]
+    headers: MarkdownSpan[][],
+    rows: MarkdownSpan[][][]
+} | {
+    type: 'image',
+    alt: string,
+    url: string
 }
 
 export type MarkdownSpan = {

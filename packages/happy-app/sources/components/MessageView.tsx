@@ -1,9 +1,7 @@
 import * as React from "react";
-import { View, Text, TouchableOpacity, Platform, ScrollView } from "react-native";
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text } from "react-native";
+import { StyleSheet } from 'react-native-unistyles';
 import { MarkdownView } from "./markdown/MarkdownView";
-import { MessageAttachments } from "./MessageAttachments";
 import { t } from '@/text';
 import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage } from "@/sync/typesMessage";
 import { Metadata } from "@/sync/storageTypes";
@@ -12,7 +10,7 @@ import { ToolView } from "./tools/ToolView";
 import { AgentEvent } from "@/sync/typesRaw";
 import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
-import { useSetting } from "@/sync/storage";
+
 
 export const MessageView = (props: {
   message: Message;
@@ -78,10 +76,7 @@ function UserTextBlock(props: {
   return (
     <View style={styles.userMessageContainer}>
       <View style={styles.userMessageBubble}>
-        {props.message.attachments && props.message.attachments.length > 0 && (
-          <MessageAttachments attachments={props.message.attachments} />
-        )}
-        <MarkdownView markdown={props.message.displayText || props.message.text} onOptionPress={handleOptionPress} />
+        <MarkdownView markdown={props.message.displayText || props.message.text} onOptionPress={handleOptionPress} sessionId={props.sessionId} />
         {/* {__DEV__ && (
           <Text style={styles.debugText}>{JSON.stringify(props.message.meta)}</Text>
         )} */}
@@ -94,19 +89,18 @@ function AgentTextBlock(props: {
   message: AgentTextMessage;
   sessionId: string;
 }) {
-  const experiments = useSetting('experiments');
   const handleOptionPress = React.useCallback((option: Option) => {
     sync.sendMessage(props.sessionId, option.title);
   }, [props.sessionId]);
 
-  // Hide thinking messages unless experiments is enabled
-  if (props.message.isThinking && !experiments) {
+  // Hide thinking messages
+  if (props.message.isThinking) {
     return null;
   }
 
   return (
-    <View style={[styles.agentMessageContainer, props.message.isThinking && { opacity: 0.3 }]}>
-      <MarkdownView markdown={props.message.text} onOptionPress={handleOptionPress} />
+    <View style={styles.agentMessageContainer}>
+      <MarkdownView markdown={props.message.text} onOptionPress={handleOptionPress} sessionId={props.sessionId} />
     </View>
   );
 }
@@ -129,9 +123,6 @@ function AgentEventBlock(props: {
       </View>
     );
   }
-  if (props.event.type === 'wrapped') {
-    return <WrappedEventBlock label={props.event.label} content={props.event.content} />;
-  }
   if (props.event.type === 'limit-reached') {
     const formatTime = (timestamp: number): string => {
       try {
@@ -153,38 +144,6 @@ function AgentEventBlock(props: {
   return (
     <View style={styles.agentEventContainer}>
       <Text style={styles.agentEventText}>{t('message.unknownEvent')}</Text>
-    </View>
-  );
-}
-
-// Collapsible wrapped event block (e.g., expanded command prompts)
-function WrappedEventBlock(props: { label: string; content: string }) {
-  const [expanded, setExpanded] = React.useState(false);
-  const { theme } = useUnistyles();
-  const toggle = React.useCallback(() => setExpanded(v => !v), []);
-
-  return (
-    <View style={wrappedStyles.container}>
-      <TouchableOpacity style={wrappedStyles.header} onPress={toggle} activeOpacity={0.7}>
-        <View style={wrappedStyles.headerLeft}>
-          <Ionicons name="code-slash-outline" size={16} color={theme.colors.textSecondary} />
-          <Text style={wrappedStyles.label} numberOfLines={1}>{props.label}</Text>
-        </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={theme.colors.textSecondary}
-        />
-      </TouchableOpacity>
-      {expanded && (
-        Platform.OS === 'web'
-          ? <View style={wrappedStyles.content}>
-              <Text style={wrappedStyles.contentText} selectable>{props.content}</Text>
-            </View>
-          : <ScrollView style={wrappedStyles.content} nestedScrollEnabled>
-              <Text style={wrappedStyles.contentText} selectable>{props.content}</Text>
-            </ScrollView>
-      )}
     </View>
   );
 }
@@ -217,7 +176,6 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: 'center',
   },
   messageContent: {
-    minWidth: 0,
     flexDirection: 'column',
     flexGrow: 1,
     flexBasis: 0,
@@ -243,8 +201,6 @@ const styles = StyleSheet.create((theme) => ({
     marginBottom: 12,
     borderRadius: 16,
     alignSelf: 'flex-start',
-    maxWidth: '100%',
-    overflow: 'hidden',
   },
   agentEventContainer: {
     marginHorizontal: 8,
@@ -261,47 +217,5 @@ const styles = StyleSheet.create((theme) => ({
   debugText: {
     color: theme.colors.agentEventText,
     fontSize: 12,
-  },
-}));
-
-const wrappedStyles = StyleSheet.create((theme) => ({
-  container: {
-    marginHorizontal: 8,
-    marginVertical: 4,
-    backgroundColor: theme.colors.surfaceHigh,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.surfaceHighest,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    // On web we render a plain View (no inner scroll) so maxHeight is not needed;
-    // on native the ScrollView needs it to cap the collapsible region height.
-    maxHeight: Platform.OS === 'web' ? undefined : 400,
-  },
-  contentText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
 }));
