@@ -74,11 +74,11 @@ All Docker services managed via `/root/deploy/docker-compose.yml`.
 cd /root/deploy && docker compose build happy-server && docker compose up -d happy-server
 
 # Rebuild and deploy web PRODUCTION (must build image manually, compose has no build: section)
-cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:message-fixes .
+cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:message-fixes .
 cd /root/deploy && docker compose up -d happy-web
 
 # Rebuild and deploy web DEV (safe to do during dev-overnight, doesn't affect production)
-cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:dev .
+cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:dev .
 cd /root/deploy && docker compose up -d happy-web-dev
 
 # CLI update (daemon auto-restarts on version mismatch via heartbeat)
@@ -366,18 +366,22 @@ AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMH
 
 #### Playwright Login Flow
 
+**IMPORTANT**: You must also set the server URL in MMKV, otherwise all API calls go to the wrong server (`api.cluster-fluster.com`).
+
 ```javascript
 // 1. Navigate to the app domain first (localStorage is domain-scoped)
 await page.goto('https://life-ai.app');
 
-// 2. Inject auth credentials into localStorage
+// 2. Inject auth credentials AND server URL
 await page.evaluate(() => {
     localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
+    // Server URL in MMKV (id='server-config', NOT 'default')
+    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
 
 // 3. Reload to trigger auth flow
 await page.reload();
-// App will read localStorage, derive keys, connect WebSocket, and show sessions
+// App reads localStorage, derives keys, connects WebSocket to correct API, shows sessions
 ```
 
 #### Alternative: Generate Fresh Token for CLI access.key
@@ -516,15 +520,36 @@ The `happy-dev` instance is dedicated for autonomous development and testing. Se
 
 ### Playwright Debug for Dev Web
 
+**CRITICAL**: The web app needs THREE localStorage entries to work properly:
+1. `auth_credentials` -- token + masterSecret for authentication and encryption
+2. `mmkv.server-config\custom-server-url` -- API server URL (without this, app defaults to `api.cluster-fluster.com` which is WRONG)
+3. Sessions must exist for machine cards to appear (empty account shows "Ready to code?" even if machine is online)
+
 ```javascript
-// Connect to dev web instance (localhost or public domain both work)
-await page.goto('http://localhost:8097');  // or 'https://dev.life-ai.app'
+// Complete Playwright login flow (all 3 entries required)
+await page.goto('https://dev.life-ai.app');
 await page.evaluate(() => {
+    // 1. Auth credentials (dev account)
     localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
+    // 2. Server URL (MMKV id='server-config', NOT 'default')
+    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
 await page.reload();
-// App loads with dev account, can inspect sessions, UI, etc.
+// App loads with dev account, connects to correct API
 ```
+
+### Web App Server URL Architecture
+
+The server URL is determined by `sync/serverConfig.ts` with this priority:
+1. MMKV `server-config` storage key `custom-server-url` (highest)
+2. `process.env.EXPO_PUBLIC_HAPPY_SERVER_URL` (build-time env)
+3. Hardcoded default `https://api.cluster-fluster.com` (lowest -- **WRONG for our server**)
+
+**CRITICAL**: Docker builds MUST pass `--build-arg HAPPY_SERVER_URL=https://api.life-ai.app` or the app will connect to the wrong server. Without this, fresh builds default to `api.cluster-fluster.com` which returns 401.
+
+**Key gotcha**: MMKV instances are domain-scoped. Each MMKV `id` maps to a separate localStorage prefix:
+- `mmkv.default\...` -- general app storage (profile, settings, changelog)
+- `mmkv.server-config\...` -- server config (custom URL, persists across logouts)
 
 ---
 
