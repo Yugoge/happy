@@ -1,3 +1,10 @@
+# CLAUDE.md
+
+> Project-specific settings for happy-dev
+> Last updated: 2026-03-27
+
+---
+
 # Happy Monorepo
 
 Yarn workspaces monorepo for the Happy platform.
@@ -533,6 +540,47 @@ await page.reload();
 
 ---
 
+## Critical Build & Recovery Rules (from 2026-03-26 postmortem)
+
+### Build: ALWAYS from /root/happy, NEVER from /root/happy-dev
+
+```bash
+# CORRECT — production source
+cd /root/happy/packages/happy-cli && yarn build
+cd /root/happy && npm install -g .
+
+# WRONG — dev branch may have regressions from overnight worktrees
+cd /root/happy-dev/packages/happy-cli && yarn build  # NEVER DO THIS
+```
+
+After every build, verify the `sendExisting` variable exists in the compiled output:
+```bash
+grep -c "sendExisting" /usr/lib/node_modules/happy-coder/dist/index-*.mjs
+# At least one file MUST return > 0. If all return 0, the build is broken.
+```
+
+**Why**: `sendExisting` in `sessionScanner.ts` controls whether .jsonl history is uploaded to server on session resume. Without it, resumed sessions appear empty in the app. This was lost once when building from happy-dev where an overnight worktree commit (`1612a409`) rewrote the file without this parameter.
+
+### Recovery: spawn interval must be >= 5 seconds
+
+When mass-spawning sessions (recovery, restart), each process needs time to initialize (auth, WebSocket, Claude SDK). Spawning at 3-second intervals causes resource contention and process death. The recovery script uses `sleep 5` between spawns.
+
+### Recovery: `--resume` is the ONLY viable path, `--recover-session` does NOT work
+
+`daemon_spawn_session()` uses `--resume $claude_uuid` (passed to Claude SDK as unknownArg). `--recover-session` is NOT an alternative — it triggers `runClaude.ts` full startup which fails with "Claude Code is not installed" because this server doesn't have a global Claude Code binary. `--resume` works because it flows through happy-cli's built-in SDK wrapper (`claude_remote_launcher.cjs`), bypassing the global binary check.
+
+The full recovery chain: `--resume` loads Claude .jsonl history + `sendExisting=true` uploads it to happy-server = app sees complete conversation. If `sendExisting` is missing from the build, resumed sessions appear empty in the app. **This is the life-or-death variable.**
+
+### Session recovery system: three-layer defense
+
+1. **Cold boot detection** (`is_cold_boot()` via boot_id): prevents `ExecStartPre save` from overwriting `session_dirs.txt` after reboot
+2. **Peak merge** (`PEAK_PROTECT_SECONDS=28800`): even if overwritten, merges with best historical snapshot within 8h window
+3. **Periodic snapshots** (`PERIODIC_SNAPSHOT_INTERVAL=900`): writes JSON snapshot every 15min even during stable state, keeps peak window fresh
+
+Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
+
+---
+
 ## Documentation References
 
 | Doc | Path | Topics |
@@ -548,3 +596,4 @@ await page.reload();
 | Server Setup | `/root/docs/SERVER-SETUP.md` | Systemd services, IS_SANDBOX |
 | Claude Exit Investigation | `/root/docs/CLAUDE-SESSION-EXIT-INVESTIGATION.md` | Mode hash, context compaction |
 | Implementation Notes | `/root/docs/IMPLEMENTATION-NOTES.md` | AsyncLock, backoff, protocol internals |
+| Reboot Recovery Postmortem | `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md` | Cold-boot bug, sendExisting regression, recovery fixes |
