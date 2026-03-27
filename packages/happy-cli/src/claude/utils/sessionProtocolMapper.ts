@@ -521,6 +521,10 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     }
                     setSubagentTitle(state, sessionSubagentForCall, pickTaskTitle(block.input) ?? prompt);
                 }
+                const args = isSubagentTool(name)
+                    ? { ...baseArgs, sessionSubagent: sessionSubagentForCall }
+                    : baseArgs;
+
                 if (shouldHideParentToolCall(name)) {
                     getHiddenParentToolCalls(state).add(call);
 
@@ -543,9 +547,6 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     }
                     continue;
                 }
-                const args = isSubagentTool(name)
-                    ? { ...baseArgs, sessionSubagent: sessionSubagentForCall }
-                    : baseArgs;
 
                 envelopes.push(createEnvelope('agent', {
                     t: 'tool-call-start',
