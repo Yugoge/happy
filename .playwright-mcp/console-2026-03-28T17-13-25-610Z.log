@@ -1,0 +1,2 @@
+[      24ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[      24ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
