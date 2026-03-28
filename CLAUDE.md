@@ -74,11 +74,11 @@ All Docker services managed via `/root/deploy/docker-compose.yml`.
 cd /root/deploy && docker compose build happy-server && docker compose up -d happy-server
 
 # Rebuild and deploy web PRODUCTION (must build image manually, compose has no build: section)
-cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:message-fixes .
+cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:message-fixes .
 cd /root/deploy && docker compose up -d happy-web
 
 # Rebuild and deploy web DEV (safe to do during dev-overnight, doesn't affect production)
-cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:dev .
+cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:dev .
 cd /root/deploy && docker compose up -d happy-web-dev
 
 # CLI update (daemon auto-restarts on version mismatch via heartbeat)
@@ -564,7 +564,12 @@ await page.reload();
 The server URL is determined by `sync/serverConfig.ts` with this priority:
 1. MMKV `server-config` storage key `custom-server-url` (highest)
 2. `process.env.EXPO_PUBLIC_HAPPY_SERVER_URL` (build-time env)
-3. Hardcoded default `https://api.cluster-fluster.com` (lowest -- WRONG for our server)
+3. Hardcoded default `https://api.cluster-fluster.com` (lowest -- **WRONG for our server**)
+
+**CRITICAL**: Docker builds MUST pass the correct `--build-arg HAPPY_SERVER_URL`:
+- **Production** (`happy-app:message-fixes`): `HAPPY_SERVER_URL=https://api.life-ai.app` -- build from `/root/happy`
+- **Dev** (`happy-app:dev`): `HAPPY_SERVER_URL=https://api-dev.life-ai.app` -- build from `/dev/shm/dev-workspace/happy-dev` or worktree
+- Without this arg, fresh builds connect to the wrong server and return 401.
 
 **Key gotcha**: MMKV instances are domain-scoped. Each MMKV `id` maps to a separate localStorage prefix:
 - `mmkv.default\...` -- general app storage (profile, settings, changelog)
@@ -602,6 +607,47 @@ curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
 5. **NEVER** restart daemon from within a daemon-managed Claude session (cgroup kill)
 6. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
 7. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
+
+---
+
+## Critical Build & Recovery Rules (from 2026-03-26 postmortem)
+
+### Build: ALWAYS from /root/happy, NEVER from /root/happy-dev
+
+```bash
+# CORRECT — production source
+cd /root/happy/packages/happy-cli && yarn build
+cd /root/happy && npm install -g .
+
+# WRONG — dev branch may have regressions from overnight worktrees
+cd /root/happy-dev/packages/happy-cli && yarn build  # NEVER DO THIS
+```
+
+After every build, verify the `sendExisting` variable exists in the compiled output:
+```bash
+grep -c "sendExisting" /usr/lib/node_modules/happy-coder/dist/index-*.mjs
+# At least one file MUST return > 0. If all return 0, the build is broken.
+```
+
+**Why**: `sendExisting` in `sessionScanner.ts` controls whether .jsonl history is uploaded to server on session resume. Without it, resumed sessions appear empty in the app. This was lost once when building from happy-dev where an overnight worktree commit (`1612a409`) rewrote the file without this parameter.
+
+### Recovery: spawn interval must be >= 5 seconds
+
+When mass-spawning sessions (recovery, restart), each process needs time to initialize (auth, WebSocket, Claude SDK). Spawning at 3-second intervals causes resource contention and process death. The recovery script uses `sleep 5` between spawns.
+
+### Recovery: `--resume` is the ONLY viable path, `--recover-session` does NOT work
+
+`daemon_spawn_session()` uses `--resume $claude_uuid` (passed to Claude SDK as unknownArg). `--recover-session` is NOT an alternative — it triggers `runClaude.ts` full startup which fails with "Claude Code is not installed" because this server doesn't have a global Claude Code binary. `--resume` works because it flows through happy-cli's built-in SDK wrapper (`claude_remote_launcher.cjs`), bypassing the global binary check.
+
+The full recovery chain: `--resume` loads Claude .jsonl history + `sendExisting=true` uploads it to happy-server = app sees complete conversation. If `sendExisting` is missing from the build, resumed sessions appear empty in the app. **This is the life-or-death variable.**
+
+### Session recovery system: three-layer defense
+
+1. **Cold boot detection** (`is_cold_boot()` via boot_id): prevents `ExecStartPre save` from overwriting `session_dirs.txt` after reboot
+2. **Peak merge** (`PEAK_PROTECT_SECONDS=28800`): even if overwritten, merges with best historical snapshot within 8h window
+3. **Periodic snapshots** (`PERIODIC_SNAPSHOT_INTERVAL=900`): writes JSON snapshot every 15min even during stable state, keeps peak window fresh
+
+Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 
 ---
 
