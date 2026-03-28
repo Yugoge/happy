@@ -385,7 +385,7 @@ To connect to a happy account via Playwright without scanning QR code, inject au
 Account ID: `cmi5mv9eh00wzpg14ph73jj3n`
 
 ```
-AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}'
+AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}'
 ```
 
 #### Playwright Login Flow
@@ -398,7 +398,7 @@ await page.goto('https://life-ai.app');
 
 // 2. Inject auth credentials AND server URL
 await page.evaluate(() => {
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}');
+    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
     // Server URL in MMKV (id='server-config', NOT 'default')
     localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
@@ -554,7 +554,7 @@ The `happy-dev` instance is dedicated for autonomous development and testing. Se
 await page.goto('https://dev.life-ai.app');
 await page.evaluate(() => {
     // 1. Auth credentials (dev bot account)
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}');
+    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
     // 2. Server URL (MMKV id='server-config', NOT 'default')
     localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
