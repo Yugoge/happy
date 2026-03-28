@@ -1,0 +1,355 @@
+[     579ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     579ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[     579ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     579ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     579ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[     579ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     580ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     580ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[     580ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     580ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     580ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[     580ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     608ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     612ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     612ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[     612ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     612ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     612ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[     612ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[     612ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[     612ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[     612ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1005ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1005ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    1005ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1219ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1219ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    1219ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1267ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1267ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    1267ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1310ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1311ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    1311ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1393ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1393ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    1394ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1425ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1425ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    1425ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1430ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1430ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    1430ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1579ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1579ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    1579ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1675ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1676ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    1676ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1746ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1746ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    1746ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1871ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1871ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    1871ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1950ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1950ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    1950ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    1986ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    1986ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    1986ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2086ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2087ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    2087ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2142ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2142ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    2142ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2154ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2154ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    2154ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2255ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2255ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    2255ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2371ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2371ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    2372ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2470ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2470ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    2470ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2581ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2581ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    2582ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2597ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2597ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    2597ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2848ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2849ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    2849ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2863ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2863ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    2864ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    2942ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    2942ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    2943ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3039ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3039ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    3039ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3060ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3061ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    3061ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3068ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3068ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    3068ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3133ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3133ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    3133ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3341ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3341ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    3341ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3374ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3374ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    3374ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3541ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3541ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    3541ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3759ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3759ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    3759ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3795ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3795ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    3795ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3806ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3806ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    3806ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3839ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3840ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    3840ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3875ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3876ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    3876ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    3878ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    3878ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    3878ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4008ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4009ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    4009ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4119ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4119ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    4119ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4150ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4150ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    4150ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4298ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4298ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    4299ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4433ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4433ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    4433ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4485ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4485ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    4485ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4580ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4581ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    4581ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4621ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4622ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    4622ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4730ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4730ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    4731ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4766ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4766ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    4766ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4825ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4825ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    4825ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4860ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4860ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    4860ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4868ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4869ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    4869ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    4957ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    4958ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    4958ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5204ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5204ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    5204ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5292ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5292ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    5292ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5320ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5320ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    5320ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5334ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5334ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    5334ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5350ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5350ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    5350ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5354ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5354ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    5354ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5368ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5368ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    5368ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5377ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5377ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    5377ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5533ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5533ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    5534ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5789ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5789ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    5789ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5813ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5813ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    5813ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    5887ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    5887ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    5887ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6007ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6007ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    6008ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6042ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6042ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    6042ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6102ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6102ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    6102ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6144ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6144ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    6144ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6156ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6156ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    6156ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6284ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6284ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    6284ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6313ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6313ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    6314ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6430ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6431ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    6431ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6454ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6454ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    6454ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6594ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6594ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    6595ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6657ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6657ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    6657ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6784ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6785ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    6785ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6815ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6816ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    6816ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6854ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6854ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    6855ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    6961ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    6961ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    6961ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7430ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7430ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    7430ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7436ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7437ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    7437ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7460ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7460ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    7461ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7469ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7469ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    7469ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7543ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7543ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    7544ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7560ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7560ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    7560ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7689ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/machines' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7689ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/machines:0
+[    7689ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7761ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7761ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    7761ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7804ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/sessions' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7804ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/sessions:0
+[    7804ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7807ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7807ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    7807ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7890ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/profile' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7890ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/profile:0
+[    7890ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    7923ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/artifacts' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    7923ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/artifacts:0
+[    7923ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    8119ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/feed?limit=100' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    8119ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/feed?limit=100:0
+[    8119ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    8144ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/account/settings' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    8145ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/account/settings:0
+[    8145ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
+[    8171ms] [ERROR] Access to fetch at 'http://localhost:3005/v1/friends' from origin 'https://dev.life-ai.app' has been blocked by CORS policy: Permission was denied for this request to access the `unknown` address space. @ https://dev.life-ai.app/:0
+[    8172ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3005/v1/friends:0
+[    8172ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-2d3a5e2c9c500d1f236f78941d0c2ca1.js:2982
