@@ -1,3 +1,10 @@
+# CLAUDE.md
+
+> Project-specific settings for happy-dev
+> Last updated: 2026-03-27
+
+---
+
 # Happy Monorepo
 
 Yarn workspaces monorepo for the Happy platform.
@@ -67,11 +74,11 @@ All Docker services managed via `/root/deploy/docker-compose.yml`.
 cd /root/deploy && docker compose build happy-server && docker compose up -d happy-server
 
 # Rebuild and deploy web PRODUCTION (must build image manually, compose has no build: section)
-cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:message-fixes .
+cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:message-fixes .
 cd /root/deploy && docker compose up -d happy-web
 
 # Rebuild and deploy web DEV (safe to do during dev-overnight, doesn't affect production)
-cd /root/happy && docker build -f Dockerfile.webapp -t happy-app:dev .
+cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:dev .
 cd /root/deploy && docker compose up -d happy-web-dev
 
 # CLI update (daemon auto-restarts on version mismatch via heartbeat)
@@ -354,23 +361,27 @@ To connect to a happy account via Playwright without scanning QR code, inject au
 Account ID: `cmi5mv9eh00wzpg14ph73jj3n`
 
 ```
-AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}'
+AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}'
 ```
 
 #### Playwright Login Flow
+
+**IMPORTANT**: You must also set the server URL in MMKV, otherwise all API calls go to the wrong server (`api.cluster-fluster.com`).
 
 ```javascript
 // 1. Navigate to the app domain first (localStorage is domain-scoped)
 await page.goto('https://life-ai.app');
 
-// 2. Inject auth credentials into localStorage
+// 2. Inject auth credentials AND server URL
 await page.evaluate(() => {
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
+    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}');
+    // Server URL in MMKV (id='server-config', NOT 'default')
+    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
 
 // 3. Reload to trigger auth flow
 await page.reload();
-// App will read localStorage, derive keys, connect WebSocket, and show sessions
+// App reads localStorage, derives keys, connects WebSocket to correct API, shows sessions
 ```
 
 #### Alternative: Generate Fresh Token for CLI access.key
@@ -509,15 +520,36 @@ The `happy-dev` instance is dedicated for autonomous development and testing. Se
 
 ### Playwright Debug for Dev Web
 
+**CRITICAL**: The web app needs THREE localStorage entries to work properly:
+1. `auth_credentials` -- token + masterSecret for authentication and encryption
+2. `mmkv.server-config\custom-server-url` -- API server URL (without this, app defaults to `api.cluster-fluster.com` which is WRONG)
+3. Sessions must exist for machine cards to appear (empty account shows "Ready to code?" even if machine is online)
+
 ```javascript
-// Connect to dev web instance (localhost or public domain both work)
-await page.goto('http://localhost:8097');  // or 'https://dev.life-ai.app'
+// Complete Playwright login flow (all 3 entries required)
+await page.goto('https://dev.life-ai.app');
 await page.evaluate(() => {
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
+    // 1. Auth credentials (dev bot account)
+    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbW41dmxma3cwMDAwbGQzbHlxZGd6MWx3IiwiaWF0IjoxNzc0NDMzMDM2LCJuYmYiOjE3NzQ0MzMwMzYsImlzcyI6ImhhbmR5IiwianRpIjoiNzhmMDg0OGItNjIxMC00ZDlhLTk0YTctZjJiOTVkOTY2MzM3In0.2-X3j3nxZsXdEsD1Q-CyWTLeFwnmxBxUUWSwBLCUWW_Y710bU11CMlh0voLSH7zxc9YRUd-K6mphBqg_4DEcBw","secret":"Zd78yMPVHtUYnbR9yWWdBgzecja4UHwXaAF8Jody7Ag"}');
+    // 2. Server URL (MMKV id='server-config', NOT 'default')
+    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api.life-ai.app');
 });
 await page.reload();
-// App loads with dev account, can inspect sessions, UI, etc.
+// App loads with dev account, connects to correct API
 ```
+
+### Web App Server URL Architecture
+
+The server URL is determined by `sync/serverConfig.ts` with this priority:
+1. MMKV `server-config` storage key `custom-server-url` (highest)
+2. `process.env.EXPO_PUBLIC_HAPPY_SERVER_URL` (build-time env)
+3. Hardcoded default `https://api.cluster-fluster.com` (lowest -- **WRONG for our server**)
+
+**CRITICAL**: Docker builds MUST pass `--build-arg HAPPY_SERVER_URL=https://api.life-ai.app` or the app will connect to the wrong server. Without this, fresh builds default to `api.cluster-fluster.com` which returns 401.
+
+**Key gotcha**: MMKV instances are domain-scoped. Each MMKV `id` maps to a separate localStorage prefix:
+- `mmkv.default\...` -- general app storage (profile, settings, changelog)
+- `mmkv.server-config\...` -- server config (custom URL, persists across logouts)
 
 ---
 
@@ -530,6 +562,47 @@ await page.reload();
 5. **NEVER** restart daemon from within a daemon-managed Claude session (cgroup kill)
 6. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
 7. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
+
+---
+
+## Critical Build & Recovery Rules (from 2026-03-26 postmortem)
+
+### Build: ALWAYS from /root/happy, NEVER from /root/happy-dev
+
+```bash
+# CORRECT — production source
+cd /root/happy/packages/happy-cli && yarn build
+cd /root/happy && npm install -g .
+
+# WRONG — dev branch may have regressions from overnight worktrees
+cd /root/happy-dev/packages/happy-cli && yarn build  # NEVER DO THIS
+```
+
+After every build, verify the `sendExisting` variable exists in the compiled output:
+```bash
+grep -c "sendExisting" /usr/lib/node_modules/happy-coder/dist/index-*.mjs
+# At least one file MUST return > 0. If all return 0, the build is broken.
+```
+
+**Why**: `sendExisting` in `sessionScanner.ts` controls whether .jsonl history is uploaded to server on session resume. Without it, resumed sessions appear empty in the app. This was lost once when building from happy-dev where an overnight worktree commit (`1612a409`) rewrote the file without this parameter.
+
+### Recovery: spawn interval must be >= 5 seconds
+
+When mass-spawning sessions (recovery, restart), each process needs time to initialize (auth, WebSocket, Claude SDK). Spawning at 3-second intervals causes resource contention and process death. The recovery script uses `sleep 5` between spawns.
+
+### Recovery: `--resume` is the ONLY viable path, `--recover-session` does NOT work
+
+`daemon_spawn_session()` uses `--resume $claude_uuid` (passed to Claude SDK as unknownArg). `--recover-session` is NOT an alternative — it triggers `runClaude.ts` full startup which fails with "Claude Code is not installed" because this server doesn't have a global Claude Code binary. `--resume` works because it flows through happy-cli's built-in SDK wrapper (`claude_remote_launcher.cjs`), bypassing the global binary check.
+
+The full recovery chain: `--resume` loads Claude .jsonl history + `sendExisting=true` uploads it to happy-server = app sees complete conversation. If `sendExisting` is missing from the build, resumed sessions appear empty in the app. **This is the life-or-death variable.**
+
+### Session recovery system: three-layer defense
+
+1. **Cold boot detection** (`is_cold_boot()` via boot_id): prevents `ExecStartPre save` from overwriting `session_dirs.txt` after reboot
+2. **Peak merge** (`PEAK_PROTECT_SECONDS=28800`): even if overwritten, merges with best historical snapshot within 8h window
+3. **Periodic snapshots** (`PERIODIC_SNAPSHOT_INTERVAL=900`): writes JSON snapshot every 15min even during stable state, keeps peak window fresh
+
+Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 
 ---
 
@@ -548,3 +621,25 @@ await page.reload();
 | Server Setup | `/root/docs/SERVER-SETUP.md` | Systemd services, IS_SANDBOX |
 | Claude Exit Investigation | `/root/docs/CLAUDE-SESSION-EXIT-INVESTIGATION.md` | Mode hash, context compaction |
 | Implementation Notes | `/root/docs/IMPLEMENTATION-NOTES.md` | AsyncLock, backoff, protocol internals |
+| Reboot Recovery Postmortem | `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md` | Cold-boot bug, sendExisting regression, recovery fixes |
+
+---
+
+## TODO: Playwright Storage State Bug (delete after fixed)
+
+**Problem**: Playwright MCP uses a persistent storage state file that caches WRONG account credentials, causing all QA/testing to run against the wrong account's data.
+
+**Three files to fix**:
+1. `/root/.claude/playwright-storage-state.json` — contains stale token for account `cmm5vlfkw0000ld3lyqdgz1lw` (WRONG). Should use dev account `cmi5mv9eh00wzpg14ph73jj3n`
+2. `/root/.claude/playwright-config.json` — `contextOptions.storageState` forces loading the above file on every Playwright context
+3. `/tmp/chrome-debug-profile/` — persistent Chrome user data dir with 38 subdirs of cached state
+
+**Fix steps**:
+1. Update `/root/.claude/playwright-storage-state.json` with correct dev account token (from CLAUDE.md "Direct Authentication" section)
+2. OR: Remove `storageState` from playwright-config.json so subagents must explicitly inject credentials each time
+3. Clear `/tmp/chrome-debug-profile/` to remove stale browser cache
+4. For dev-overnight QA: always clear localStorage and re-inject credentials before each test run
+
+**Impact**: All previous QA Playwright tests in dev-overnight sessions tested against wrong account data. Code-level fixes (verified via grep on bundle) are still valid, but browser-level QA results are unreliable.
+
+**Discovered**: 2026-03-27 during dev-overnight cycle 1
