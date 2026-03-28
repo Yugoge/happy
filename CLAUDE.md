@@ -78,7 +78,9 @@ cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL
 cd /root/deploy && docker compose up -d happy-web
 
 # Rebuild and deploy web DEV (safe to do during dev-overnight, doesn't affect production)
-cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:dev .
+# Source: THIS repo (happy-dev or worktree) | Dockerfile: Dockerfile.webapp | URL: api-dev
+# NEVER build dev from /root/happy. NEVER use api.life-ai.app for dev.
+docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev .
 cd /root/deploy && docker compose up -d happy-web-dev
 
 # CLI update (daemon auto-restarts on version mismatch via heartbeat)
@@ -179,7 +181,29 @@ deriveKey(master, usage, path):
 
 - Derivation: `happy-app/sources/encryption/deriveKey.ts`
 - Encryption.create(): `happy-app/sources/sync/encryption/encryption.ts`
-- NaCl box: `happy-app/sources/encryption/libsodium.ts`
+- NaCl box: `happy-app/sources/encryption/libsodium.ts` (native) / `libsodium.lib.web.ts` (web uses `libsodium-wrappers`)
+- Machine DEK encrypt: `happy-cli/src/api/api.ts:279` (`libsodiumEncryptForPublicKey`)
+- Machine DEK decrypt: `happy-app/sources/sync/encryption/encryption.ts:162` (`decryptEncryptionKey`)
+- Server serialization: `happy-server/sources/app/api/routes/machinesRoutes.ts:149` (`Buffer.from(bytea).toString('base64')`)
+
+### Key Derivation Pitfall: CLI vs App
+
+Both CLI and App derive the same keypair, but use different code paths:
+- **CLI** (`encryption.ts`): `SHA512(contentDataKey).slice(0,32)` → `tweetnacl.box.keyPair.fromSecretKey`
+- **App** (`encryption.ts`): `sodium.crypto_box_seed_keypair(contentDataKey)` (internally also SHA512)
+
+These produce **identical** keys. But when manually creating `access.key`, you MUST use the correct derivation — the publicKey must match what the browser derives from the same masterSecret, or machine data decryption silently fails.
+
+### Machine Registration: dataEncryptionKey
+
+When daemon registers with `POST /v1/machines`, it encrypts `machineKey` with `publicKey`:
+```
+dataEncryptionKey = [version=0x00] + NaCl.box(machineKey, nonce, publicKey, ephemeralSecretKey)
+```
+Server stores this as bytea, returns as base64 in GET responses. Browser decrypts with `contentKeyPair.privateKey`.
+
+**Critical**: `POST /v1/machines` does NOT update `dataEncryptionKey` for existing machines unless explicitly coded. If you change `publicKey` in `access.key`, delete the machine from DB first, then restart daemon.
+
 - CLI encryption: `happy-cli/src/api/encryption.ts`
 
 ---
@@ -545,7 +569,10 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 2. `process.env.EXPO_PUBLIC_HAPPY_SERVER_URL` (build-time env)
 3. Hardcoded default `https://api.cluster-fluster.com` (lowest -- **WRONG for our server**)
 
-**CRITICAL**: Docker builds MUST pass `--build-arg HAPPY_SERVER_URL=https://api.life-ai.app` or the app will connect to the wrong server. Without this, fresh builds default to `api.cluster-fluster.com` which returns 401.
+**CRITICAL**: Docker builds MUST pass the correct `--build-arg HAPPY_SERVER_URL`:
+- **Production** (`happy-app:message-fixes`): `HAPPY_SERVER_URL=https://api.life-ai.app` — build from `/root/happy`
+- **Dev** (`happy-app:dev`): `HAPPY_SERVER_URL=https://api-dev.life-ai.app` — build from `/dev/shm/dev-workspace/happy-dev` or worktree
+- Without this arg, fresh builds connect to the wrong server and return 401.
 
 **Key gotcha**: MMKV instances are domain-scoped. Each MMKV `id` maps to a separate localStorage prefix:
 - `mmkv.default\...` -- general app storage (profile, settings, changelog)
@@ -564,6 +591,28 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 7. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
 
 ---
+
+
+### UI Behavior with No Sessions
+
+`SessionsListWrapper.tsx` decides what to show:
+- `sessionListViewData === null` → loading spinner
+- `sessionListViewData.length === 0` → `EmptyMainScreen` ("Ready to code?")
+- `sessionListViewData.length > 0` → `SessionsList` (machine cards + sessions)
+
+Machine cards are rendered as part of the session list, NOT independently. So a machine can be online and decrypted correctly, but if there are zero sessions, the UI shows the empty state instead.
+
+### Spawning a Test Session via Daemon HTTP
+
+```bash
+# Get dev daemon port
+DEV_PORT=$(python3 -c "import json; d=json.load(open('/root/.happy-dev/daemon.state.json')); print(d['httpPort'])")
+
+# Spawn a session (creates Claude process in /root/happy)
+curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
+  -H "Content-Type: application/json" \
+  -d '{"directory": "/root/happy"}'
+```
 
 ## Critical Build & Recovery Rules (from 2026-03-26 postmortem)
 
