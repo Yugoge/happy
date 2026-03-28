@@ -498,7 +498,9 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                         exitReason = 'exit';
                     } else {
                         session.client.sendSessionEvent({ type: 'message', message: `Claude process exited unexpectedly (crash ${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}), waiting for next command` });
-                        messageBuffer.addMessage(`Claude crashed (${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}). Waiting for next command...`, 'status');
+                        messageBuffer.addMessage(`Claude crashed (${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}). Waiting ${consecutiveCrashes * 2}s before retry...`, 'status');
+                        // Exponential backoff: 2s, 4s, 6s, 8s to avoid rapid OOM crash loops
+                        await new Promise(resolve => setTimeout(resolve, consecutiveCrashes * 2000));
                     }
                     continue;
                 }

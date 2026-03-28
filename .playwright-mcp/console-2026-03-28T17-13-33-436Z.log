@@ -1,0 +1,455 @@
+[     143ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     164ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/machines:0
+[     164ms] [ERROR] Failed to fetch machines: 401 @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     166ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[     166ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     166ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[     166ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     170ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[     170ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     173ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[     173ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     175ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[     175ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     177ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[     178ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     226ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/machines:0
+[     227ms] [ERROR] Failed to fetch machines: 401 @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     268ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[     268ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     332ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[     332ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     623ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[     623ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     706ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[     706ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     777ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[     777ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[     946ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[     946ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1150ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    1150ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1152ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    1153ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1156ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    1156ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1408ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    1409ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1458ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    1458ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1638ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    1638ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1705ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    1705ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1734ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    1735ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1756ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    1756ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    1866ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    1866ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2064ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    2064ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2086ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    2086ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2088ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    2088ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2180ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    2181ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2205ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    2205ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2236ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    2236ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2383ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    2383ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2452ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    2452ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2456ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    2456ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2548ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    2548ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2699ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    2700ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2720ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    2721ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2724ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    2724ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    2996ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    2996ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3140ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    3140ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3265ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    3265ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3457ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    3457ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3458ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    3458ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3568ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    3568ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3734ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    3735ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3824ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    3824ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    3926ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    3927ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4082ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    4082ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4142ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    4143ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4173ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    4174ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4240ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    4240ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4500ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    4501ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4659ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    4660ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4671ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    4672ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4686ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    4686ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4694ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    4694ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4769ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    4770ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    4897ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    4897ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5186ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    5186ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5339ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    5340ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5443ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    5444ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5559ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    5560ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5620ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    5620ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5632ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    5632ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5754ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    5754ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5781ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    5782ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    5835ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    5836ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6160ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    6160ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6220ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    6220ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6440ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    6441ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6467ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    6468ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6503ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    6504ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6545ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    6546ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6562ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    6562ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6710ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    6710ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6830ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    6830ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    6871ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    6872ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7102ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    7102ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7256ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    7256ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7520ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    7521ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7522ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    7523ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7568ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    7568ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7614ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    7615ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7649ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    7650ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7687ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    7688ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    7931ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    7932ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8014ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    8014ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8025ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    8026ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8037ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    8037ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8218ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    8218ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8346ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    8347ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8368ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    8369ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8412ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    8413ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8435ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    8435ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8446ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    8447ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8529ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    8529ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8631ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    8631ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    8633ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    8633ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9011ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    9011ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9041ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    9041ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9066ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    9067ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9084ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    9084ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9130ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    9130ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9132ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    9132ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9173ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    9174ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9311ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[    9311ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9366ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    9366ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9390ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    9391ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9593ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    9593ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9732ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    9732ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9818ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[    9819ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9863ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[    9863ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9898ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[    9899ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9981ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[    9981ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[    9987ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[    9987ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10206ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   10206ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10338ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   10338ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10348ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   10348ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10621ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   10621ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10833ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   10834ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10880ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   10880ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10950ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   10950ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   10985ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   10985ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11089ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   11089ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11130ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   11130ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11236ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   11236ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11265ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   11266ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11271ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   11271ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11484ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   11484ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11565ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   11565ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11649ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   11649ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11678ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   11678ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11836ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   11836ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11919ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   11919ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   11960ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   11961ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12128ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   12128ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12215ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   12215ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12291ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   12291ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12434ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   12435ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12443ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   12443ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12625ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   12625ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12738ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   12738ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   12750ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   12751ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13110ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   13110ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13142ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   13142ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13248ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   13249ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13373ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   13373ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13507ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   13507ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13533ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   13533ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13783ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   13784ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   13830ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   13831ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14062ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   14062ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14069ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   14069ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14082ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   14082ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14151ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   14151ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14249ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   14249ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14502ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   14503ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14513ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   14513ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14603ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   14603ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14616ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   14616ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14635ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   14635ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14678ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   14678ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14773ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   14774ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14926ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   14926ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   14948ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   14948ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15112ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   15113ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15266ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   15267ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15283ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   15283ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15487ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   15487ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15525ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   15525ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15528ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   15529ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15564ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   15564ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15635ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   15635ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15685ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   15685ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   15945ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   15946ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16039ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   16039ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16041ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   16041ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16098ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   16098ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16355ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   16356ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16432ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   16432ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16736ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   16737ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16791ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   16791ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16794ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   16794ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16843ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   16843ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   16975ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   16975ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17037ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   17038ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17117ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   17117ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17151ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   17151ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17369ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   17369ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17385ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   17386ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17542ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   17543ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17549ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   17549ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17637ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   17638ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17742ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   17743ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17765ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   17765ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17909ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/profile:0
+[   17909ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17983ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/artifacts:0
+[   17983ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   17996ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/feed?limit=100:0
+[   17996ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   18107ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/sessions:0
+[   18108ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   18608ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/account/settings:0
+[   18608ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
+[   18653ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api-dev.life-ai.app/v1/friends:0
+[   18653ms] [WARNING] {} @ https://dev.life-ai.app/_expo/static/js/web/index-57c281891db9682dc7c37eda51fc891c.js:2987
