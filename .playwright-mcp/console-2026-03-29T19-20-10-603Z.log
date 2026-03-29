@@ -1,0 +1,2 @@
+[  116564ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://localhost:8096/api/resume-profiles/upload-resume:0
+[  123656ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://localhost:8096/api/resume-profiles/upload-resume:0
