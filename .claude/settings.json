@@ -1,3 +1,33 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__playwright__browser_navigate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/pretool-block-production.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__playwright__browser_run_code",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/pretool-block-production.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/pretool-block-production.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

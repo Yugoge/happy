@@ -589,6 +589,36 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 5. **NEVER** restart daemon from within a daemon-managed Claude session (cgroup kill)
 6. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
 7. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
+8. **NEVER access production (life-ai.app, localhost:8090)**. ALL testing MUST use dev (dev.life-ai.app, localhost:8097) ONLY. This is enforced by hook. Violating this will corrupt production data.
+9. **NEVER use code/API/curl to create sessions**. ALWAYS use the normal UI workflow: navigate to dev.life-ai.app -> click "Start New Session" or the + button -> type a message -> send. Subagents that bypass the UI to create sessions via daemon HTTP or API calls will be terminated.
+
+---
+
+## ABSOLUTE PROHIBITIONS FOR ALL SUBAGENTS (2026-03-29 incident)
+
+**These rules exist because subagents violated them and corrupted production data. Non-negotiable.**
+
+### Production Access is FORBIDDEN
+
+- **NEVER** navigate Playwright to `https://life-ai.app` (production web)
+- **NEVER** navigate Playwright to `http://localhost:8090` (production web container)
+- **NEVER** navigate Playwright to `https://api.life-ai.app` directly (production API)
+- **ONLY** use `https://dev.life-ai.app` or `http://localhost:8097` (dev web)
+- **ONLY** use `https://api-dev.life-ai.app` (dev API)
+- This is enforced by `pretool-block-production.sh` hook. Any attempt will be blocked.
+- If dev has no sessions, CREATE ONE via the UI. Do NOT "fall back" to production.
+
+### Session Creation MUST Use the UI
+
+- **NEVER** use `curl` to POST to `/spawn-session` or any daemon HTTP endpoint
+- **NEVER** use `curl` to POST to `/v1/sessions` or any server API endpoint
+- **ALWAYS** create sessions through the normal UI workflow:
+  1. Navigate to `https://dev.life-ai.app`
+  2. Click "Start New Session" button or the + icon in the sidebar
+  3. Type a message in the input field
+  4. Click Send
+- If the UI "Start New Session" button doesn't work, use the + icon in the sidebar header
+- If the UI is broken, REPORT IT AS A BUG. Do NOT bypass it with code.
 
 ---
 
