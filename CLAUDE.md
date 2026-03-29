@@ -542,6 +542,47 @@ The `happy-dev` instance is dedicated for autonomous development and testing. Se
 - **UNSAFE**: touch `happy-app:message-fixes` (production web), `happy-server`, default/jade daemons
 - **NEVER**: restart Docker daemon, stop happy-server, modify production images
 
+### Dev-Overnight Worktree Build & Deploy (MANDATORY for QA)
+
+**Problem**: `docker-compose.yml` hardcodes `build.context: /root/happy` for `happy-server-dev`. Worktree changes are NOT picked up by `docker compose build`. You MUST use `docker build` directly with the worktree path as context.
+
+**Frontend (happy-web-dev) — rebuild from worktree:**
+```bash
+# WORKTREE_PATH must be the absolute path to the overnight worktree
+docker build -f ${WORKTREE_PATH}/Dockerfile.webapp \
+  --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app \
+  -t happy-app:dev \
+  ${WORKTREE_PATH}
+
+cd /root/deploy && docker compose up -d happy-web-dev
+```
+
+**Backend (happy-server-dev) — rebuild from worktree:**
+```bash
+docker build -f ${WORKTREE_PATH}/Dockerfile.server-slim \
+  -t happy-server-dev:latest \
+  ${WORKTREE_PATH}
+
+cd /root/deploy && docker compose up -d happy-server-dev
+```
+
+**Rules:**
+- NEVER use `docker compose build` for dev services during overnight — it reads from `/root/happy` not the worktree
+- NEVER use `HAPPY_SERVER_URL=https://api.life-ai.app` for dev — that's production
+- NEVER build dev from `/root/happy` — build from the worktree or `/dev/shm/dev-workspace/happy-dev`
+- After `docker compose up -d`, wait 5s then verify: `curl -s http://localhost:3005/health` (backend), `curl -s http://localhost:8097/ | head -1` (frontend)
+- Both Dockerfiles use relative paths only — any directory with the monorepo structure works as context
+
+**Isolation verification (all must be true):**
+| Check | Command | Expected |
+|-------|---------|----------|
+| Dev web port | `curl -s http://localhost:8097/ \| head -c 50` | HTML content |
+| Dev API port | `curl -s http://localhost:3005/health` | `{"status":"ok"}` |
+| Prod web port | `curl -s http://localhost:8090/ \| head -c 50` | HTML content (DIFFERENT image) |
+| Prod API port | `curl -s http://localhost:3000/health` | `{"status":"ok"}` (DIFFERENT container) |
+| Dev DB | `docker exec happy-postgres-dev psql -U yuge -d happydb_dev -c "SELECT 1"` | success |
+| Prod DB | `docker exec happy-postgres psql -U yuge -d happydb -c "SELECT 1"` | success (DIFFERENT) |
+
 ### Playwright Debug for Dev Web
 
 **CRITICAL**: The web app needs THREE localStorage entries to work properly:
