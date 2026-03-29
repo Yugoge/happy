@@ -674,21 +674,6 @@ Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 
 ---
 
-## TODO: Playwright Storage State Bug (delete after fixed)
+## FIXED: Playwright Storage State Bug (2026-03-29)
 
-**Problem**: Playwright MCP uses a persistent storage state file that caches WRONG account credentials, causing all QA/testing to run against the wrong account's data.
-
-**Three files to fix**:
-1. `/root/.claude/playwright-storage-state.json` — contains stale token for account `cmm5vlfkw0000ld3lyqdgz1lw` (WRONG). Should use dev account `cmi5mv9eh00wzpg14ph73jj3n`
-2. `/root/.claude/playwright-config.json` — `contextOptions.storageState` forces loading the above file on every Playwright context
-3. `/tmp/chrome-debug-profile/` — persistent Chrome user data dir with 38 subdirs of cached state
-
-**Fix steps**:
-1. Update `/root/.claude/playwright-storage-state.json` with correct dev account token (from CLAUDE.md "Direct Authentication" section)
-2. OR: Remove `storageState` from playwright-config.json so subagents must explicitly inject credentials each time
-3. Clear `/tmp/chrome-debug-profile/` to remove stale browser cache
-4. For dev-overnight QA: always clear localStorage and re-inject credentials before each test run
-
-**Impact**: All previous QA Playwright tests in dev-overnight sessions tested against wrong account data. Code-level fixes (verified via grep on bundle) are still valid, but browser-level QA results are unreliable.
-
-**Discovered**: 2026-03-27 during dev-overnight cycle 1
+**Fixed**: Updated `playwright-storage-state.json` with correct HTTPS domains (`dev.life-ai.app`, `life-ai.app`) + cleared contaminated `/tmp/chrome-debug-profile/`. Root cause was cross-subdomain cookie leakage from shared `.life-ai.app` Cloudflare tunnel (applio + happy). Chrome profile re-contaminates over time if subagents visit applio -- clear `/tmp/chrome-debug-profile/` if redirects recur.
