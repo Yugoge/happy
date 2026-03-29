@@ -1,87 +1,138 @@
-<div align="center"><img src="/.github/logotype-dark.png" width="400" title="Happy Coder" alt="Happy Coder"/></div>
+# happy-dev
 
-<h1 align="center">
-  Mobile and Web Client for Claude Code & Codex
-</h1>
+<!-- AUTO:readme-stats -->
+## Overview
+- **Total files**: 125
+- **Subdirectories**: 8
+- **Naming convention**: kebab
 
-<h4 align="center">
-Use Claude Code or Codex from anywhere with end-to-end encryption.
-</h4>
+## Files
+- `01-connected-no-sessions.png` - png file
+- `02-settings-page.png` - png file
+- `03-session-appeared.png` - png file
+- `04-session-messages-loaded.png` - png file
+- `05-session-full-view.png` - png file
+- `06-session-top.png` - png file
+- `07-taskview-visible.png` - png file
+- `08-taskview-expanded.png` - png file
+- `09-table-area.png` - png file
+- `10-taskview-detail-duplicate-title.png` - png file
+- `11-table-scroll-indicator.png` - png file
+- `12-table-view.png` - png file
+- `13-table-scroll-test.png` - png file
+- `14-table-in-view.png` - png file
+- `15-navigation-instability.png` - png file
+- `16-input-bar-attachments.png` - png file
+- `17-mermaid-message-typed.png` - png file
+- `18-mermaid-rendered.png` - png file
+- `CLAUDE.md` - CLAUDE.md
+- `Dockerfile` - unknown file
+- `Dockerfile.server` - server file
+- `Dockerfile.server-slim` - server-slim file
+- `Dockerfile.webapp` - webapp file
+- `LICENCE` - unknown file
+- `bun.lock` - lock file
+- `desktop-appearance-1440.png` - png file
+- `desktop-code-block-1440.png` - png file
+- `desktop-codeblock-area.png` - png file
+- `desktop-home-1440.png` - png file
+- `desktop-session-1440.png` - png file
+- `desktop-session-top-1440.png` - png file
+- `desktop-settings-1440.png` - png file
+- `desktop-table-area.png` - png file
+- `desktop-table-view-1440.png` - png file
+- `desktop-taskview-desktop.png` - png file
+- `desktop-taskview-detail.png` - png file
+- `dev-connected-no-active.png` - png file
+- `expo-env.d.ts` - ts file
+- `logo.png` - png file
+- `mobile-home-375.png` - png file
+- `mobile-mermaid-area.png` - png file
+- `mobile-mermaid-full.png` - png file
+- `mobile-raw-markdown-table.png` - png file
+- `mobile-session-375.png` - png file
+- `mobile-session-bottom.png` - png file
+- `mobile-settings-375.png` - png file
+- `mobile-table-context.png` - png file
+- `mobile-taskview-375.png` - png file
+- `mobile-taskview-900.png` - png file
+- `mobile-taskview-current.png` - png file
+- `mobile-taskview-final.png` - png file
+- `mobile-taskview-found.png` - png file
+- `mobile-taskview-rocket.png` - png file
+- `mobile-taskview-scroll.png` - png file
+- `package-lock.json` - json config
+- `package.json` - json config
+- `pm-desktop-authenticated.png` - png file
+- `pm-landing-authenticated.png` - png file
+- `pm-landing.png` - png file
+- `pm-mobile-view.png` - png file
+- `pm-prod-landing.png` - png file
+- `po-01-initial-load.png` - png file
+- `po-01-landing-connected.png` - png file
+- `po-01-landing-connecting.png` - png file
+- `po-01-landing.png` - png file
+- `po-02-account-settings.png` - png file
+- `po-02-session-view-empty.png` - png file
+- `po-02-sessions-loaded.png` - png file
+- `po-03-appearance.png` - png file
+- `po-03-redirected.png` - png file
+- `po-03-terminals-list.png` - png file
+- `po-04-sessions-list.png` - png file
+- `po-04-sitemap.png` - png file
+- `po-05-dev-no-sessions.png` - png file
+- `po-05-settings-localhost.png` - png file
+- `po-06-appearance-localhost.png` - png file
+- `po-06-empty-snapshot.png` - png file
+- `po-07-settings.png` - png file
+- `po-07-usage.png` - png file
+- `po-08-features.png` - png file
+- `po-08-inbox.png` - png file
+- `po-09-session-deleted.png` - png file
+- `po-09-unmatched-route.png` - png file
+- `po-10-applio-redirect.png` - png file
+- `po-10-session-appeared.png` - png file
+- `po-11-session-view.png` - png file
+- `po-12-session-desktop.png` - png file
+- `po-12-settings-mobile.png` - png file
+- `po-13-artifacts.png` - png file
+- `po-14-new-session.png` - png file
+- `po-15-inbox.png` - png file
+- `po-final-state.png` - png file
+- `qa-bug64-conversation-view.png` - png file
+- `qa-bug64-detail-page-no-duplication.png` - png file
+- `qa-bug64-tool-calls-divider.png` - png file
+- `qa-dev-app-state.png` - png file
+- `qa-latex-inline-closeup.png` - png file
+- `qa-latex-inline-rendering.png` - png file
+- `qa-session-latex-view.png` - png file
+- `qa-session-overview.png` - png file
+- `qa-task-detail-view.png` - png file
+- `step-01-landing-page.png` - png file
+- `step-02-sessions-list.png` - png file
+- `step-03-session-deleted.png` - png file
+- `step1-initial-load.png` - png file
+- `step10-session-view2.png` - png file
+- `step11-session-bottom.png` - png file
+- `step12-taskview-no-divider.png` - png file
+- `step2-session-view.png` - png file
+- `step3-session-top.png` - png file
+- `step4-session-middle.png` - png file
+- `step5-dev-redirect-401.png` - png file
+- `step6-reconnected.png` - png file
+- `step7-taskview-expanded.png` - png file
+- `step8-taskview-full.png` - png file
+- `step9-settings.png` - png file
+- `yarn.lock` - lock file
 
-<div align="center">
-  
-[📱 **iOS App**](https://apps.apple.com/us/app/happy-claude-code-client/id6748571505) • [🤖 **Android App**](https://play.google.com/store/apps/details?id=com.ex3ndr.happy) • [🌐 **Web App**](https://app.happy.engineering) • [🎥 **See a Demo**](https://youtu.be/GCS0OG9QMSE) • [📚 **Documentation**](https://happy.engineering/docs/) • [💬 **Discord**](https://discord.gg/fX9WBAhyfD)
+## Subdirectories
+- `dist/`
+- `docs/`
+- `environments/`
+- `packages/`
+- `patches/`
+- `screenshots/`
+- `scripts/`
 
-</div>
-
-<img width="5178" height="2364" alt="github" src="/.github/header.png" />
-
-
-<h3 align="center">
-Step 1: Download App
-</h3>
-
-<div align="center">
-<a href="https://apps.apple.com/us/app/happy-claude-code-client/id6748571505"><img width="135" height="39" alt="appstore" src="https://github.com/user-attachments/assets/45e31a11-cf6b-40a2-a083-6dc8d1f01291" /></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://play.google.com/store/apps/details?id=com.ex3ndr.happy"><img width="135" height="39" alt="googleplay" src="https://github.com/user-attachments/assets/acbba639-858f-4c74-85c7-92a4096efbf5" /></a>
-</div>
-
-<h3 align="center">
-Step 2: Install CLI on your computer
-</h3>
-
-```bash
-npm install -g happy-coder
-```
-
-<h3 align="center">
-Step 3: Start using `happy` instead of `claude` or `codex`
-</h3>
-
-```bash
-
-# Instead of: claude
-# Use: happy
-
-happy
-
-# Instead of: codex
-# Use: happy codex
-
-happy codex
-
-```
-
-<div align="center"><img src="/.github/mascot.png" width="200" title="Happy Coder" alt="Happy Coder"/></div>
-
-## How does it work?
-
-On your computer, run `happy` instead of `claude` or `happy codex` instead of `codex` to start your AI through our wrapper. When you want to control your coding agent from your phone, it restarts the session in remote mode. To switch back to your computer, just press any key on your keyboard.
-
-## 🔥 Why Happy Coder?
-
-- 📱 **Mobile access to Claude Code and Codex** - Check what your AI is building while away from your desk
-- 🔔 **Push notifications** - Get alerted when Claude Code and Codex needs permission or encounters errors  
-- ⚡ **Switch devices instantly** - Take control from phone or desktop with one keypress
-- 🔐 **End-to-end encrypted** - Your code never leaves your devices unencrypted
-- 🛠️ **Open source** - Audit the code yourself. No telemetry, no tracking
-
-## 📦 Project Components
-
-- **[Happy App](https://github.com/slopus/happy/tree/main/packages/happy-app)** - Web UI + mobile client (Expo)
-- **[Happy CLI](https://github.com/slopus/happy/tree/main/packages/happy-cli)** - Command-line interface for Claude Code and Codex
-- **[Happy Agent](https://github.com/slopus/happy/tree/main/packages/happy-agent)** - Remote agent control CLI (create, send, monitor sessions)
-- **[Happy Server](https://github.com/slopus/happy/tree/main/packages/happy-server)** - Backend server for encrypted sync
-
-## 🏠 Who We Are
-
-We're engineers scattered across Bay Area coffee shops and hacker houses, constantly checking how our AI coding agents are progressing on our pet projects during lunch breaks. Happy Coder was born from the frustration of not being able to peek at our AI coding tools building our side hustles while we're away from our keyboards. We believe the best tools come from scratching your own itch and sharing with the community.
-
-## 📚 Documentation & Contributing
-
-- **[Documentation Website](https://happy.engineering/docs/)** - Learn how to use Happy Coder effectively
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development setup including iOS, Android, and macOS desktop variant builds
-- **[Edit docs at github.com/slopus/slopus.github.io](https://github.com/slopus/slopus.github.io)** - Help improve our documentation and guides
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+---
+*Auto-generated by doc-sync hook.*

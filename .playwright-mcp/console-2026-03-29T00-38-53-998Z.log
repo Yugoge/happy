@@ -1,4 +1,4 @@
-[     360ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+[     655ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
   "changelog",
   "index",
   "server",
@@ -52,5 +52,4 @@
   "terminal/connect",
   "terminal/index",
   "user/[id]"
-] @ http://localhost:8097/_expo/static/js/web/index-2174e16fbd9023d7eaa87bda8c4666e8.js:2988
-[  170769ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://applio.life-ai.app/nonexistent-page:0
+] @ https://dev.life-ai.app/_expo/static/js/web/index-2174e16fbd9023d7eaa87bda8c4666e8.js:2988
