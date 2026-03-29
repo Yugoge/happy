@@ -1,0 +1,6 @@
+[    6683ms] SecurityError: Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag.
+    at <anonymous>:5:7
+    at <anonymous>:6:7
+[    6727ms] SecurityError: Failed to read the 'localStorage' property from 'Window': The document is sandboxed and lacks the 'allow-same-origin' flag.
+    at <anonymous>:5:7
+    at <anonymous>:6:7
