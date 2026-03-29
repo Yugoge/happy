@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-03-29T11:41:58Z*
-**Total entries**: 268
+*Last updated: 2026-03-29T13:07:19Z*
+**Total entries**: 359
 **Convention**: kebab
 
 ## Tree
@@ -16,7 +16,8 @@ happy-dev/
 │   │   └── `comparison-matrix.md` - Competitor Protocol Matrix
 │   ├── dev/
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
-│   │   └── `context-20260323-210000.json` - json config
+│   │   ├── `context-20260323-210000.json` - json config
+│   │   └── `qa-site-isolation-verification.json` - json config
 │   ├── experimental/
 │   │   ├── `agents-engineer.md` - Engineer Agent
 │   │   ├── `agents-manager.md` - Manager Agent
@@ -157,6 +158,7 @@ happy-dev/
 │   └── `11-applio-redirect-mobile.png` - png file
 ├── scripts/
 │   ├── `postinstall.cjs` - cjs file
+│   ├── `pretool-block-production.sh` - Hook: PreToolUse (mcp__playwright__browser_navigate, mcp__playwright__browser_run_code, WebFetch)
 │   └── `release.cjs` - cjs file
 ├── `01-connected-no-sessions.png` - png file
 ├── `02-settings-page.png` - png file
@@ -214,11 +216,21 @@ happy-dev/
 ├── `mobile-taskview-scroll.png` - png file
 ├── `package-lock.json` - json config
 ├── `package.json` - json config
+├── `pm-after-send-2.png` - png file
+├── `pm-after-send.png` - png file
 ├── `pm-desktop-authenticated.png` - png file
+├── `pm-desktop-session.png` - png file
+├── `pm-desktop-terminals.png` - png file
 ├── `pm-landing-authenticated.png` - png file
+├── `pm-landing-empty.png` - png file
 ├── `pm-landing.png` - png file
 ├── `pm-mobile-view.png` - png file
+├── `pm-new-session-page.png` - png file
 ├── `pm-prod-landing.png` - png file
+├── `pm-session-response.png` - png file
+├── `pm-session-view.png` - png file
+├── `pm-settings.png` - png file
+├── `pm-tool-views.png` - png file
 ├── `po-01-initial-load.png` - png file
 ├── `po-01-landing-connected.png` - png file
 ├── `po-01-landing-connecting.png` - png file
@@ -249,7 +261,29 @@ happy-dev/
 ├── `po-13-artifacts.png` - png file
 ├── `po-14-new-session.png` - png file
 ├── `po-15-inbox.png` - png file
+├── `po-404-changelog.png` - png file
+├── `po-appearance.png` - png file
+├── `po-bug62-title-header.png` - png file
+├── `po-changelog.png` - png file
+├── `po-desktop-terminals.png` - png file
+├── `po-features.png` - png file
 ├── `po-final-state.png` - png file
+├── `po-inbox.png` - png file
+├── `po-new-session-desktop.png` - png file
+├── `po-new-session-page.png` - png file
+├── `po-new-session.png` - png file
+├── `po-session-desktop-full.png` - png file
+├── `po-session-desktop-view.png` - png file
+├── `po-session-desktop.png` - png file
+├── `po-session-fullpage.png` - png file
+├── `po-session-info.png` - png file
+├── `po-session-messages.png` - png file
+├── `po-session-reload.png` - png file
+├── `po-session-view.png` - png file
+├── `po-settings-full.png` - png file
+├── `po-settings-redirect.png` - png file
+├── `po-step0-landing.png` - png file
+├── `po-usage.png` - png file
 ├── `qa-bug64-conversation-view.png` - png file
 ├── `qa-bug64-detail-page-no-duplication.png` - png file
 ├── `qa-bug64-tool-calls-divider.png` - png file
@@ -259,21 +293,78 @@ happy-dev/
 ├── `qa-session-latex-view.png` - png file
 ├── `qa-session-overview.png` - png file
 ├── `qa-task-detail-view.png` - png file
+├── `screenshot-01-initial-state.png` - png file
+├── `screenshot-02-loading.png` - png file
+├── `screenshot-03-new-session-form.png` - png file
+├── `screenshot-04-localhost8097.png` - png file
+├── `screenshot-05-new-form-direct.png` - png file
+├── `screenshot-06-before-redirect.png` - png file
+├── `screenshot-07-stable-happy-app.png` - png file
+├── `screenshot-08-new-session-form.png` - png file
+├── `screenshot-09-production-sessions.png` - png file
+├── `screenshot-10-session-open.png` - png file
+├── `screenshot-11-message-typed.png` - png file
+├── `screenshot-12-message-sent.png` - png file
+├── `screenshot-13-task-detail-view.png` - png file
+├── `screenshot-14-mobile-session.png` - png file
+├── `screenshot-15-mobile-home-tabs.png` - png file
+├── `screenshot-16-new-session-form-mobile.png` - png file
+├── `screenshot-17-empty-send-test.png` - png file
 ├── `step-01-landing-page.png` - png file
 ├── `step-02-sessions-list.png` - png file
 ├── `step-03-session-deleted.png` - png file
+├── `step1-home-authenticated.png` - png file
 ├── `step1-initial-load.png` - png file
 ├── `step10-session-view2.png` - png file
+├── `step10-settings-features.png` - png file
+├── `step11-home-final.png` - png file
 ├── `step11-session-bottom.png` - png file
 ├── `step12-taskview-no-divider.png` - png file
+├── `step2-new-session-form.png` - png file
 ├── `step2-session-view.png` - png file
 ├── `step3-session-top.png` - png file
+├── `step3-settings.png` - png file
+├── `step4-inbox.png` - png file
 ├── `step4-session-middle.png` - png file
 ├── `step5-dev-redirect-401.png` - png file
+├── `step5-settings-appearance.png` - png file
+├── `step6-new-session.png` - png file
 ├── `step6-reconnected.png` - png file
+├── `step7-mobile-home.png` - png file
 ├── `step7-taskview-expanded.png` - png file
+├── `step8-settings-full.png` - png file
 ├── `step8-taskview-full.png` - png file
+├── `step9-settings-account.png` - png file
 ├── `step9-settings.png` - png file
+├── `user-01-landing-mobile.png` - png file
+├── `user-02-session-view-mobile.png` - png file
+├── `user-03-message-typed.png` - png file
+├── `user-04-message-sent-clauding.png` - png file
+├── `user-05-session-mobile-after-send.png` - png file
+├── `user-06-terminals-mobile-back.png` - png file
+├── `user-07-new-session-redirect.png` - png file
+├── `user-08-mobile-375-layout-check.png` - png file
+├── `user-09-session-info-page.png` - png file
+├── `user-10-usage-page.png` - png file
+├── `user-11-settings-appearance.png` - png file
+├── `user-12-desktop-after-wait.png` - png file
+├── `user-13-start-new-session-goes-to-changelog.png` - png file
+├── `user-14-new-session-composer.png` - png file
+├── `user-15-new-session-composer-typed.png` - png file
+├── `user-16-new-session-created.png` - png file
+├── `user-17-new-session-active.png` - png file
+├── `user-18-inbox-empty.png` - png file
+├── `user-19-settings-main.png` - png file
+├── `user-20-settings-account.png` - png file
+├── `user-21-quick-action-response.png` - png file
+├── `user-22-404-page.png` - png file
+├── `user-23-sitemap.png` - png file
+├── `user-24-settings-features.png` - png file
+├── `user-25-terminals-two-sessions.png` - png file
+├── `user-26-double-submit-test.png` - png file
+├── `user-27-long-text-input.png` - png file
+├── `user-28-new-session-info.png` - png file
+├── `user-29-settings-voice.png` - png file
 └── `yarn.lock` - lock file
 ```
 
