@@ -1,7 +1,7 @@
 # happy
 
-*Last updated: 2026-03-26T23:22:33Z*
-**Total entries**: 105
+*Last updated: 2026-04-03T13:31:19Z*
+**Total entries**: 111
 **Convention**: kebab
 
 ## Tree
@@ -10,7 +10,10 @@ happy/
 ├── docs/
 │   ├── dev/
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
-│   │   └── `context-20260323-210000.json` - json config
+│   │   ├── `ba-spec-20260403-investigation.md` - BA Specification: Sidechain Display Bug Root Cause Analysis
+│   │   ├── `context-20260323-210000.json` - json config
+│   │   ├── `context-20260403-investigation.json` - json config
+│   │   └── `dev-report-20260403-investigation.json` - json config
 │   ├── plans/
 │   │   ├── `cli-v3-messages-api.md` - CLI V3 Messages API Migration (happy-cli)
 │   │   ├── `generic-acp-runner.md` - Generic ACP Runner
@@ -98,15 +101,18 @@ happy/
 ├── patches/
 │   └── `fix-pglite-prisma-bytes.cjs` - cjs file
 ├── scripts/
+│   ├── `investigate-detail.mjs` - mjs file
+│   ├── `investigate-sidechain.mjs` - mjs file
 │   ├── `postinstall.cjs` - cjs file
 │   └── `release.cjs` - cjs file
 ├── `bun.lock` - lock file
-├── `CLAUDE.md` - Happy Monorepo
+├── `CLAUDE.md` - CLAUDE.md
 ├── `Dockerfile` - unknown file
 ├── `Dockerfile.server` - server file
 ├── `Dockerfile.server-slim` - server-slim file
 ├── `Dockerfile.webapp` - webapp file
 ├── `expo-env.d.ts` - ts file
+├── `happy-web-debug-1.png` - png file
 ├── `LICENCE` - unknown file
 ├── `logo.png` - png file
 ├── `package-lock.json` - json config

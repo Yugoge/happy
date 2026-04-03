@@ -605,8 +605,12 @@ curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
 3. **NEVER** use `docker run` -- always `docker compose up -d` from `/root/deploy/`
 4. **NEVER** confuse `Account.publicKey` (Ed25519 hex) with `contentKeyPair.publicKey` (Curve25519 base64)
 5. **NEVER** restart daemon from within a daemon-managed Claude session (cgroup kill)
-6. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
-7. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
+6. **NEVER** write/rsync/cp files from `/root/happy-dev/` into `/root/happy/packages/` — use git merge/cherry-pick only
+7. **NEVER** use raw `systemctl start/stop` for daemon — always use `bash /root/bin/happy-restart.sh` (it handles orphan process cleanup, lock clearing, and session recovery)
+8. **NEVER** treat happy-dev daemon the same as default/jade — dev uses independent source at `/root/happy-dev/`, not the global binary
+9. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
+10. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
+11. After every CLI build: verify binary with 3-point check (sendExisting, no shouldHideParentToolCall, Task||Agent present)
 
 ---
 
@@ -623,13 +627,35 @@ cd /root/happy && npm install -g .
 cd /root/happy-dev/packages/happy-cli && yarn build  # NEVER DO THIS
 ```
 
-After every build, verify the `sendExisting` variable exists in the compiled output:
+After every build, verify BOTH critical markers in the compiled output:
 ```bash
+# 1. sendExisting must exist (controls .jsonl history upload on resume)
 grep -c "sendExisting" /usr/lib/node_modules/happy-coder/dist/index-*.mjs
 # At least one file MUST return > 0. If all return 0, the build is broken.
+
+# 2. shouldHideParentToolCall must NOT exist (dev branch contamination marker)
+grep -c "shouldHideParentToolCall" /usr/lib/node_modules/happy-coder/dist/types-*.mjs
+# MUST return 0. If > 0, binary was built from dev branch code.
+
+# 3. Task||Agent check must exist (sidechain linking)
+grep -c 'Task.*Agent' /usr/lib/node_modules/happy-coder/dist/types-*.mjs
+# MUST return > 0.
 ```
 
-**Why**: `sendExisting` in `sessionScanner.ts` controls whether .jsonl history is uploaded to server on session resume. Without it, resumed sessions appear empty in the app. This was lost once when building from happy-dev where an overnight worktree commit (`1612a409`) rewrote the file without this parameter.
+**Why `sendExisting`**: Controls .jsonl history upload on resume. Lost once via dev branch commit `1612a409`.
+
+**Why `shouldHideParentToolCall`**: This function only exists in `/root/happy-dev/`. If present in the installed binary, it means the binary was built from contaminated source. It causes all Agent tool sidechain messages to use mismatched IDs, making agent blocks appear empty. This went undetected for 6 days (Bug #59).
+
+### NEVER write to /root/happy/packages/ from external sources
+
+```bash
+# FORBIDDEN — any of these contaminate production source:
+rsync ... /root/happy-dev/... /root/happy/packages/...
+cp /root/happy-dev/.../file /root/happy/packages/.../file
+# The ONLY way to get code into /root/happy is via git (merge/cherry-pick)
+```
+
+**Why**: On 2026-03-28, a dev-overnight agent rsynced worktree code into `/root/happy/packages/` then built from it. The binary contained a dev branch function that broke all sidechain rendering for 6 days. The source was later cleaned via git but the installed binary was never rebuilt.
 
 ### Recovery: spawn interval must be >= 5 seconds
 
@@ -659,7 +685,8 @@ Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 | Account Migration | `/root/docs/ACCOUNT-MIGRATION.md` | Key derivation, QR bypass (Section 11.3) |
 | Always-Online Plan | `/root/docs/ALWAYS-ONLINE-PLAN.md` | Persistent session architecture |
 | Session Recovery | `/root/docs/SESSION-RECOVERY.md` | Recovery system v1 + v2 |
-| Bug Fixes | `/root/docs/BUG-FIXES.md` | 57 bugs documented |
+| Bug Fixes | `/root/docs/BUG-FIXES.md` | 60 bugs documented |
+| Sidechain Bug | `/root/docs/SIDECHAIN-DISPLAY-BUG-INVESTIGATION.md` | Resolved: dev branch contamination |
 | Docker Build | `/root/docs/DOCKER-BUILD.md` | Build commands, troubleshooting |
 | Disk Architecture | `/root/docs/DISK-ARCHITECTURE.md` | Single-disk NVMe layout |
 | Playwright Setup | `/root/docs/PLAYWRIGHT-SETUP.md` | Anti-detection MCP config |
