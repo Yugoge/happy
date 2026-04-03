@@ -1,0 +1,75 @@
+- generic [ref=e10]:
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e14]:
+        - img [ref=e17]
+        - generic [ref=e18]:
+          - generic [ref=e19]: Happy
+          - generic [ref=e22]: connected
+        - generic [ref=e23]:
+          - generic [ref=e26] [cursor=pointer]:
+            - img
+            - img [ref=e27]
+          - generic [ref=e30] [cursor=pointer]:
+            - img
+            - img [ref=e31]
+          - generic [ref=e33] [cursor=pointer]: 
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - img [ref=e45]
+            - generic [ref=e47]: /dev/shm/dev-workspace/applio
+            - generic [ref=e49] [cursor=pointer]: 
+          - generic [ref=e51]:
+            - generic [ref=e57] [cursor=pointer]: applio
+            - generic [ref=e63] [cursor=pointer]: applio
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - img [ref=e68]
+            - generic [ref=e70]: /dev/shm/dev-workspace/happy-dev
+            - generic [ref=e72] [cursor=pointer]: 
+          - generic [ref=e80] [cursor=pointer]: happy-dev
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - img [ref=e85]
+            - generic [ref=e87]: ~
+            - generic [ref=e89] [cursor=pointer]: 
+          - generic [ref=e97] [cursor=pointer]: root
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - img [ref=e102]
+            - generic [ref=e104]: ~/application-assistant
+            - generic [ref=e106] [cursor=pointer]: 
+          - generic [ref=e108]:
+            - generic [ref=e114] [cursor=pointer]: application-assistant
+            - generic [ref=e120] [cursor=pointer]: application-assistant
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - img [ref=e125]
+            - generic [ref=e127]: ~/knowledge-system
+            - generic [ref=e129] [cursor=pointer]: 
+          - generic [ref=e131]:
+            - generic [ref=e137] [cursor=pointer]: knowledge-system
+            - generic [ref=e143] [cursor=pointer]: knowledge-system
+    - generic [ref=e146] [cursor=pointer]: Start New Session
+  - generic [ref=e156]:
+    - generic [ref=e160]:
+      - generic [ref=e162] [cursor=pointer]: 
+      - generic [ref=e163]:
+        - generic [ref=e164]: root
+        - generic [ref=e165]: ~
+      - img [ref=e169] [cursor=pointer]
+    - generic [ref=e172]:
+      - progressbar [ref=e177]:
+        - img [ref=e179]
+      - generic [ref=e184]:
+        - generic [ref=e189]: online
+        - generic [ref=e191]:
+          - textbox "Type a message ..." [ref=e194]
+          - generic [ref=e197]:
+            - generic [ref=e198]:
+              - generic [ref=e200] [cursor=pointer]: 
+              - generic [ref=e203] [cursor=pointer]: 
+              - generic [ref=e205] [cursor=pointer]: 
+              - generic [ref=e208] [cursor=pointer]: 
+            - generic [ref=e210]: 
