@@ -1,0 +1,137 @@
+{
+  "request_id": "dev-20260403-120000",
+  "timestamp": "2026-04-03T12:00:00Z",
+  "requirement": {
+    "original": "Investigate what TECHNICAL FAILURE caused the loss of all subagent/sidechain messages in new Happy sessions after the Mar 28 compose rebuild.",
+    "clarified": "Identify the root cause of why app-side rendering fails to display sidechain/subagent content in Task/Agent tool blocks for sessions created after the Mar 28 docker compose rebuild, despite the data being correctly stored in PostgreSQL.",
+    "what": "Root cause analysis of sidechain display failure in new sessions",
+    "why": "Agent/Task blocks show empty content (rocket icon + title only) making session monitoring unusable",
+    "where": ["packages/happy-app/sources/sync/typesRaw.ts", "packages/happy-app/sources/sync/reducer/reducerTracer.ts", "packages/happy-app/sources/sync/reducer/reducer.ts", "packages/happy-app/sources/sync/storage.ts", "packages/happy-app/sources/sync/sync.ts"],
+    "scope": {
+      "included": [
+        "App-side message normalization pipeline (normalizeRawMessage, normalizeSessionEnvelope)",
+        "Reducer tracer sidechain linking logic (toolCallToMessageId, promptToTaskId, orphan handling)",
+        "Message fetch and batch processing (fetchMessages pagination, enqueueMessages)",
+        "Session protocol envelope structure comparison between old and new sessions"
+      ],
+      "excluded": [
+        "Server-side message storage (confirmed correct)",
+        "CLI-side message generation (confirmed correct)",
+        "Encryption/decryption (confirmed working)",
+        "Production web image rebuild"
+      ]
+    },
+    "success_criteria": [
+      "Root cause identified with evidence showing which specific code path fails",
+      "Bug reproduced in unit test using real decrypted messages",
+      "Fix verified against both old working and new broken sessions"
+    ],
+    "constraints": [
+      "Cannot rebuild production web image (happy-app:message-fixes)",
+      "Must use dev web (happy-app:dev) for testing",
+      "Cannot modify server-side code (data is correct)",
+      "Session-specific AES keys required for message decryption"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Agent/Task tool blocks in new sessions show rocket icon + title but no internal tool calls. Old sessions (before Mar 28 21:00 compose rebuild) still work correctly. Both web and mobile affected.",
+    "root_cause": "App-side reducerTracer sidechain linking failure. The session protocol normalization path (normalizeSessionEnvelope) never produces type:'sidechain' content needed by Path A (promptToTaskId matching). Path B (toolCallToMessageId via CUID2 subagent IDs) should work as the fallback, but there is a suspected failure in either: (1) Zod validation silently dropping session protocol envelopes due to envelope wrapping format mismatch, (2) page-boundary batch processing causing toolCallToMessageId to not be populated before sidechain children are processed, or (3) orphan buffering failing because isCuid2Like pattern does not match the actual CUID2 format used.",
+    "root_cause_commit": "N/A - not a code change regression. Infrastructure event (compose rebuild) exposed a latent app-side bug that was masked by real-time incremental message processing.",
+    "why_introduced": "The session protocol was designed with two sidechain linking paths (promptToTaskId for legacy, toolCallToMessageId for session protocol). The legacy path was made inoperative when meta.duplex filtering was added, leaving only the toolCallToMessageId path. This path works for real-time (one message at a time) but may fail for history replay (batch processing from HTTP fetch).",
+    "why_problematic": "Before the compose rebuild, sessions were already loaded into the app's in-memory zustand store with correctly-built reducer state (built incrementally via real-time WebSocket messages). After the rebuild forced a full reload, new sessions had to rebuild from server data via HTTP fetch, exposing the batch-processing failure mode.",
+    "timeline": "Bug latent since session protocol + duplex filter implementation (~Feb 2026). Manifested on Mar 28 21:00 when compose rebuild forced all clients to reconnect and reload session data.",
+    "affected_files": [
+      "packages/happy-app/sources/sync/typesRaw.ts:547-730 (normalizeSessionEnvelope - drops start/stop, sets parentUUID from subagent)",
+      "packages/happy-app/sources/sync/typesRaw.ts:733-738 (duplex filter eliminates legacy path entirely)",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts:168-298 (traceMessages - dual sidechain linking, orphan handling)",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts:181 (toolCallToMessageId registration)",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts:251 (toolCallToMessageId lookup for sidechain children)",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts:275 (isCuid2Like orphan buffering check)",
+      "packages/happy-app/sources/sync/reducer/reducer.ts:207-227 (traceMessages call + sidechain/non-sidechain split)",
+      "packages/happy-app/sources/sync/reducer/reducer.ts:844-1030 (Phase 4: sidechain processing, sidechains.set)",
+      "packages/happy-app/sources/sync/reducer/reducer.ts:1137-1138 (sidechains.get for child rendering)",
+      "packages/happy-app/sources/sync/storage.ts:484-558 (applyMessages - reducer called per batch)",
+      "packages/happy-app/sources/sync/sync.ts:1657-1726 (fetchMessages - pagination, batch normalization)"
+    ]
+  },
+  "context": {
+    "codebase_state": "Main branch, web image happy-app:message-fixes built Mar 26 (unchanged). CLI built and deployed globally on Mar 28 18:34. All daemons restarted Apr 2.",
+    "recent_commits": "Session protocol mapper fixes (bd180b80 slash command race), LaTeX/Mermaid features (f8b208fa), Plan A checkpoint (e2af8d28)",
+    "file_contents": {},
+    "dependencies": {
+      "@paralleldrive/cuid2": "CUID2 ID generation for session protocol subagent IDs",
+      "zod": "Schema validation in typesRaw.ts - silent failures return null",
+      "libsodium-wrappers": "Message encryption/decryption"
+    },
+    "environment": {
+      "web_image": "happy-app:message-fixes (built Mar 26, NOT to be rebuilt)",
+      "dev_web_image": "happy-app:dev (safe for testing)",
+      "cli_version": "Current global install from /root/happy",
+      "server": "happy-server container (unchanged)"
+    }
+  },
+  "investigation_findings": {
+    "ruled_out": [
+      "Server-side message loss (data confirmed in DB with sidechain fields)",
+      "CLI not sending sidechain messages (CLI logs show isSidechain=true, parent_tool_use_id)",
+      "Encryption key mismatch (both old and new sessions use same dataKey variant)",
+      "Code version differences (all processes use same binary after Apr 2 restart)",
+      "Missing duplex legacy messages (both formats present in DB)"
+    ],
+    "confirmed_bugs": [
+      "sessionScanner.ts sendExisting path does NOT read subagents/*.jsonl files (separate bug, not the root cause)",
+      "normalizeSessionEnvelope drops start/stop lifecycle events (by design, but removes subagent boundary markers)"
+    ],
+    "key_observations": [
+      "Reducer state is created fresh (createReducer()) each time a session is loaded - NO persistence to localStorage/MMKV",
+      "Session protocol path NEVER produces type:'sidechain' content - relies entirely on toolCallToMessageId via CUID2",
+      "Legacy output path produces type:'sidechain' content BUT is filtered by meta.duplex check at line 736",
+      "Messages are fetched in pages of 100 and processed through reducer per-page, but tracerState persists across pages",
+      "The preprocessMessageContent function (line 429-443) wraps raw session envelopes into {type:'session', data:envelope} format"
+    ],
+    "critical_test_needed": "Clear ALL browser localStorage/sessionStorage, then reload an OLD working session. If it still shows agent internals correctly, the data is truly different. If it breaks, the bug is in state reconstruction from server data (confirming the batch-processing hypothesis)."
+  },
+  "development_approach": {
+    "strategy": "1. Add temporary debug logging to normalizeRawMessage and traceMessages in dev build. 2. Load both old and new sessions in dev web. 3. Compare debug output to identify exact divergence. 4. Fix the identified linking failure. 5. Remove debug logging.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/sync/typesRaw.ts (add debug logging to normalizeRawMessage for session protocol path)",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts (add debug logging to traceMessages for toolCallToMessageId hits/misses)",
+      "packages/happy-app/sources/sync/reducer/reducer.ts (add debug logging to Phase 4 sidechain processing)"
+    ],
+    "validation_approach": "Build dev web image with debug logging. Load both old working session and new broken session. Compare sidechain linking stats in browser console. Identify the exact failure point."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "This is a debugging investigation of existing codebase behavior, not a design or architecture decision requiring industry best practices research."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "recommended_next_steps": [
+    {
+      "priority": 1,
+      "action": "Run the critical cache-clear test: clear all browser storage, reload an old working session. This definitively determines if the bug is in data or in state reconstruction.",
+      "expected_outcome": "If old session breaks after cache clear, confirms the bug has always existed (masked by incremental real-time state building). If it still works, the message data itself differs."
+    },
+    {
+      "priority": 2,
+      "action": "Build happy-app:dev with ENABLE_LOGGING=true in reducer.ts and additional console.log in reducerTracer.ts to trace toolCallToMessageId registration and lookup for both old and new sessions.",
+      "expected_outcome": "Debug logs show exactly how many sidechain messages enter traceMessages, how many find their parent in toolCallToMessageId, and how many become orphans."
+    },
+    {
+      "priority": 3,
+      "action": "Write a Node.js script that decrypts messages from a broken session and replays them through the app's normalizeRawMessage + createReducer + reducer pipeline, checking if state.sidechains map is populated.",
+      "expected_outcome": "Reproduces the bug outside the browser, enabling targeted debugging."
+    },
+    {
+      "priority": 4,
+      "action": "If the bug IS in state reconstruction: fix the reducerTracer to handle the case where toolCallToMessageId is not populated before sidechain children arrive (improve orphan resolution or add a second pass).",
+      "expected_outcome": "Both old and new sessions display agent internals correctly when loaded from server data."
+    }
+  ]
+}
