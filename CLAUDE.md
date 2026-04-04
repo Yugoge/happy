@@ -626,12 +626,34 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 **On 2026-04-04, `npm install -g` from a worktree replaced the global `/usr/bin/happy` binary, triggered auto-upgrade, killed the production daemon, and destroyed ALL production sessions. This is enforced by hook.**
 
 - **NEVER** run `npm install -g` from happy-dev, worktrees, or /dev/shm — FORBIDDEN by hook
-- **NEVER** invoke `/usr/bin/happy` or `happy --version` or `happy daemon` — triggers auto-upgrade
+- **NEVER** invoke `/usr/bin/happy` or `happy --version` or `happy daemon` — FORBIDDEN by hook; triggers auto-upgrade
 - **NEVER** modify `/usr/lib/node_modules/happy*` or `/usr/bin/happy` — FORBIDDEN by hook
 - **NEVER** run `kill` with PIDs — FORBIDDEN by hook; use daemon HTTP /stop or systemctl
 - The global CLI is shared by ALL 3 daemons. Touching it affects EVERYONE.
 - To deploy CLI changes to dev: use `node <worktree>/dist/index.mjs` directly, NEVER npm install -g
 - Only the USER may install the global CLI manually from `/root/happy`
+
+### Three Daemon Binary Architecture (NEVER confuse)
+
+| Daemon | Source tree | Binary path | Server |
+|--------|-----------|-------------|--------|
+| default | `/root/happy/` | `node /root/happy/packages/happy-cli/dist/index.mjs` | `http://188.245.32.161:3000` (prod) |
+| jade | `/root/happy/` | `node /root/happy/packages/happy-cli/dist/index.mjs` | `http://188.245.32.161:3000` (prod) |
+| **dev** | **`/root/happy-dev/`** | **`node /root/happy-dev/packages/happy-cli/dist/index.mjs`** | **`http://localhost:3005`** (dev) |
+
+- default/jade build: `cd /root/happy/packages/happy-cli && yarn build`
+- **dev build**: `cd /root/happy-dev/packages/happy-cli && yarn build`
+- **NEVER** build dev from `/root/happy`. **NEVER** build prod from `/root/happy-dev`.
+- Dev daemon startup: `cd /root && HAPPY_HOME_DIR=/root/.happy-dev HAPPY_SERVER_URL=http://localhost:3005 IS_SANDBOX=1 nohup node --no-warnings --no-deprecation /root/happy-dev/packages/happy-cli/dist/index.mjs daemon start < /dev/null > /dev/null 2>&1 &`
+- Prod daemon restart: `bash /root/bin/happy-restart.sh` (NEVER raw systemctl)
+
+## Hook Enforcement Summary
+
+| Hook | Scope | What it blocks |
+|------|-------|---------------|
+| `pretool-bash-safety.sh` | Bash | npm install -g, /usr/bin/happy, kill PIDs, rm, systemctl prod, docker prod |
+| `pretool-block-production-files.sh` | Write, Edit | Any file in /root/happy/, /root/.happy/, /root/.happy-jade/, /usr/lib/node_modules/happy*, /usr/bin/happy* |
+| `pretool-block-production.sh` | Playwright, WebFetch | life-ai.app (non-dev), localhost:8090, localhost:3000 |
 
 ## Critical Operational Rules
 

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/pretool-block-production.sh"
+            "command": "bash $HOME/.claude/hooks/pretool-block-production.sh"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/pretool-block-production.sh"
+            "command": "bash $HOME/.claude/hooks/pretool-block-production.sh"
           }
         ]
       },
@@ -24,7 +24,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/pretool-block-production.sh"
+            "command": "bash $HOME/.claude/hooks/pretool-block-production.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/pretool-block-production-files.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/pretool-block-production-files.sh"
           }
         ]
       }
