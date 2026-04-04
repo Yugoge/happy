@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-04T12:29:48Z*
-**Total entries**: 14
+*Last updated: 2026-04-04T13:16:32Z*
+**Total entries**: 15
 **Convention**: kebab
 
 ## Tree
@@ -16,6 +16,7 @@ dev/
 ├── `dev-report-20260404-110000.json` - json config
 ├── `dev-report-20260404-120000.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
+├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 ├── `qa-report-20260404-080000.json` - json config
 ├── `qa-report-20260404-110000.json` - json config
 ├── `qa-report-20260404-120000-v2.json` - json config
