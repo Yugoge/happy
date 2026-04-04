@@ -621,6 +621,18 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 
 ---
 
+## ABSOLUTE ISOLATION: happy-dev must NEVER touch production happy (2026-04-04 incident)
+
+**On 2026-04-04, `npm install -g` from a worktree replaced the global `/usr/bin/happy` binary, triggered auto-upgrade, killed the production daemon, and destroyed ALL production sessions. This is enforced by hook.**
+
+- **NEVER** run `npm install -g` from happy-dev, worktrees, or /dev/shm — FORBIDDEN by hook
+- **NEVER** invoke `/usr/bin/happy` or `happy --version` or `happy daemon` — triggers auto-upgrade
+- **NEVER** modify `/usr/lib/node_modules/happy*` or `/usr/bin/happy` — FORBIDDEN by hook
+- **NEVER** run `kill` with PIDs — FORBIDDEN by hook; use daemon HTTP /stop or systemctl
+- The global CLI is shared by ALL 3 daemons. Touching it affects EVERYONE.
+- To deploy CLI changes to dev: use `node <worktree>/dist/index.mjs` directly, NEVER npm install -g
+- Only the USER may install the global CLI manually from `/root/happy`
+
 ## Critical Operational Rules
 
 1. **NEVER** stop/restart happy daemon without saving session snapshot first

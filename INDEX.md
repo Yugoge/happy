@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-04-04T08:04:21Z*
-**Total entries**: 595
+*Last updated: 2026-04-04T13:24:40Z*
+**Total entries**: 681
 **Convention**: kebab
 
 ## Tree
@@ -18,10 +18,33 @@ happy-dev/
 │   │   ├── overnight/
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 │   │   ├── `context-20260323-210000.json` - json config
+│   │   ├── `dev-report-20260404-080000.json` - json config
+│   │   ├── `dev-report-20260404-110000.json` - json config
+│   │   ├── `dev-report-20260404-120000.json` - json config
 │   │   ├── `dev-report-tools2-filter-fix.json` - json config
+│   │   ├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
+│   │   ├── `qa-report-20260404-080000.json` - json config
+│   │   ├── `qa-report-20260404-110000.json` - json config
+│   │   ├── `qa-report-20260404-120000-v2.json` - json config
+│   │   ├── `qa-report-20260404-120000.json` - json config
 │   │   └── `qa-site-isolation-verification.json` - json config
 │   ├── e2e/
 │   │   ├── `console-initial.log` - log file
+│   │   ├── `download-desktop-codeblock-buttons.png` - png file
+│   │   ├── `download-desktop-codeblock-visible.png` - png file
+│   │   ├── `download-desktop-download-button.png` - png file
+│   │   ├── `download-desktop-hover-buttons.png` - png file
+│   │   ├── `download-mobile-buttons-revealed.png` - png file
+│   │   ├── `download-mobile-buttons-visible.png` - png file
+│   │   ├── `download-mobile-codeblock-buttons.png` - png file
+│   │   ├── `download-mobile-codeblock.png` - png file
+│   │   ├── `mcp-title-desktop-response.png` - png file
+│   │   ├── `mcp-title-desktop-sidebar.png` - png file
+│   │   ├── `mcp-title-mobile-response.png` - png file
+│   │   ├── `mic-desktop-empty.png` - png file
+│   │   ├── `mic-desktop-with-text.png` - png file
+│   │   ├── `mic-mobile-empty.png` - png file
+│   │   ├── `mic-mobile-with-text.png` - png file
 │   │   ├── `mobile-01-sessions-list.png` - png file
 │   │   ├── `mobile-02-session-top.png` - png file
 │   │   ├── `mobile-03-latex.png` - png file
@@ -66,6 +89,69 @@ happy-dev/
 │   │   ├── `p9-mermaid-user-message-fallback.png` - png file
 │   │   ├── `session-full-content.png` - png file
 │   │   ├── `session-view.png` - png file
+│   │   ├── `title-final-desktop-home.png` - png file
+│   │   ├── `title-final-desktop-session.png` - png file
+│   │   ├── `title-final-desktop-tools.png` - png file
+│   │   ├── `title-final-mobile-session.png` - png file
+│   │   ├── `title-final-mobile-tools.png` - png file
+│   │   ├── `title-final-mobile-tools2.png` - png file
+│   │   ├── `title-final-mobile-tools3.png` - png file
+│   │   ├── `title-final2-desktop-initial.png` - png file
+│   │   ├── `title-final2-desktop-titlechange.png` - png file
+│   │   ├── `title-final2-mobile-titlechange.png` - png file
+│   │   ├── `title-fix-desktop-session.png` - png file
+│   │   ├── `title-fix-mobile-session.png` - png file
+│   │   ├── `title-mcp-after-desktop.png` - png file
+│   │   ├── `title-mcp-after-mobile.png` - png file
+│   │   ├── `title-mcp-before-desktop.png` - png file
+│   │   ├── `toolcall-bash-all-collapsed-desktop.png` - png file
+│   │   ├── `toolcall-bash-area-desktop.png` - png file
+│   │   ├── `toolcall-bash-blocks-desktop.png` - png file
+│   │   ├── `toolcall-bash-blocks2-desktop.png` - png file
+│   │   ├── `toolcall-bash-collapsed-desktop.png` - png file
+│   │   ├── `toolcall-bash-expanded-desktop.png` - png file
+│   │   ├── `toolcall-desktop-bash-area.png` - png file
+│   │   ├── `toolcall-desktop-bash-area2.png` - png file
+│   │   ├── `toolcall-desktop-bash-cards.png` - png file
+│   │   ├── `toolcall-desktop-bash-collapsed.png` - png file
+│   │   ├── `toolcall-desktop-bash-docker.png` - png file
+│   │   ├── `toolcall-desktop-bash-expanded.png` - png file
+│   │   ├── `toolcall-desktop-bottom.png` - png file
+│   │   ├── `toolcall-desktop-grep-collapsed.png` - png file
+│   │   ├── `toolcall-desktop-grep-expanded.png` - png file
+│   │   ├── `toolcall-desktop-mid1.png` - png file
+│   │   ├── `toolcall-desktop-overview.png` - png file
+│   │   ├── `toolcall-desktop-read-collapsed.png` - png file
+│   │   ├── `toolcall-desktop-read-expanded-full.png` - png file
+│   │   ├── `toolcall-desktop-read-expanded.png` - png file
+│   │   ├── `toolcall-desktop-read-view.png` - png file
+│   │   ├── `toolcall-desktop-scrolltop0.png` - png file
+│   │   ├── `toolcall-desktop-session-top.png` - png file
+│   │   ├── `toolcall-mobile-bash-cards.png` - png file
+│   │   ├── `toolcall-mobile-bash-docker.png` - png file
+│   │   ├── `toolcall-mobile-bash-docker2.png` - png file
+│   │   ├── `toolcall-mobile-bash-expanded-header.png` - png file
+│   │   ├── `toolcall-mobile-bash-expanded.png` - png file
+│   │   ├── `toolcall-mobile-bash.png` - png file
+│   │   ├── `toolcall-mobile-read.png` - png file
+│   │   ├── `toolcall-mobile-top.png` - png file
+│   │   ├── `toolcall-overview-desktop.png` - png file
+│   │   ├── `toolcall-session-top-desktop.png` - png file
+│   │   ├── `toolcall-todowrite-expanded-desktop.png` - png file
+│   │   ├── `toolcall2-01-write-collapsed-desktop.png` - png file
+│   │   ├── `toolcall2-01-write-expanded-desktop.png` - png file
+│   │   ├── `toolcall2-02-edit-desktop.png` - png file
+│   │   ├── `toolcall2-03-glob-desktop.png` - png file
+│   │   ├── `toolcall2-04-agent-desktop.png` - png file
+│   │   ├── `toolcall2-05-websearch-desktop.png` - png file
+│   │   ├── `toolcall2-06-webfetch-desktop.png` - png file
+│   │   ├── `toolcall2-06-webfetch-permission-desktop.png` - png file
+│   │   ├── `toolcall2-07-mcp-desktop.png` - png file
+│   │   ├── `toolcall2-08-mobile-top.png` - png file
+│   │   ├── `toolcall2-09-mobile-websearch.png` - png file
+│   │   ├── `toolcall2-10-mobile-edit-write.png` - png file
+│   │   ├── `toolcall2-11-mobile-write.png` - png file
+│   │   ├── `toolcall2-12-mobile-glob.png` - png file
 │   │   ├── `wrap-envelopes-clicked.png` - png file
 │   │   ├── `wrap-envelopes-multiple.png` - png file
 │   │   ├── `wrap-envelopes-scrolled.png` - png file
