@@ -1,0 +1,238 @@
+[     686ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:2997
+[   12698ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:2997
+[   27407ms] [WARNING] [Mermaid] Failed to render mermaid diagram: Parse error on line 5:
+...24-06 :    2025-01 :
+----------------------^
+Expecting 'EOF', 'SPACE', 'NEWLINE', 'title', 'acc_title', 'acc_descr', 'acc_descr_multiline_value', 'section', 'period', 'event', got 'INVALID' @ http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:2997
+[   27455ms] [WARNING] [Mermaid] Failed to render mermaid diagram: Parse error on line 5:
+...24-06 :    2025-01 :
+----------------------^
+Expecting 'EOF', 'SPACE', 'NEWLINE', 'title', 'acc_title', 'acc_descr', 'acc_descr_multiline_value', 'section', 'period', 'event', got 'INVALID' @ http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:2997
+[   58297ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[   94863ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  143294ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  148594ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  186956ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  201641ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  229190ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  230883ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  237284ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  282102ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  303150ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  331473ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  374955ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  417008ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
+[  424381ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1500:4096)
+    at e.<anonymous> (http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-61e9bd63a4b3c5437f293e7236250c84.js:1494:3492
