@@ -661,6 +661,16 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 - If the UI "Start New Session" button doesn't work, use the + icon in the sidebar header
 - If the UI is broken, REPORT IT AS A BUG. Do NOT bypass it with code.
 
+### E2E Verification MUST Use Live Browser Content (mandatory for ALL subagents)
+
+**Code review / bundle grep / curl is NEVER sufficient for UI verification. Every UI fix MUST be verified by rendering real content in the browser.**
+
+- If the dev environment does not have sessions containing the content type being tested (e.g., no Agent/TodoWrite tool calls, no LaTeX, no Mermaid timeline with Chinese), the subagent MUST **send a message via the UI** to an active session to trigger that content, then verify the rendering result.
+- Sending a message means: click the input field, type the message, press Enter or click Send. This is a normal UI interaction, not "creating sessions via code".
+- Example: to verify TaskView (Agent tool), send "Please use the Agent tool to search for README files" to an active session. Wait for the response. Verify the rendered Task block has a single header, not duplicated.
+- Example: to verify LaTeX, send "Please write $$E = mc^2$$" to an active session. Verify it renders as typeset math.
+- **Any subagent (QA, dev, PM, user, architect, or any other type) that reports PASS based solely on code review, grep, or bundle inspection for a UI component will be considered a failure.** The only exception is fixes that are purely server-side or CLI-side (no UI rendering involved).
+
 ---
 
 

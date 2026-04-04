@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-04-04T07:05:07Z*
-**Total entries**: 543
+*Last updated: 2026-04-04T07:30:10Z*
+**Total entries**: 559
 **Convention**: kebab
 
 ## Tree
@@ -20,6 +20,21 @@ happy-dev/
 │   │   ├── `context-20260323-210000.json` - json config
 │   │   ├── `dev-report-tools2-filter-fix.json` - json config
 │   │   └── `qa-site-isolation-verification.json` - json config
+│   ├── e2e/
+│   │   ├── `console-initial.log` - log file
+│   │   ├── `p12-console-after-toolclick.log` - log file
+│   │   ├── `p12-console-messages.log` - log file
+│   │   ├── `p5-session-overview.png` - png file
+│   │   ├── `p5-tool-call-expanded.png` - png file
+│   │   ├── `p5-tool-single-header.png` - png file
+│   │   ├── `p7-tables-with-scroll.png` - png file
+│   │   ├── `session-full-content.png` - png file
+│   │   ├── `session-view.png` - png file
+│   │   ├── `wrap-envelopes-clicked.png` - png file
+│   │   ├── `wrap-envelopes-multiple.png` - png file
+│   │   ├── `wrap-envelopes-scrolled.png` - png file
+│   │   ├── `wrap-envelopes-visible.png` - png file
+│   │   └── `wrap-envelopes.png` - png file
 │   ├── experimental/
 │   │   ├── `agents-engineer.md` - Engineer Agent
 │   │   ├── `agents-manager.md` - Manager Agent
@@ -252,6 +267,7 @@ happy-dev/
 ├── `mobile-taskview-scroll.png` - png file
 ├── `package-lock.json` - json config
 ├── `package.json` - json config
+├── `pipeline6-sessions-before.png` - png file
 ├── `pm-01-landing.png` - png file
 ├── `pm-02-session-view.png` - png file
 ├── `pm-03-tool-detail.png` - png file
