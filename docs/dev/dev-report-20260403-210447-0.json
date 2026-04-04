@@ -1,0 +1,61 @@
+{
+    "request_id": "dev-20260403-210447-0",
+    "timestamp": "2026-04-03T21:30:00Z",
+    "dev_report_path": "docs/dev/dev-report-20260403-210447-0.json",
+    "dev": {
+        "status": "completed",
+        "tasks_completed": [
+            {
+                "id": 1,
+                "description": "Added LatexRenderer import to MarkdownView.tsx",
+                "type": "code",
+                "files_modified": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"],
+                "changes": "Added 'import { LatexRenderer } from ./LatexRenderer' after MermaidRenderer import (line 15)",
+                "rationale": "Import was removed in commit 1612a409 along with the latex case branch"
+            },
+            {
+                "id": 2,
+                "description": "Added latex case branch to renderComplexBlock() in MarkdownView.tsx",
+                "type": "code",
+                "files_modified": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"],
+                "changes": "Added 'else if (block.type === latex) { return <LatexRenderer content={block.content} key={index} />; }' after the mermaid case in renderComplexBlock()",
+                "rationale": "Case branch was removed in commit 1612a409; without it latex blocks silently returned null"
+            },
+            {
+                "id": 3,
+                "description": "Restored LaTeX parser in parseMarkdownBlock.ts with full refactor to pass quality gate",
+                "type": "code",
+                "files_modified": ["packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"],
+                "changes": "Extracted helper functions (buildTableHeaders, buildTableRows, parseTable, parseLatexBlock, parseCodeBlock, parseOptionsBlock, parseNumberedList, parseUnorderedList, processHeaderLine, processInlineBlocks, processLine, parseMarkdownBlock) keeping all functions under 30 lines and nesting depth at or below 3. Added parseLatexBlock() which handles both single-line $$...$$ and multi-line $$ blocks.",
+                "rationale": "The file had pre-existing quality gate violations (parseTable at 60 lines, parseMarkdownBlock at 127 lines). A full refactor was required to add parseLatexBlock without the Write tool being blocked. The LaTeX parser logic is restored from commit f8b208fa."
+            }
+        ],
+        "scripts_created": [],
+        "blast_radius": [
+            {
+                "modified": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+                "imported_by": ["packages/happy-app/sources/components/markdown/parseMarkdown.ts"]
+            },
+            {
+                "modified": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+                "imported_by": [
+                    "packages/happy-app/sources/components/MessageBlock.tsx",
+                    "packages/happy-app/sources/components/MarkdownViewWrapper.tsx"
+                ]
+            }
+        ],
+        "git_rationale": {
+            "root_cause_commit": "1612a409 - fix: 19 bug fixes from BUG-FIXES.md audit",
+            "why_issue_occurred": "Batch bug-fix commit rewrote MarkdownView.tsx and parseMarkdownBlock.ts removing LaTeX parser, LatexRenderer import, and latex case branch as collateral damage",
+            "how_fix_addresses_root": "Restored exact logic from commit f8b208fa: $$...$$ detection in parser, import wiring, and case branch in renderer dispatch"
+        },
+        "qa_ready": true,
+        "qa_notes": "Test by sending a message with $$E = mc^2$$ (single-line) and a multi-line $$ block. Verify KaTeX renders the formula. Verify existing block types (code, mermaid, tables, text) still render correctly. Pre-existing typecheck errors (AttachmentMetadata, sidebarCollapsed, applySessionUsage) are unrelated to this change.",
+        "permissions_to_add": []
+    },
+    "blocking_issues": [],
+    "recommendations": [
+        "Add a regression test for LaTeX block parsing in parseMarkdownBlock.ts to prevent future silent removal",
+        "The pre-existing typecheck errors (AttachmentMetadata, sidebarCollapsed, applySessionUsage) should be addressed separately"
+    ]
+}

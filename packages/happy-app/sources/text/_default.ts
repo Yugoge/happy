@@ -49,6 +49,7 @@ export const en = {
         discard: 'Discard',
         version: 'Version',
         copied: 'Copied',
+        download: 'Download',
         copy: 'Copy',
         scanning: 'Scanning...',
         urlPlaceholder: 'https://example.com',
@@ -432,6 +433,10 @@ export const en = {
             fileLabel: 'FILE',
             folderLabel: 'FOLDER',
         },
+        attach: {
+            image: 'Image',
+            document: 'Document',
+        },
         noMachinesAvailable: 'No machines',
     },
 
@@ -786,6 +791,7 @@ export const en = {
         codeCopied: 'Code copied',
         copyFailed: 'Copy failed',
         mermaidRenderFailed: 'Failed to render mermaid diagram',
+        downloadFailed: 'Failed to download',
     },
 
     artifacts: {

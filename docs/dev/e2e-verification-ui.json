@@ -1,0 +1,26 @@
+{
+  "pipeline_5_taskview": {
+    "verdict": "PASS",
+    "method": "mixed",
+    "evidence": "Browser: 3 Task blocks visible in happy-dev session (E2E verify LaTeX/Mermaid, E2E verify TaskView/scroll indicators, E2E verify session title change CLI fix). Each shows exactly ONE header row: [icon] Title ... [timer]. No duplicate title appears above or below the tool call list. Code: TaskView.tsx line 52 uses TaskStatusRow (not TaskSummary). TaskSummary has 0 matches in the file. Fix is correctly applied.",
+    "screenshot": "e2e-p5-task-blocks-final.png"
+  },
+  "pipeline_7_scroll": {
+    "verdict": "PASS",
+    "method": "code",
+    "evidence": "Source verification: MarkdownView.tsx line 249 has showsHorizontalScrollIndicator={Platform.OS === 'web'} for code blocks. Line 394 has showsHorizontalScrollIndicator={Platform.OS === 'web'} for tables. Both are correct (was false/inverted before fix). CSS audit confirms .r-2eszeu class hides scrollbars — this class is applied when showsHorizontalScrollIndicator=false. With Platform.OS === 'web' evaluating to true in the browser build, scrollbars will be visible. No code blocks were in the current session view to do live DOM inspection, but source confirms correct values.",
+    "screenshot": null
+  },
+  "pipeline_11_gzip": {
+    "verdict": "PASS",
+    "method": "curl",
+    "evidence": "curl -H 'Accept-Encoding: gzip' -sI http://localhost:8097/ returns Content-Encoding: gzip and Content-Type: text/html. Static JS also returns Content-Encoding: gzip. nginx config in running happy-web-dev container confirms: gzip on, gzip_vary on, gzip_proxied any, gzip_comp_level 6, gzip_min_length 256, gzip_types covering js/css/json/xml/svg, gzip_static on.",
+    "screenshot": null
+  },
+  "pipeline_12_consolelog": {
+    "verdict": "PASS",
+    "method": "mixed",
+    "evidence": "Code: grep for 'console.log.*isToolUseError' in ToolView.tsx returns 0 matches — the console.log statement has been removed. The variable isToolUseError still exists as a boolean (lines 142, 190, 214-216, 219, 231, 232, 249) used for logic, but no console.log call references it. Browser: console messages captured during session with active tool calls show only TypeError: applySessionUsage is not a function (unrelated ephemeral handler error) and layout warnings. No 'isToolUseError' log message appeared in the console.",
+    "screenshot": null
+  }
+}

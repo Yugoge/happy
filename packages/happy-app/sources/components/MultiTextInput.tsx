@@ -59,7 +59,6 @@ export const MultiTextInput = React.forwardRef<MultiTextInputHandle, MultiTextIn
     } = props;
 
     const { theme } = useUnistyles();
-    // Track latest selection in a ref
     const selectionRef = React.useRef({ start: 0, end: 0 });
     const inputRef = React.useRef<TextInput>(null);
     const textStyle = {
@@ -79,124 +78,76 @@ export const MultiTextInput = React.forwardRef<MultiTextInputHandle, MultiTextIn
     };
 
     React.useEffect(() => {
-        if (!editable) {
-            inputRef.current?.blur();
-        }
+        if (!editable) inputRef.current?.blur();
     }, [editable]);
 
     const handleKeyPress = React.useCallback((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
         if (!editable || !onKeyPress) return;
-
         const nativeEvent = e.nativeEvent;
         const key = nativeEvent.key;
-        
-        // Map native key names to our normalized format
         let normalizedKey: SupportedKey | null = null;
-        
         switch (key) {
-            case 'Enter':
-                normalizedKey = 'Enter';
-                break;
-            case 'Escape':
-                normalizedKey = 'Escape';
-                break;
-            case 'ArrowUp':
-            case 'Up': // iOS may use different names
-                normalizedKey = 'ArrowUp';
-                break;
-            case 'ArrowDown':
-            case 'Down':
-                normalizedKey = 'ArrowDown';
-                break;
-            case 'ArrowLeft':
-            case 'Left':
-                normalizedKey = 'ArrowLeft';
-                break;
-            case 'ArrowRight':
-            case 'Right':
-                normalizedKey = 'ArrowRight';
-                break;
-            case 'Tab':
-                normalizedKey = 'Tab';
-                break;
+            case 'Enter': normalizedKey = 'Enter'; break;
+            case 'Escape': normalizedKey = 'Escape'; break;
+            case 'ArrowUp': case 'Up': normalizedKey = 'ArrowUp'; break;
+            case 'ArrowDown': case 'Down': normalizedKey = 'ArrowDown'; break;
+            case 'ArrowLeft': case 'Left': normalizedKey = 'ArrowLeft'; break;
+            case 'ArrowRight': case 'Right': normalizedKey = 'ArrowRight'; break;
+            case 'Tab': normalizedKey = 'Tab'; break;
         }
-
-        if (normalizedKey) {
-            const keyEvent: KeyPressEvent = {
-                key: normalizedKey,
-                shiftKey: (nativeEvent as any).shiftKey || false
-            };
-            
-            const handled = onKeyPress(keyEvent);
-            if (handled) {
-                e.preventDefault();
-            }
-        }
+        if (!normalizedKey) return;
+        const handled = onKeyPress({ key: normalizedKey, shiftKey: (nativeEvent as any).shiftKey || false });
+        if (handled) e.preventDefault();
     }, [editable, onKeyPress]);
 
     const handleTextChange = React.useCallback((text: string) => {
-        // When text changes, assume cursor moves to end
         const selection = { start: text.length, end: text.length };
         selectionRef.current = selection;
-
         onChangeText(text);
-        
-        if (onStateChange) {
-            onStateChange({ text, selection });
-        }
-        if (onSelectionChange) {
-            onSelectionChange(selection);
-        }
+        onStateChange?.({ text, selection });
+        onSelectionChange?.(selection);
     }, [onChangeText, onStateChange, onSelectionChange]);
 
     const handleSelectionChange = React.useCallback((e: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
-        if (e.nativeEvent.selection) {
-            const { start, end } = e.nativeEvent.selection;
-            const selection = { start, end };
-            
-            // Only update if selection actually changed
-            if (selection.start !== selectionRef.current.start || selection.end !== selectionRef.current.end) {
-                selectionRef.current = selection;
-
-                if (onSelectionChange) {
-                    onSelectionChange(selection);
-                }
-                if (onStateChange) {
-                    onStateChange({ text: value, selection });
-                }
-            }
-        }
+        const sel = e.nativeEvent.selection;
+        if (!sel) return;
+        const selection = { start: sel.start, end: sel.end };
+        const unchanged = selection.start === selectionRef.current.start && selection.end === selectionRef.current.end;
+        if (unchanged) return;
+        selectionRef.current = selection;
+        onSelectionChange?.(selection);
+        onStateChange?.({ text: value, selection });
     }, [value, onSelectionChange, onStateChange]);
 
-    // Imperative handle for direct control
+    // On web, attach a DOM-level keydown listener so we can call preventDefault() before
+    // the browser textarea inserts a newline. React Native's onKeyPress fires after the
+    // textarea default behavior; submitBehavior="newline" makes the newline impossible to
+    // intercept via React synthetic events. This fix is web-only; native platforms unaffected.
+    React.useEffect(() => {
+        if (Platform.OS !== 'web') return;
+        const inputEl = inputRef.current as unknown as HTMLTextAreaElement | null;
+        if (!inputEl) return;
+        const handleDomKeyDown = (e: KeyboardEvent) => {
+            if (!onKeyPress || e.key !== 'Enter') return;
+            if (e.isComposing || e.keyCode === 229) return;
+            const handled = onKeyPress({ key: 'Enter', shiftKey: e.shiftKey });
+            if (handled) e.preventDefault();
+        };
+        inputEl.addEventListener('keydown', handleDomKeyDown);
+        return () => inputEl.removeEventListener('keydown', handleDomKeyDown);
+    }, [onKeyPress]);
+
     React.useImperativeHandle(ref, () => ({
         setTextAndSelection: (text: string, selection: { start: number; end: number }) => {
-            if (inputRef.current) {
-                // Use setNativeProps for direct manipulation
-                inputRef.current.setNativeProps({
-                    text: text,
-                    selection: selection
-                });
-                
-                // Update our ref
-                selectionRef.current = selection;
-                
-                // Notify through callbacks
-                onChangeText(text);
-                if (onStateChange) {
-                    onStateChange({ text, selection });
-                }
-                if (onSelectionChange) {
-                    onSelectionChange(selection);
-                }
-            }
+            if (!inputRef.current) return;
+            inputRef.current.setNativeProps({ text, selection });
+            selectionRef.current = selection;
+            onChangeText(text);
+            onStateChange?.({ text, selection });
+            onSelectionChange?.(selection);
         },
-        focus: () => {
-            inputRef.current?.focus();
-        },
-        blur: () => {
-            inputRef.current?.blur();
-        }
+        focus: () => inputRef.current?.focus(),
+        blur: () => inputRef.current?.blur(),
     }), [onChangeText, onStateChange, onSelectionChange]);
 
     return (
@@ -223,14 +174,7 @@ export const MultiTextInput = React.forwardRef<MultiTextInputHandle, MultiTextIn
                 />
             ) : (
                 <View pointerEvents="none">
-                    <Text
-                        style={[
-                            textStyle,
-                            {
-                                color: value ? theme.colors.input.text : theme.colors.input.placeholder,
-                            },
-                        ]}
-                    >
+                    <Text style={[textStyle, { color: value ? theme.colors.input.text : theme.colors.input.placeholder }]}>
                         {value || placeholder || ' '}
                     </Text>
                 </View>

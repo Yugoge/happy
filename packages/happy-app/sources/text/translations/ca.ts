@@ -49,6 +49,7 @@ export const ca: TranslationStructure = {
         discard: 'Descarta',
         version: 'Versió',
         copied: 'Copiat',
+        download: 'Descarregar',
         copy: 'Copiar',
         scanning: 'Escanejant...',
         urlPlaceholder: 'https://exemple.com',
@@ -434,6 +435,10 @@ export const ca: TranslationStructure = {
             fileLabel: 'FITXER',
             folderLabel: 'CARPETA',
         },
+        attach: {
+            image: 'Imatge',
+            document: 'Document',
+        },
         noMachinesAvailable: 'Sense màquines',
     },
 
@@ -788,6 +793,7 @@ export const ca: TranslationStructure = {
         codeCopied: 'Codi copiat',
         copyFailed: 'Error al copiar',
         mermaidRenderFailed: 'Error al renderitzar el diagrama mermaid',
+        downloadFailed: 'Error en la descàrrega',
     },
 
     artifacts: {
