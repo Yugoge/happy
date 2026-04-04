@@ -670,6 +670,12 @@ The server URL is determined by `sync/serverConfig.ts` with this priority:
 - Example: to verify TaskView (Agent tool), send "Please use the Agent tool to search for README files" to an active session. Wait for the response. Verify the rendered Task block has a single header, not duplicated.
 - Example: to verify LaTeX, send "Please write $$E = mc^2$$" to an active session. Verify it renders as typeset math.
 - **Any subagent (QA, dev, PM, user, architect, or any other type) that reports PASS based solely on code review, grep, or bundle inspection for a UI component will be considered a failure.** The only exception is fixes that are purely server-side or CLI-side (no UI rendering involved).
+- **Every UI fix MUST be verified on BOTH desktop AND mobile viewports.** happy-app is a React Native app running on web and mobile simultaneously. Desktop-only verification is insufficient.
+  - Desktop: default Playwright viewport (1280x720 or wider)
+  - Mobile: resize browser to 390x844 (iPhone 14) using `browser_resize` tool BEFORE navigating
+  - Verify: no layout overflow, no cut-off text, no broken components, content fits within viewport
+  - `Platform.OS` is still `'web'` in a narrow browser — mobile viewport tests responsive layout, not native platform behavior
+  - Tables/code blocks should be horizontally scrollable without breaking the page layout on mobile
 
 ---
 
