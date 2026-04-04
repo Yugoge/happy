@@ -25,12 +25,13 @@ interface ToolViewProps {
     messageId?: string;
 }
 
+const SPINNER_SCALE = [{ scaleX: 0.8 }, { scaleY: 0.8 }];
+
 export const ToolView = React.memo<ToolViewProps>((props) => {
     const { tool, onPress, sessionId, messageId } = props;
     const router = useRouter();
     const { theme } = useUnistyles();
 
-    // Create default onPress handler for navigation
     const handlePress = React.useCallback(() => {
         if (onPress) {
             onPress();
@@ -39,229 +40,233 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
         }
     }, [onPress, sessionId, messageId, router]);
 
-    // Enable pressable if either onPress is provided or we have navigation params
     const isPressable = !!(onPress || (sessionId && messageId));
+    const knownTool = knownTools[tool.name as keyof typeof knownTools] as any;
 
-    let knownTool = knownTools[tool.name as keyof typeof knownTools] as any;
-
-    // Internal Claude Code tools (e.g. ToolSearch) are completely hidden from the UI
     if (knownTool?.hidden) {
         return null;
     }
 
-    let description: string | null = null;
-    let status: string | null = null;
-    let minimal = false;
-    let icon = <Ionicons name="construct-outline" size={18} color={theme.colors.textSecondary} />;
-    let noStatus = false;
-    let hideDefaultError = false;
-    
-    // For Gemini: unknown tools should be rendered as minimal (hidden)
-    // This prevents showing raw INPUT/OUTPUT for internal Gemini tools
-    // that we haven't explicitly added to knownTools
-    const isGemini = props.metadata?.flavor === 'gemini';
-    if (!knownTool && isGemini) {
-        minimal = true;
-    }
+    const cfg = buildToolConfig(tool, props.metadata, props.messages, knownTool, theme);
 
-    // Extract status first to potentially use as title
-    if (knownTool && typeof knownTool.extractStatus === 'function') {
-        const state = knownTool.extractStatus({ tool, metadata: props.metadata });
-        if (typeof state === 'string' && state) {
-            status = state;
-        }
-    }
-
-    // Handle optional title and function type
-    let toolTitle = tool.name;
-    
-    // Special handling for MCP tools
-    if (tool.name.startsWith('mcp__')) {
-        toolTitle = formatMCPTitle(tool.name);
-        icon = <Ionicons name="extension-puzzle-outline" size={18} color={theme.colors.textSecondary} />;
-        minimal = true;
-    } else if (knownTool?.title) {
-        if (typeof knownTool.title === 'function') {
-            toolTitle = knownTool.title({ tool, metadata: props.metadata });
-        } else {
-            toolTitle = knownTool.title;
-        }
-    }
-
-    if (knownTool && typeof knownTool.extractSubtitle === 'function') {
-        const subtitle = knownTool.extractSubtitle({ tool, metadata: props.metadata });
-        if (typeof subtitle === 'string' && subtitle) {
-            description = subtitle;
-        }
-    }
-    if (knownTool && knownTool.minimal !== undefined) {
-        if (typeof knownTool.minimal === 'function') {
-            minimal = knownTool.minimal({ tool, metadata: props.metadata, messages: props.messages });
-        } else {
-            minimal = knownTool.minimal;
-        }
-    }
-    
-    // Special handling for CodexBash to determine icon based on parsed_cmd
-    if (tool.name === 'CodexBash' && tool.input?.parsed_cmd && Array.isArray(tool.input.parsed_cmd) && tool.input.parsed_cmd.length > 0) {
-        const parsedCmd = tool.input.parsed_cmd[0];
-        if (parsedCmd.type === 'read') {
-            icon = <Octicons name="eye" size={18} color={theme.colors.text} />;
-        } else if (parsedCmd.type === 'write') {
-            icon = <Octicons name="file-diff" size={18} color={theme.colors.text} />;
-        } else {
-            icon = <Octicons name="terminal" size={18} color={theme.colors.text} />;
-        }
-    } else if (knownTool && typeof knownTool.icon === 'function') {
-        icon = knownTool.icon(18, theme.colors.text);
-    }
-    
-    if (knownTool && typeof knownTool.noStatus === 'boolean') {
-        noStatus = knownTool.noStatus;
-    }
-    if (knownTool && typeof knownTool.hideDefaultError === 'boolean') {
-        hideDefaultError = knownTool.hideDefaultError;
-    }
-
-    let statusIcon = null;
-
-    let isToolUseError = false;
-    if (tool.state === 'error' && tool.result && parseToolUseError(tool.result).isToolUseError) {
-        isToolUseError = true;
-        console.log('isToolUseError', tool.result);
-    }
-
-    // Check permission status first for denied/canceled states
-    if (tool.permission && (tool.permission.status === 'denied' || tool.permission.status === 'canceled')) {
-        statusIcon = <Ionicons name="remove-circle-outline" size={20} color={theme.colors.textSecondary} />;
-    } else if (isToolUseError) {
-        statusIcon = <Ionicons name="remove-circle-outline" size={20} color={theme.colors.textSecondary} />;
-        hideDefaultError = true;
-        minimal = true;
-    } else {
-        switch (tool.state) {
-            case 'running':
-                if (!noStatus) {
-                    statusIcon = <ActivityIndicator size="small" color={theme.colors.text} style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }} />;
-                }
-                break;
-            case 'completed':
-                // if (!noStatus) {
-                //     statusIcon = <Ionicons name="checkmark-circle" size={20} color="#34C759" />;
-                // }
-                break;
-            case 'error':
-                statusIcon = <Ionicons name="alert-circle-outline" size={20} color={theme.colors.warning} />;
-                break;
-        }
-    }
+    const headerContent = (
+        <View style={styles.headerLeft}>
+            <View style={styles.iconContainer}>{cfg.icon}</View>
+            <View style={styles.titleContainer}>
+                <Text style={styles.toolName} numberOfLines={1}>
+                    {cfg.toolTitle}
+                    {cfg.status ? <Text style={styles.status}>{` ${cfg.status}`}</Text> : null}
+                </Text>
+                {cfg.description && (
+                    <Text style={styles.toolDescription} numberOfLines={1}>
+                        {cfg.description}
+                    </Text>
+                )}
+            </View>
+            {tool.state === 'running' && (
+                <View style={styles.elapsedContainer}>
+                    <ElapsedView from={tool.createdAt} />
+                </View>
+            )}
+            {cfg.statusIcon}
+        </View>
+    );
 
     return (
         <View style={styles.container}>
             {isPressable ? (
                 <TouchableOpacity style={styles.header} onPress={handlePress} activeOpacity={0.8}>
-                    <View style={styles.headerLeft}>
-                        <View style={styles.iconContainer}>
-                            {icon}
-                        </View>
-                        <View style={styles.titleContainer}>
-                            <Text style={styles.toolName} numberOfLines={1}>{toolTitle}{status ? <Text style={styles.status}>{` ${status}`}</Text> : null}</Text>
-                            {description && (
-                                <Text style={styles.toolDescription} numberOfLines={1}>
-                                    {description}
-                                </Text>
-                            )}
-                        </View>
-                        {tool.state === 'running' && (
-                            <View style={styles.elapsedContainer}>
-                                <ElapsedView from={tool.createdAt} />
-                            </View>
-                        )}
-                        {statusIcon}
-                    </View>
+                    {headerContent}
                 </TouchableOpacity>
             ) : (
-                <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        <View style={styles.iconContainer}>
-                            {icon}
-                        </View>
-                        <View style={styles.titleContainer}>
-                            <Text style={styles.toolName} numberOfLines={1}>{toolTitle}{status ? <Text style={styles.status}>{` ${status}`}</Text> : null}</Text>
-                            {description && (
-                                <Text style={styles.toolDescription} numberOfLines={1}>
-                                    {description}
-                                </Text>
-                            )}
-                        </View>
-                        {tool.state === 'running' && (
-                            <View style={styles.elapsedContainer}>
-                                <ElapsedView from={tool.createdAt} />
-                            </View>
-                        )}
-                        {statusIcon}
-                    </View>
-                </View>
+                <View style={styles.header}>{headerContent}</View>
             )}
 
-            {/* Content area - either custom children or tool-specific view */}
-            {(() => {
-                // Check if minimal first - minimal tools don't show content
-                if (minimal) {
-                    return null;
-                }
+            {!cfg.minimal && (
+                <ToolContent
+                    tool={tool}
+                    metadata={props.metadata}
+                    messages={props.messages}
+                    sessionId={sessionId}
+                    hideDefaultError={cfg.hideDefaultError}
+                    isToolUseError={cfg.isToolUseError}
+                />
+            )}
 
-                // Try to use a specific tool view component first
-                const SpecificToolView = getToolViewComponent(tool.name);
-                if (SpecificToolView) {
-                    return (
-                        <View style={styles.content}>
-                            <SpecificToolView tool={tool} metadata={props.metadata} messages={props.messages ?? []} sessionId={sessionId} />
-                            {tool.state === 'error' && tool.result &&
-                                !(tool.permission && (tool.permission.status === 'denied' || tool.permission.status === 'canceled')) &&
-                                !hideDefaultError && (
-                                    <ToolError message={String(tool.result)} />
-                                )}
-                        </View>
-                    );
-                }
-
-                // Show error state if present (but not for denied/canceled permissions and not when hideDefaultError is true)
-                if (tool.state === 'error' && tool.result &&
-                    !(tool.permission && (tool.permission.status === 'denied' || tool.permission.status === 'canceled')) &&
-                    !isToolUseError) {
-                    return (
-                        <View style={styles.content}>
-                            <ToolError message={String(tool.result)} />
-                        </View>
-                    );
-                }
-
-                // Fall back to default view
-                return (
-                    <View style={styles.content}>
-                        {/* Default content when no custom view available */}
-                        {tool.input && (
-                            <ToolSectionView title={t('toolView.input')}>
-                                <CodeView code={JSON.stringify(tool.input, null, 2)} />
-                            </ToolSectionView>
-                        )}
-
-                        {tool.state === 'completed' && tool.result && (
-                            <ToolSectionView title={t('toolView.output')}>
-                                <CodeView
-                                    code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
-                                />
-                            </ToolSectionView>
-                        )}
-                    </View>
-                );
-            })()}
-
-            {/* Permission footer - always renders when permission exists to maintain consistent height */}
-            {/* AskUserQuestion has its own Submit button UI - no permission footer needed */}
             {tool.permission && sessionId && tool.name !== 'AskUserQuestion' && (
-                <PermissionFooter permission={tool.permission} sessionId={sessionId} toolName={tool.name} toolInput={tool.input} metadata={props.metadata} />
+                <PermissionFooter
+                    permission={tool.permission}
+                    sessionId={sessionId}
+                    toolName={tool.name}
+                    toolInput={tool.input}
+                    metadata={props.metadata}
+                />
+            )}
+        </View>
+    );
+});
+
+// Extracts status and description strings from knownTool extractors
+function extractStrings(tool: ToolCall, metadata: Metadata | null, knownTool: any) {
+    let status: string | null = null;
+    let description: string | null = null;
+    if (knownTool && typeof knownTool.extractStatus === 'function') {
+        const s = knownTool.extractStatus({ tool, metadata });
+        if (typeof s === 'string' && s) status = s;
+    }
+    if (knownTool && typeof knownTool.extractSubtitle === 'function') {
+        const sub = knownTool.extractSubtitle({ tool, metadata });
+        if (typeof sub === 'string' && sub) description = sub;
+    }
+    return { status, description };
+}
+
+// Resolves icon element for CodexBash and generic tools
+function buildIcon(tool: ToolCall, knownTool: any, fallback: React.ReactNode, textColor: string): React.ReactNode {
+    if (tool.name === 'CodexBash' && Array.isArray(tool.input?.parsed_cmd) && tool.input.parsed_cmd.length > 0) {
+        const cmd = tool.input.parsed_cmd[0];
+        if (cmd.type === 'read') return <Octicons name="eye" size={18} color={textColor} />;
+        if (cmd.type === 'write') return <Octicons name="file-diff" size={18} color={textColor} />;
+        return <Octicons name="terminal" size={18} color={textColor} />;
+    }
+    if (knownTool && typeof knownTool.icon === 'function') {
+        return knownTool.icon(18, textColor);
+    }
+    return fallback;
+}
+
+// Resolves status indicator icon based on permission, error, and running state
+function buildStatusIcon(tool: ToolCall, noStatus: boolean, theme: any): React.ReactNode {
+    const isDenied = tool.permission &&
+        (tool.permission.status === 'denied' || tool.permission.status === 'canceled');
+    const isError = tool.state === 'error' && !!tool.result && parseToolUseError(tool.result).isToolUseError;
+    if (isDenied || isError) {
+        return <Ionicons name="remove-circle-outline" size={20} color={theme.colors.textSecondary} />;
+    }
+    if (tool.state === 'running' && !noStatus) {
+        return <ActivityIndicator size="small" color={theme.colors.text} style={{ transform: SPINNER_SCALE }} />;
+    }
+    if (tool.state === 'error') {
+        return <Ionicons name="alert-circle-outline" size={20} color={theme.colors.warning} />;
+    }
+    return null;
+}
+
+// Resolves title from knownTool definition
+function resolveTitle(tool: ToolCall, metadata: Metadata | null, knownTool: any) {
+    if (tool.name.startsWith('mcp__')) {
+        return { toolTitle: formatMCPTitle(tool.name), isMcp: true };
+    }
+    if (knownTool?.title) {
+        const title = typeof knownTool.title === 'function'
+            ? knownTool.title({ tool, metadata })
+            : knownTool.title;
+        return { toolTitle: title as string, isMcp: false };
+    }
+    return { toolTitle: tool.name, isMcp: false };
+}
+
+// Resolves display flags (minimal, noStatus, hideDefaultError) from knownTool
+function resolveFlags(tool: ToolCall, metadata: Metadata | null, messages: Message[] | undefined, knownTool: any, isMcp: boolean) {
+    let minimal = isMcp;
+    let noStatus = false;
+    let hideDefaultError = false;
+    if (knownTool?.minimal !== undefined) {
+        minimal = typeof knownTool.minimal === 'function'
+            ? knownTool.minimal({ tool, metadata, messages })
+            : knownTool.minimal;
+    }
+    if (typeof knownTool?.noStatus === 'boolean') noStatus = knownTool.noStatus;
+    if (typeof knownTool?.hideDefaultError === 'boolean') hideDefaultError = knownTool.hideDefaultError;
+    return { minimal, noStatus, hideDefaultError };
+}
+
+interface ToolConfig {
+    toolTitle: string;
+    description: string | null;
+    status: string | null;
+    minimal: boolean;
+    hideDefaultError: boolean;
+    isToolUseError: boolean;
+    icon: React.ReactNode;
+    statusIcon: React.ReactNode;
+}
+
+// Assembles complete display config for a tool call
+function buildToolConfig(
+    tool: ToolCall,
+    metadata: Metadata | null,
+    messages: Message[] | undefined,
+    knownTool: any,
+    theme: any,
+): ToolConfig {
+    const secondaryColor = theme.colors.textSecondary;
+    const { status, description } = extractStrings(tool, metadata, knownTool);
+    const { toolTitle, isMcp } = resolveTitle(tool, metadata, knownTool);
+    let { minimal, noStatus, hideDefaultError } = resolveFlags(tool, metadata, messages, knownTool, isMcp);
+
+    if (!knownTool && metadata?.flavor === 'gemini') minimal = true;
+
+    const mcpIcon: React.ReactNode = <Ionicons name="extension-puzzle-outline" size={18} color={secondaryColor} />;
+    const fallbackIcon: React.ReactNode = <Ionicons name="construct-outline" size={18} color={secondaryColor} />;
+    const icon = buildIcon(tool, knownTool, isMcp ? mcpIcon : fallbackIcon, theme.colors.text);
+
+    const isToolUseError =
+        tool.state === 'error' && !!tool.result && parseToolUseError(tool.result).isToolUseError;
+    if (isToolUseError) { hideDefaultError = true; minimal = true; }
+
+    return {
+        toolTitle, description, status, minimal, hideDefaultError, isToolUseError,
+        icon, statusIcon: buildStatusIcon(tool, noStatus, theme),
+    };
+}
+
+// Renders the content area below the header
+const ToolContent = React.memo<{
+    tool: ToolCall;
+    metadata: Metadata | null;
+    messages?: Message[];
+    sessionId?: string;
+    hideDefaultError: boolean;
+    isToolUseError: boolean;
+}>(({ tool, metadata, messages, sessionId, hideDefaultError, isToolUseError }) => {
+    const SpecificToolView = getToolViewComponent(tool.name);
+    const isDeniedOrCanceled =
+        tool.permission &&
+        (tool.permission.status === 'denied' || tool.permission.status === 'canceled');
+
+    if (SpecificToolView) {
+        return (
+            <View style={styles.content}>
+                <SpecificToolView tool={tool} metadata={metadata} messages={messages ?? []} sessionId={sessionId} />
+                {tool.state === 'error' && tool.result && !isDeniedOrCanceled && !hideDefaultError && (
+                    <ToolError message={String(tool.result)} />
+                )}
+            </View>
+        );
+    }
+
+    if (tool.state === 'error' && tool.result && !isDeniedOrCanceled && !isToolUseError) {
+        return (
+            <View style={styles.content}>
+                <ToolError message={String(tool.result)} />
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.content}>
+            {tool.input && (
+                <ToolSectionView title={t('toolView.input')}>
+                    <CodeView code={JSON.stringify(tool.input, null, 2)} />
+                </ToolSectionView>
+            )}
+            {tool.state === 'completed' && tool.result && (
+                <ToolSectionView title={t('toolView.output')}>
+                    <CodeView
+                        code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
+                    />
+                </ToolSectionView>
             )}
         </View>
     );
@@ -328,6 +333,8 @@ const styles = StyleSheet.create((theme) => ({
     content: {
         paddingHorizontal: 12,
         paddingTop: 8,
-        overflow: 'visible'
+        overflow: 'visible',
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.divider,
     },
 }));

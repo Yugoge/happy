@@ -51,6 +51,7 @@ export const zhHans: TranslationStructure = {
         discard: '放弃',
         version: '版本',
         copied: '已复制',
+        download: '下载',
         copy: '复制',
         scanning: '扫描中...',
         urlPlaceholder: 'https://example.com',
@@ -435,6 +436,10 @@ export const zhHans: TranslationStructure = {
             fileLabel: '文件',
             folderLabel: '文件夹',
         },
+        attach: {
+            image: '图片',
+            document: '文档',
+        },
         noMachinesAvailable: '无设备',
     },
 
@@ -789,6 +794,7 @@ export const zhHans: TranslationStructure = {
         codeCopied: '代码已复制',
         copyFailed: '复制失败',
         mermaidRenderFailed: '渲染 mermaid 图表失败',
+        downloadFailed: '下载失败',
     },
 
     artifacts: {

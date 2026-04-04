@@ -51,6 +51,7 @@ export const ja: TranslationStructure = {
         discard: '破棄',
         version: 'バージョン',
         copied: 'コピーしました',
+        download: 'ダウンロード',
         copy: 'コピー',
         scanning: 'スキャン中...',
         urlPlaceholder: 'https://example.com',
@@ -435,6 +436,10 @@ export const ja: TranslationStructure = {
             fileLabel: 'ファイル',
             folderLabel: 'フォルダ',
         },
+        attach: {
+            image: '画像',
+            document: 'ドキュメント',
+        },
         noMachinesAvailable: 'マシンなし',
     },
 
@@ -789,6 +794,7 @@ export const ja: TranslationStructure = {
         codeCopied: 'コードをコピーしました',
         copyFailed: 'コピーに失敗しました',
         mermaidRenderFailed: 'Mermaidダイアグラムのレンダリングに失敗しました',
+        downloadFailed: 'ダウンロードに失敗しました',
     },
 
     artifacts: {

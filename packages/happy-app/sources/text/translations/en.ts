@@ -65,6 +65,7 @@ export const en: TranslationStructure = {
         version: 'Version',
         copy: 'Copy',
         copied: 'Copied',
+        download: 'Download',
         scanning: 'Scanning...',
         urlPlaceholder: 'https://example.com',
         home: 'Home',
@@ -448,6 +449,10 @@ export const en: TranslationStructure = {
             fileLabel: 'FILE',
             folderLabel: 'FOLDER',
         },
+        attach: {
+            image: 'Image',
+            document: 'Document',
+        },
         noMachinesAvailable: 'No machines',
     },
 
@@ -802,6 +807,7 @@ export const en: TranslationStructure = {
         codeCopied: 'Code copied',
         copyFailed: 'Failed to copy',
         mermaidRenderFailed: 'Failed to render mermaid diagram',
+        downloadFailed: 'Failed to download',
     },
 
     artifacts: {

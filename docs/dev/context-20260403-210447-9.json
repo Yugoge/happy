@@ -1,0 +1,73 @@
+{
+    "request_id": "dev-20260403-210447-9",
+    "timestamp": "2026-04-03T21:04:47Z",
+    "requirement": {
+        "original": "Bug #61: Mermaid timeline diagrams with Chinese characters or empty events fail to render. Falls back to raw source with Mermaid diagram syntax error message. Previous sanitize fix was attempted and reverted.",
+        "clarified": "Add a pre-processing sanitizer for Mermaid timeline diagrams that handles Chinese/non-ASCII characters and empty event entries, plus improve the error fallback UI to not show raw diagram source.",
+        "what": "Fix MermaidRenderer to sanitize timeline diagram content before rendering, and improve error fallback UX",
+        "why": "Users see raw Mermaid source code with error messages instead of rendered timeline diagrams when content contains Chinese characters or empty events",
+        "where": ["packages/happy-app/sources/components/markdown/MermaidRenderer.tsx"],
+        "scope": {
+            "included": [
+                "Pre-processing sanitizer for timeline diagram content",
+                "Handling Chinese/non-ASCII characters in timeline diagrams",
+                "Removing empty event entries from timeline diagrams",
+                "Improved error fallback message (no raw source display)"
+            ],
+            "excluded": [
+                "Upstream mermaid library fixes",
+                "Native WebView rendering path changes",
+                "Full CJK transliteration library",
+                "Non-timeline diagram types"
+            ]
+        },
+        "success_criteria": [
+            "Timeline diagrams with Chinese characters render as SVG on web",
+            "Timeline diagrams with empty events render after sanitization",
+            "Failed diagrams show user-friendly message, not raw source",
+            "Non-timeline diagrams are unaffected by sanitization"
+        ],
+        "constraints": [
+            "Sanitization must only target timeline diagram type",
+            "Must not break existing working Mermaid diagrams",
+            "Web platform focus (Platform.OS === 'web')"
+        ]
+    },
+    "root_cause_analysis": {
+        "symptom": "Mermaid timeline diagrams with Chinese characters or empty events show 'Mermaid diagram syntax error' and raw source code",
+        "root_cause": "mermaid.render() throws on non-ASCII characters in timeline diagram parsing. No pre-processing sanitizer exists. Error fallback at lines 95-105 dumps raw source which is user-hostile.",
+        "root_cause_commit": "f8b208fa - feat: F1 LaTeX/Mermaid + F2 image upload (introduced MermaidRenderer)",
+        "why_introduced": "MermaidRenderer was built for general Mermaid support without timeline-specific sanitization",
+        "why_problematic": "Timeline diagram type in mermaid library has Unicode parsing issues that other diagram types do not have",
+        "timeline": "Since MermaidRenderer introduction (commit f8b208fa)",
+        "affected_files": ["packages/happy-app/sources/components/markdown/MermaidRenderer.tsx"]
+    },
+    "context": {
+        "codebase_state": "MermaidRenderer.tsx at 258 lines, handles web (direct SVG) and native (WebView) paths",
+        "recent_commits": "f6f129a1 Auto-commit, f8b208fa feat: F1 LaTeX/Mermaid",
+        "file_contents": {
+            "MermaidRenderer.tsx": "Lines 70-74: mermaid.render() call. Lines 80-84: error catch sets hasError. Lines 95-105: error fallback shows raw source."
+        },
+        "dependencies": {
+            "mermaid": "v11 (CDN for native, bundled for web)"
+        },
+        "environment": {}
+    },
+    "development_approach": {
+        "strategy": "Add sanitizeMermaidTimeline() function that detects timeline diagrams and: (1) replaces non-ASCII chars with ASCII approximations or removes them, (2) strips empty event lines. Apply before mermaid.render(). Replace error fallback raw source display with user-friendly message.",
+        "files_to_create": [],
+        "files_to_modify": ["packages/happy-app/sources/components/markdown/MermaidRenderer.tsx"],
+        "validation_approach": "Build web app, test with timeline diagrams containing Chinese characters and empty events. Verify SVG rendering succeeds. Verify non-timeline diagrams still work. Verify error fallback shows friendly message."
+    },
+    "research_findings": {
+        "searched": false,
+        "reason": "Straightforward bug fix with clear root cause in mermaid library Unicode handling"
+    },
+    "standards_to_enforce": {
+        "no_hardcoded_values": true,
+        "yaml_frontmatter_description_only": true,
+        "integer_step_numbering": true,
+        "meaningful_naming": true,
+        "git_root_cause_reference": true
+    }
+}

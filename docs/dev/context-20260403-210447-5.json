@@ -1,0 +1,88 @@
+{
+  "request_id": "dev-20260403-210447-5",
+  "timestamp": "2026-04-03T21:04:47Z",
+  "requirement": {
+    "original": "Bug #64: TaskView title duplication -- outer ToolView renders header with tool name, then TaskView renders its own TaskSummary header inside, creating two stacked headers for the same tool call block.",
+    "clarified": "Remove the duplicate header caused by ToolView rendering its own header AND TaskView rendering TaskSummary inside the content area. The outer ToolView header should be the single header. TaskSummary should be removed or its content consolidated. Additionally, add a visual divider between ToolView header and content area.",
+    "what": "Fix duplicate header rendering for Task/Agent tool calls and add header-content divider",
+    "why": "Two stacked headers showing the same tool name/description create visual noise, waste vertical space, and confuse the information hierarchy",
+    "where": ["packages/happy-app/sources/components/tools/views/TaskView.tsx", "packages/happy-app/sources/components/tools/ToolView.tsx"],
+    "scope": {
+      "included": [
+        "Remove TaskSummary header duplication from TaskView",
+        "Preserve expand/collapse functionality for child messages",
+        "Add visual divider between ToolView header and content area",
+        "Maintain child tool status visibility"
+      ],
+      "excluded": [
+        "Redesigning ToolView layout for non-Task/Agent tools",
+        "Changing the knownTools registration pattern",
+        "Modifying how other tool views render"
+      ]
+    },
+    "success_criteria": [
+      "Only ONE header row visible for Task/Agent tool call blocks",
+      "Expand/collapse for child messages still works",
+      "Subtle divider visible between ToolView header and content area",
+      "Child tool status (running/completed/error) still conveyed visually"
+    ],
+    "constraints": [
+      "Must not break nested TaskView rendering inside ChildMessageBlock",
+      "Must preserve existing expand/collapse state management",
+      "Must follow existing Unistyles patterns"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Two stacked headers appear for Task/Agent tool call blocks -- one from ToolView and one from TaskView's TaskSummary",
+    "root_cause": "ToolView always renders its own header (lines 159-204) showing toolTitle. For Task/Agent, it then renders TaskView as content via getToolViewComponent(). TaskView unconditionally renders TaskSummary (lines 36-42) which shows tool titles with status icons -- creating a second header directly below the first.",
+    "root_cause_commit": "f6f129a1 - Auto-commit: 2026-03-25 12:27:02 (introduced TaskView with its own summary header without accounting for ToolView's outer header)",
+    "why_introduced": "TaskView was designed as a self-contained component that shows its own summary. When it was integrated into ToolView's content rendering pipeline, the outer header was not suppressed.",
+    "why_problematic": "Users see two rows of header information for the same tool call. The outer header shows the tool description, and the inner TaskSummary shows child tool titles -- both styled as headers, creating visual redundancy and confusion.",
+    "timeline": "Since commit f6f129a1 (2026-03-25)",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/views/TaskView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx"
+    ]
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI bug with clear root cause in existing component composition -- no external patterns needed"
+  },
+  "context": {
+    "codebase_state": "Worktree overnight-20260403-d6f1eea4, branched from main",
+    "recent_commits": "f6f129a1 Auto-commit: 2026-03-25 12:27:02 (last change to TaskView/ToolView)",
+    "file_contents": {
+      "TaskView.tsx": {
+        "lines_33_42": "TaskSummary is rendered unconditionally as first child, showing visibleTools with status icons and expand/collapse chevron",
+        "lines_87_140": "TaskSummary component renders tool titles, status icons (ToolStatusIcon), more-tools count, and chevron in a pressable wrapper",
+        "lines_44_56": "Expanded children section renders child messages via ChildMessageBlock which recursively uses ToolView"
+      },
+      "ToolView.tsx": {
+        "lines_159_204": "Header always rendered with icon, toolTitle, status text, elapsed time, and statusIcon. Both pressable and non-pressable variants.",
+        "lines_208_259": "Content area renders SpecificToolView (TaskView for Task/Agent) with no divider between header and content",
+        "lines_276_333": "Styles: header has surfaceHighest background, content has paddingHorizontal:12 paddingTop:8 but no top border"
+      }
+    },
+    "dependencies": {
+      "knownTools.tsx": "taskLikeTool (line 32-55) defines title, icon, minimal logic for Task/Agent. The title function returns tool.input.description or fallback 'Task'.",
+      "_all.tsx": "getToolViewComponent maps Task/Agent to TaskView component (lines 43-44, 56-57)"
+    },
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Remove TaskSummary from TaskView's render output. Instead, TaskView should only render the expand/collapse children section and a compact status summary of child tools (without its own header). The expand/collapse toggle should either be moved to the ToolView header area or the entire ToolView container should become pressable for Task/Agent. Add borderTopWidth divider to ToolView's content style.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/views/TaskView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx"
+    ],
+    "validation_approach": "Visual inspection via Playwright on dev.life-ai.app: verify Task/Agent tool calls show single header, expand/collapse works, divider visible between header and content for all tool types"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

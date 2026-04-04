@@ -60,6 +60,7 @@ export const pl: TranslationStructure = {
         discard: 'Odrzuć',
         version: 'Wersja',
         copied: 'Skopiowano',
+        download: 'Pobierz',
         copy: 'Kopiuj',
         scanning: 'Skanowanie...',
         urlPlaceholder: 'https://example.com',
@@ -444,6 +445,10 @@ export const pl: TranslationStructure = {
             fileLabel: 'PLIK',
             folderLabel: 'FOLDER',
         },
+        attach: {
+            image: 'Obraz',
+            document: 'Dokument',
+        },
         noMachinesAvailable: 'Brak maszyn',
     },
 
@@ -798,6 +803,7 @@ export const pl: TranslationStructure = {
         codeCopied: 'Kod skopiowany',
         copyFailed: 'Błąd kopiowania',
         mermaidRenderFailed: 'Nie udało się wyświetlić diagramu mermaid',
+        downloadFailed: 'Nie udało się pobrać',
     },
 
     artifacts: {

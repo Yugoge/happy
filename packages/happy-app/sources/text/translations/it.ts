@@ -48,6 +48,7 @@ export const it: TranslationStructure = {
         discard: 'Scarta',
         version: 'Versione',
         copied: 'Copiato',
+        download: 'Scarica',
         copy: 'Copia',
         scanning: 'Scansione...',
         urlPlaceholder: 'https://esempio.com',
@@ -432,6 +433,10 @@ export const it: TranslationStructure = {
             fileLabel: 'FILE',
             folderLabel: 'CARTELLA',
         },
+        attach: {
+            image: 'Immagine',
+            document: 'Documento',
+        },
         noMachinesAvailable: 'Nessuna macchina',
     },
 
@@ -786,6 +791,7 @@ export const it: TranslationStructure = {
         codeCopied: 'Codice copiato',
         copyFailed: 'Copia non riuscita',
         mermaidRenderFailed: 'Impossibile renderizzare il diagramma mermaid',
+        downloadFailed: 'Download non riuscito',
     },
 
     artifacts: {
