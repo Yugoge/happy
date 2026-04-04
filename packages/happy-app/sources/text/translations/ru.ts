@@ -60,6 +60,7 @@ export const ru: TranslationStructure = {
         discard: 'Отменить',
         version: 'Версия',
         copied: 'Скопировано',
+        download: 'Скачать',
         copy: 'Копировать',
         scanning: 'Сканирование...',
         urlPlaceholder: 'https://example.com',
@@ -443,6 +444,10 @@ export const ru: TranslationStructure = {
             fileLabel: 'ФАЙЛ',
             folderLabel: 'ПАПКА',
         },
+        attach: {
+            image: 'Изображение',
+            document: 'Документ',
+        },
         noMachinesAvailable: 'Нет машин',
     },
 
@@ -797,6 +802,7 @@ export const ru: TranslationStructure = {
         codeCopied: 'Код скопирован',
         copyFailed: 'Ошибка копирования',
         mermaidRenderFailed: 'Не удалось отобразить диаграмму mermaid',
+        downloadFailed: 'Не удалось скачать',
     },
 
     artifacts: {

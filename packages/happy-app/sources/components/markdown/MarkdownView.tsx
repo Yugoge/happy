@@ -13,21 +13,84 @@ import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { MermaidRenderer } from './MermaidRenderer';
+import { LatexRenderer } from './LatexRenderer';
 import { t } from '@/text';
 import { isHttpMarkdownLink } from './linkUtils';
+import { downloadCodeOnWeb } from './codeDownload';
 
 // Option type for callback
 export type Option = {
     title: string;
 };
 
-export const MarkdownView = React.memo((props: { 
+function renderTextLikeBlock(
+    block: ReturnType<typeof parseMarkdown>[number],
+    index: number,
+    total: number,
+    selectable: boolean,
+    handleLinkPress: (url: string) => void,
+) {
+    const first = index === 0;
+    const last = index === total - 1;
+    if (block.type === 'text') {
+        return <RenderTextBlock spans={block.content} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
+    } else if (block.type === 'header') {
+        return <RenderHeaderBlock level={block.level} spans={block.content} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
+    } else if (block.type === 'horizontal-rule') {
+        return <View style={style.horizontalRule} key={index} />;
+    } else if (block.type === 'list') {
+        return <RenderListBlock items={block.items} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
+    } else if (block.type === 'numbered-list') {
+        return <RenderNumberedListBlock items={block.items} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
+    } else if (block.type === 'code-block') {
+        return <RenderCodeBlock content={block.content} language={block.language} key={index} first={first} last={last} selectable={selectable} />;
+    }
+    return null;
+}
+
+function renderComplexBlock(
+    block: ReturnType<typeof parseMarkdown>[number],
+    index: number,
+    total: number,
+    selectable: boolean,
+    handleLinkPress: (url: string) => void,
+    onOptionPress?: (option: Option) => void,
+) {
+    const first = index === 0;
+    const last = index === total - 1;
+    if (block.type === 'mermaid') {
+        return <MermaidRenderer content={block.content} key={index} />;
+    } else if (block.type === 'latex') {
+        return <LatexRenderer content={block.content} key={index} />;
+    } else if (block.type === 'options') {
+        return <RenderOptionsBlock items={block.items} key={index} first={first} last={last} selectable={selectable} onOptionPress={onOptionPress} />;
+    } else if (block.type === 'table') {
+        return <RenderTableBlock headers={block.headers} rows={block.rows} onLinkPress={handleLinkPress} selectable={selectable} key={index} first={first} last={last} />;
+    } else if (block.type === 'image') {
+        return <RenderImageBlock url={block.url} alt={block.alt} key={index} first={first} last={last} />;
+    }
+    return null;
+}
+
+function renderBlock(
+    block: ReturnType<typeof parseMarkdown>[number],
+    index: number,
+    total: number,
+    selectable: boolean,
+    handleLinkPress: (url: string) => void,
+    onOptionPress?: (option: Option) => void,
+) {
+    return renderTextLikeBlock(block, index, total, selectable, handleLinkPress)
+        ?? renderComplexBlock(block, index, total, selectable, handleLinkPress, onOptionPress);
+}
+
+export const MarkdownView = React.memo((props: {
     markdown: string;
     onOptionPress?: (option: Option) => void;
     sessionId?: string;
 }) => {
     const blocks = React.useMemo(() => parseMarkdown(props.markdown), [props.markdown]);
-    
+
     // Backwards compatibility: The original version just returned the view, wrapping the list of blocks.
     // It made each of the individual text elements selectable. When we enable the markdownCopyV2 feature,
     // we disable the selectable property on individual text segments on mobile only. Instead, the long press
@@ -38,17 +101,13 @@ export const MarkdownView = React.memo((props: {
     const router = useRouter();
 
     const handleLinkPress = React.useCallback((url: string) => {
-        if (!isHttpMarkdownLink(url)) {
-            return;
-        }
-
+        if (!isHttpMarkdownLink(url)) return;
         if (Platform.OS === 'web') {
             if (typeof window !== 'undefined') {
                 window.open(url, '_blank', 'noopener,noreferrer');
             }
             return;
         }
-
         void WebBrowser.openBrowserAsync(url);
     }, []);
 
@@ -61,53 +120,22 @@ export const MarkdownView = React.memo((props: {
             Modal.alert('Error', 'Failed to open text selection. Please try again.');
         }
     }, [props.markdown, router]);
-    const renderContent = () => {
-        return (
-            <View style={{ width: '100%' }}>
-                {blocks.map((block, index) => {
-                    if (block.type === 'text') {
-                        return <RenderTextBlock spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onLinkPress={handleLinkPress} />;
-                    } else if (block.type === 'header') {
-                        return <RenderHeaderBlock level={block.level} spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onLinkPress={handleLinkPress} />;
-                    } else if (block.type === 'horizontal-rule') {
-                        return <View style={style.horizontalRule} key={index} />;
-                    } else if (block.type === 'list') {
-                        return <RenderListBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onLinkPress={handleLinkPress} />;
-                    } else if (block.type === 'numbered-list') {
-                        return <RenderNumberedListBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onLinkPress={handleLinkPress} />;
-                    } else if (block.type === 'code-block') {
-                        return <RenderCodeBlock content={block.content} language={block.language} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
-                    } else if (block.type === 'mermaid') {
-                        return <MermaidRenderer content={block.content} key={index} />;
-                    } else if (block.type === 'options') {
-                        return <RenderOptionsBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onOptionPress={props.onOptionPress} />;
-                    } else if (block.type === 'table') {
-                        return <RenderTableBlock headers={block.headers} rows={block.rows} onLinkPress={handleLinkPress} selectable={selectable} key={index} first={index === 0} last={index === blocks.length - 1} />;
-                    } else if (block.type === 'image') {
-                        return <RenderImageBlock url={block.url} alt={block.alt} key={index} first={index === 0} last={index === blocks.length - 1} />;
-                    } else {
-                        return null;
-                    }
-                })}
-            </View>
-        );
+
+    const renderContent = () => (
+        <View style={{ width: '100%' }}>
+            {blocks.map((block, index) => renderBlock(block, index, blocks.length, selectable, handleLinkPress, props.onOptionPress))}
+        </View>
+    );
+
+    if (!markdownCopyV2 || Platform.OS === 'web') {
+        return renderContent();
     }
 
-    if (!markdownCopyV2) {
-        return renderContent();
-    }
-    
-    if (Platform.OS === 'web') {
-        return renderContent();
-    }
-    
     // Use GestureDetector with LongPress gesture - it doesn't block pan gestures
     // so horizontal scrolling in code blocks and tables still works
     const longPressGesture = Gesture.LongPress()
         .minDuration(500)
-        .onStart(() => {
-            handleLongPress();
-        })
+        .onStart(() => { handleLongPress(); })
         .runOnJS(true);
 
     return (
@@ -158,9 +186,8 @@ function RenderNumberedListBlock(props: { items: { number: number, spans: Markdo
     );
 }
 
-function RenderCodeBlock(props: { content: string, language: string | null, first: boolean, last: boolean, selectable: boolean }) {
-    const [isHovered, setIsHovered] = React.useState(false);
-
+// Copy button extracted to keep CodeBlockButtons under 30 lines.
+function CodeBlockCopyButton(props: { content: string }) {
     const copyCode = React.useCallback(async () => {
         try {
             await Clipboard.setStringAsync(props.content);
@@ -170,7 +197,44 @@ function RenderCodeBlock(props: { content: string, language: string | null, firs
             Modal.alert(t('common.error'), t('markdown.copyFailed'), [{ text: t('common.ok'), style: 'cancel' }]);
         }
     }, [props.content]);
+    return (
+        <Pressable style={style.copyButton} onPress={copyCode}>
+            <Text style={style.copyButtonText}>{t('common.copy')}</Text>
+        </Pressable>
+    );
+}
 
+// Download button extracted to keep CodeBlockButtons under 30 lines.
+function CodeBlockDownloadButton(props: { content: string, language: string | null }) {
+    const downloadCode = React.useCallback(() => {
+        try {
+            downloadCodeOnWeb(props.content, props.language);
+        } catch (error) {
+            console.error('Failed to download code:', error);
+            Modal.alert(t('common.error'), t('markdown.downloadFailed'), [{ text: t('common.ok'), style: 'cancel' }]);
+        }
+    }, [props.content, props.language]);
+    return (
+        <Pressable style={style.copyButton} onPress={downloadCode}>
+            <Text style={style.copyButtonText}>{t('common.download')}</Text>
+        </Pressable>
+    );
+}
+
+function CodeBlockButtons(props: { content: string, language: string | null }) {
+    const hasContent = props.content.trim().length > 0;
+    return (
+        <>
+            <CodeBlockCopyButton content={props.content} />
+            {hasContent && Platform.OS === 'web' && (
+                <CodeBlockDownloadButton content={props.content} language={props.language} />
+            )}
+        </>
+    );
+}
+
+function RenderCodeBlock(props: { content: string, language: string | null, first: boolean, last: boolean, selectable: boolean }) {
+    const [isHovered, setIsHovered] = React.useState(false);
     return (
         <View
             style={[style.codeBlock, props.first && style.first, props.last && style.last]}
@@ -180,28 +244,14 @@ function RenderCodeBlock(props: { content: string, language: string | null, firs
             onMouseLeave={() => setIsHovered(false)}
         >
             {props.language && <Text selectable={props.selectable} style={style.codeLanguage}>{props.language}</Text>}
-            <ScrollView
-                style={{ flexGrow: 0, flexShrink: 0 }}
-                horizontal={true}
+            <ScrollView style={{ flexGrow: 0, flexShrink: 0 }} horizontal={true}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
-                showsHorizontalScrollIndicator={false}
-            >
-                <SimpleSyntaxHighlighter
-                    code={props.content}
-                    language={props.language}
-                    selectable={props.selectable}
-                />
+                showsHorizontalScrollIndicator={Platform.OS === 'web'}>
+                <SimpleSyntaxHighlighter code={props.content} language={props.language} selectable={props.selectable} />
             </ScrollView>
-            <View
-                style={[style.copyButtonWrapper, isHovered && style.copyButtonWrapperVisible]}
-                {...(Platform.OS === 'web' ? ({ className: 'copy-button-wrapper' } as any) : {})}
-            >
-                <Pressable
-                    style={style.copyButton}
-                    onPress={copyCode}
-                >
-                    <Text style={style.copyButtonText}>{t('common.copy')}</Text>
-                </Pressable>
+            <View style={[style.copyButtonWrapper, isHovered && style.copyButtonWrapperVisible]}
+                {...(Platform.OS === 'web' ? ({ className: 'copy-button-wrapper' } as any) : {})}>
+                <CodeBlockButtons content={props.content} language={props.language} />
             </View>
         </View>
     );
@@ -209,7 +259,6 @@ function RenderCodeBlock(props: { content: string, language: string | null, firs
 
 function RenderImageBlock(props: { url: string, alt: string, first: boolean, last: boolean }) {
     const accessibleLabel = props.alt || 'Markdown image';
-
     return (
         <View style={[style.imageBlock, props.first && style.first, props.last && style.last]}>
             <Image
@@ -225,65 +274,108 @@ function RenderImageBlock(props: { url: string, alt: string, first: boolean, las
     );
 }
 
-function RenderOptionsBlock(props: { 
-    items: string[], 
-    first: boolean, 
-    last: boolean, 
+function RenderOptionItem(props: { item: string, selectable: boolean, onOptionPress?: (option: Option) => void }) {
+    if (props.onOptionPress) {
+        return (
+            <Pressable
+                style={({ pressed }) => [style.optionItem, pressed && style.optionItemPressed]}
+                onPress={() => props.onOptionPress?.({ title: props.item })}
+            >
+                <Text selectable={props.selectable} style={style.optionText}>{props.item}</Text>
+            </Pressable>
+        );
+    }
+    return (
+        <View style={style.optionItem}>
+            <Text selectable={props.selectable} style={style.optionText}>{props.item}</Text>
+        </View>
+    );
+}
+
+function RenderOptionsBlock(props: {
+    items: string[],
+    first: boolean,
+    last: boolean,
     selectable: boolean,
-    onOptionPress?: (option: Option) => void 
+    onOptionPress?: (option: Option) => void
 }) {
     return (
         <View style={[style.optionsContainer, props.first && style.first, props.last && style.last]}>
-            {props.items.map((item, index) => {
-                if (props.onOptionPress) {
-                    return (
-                        <Pressable 
-                            key={index} 
-                            style={({ pressed }) => [
-                                style.optionItem,
-                                pressed && style.optionItemPressed
-                            ]}
-                            onPress={() => props.onOptionPress?.({ title: item })}
-                        >
-                            <Text selectable={props.selectable} style={style.optionText}>{item}</Text>
-                        </Pressable>
-                    );
-                } else {
-                    return (
-                        <View key={index} style={style.optionItem}>
-                            <Text selectable={props.selectable} style={style.optionText}>{item}</Text>
-                        </View>
-                    );
-                }
-            })}
+            {props.items.map((item, index) => (
+                <RenderOptionItem key={index} item={item} selectable={props.selectable} onOptionPress={props.onOptionPress} />
+            ))}
         </View>
+    );
+}
+
+type RenderSpanItemProps = {
+    span: MarkdownSpan;
+    index: number;
+    baseStyle?: any;
+    selectable: boolean;
+    onLinkPress: (url: string) => void;
+};
+
+// Single span item extracted to avoid inline nesting depth violations in RenderSpans.
+function RenderSpanItem(props: RenderSpanItemProps) {
+    const isExternalLink = !!props.span.url && isHttpMarkdownLink(props.span.url);
+    const handleWebClick = React.useCallback(() => {
+        if (typeof window !== 'undefined' && props.span.url) {
+            window.open(props.span.url, '_blank', 'noopener,noreferrer');
+        }
+    }, [props.span.url]);
+
+    if (!props.span.url) {
+        return <Text key={props.index} selectable={props.selectable} style={[props.baseStyle, props.span.styles.map(s => style[s])]}>{props.span.text}</Text>;
+    }
+    const webProps = isExternalLink && Platform.OS === 'web' ? { onClick: handleWebClick } as any : {};
+    return (
+        <Text
+            key={props.index}
+            selectable={props.selectable}
+            accessibilityRole={isExternalLink ? 'link' : undefined}
+            style={[props.baseStyle, isExternalLink && style.link, props.span.styles.map(s => style[s])]}
+            {...webProps}
+            onPress={isExternalLink && Platform.OS !== 'web' ? () => props.onLinkPress(props.span.url!) : undefined}
+        >
+            {props.span.text}
+        </Text>
     );
 }
 
 function RenderSpans(props: RenderSpanProps) {
     return (<>
-        {props.spans.map((span, index) => {
-            if (span.url) {
-                const isExternalLink = isHttpMarkdownLink(span.url);
-                return (
-                    <Text
-                        key={index}
-                        selectable={props.selectable}
-                        accessibilityRole={isExternalLink ? 'link' : undefined}
-                        style={[props.baseStyle, isExternalLink && style.link, span.styles.map(s => style[s])]}
-                        {...(isExternalLink && Platform.OS === 'web' ? { onClick: () => { if (typeof window !== 'undefined') window.open(span.url!, '_blank', 'noopener,noreferrer'); } } as any : {})}
-                        onPress={isExternalLink && Platform.OS !== 'web'
-                            ? () => props.onLinkPress(span.url!)
-                            : undefined}
-                    >
-                        {span.text}
-                    </Text>
-                );
-            } else {
-                return <Text key={index} selectable={props.selectable} style={[props.baseStyle, span.styles.map(s => style[s])]}>{span.text}</Text>
-            }
-        })}
-    </>)
+        {props.spans.map((span, index) => (
+            <RenderSpanItem key={index} span={span} index={index} baseStyle={props.baseStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} />
+        ))}
+    </>);
+}
+
+function TableColumn(props: {
+    header: MarkdownSpan[],
+    colIndex: number,
+    columnCount: number,
+    rows: MarkdownSpan[][][],
+    rowCount: number,
+    onLinkPress: (url: string) => void,
+    selectable: boolean,
+}) {
+    const isLastCol = props.colIndex === props.columnCount - 1;
+    return (
+        <View style={[style.tableColumn, isLastCol && style.tableColumnLast]}>
+            <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
+                <Text style={style.tableHeaderText}><RenderSpans spans={props.header} baseStyle={style.tableHeaderText} onLinkPress={props.onLinkPress} selectable={props.selectable} /></Text>
+            </View>
+            {props.rows.map((row, rowIndex) => (
+                <View
+                    key={`cell-${rowIndex}-${props.colIndex}`}
+                    style={[style.tableCell, rowIndex === props.rowCount - 1 && style.tableCellLast]}
+                >
+                    <Text style={style.tableCellText}><RenderSpans spans={row[props.colIndex] ?? []} baseStyle={style.tableCellText} onLinkPress={props.onLinkPress} selectable={props.selectable} /></Text>
+                </View>
+            ))}
+        </View>
+    );
 }
 
 // Table rendering uses column-first layout to ensure consistent column widths.
@@ -297,45 +389,22 @@ function RenderTableBlock(props: {
     first: boolean,
     last: boolean
 }) {
-    const columnCount = props.headers.length;
-    const rowCount = props.rows.length;
-    const isLastRow = (rowIndex: number) => rowIndex === rowCount - 1;
-
     return (
         <View style={[style.tableContainer, props.first && style.first, props.last && style.last]}>
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={Platform.OS !== 'web'}
-                nestedScrollEnabled={true}
-                style={style.tableScrollView}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                nestedScrollEnabled={true} style={style.tableScrollView}>
                 <View style={style.tableContent}>
-                    {/* Render each column as a vertical container */}
                     {props.headers.map((header, colIndex) => (
-                        <View
+                        <TableColumn
                             key={`column-${colIndex}`}
-                            style={[
-                                style.tableColumn,
-                                colIndex === columnCount - 1 && style.tableColumnLast
-                            ]}
-                        >
-                            {/* Header cell for this column */}
-                            <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
-                                <Text style={style.tableHeaderText}><RenderSpans spans={header} baseStyle={style.tableHeaderText} onLinkPress={props.onLinkPress} selectable={props.selectable} /></Text>
-                            </View>
-                            {/* Data cells for this column */}
-                            {props.rows.map((row, rowIndex) => (
-                                <View
-                                    key={`cell-${rowIndex}-${colIndex}`}
-                                    style={[
-                                        style.tableCell,
-                                        isLastRow(rowIndex) && style.tableCellLast
-                                    ]}
-                                >
-                                    <Text style={style.tableCellText}><RenderSpans spans={row[colIndex] ?? []} baseStyle={style.tableCellText} onLinkPress={props.onLinkPress} selectable={props.selectable} /></Text>
-                                </View>
-                            ))}
-                        </View>
+                            header={header}
+                            colIndex={colIndex}
+                            columnCount={props.headers.length}
+                            rows={props.rows}
+                            rowCount={props.rows.length}
+                            onLinkPress={props.onLinkPress}
+                            selectable={props.selectable}
+                        />
                     ))}
                 </View>
             </ScrollView>
@@ -467,6 +536,8 @@ const style = StyleSheet.create((theme) => ({
         zIndex: 10,
         elevation: 10,
         pointerEvents: 'none',
+        flexDirection: 'row',
+        gap: 4,
     },
     copyButtonWrapperVisible: {
         opacity: 1,

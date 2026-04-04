@@ -1,93 +1,68 @@
 /**
  * Message to Event Parser
- * 
- * This module provides functionality to parse certain messages and convert them
- * to events. Messages that match specific patterns can be transformed into events
- * which will skip normal message processing phases and be handled as events instead.
+ *
+ * Converts certain messages into events that skip normal message processing.
+ * Tool calls like mcp__happy__change_title are intercepted here and converted
+ * to native service messages (e.g. "Title changed to X").
  */
 
-import { NormalizedMessage } from "../typesRaw";
-import { AgentEvent } from "../typesRaw";
+import { NormalizedMessage, AgentEvent } from "../typesRaw";
+
+/** Check agent text content for usage-limit markers. */
+function parseUsageLimitEvent(text: string): AgentEvent | null {
+    const match = text.match(/^Claude AI usage limit reached\|(\d+)$/);
+    if (!match) return null;
+    const timestamp = parseInt(match[1], 10);
+    if (isNaN(timestamp)) return null;
+    return { type: 'limit-reached', endsAt: timestamp } as AgentEvent;
+}
+
+/** Check agent content blocks for tool calls that should become events. */
+function parseAgentMessage(msg: NormalizedMessage & { role: 'agent' }): AgentEvent | null {
+    for (const block of msg.content) {
+        if (block.type === 'text') {
+            const evt = parseUsageLimitEvent(block.text);
+            if (evt) return evt;
+        }
+        // Intercept mcp__happy__change_title tool calls and convert to service message
+        if (block.type === 'tool-call' && block.name === 'mcp__happy__change_title') {
+            const title = block.input?.title;
+            if (typeof title === 'string') {
+                return { type: 'message', message: 'Title changed to "' + title + '"' } as AgentEvent;
+            }
+        }
+        if (block.type === 'tool-call' && (block.name === 'EnterPlanMode' || block.name === 'enter_plan_mode')) {
+            return { type: 'message', message: 'Entering plan mode' } as AgentEvent;
+        }
+    }
+    return null;
+}
 
 /**
  * Parses a normalized message to determine if it should be converted to an event.
- * 
- * @param msg - The normalized message to parse
- * @returns An AgentEvent if the message should be converted, null otherwise
- * 
- * Examples of messages that could be converted to events:
- * - User messages with special commands (e.g., "/switch mode")
- * - Agent messages with specific tool results
- * - Messages with certain metadata flags
+ * Returns an AgentEvent if the message should be converted, null otherwise.
  */
 export function parseMessageAsEvent(msg: NormalizedMessage): AgentEvent | null {
-    // Skip sidechain messages
-    if (msg.isSidechain) {
-        return null;
-    }
+    if (msg.isSidechain) return null;
 
-    // Check for agent messages that should become events
     if (msg.role === 'agent') {
-        for (const content of msg.content) {
-            // Check for Claude AI usage limit messages
-            if (content.type === 'text') {
-                const limitMatch = content.text.match(/^Claude AI usage limit reached\|(\d+)$/);
-                if (limitMatch) {
-                    const timestamp = parseInt(limitMatch[1], 10);
-                    if (!isNaN(timestamp)) {
-                        return {
-                            type: 'limit-reached',
-                            endsAt: timestamp
-                        } as AgentEvent;
-                    }
-                }
-                
-            }
-            
-            // Check for mcp__happy__change_title tool calls
-            if (content.type === 'tool-call' && content.name === 'mcp__happy__change_title') {
-                const title = content.input?.title;
-                if (typeof title === 'string') {
-                    return {
-                        type: 'message',
-                        message: `Title changed to "${title}"`,
-                    } as AgentEvent;
-                }
-            }
-
-            // Check for EnterPlanMode tool calls
-            if (content.type === 'tool-call' && (content.name === 'EnterPlanMode' || content.name === 'enter_plan_mode')) {
-                return {
-                    type: 'message',
-                    message: 'Entering plan mode',
-                } as AgentEvent;
-            }
-        }
+        return parseAgentMessage(msg);
     }
 
-    // Convert /compact user messages to system events
-    if (msg.role === 'user' && msg.content.type === 'text') {
+    if (msg.role === 'user') {
         const trimmed = msg.content.text.trim();
         if (trimmed === '/compact' || trimmed.startsWith('/compact ')) {
-            return {
-                type: 'message',
-                message: 'Compacting conversation...',
-            } as AgentEvent;
+            return { type: 'message', message: 'Compacting conversation...' } as AgentEvent;
         }
     }
 
-    // No event conversion needed
     return null;
 }
 
 /**
  * Checks if a message should be excluded from normal processing
  * after being converted to an event.
- * 
- * @param msg - The normalized message to check
- * @returns true if the message should skip normal processing
  */
 export function shouldSkipNormalProcessing(msg: NormalizedMessage): boolean {
-    // If a message converts to an event, it should skip normal processing
     return parseMessageAsEvent(msg) !== null;
 }

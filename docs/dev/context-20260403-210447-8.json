@@ -1,0 +1,91 @@
+{
+    "request_id": "dev-20260403-210447-8",
+    "timestamp": "2026-04-03T21:04:47Z",
+    "requirement": {
+        "original": "Session navigation unreliable: directly navigating to session 2 URL redirects to wrong page (Settings or session 1). Back button from tool detail view navigates to wrong page instead of returning to parent session.",
+        "clarified": "Fix two web navigation bugs: (1) direct URL navigation to /session/<id> must display the correct session instead of redirecting to Settings or wrong session, and (2) back button from /session/:id/message/:msgId must return to the parent session view.",
+        "what": "Fix session route param reading and tool detail back navigation on web platform",
+        "why": "Users cannot reliably navigate to sessions via URL or return from tool detail views, breaking core session navigation workflow on web",
+        "where": [
+            "packages/happy-app/sources/app/(app)/session/[id].tsx",
+            "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx",
+            "packages/happy-app/sources/hooks/useNavigateToSession.ts",
+            "packages/happy-app/sources/components/tools/ToolView.tsx",
+            "packages/happy-app/sources/-session/SessionView.tsx"
+        ],
+        "scope": {
+            "included": [
+                "Fix session/[id].tsx param reading to use useLocalSearchParams",
+                "Fix [messageId].tsx back navigation to navigate to parent session",
+                "Ensure dangerouslySingular navigation continues to work for sidebar switching"
+            ],
+            "excluded": [
+                "Drawer/Stack architecture changes",
+                "Native mobile navigation",
+                "Browser history manipulation beyond Expo Router APIs"
+            ]
+        },
+        "success_criteria": [
+            "Direct URL navigation to /session/<id> displays the correct session on web",
+            "Back button from /session/:id/message/:msgId returns to parent session",
+            "Sidebar session switching continues to work correctly",
+            "Session view re-renders when params change via dangerouslySingular"
+        ],
+        "constraints": [
+            "Must use Expo Router APIs (useLocalSearchParams, not useRoute from React Navigation)",
+            "dangerouslySingular is undocumented API -- do not remove, but do not rely on it for param reactivity",
+            "Cannot change the Drawer + Stack navigation architecture"
+        ]
+    },
+    "root_cause_analysis": {
+        "symptom": "Direct URL to session 2 shows wrong page; back from tool detail goes to wrong page",
+        "root_cause": "session/[id].tsx uses useRoute() from @react-navigation/native instead of useLocalSearchParams from expo-router. When dangerouslySingular reuses the same screen instance with new params, useRoute() may not trigger re-render with updated params. Additionally, [messageId].tsx uses router.back() which relies on browser history stack which may not contain the parent session when navigated via sidebar (router.navigate vs router.push).",
+        "root_cause_commit": "7f178466 - fix: fix monorepo (original useNavigateToSession), c6c99ee4 - Improve session push notifications and routing (added dangerouslySingular)",
+        "why_introduced": "useRoute() was used before Expo Router migration; dangerouslySingular was added to prevent multiple session screens in stack",
+        "why_problematic": "useRoute() does not react to Expo Router param changes when screen is reused via dangerouslySingular. router.back() on web pops browser history which may not match React Navigation stack state.",
+        "timeline": "Since initial Expo Router adoption with dangerouslySingular (commit c6c99ee4, 2026-03-22)",
+        "affected_files": [
+            "packages/happy-app/sources/app/(app)/session/[id].tsx",
+            "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx"
+        ]
+    },
+    "context": {
+        "codebase_state": "Worktree overnight-20260403-d6f1eea4, main branch",
+        "recent_commits": "925f5960 Merge upstream (Expo SDK 55), 68d1b267 rename happy-coder, f4ced5c5 worktree cleanup",
+        "file_contents": {
+            "session/[id].tsx": "Uses useRoute() from @react-navigation/native to read sessionId param, passes to SessionView. 10 lines total.",
+            "[messageId].tsx": "Uses useLocalSearchParams correctly for its own params, but calls router.back() for navigation (line 51) which is unreliable on web.",
+            "useNavigateToSession.ts": "Uses router.navigate with dangerouslySingular returning 'session' to ensure single session screen in stack.",
+            "ToolView.tsx": "Uses router.push for /session/:id/message/:msgId navigation (line 38).",
+            "_layout.tsx": "Stack with initialRouteName='index', session/[id] has headerShown:false, session/[id]/message/[messageId] has headerShown:true with back button."
+        },
+        "dependencies": {
+            "expo-router": "v6 (file-based routing)",
+            "@react-navigation/native": "underlying navigation library"
+        },
+        "environment": {
+            "platform": "web (primary bug platform)",
+            "framework": "Expo SDK 54/55, React Native"
+        }
+    },
+    "development_approach": {
+        "strategy": "Fix param reading in session/[id].tsx to use useLocalSearchParams (Expo Router API) instead of useRoute() (React Navigation API). Fix back navigation in [messageId].tsx to use navigateToSession() instead of router.back() so it always goes to the correct parent session regardless of browser history state.",
+        "files_to_create": [],
+        "files_to_modify": [
+            "packages/happy-app/sources/app/(app)/session/[id].tsx",
+            "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx"
+        ],
+        "validation_approach": "Deploy to happy-web-dev, use Playwright to: (1) navigate directly to /session/<id> URL and verify correct session loads, (2) click tool to go to message detail then press back and verify return to correct session, (3) switch sessions via sidebar and verify correct session displays"
+    },
+    "research_findings": {
+        "searched": false,
+        "reason": "Straightforward bug fix with clear root cause: wrong API used for param reading (useRoute vs useLocalSearchParams) and unreliable router.back() on web"
+    },
+    "standards_to_enforce": {
+        "no_hardcoded_values": true,
+        "yaml_frontmatter_description_only": true,
+        "integer_step_numbering": true,
+        "meaningful_naming": true,
+        "git_root_cause_reference": true
+    }
+}

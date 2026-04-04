@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
-import { Text, View, ActivityIndicator } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import { Text } from "react-native";
 import { useMessage, useSession, useSessionMessages } from "@/sync/storage";
 import { sync } from '@/sync/sync';
 import { Deferred } from "@/components/Deferred";
@@ -10,6 +11,7 @@ import { ToolStatusIndicator } from '@/components/tools/ToolStatusIndicator';
 import { Message } from '@/sync/typesMessage';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Typography } from '@/constants/Typography';
+import { navigateToSession } from '@/hooks/useNavigateToSession';
 
 const stylesheet = StyleSheet.create((theme) => ({
     loadingContainer: {
@@ -29,6 +31,33 @@ const stylesheet = StyleSheet.create((theme) => ({
     },
 }));
 
+function ToolScreenHeader(props: { message: Message; theme: ReturnType<typeof useUnistyles>['theme'] }) {
+    const { message, theme } = props;
+    if (message.kind !== 'tool-call' || !message.tool) {
+        return null;
+    }
+    return (
+        <Stack.Screen
+            options={{
+                headerTitle: () => <ToolHeader tool={message.tool} />,
+                headerRight: () => <ToolStatusIndicator tool={message.tool} />,
+                headerStyle: { backgroundColor: theme.colors.header.background },
+                headerTintColor: theme.colors.header.tint,
+                headerShadowVisible: false,
+            }}
+        />
+    );
+}
+
+function LoadingView() {
+    const { theme } = useUnistyles();
+    return (
+        <View style={stylesheet.loadingContainer}>
+            <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+        </View>
+    );
+}
+
 export default React.memo(() => {
     const { id: sessionId, messageId } = useLocalSearchParams<{ id: string; messageId: string }>();
     const router = useRouter();
@@ -36,63 +65,31 @@ export default React.memo(() => {
     const { isLoaded: messagesLoaded } = useSessionMessages(sessionId!);
     const message = useMessage(sessionId!, messageId!);
     const { theme } = useUnistyles();
-    const styles = stylesheet;
-    
-    // Trigger session visibility when component mounts
+
     React.useEffect(() => {
         if (sessionId) {
             sync.onSessionVisible(sessionId);
         }
     }, [sessionId]);
-    
-    // Navigate back if message doesn't exist after messages are loaded
+
+    // Navigate to parent session if message doesn't exist after messages are loaded.
+    // Use navigateToSession() instead of router.back() because on web, router.back() relies
+    // on browser history which may not contain the parent session when the user arrived via
+    // sidebar navigation (router.navigate with dangerouslySingular, not router.push).
+    // Root cause: commits 7f178466 / c6c99ee4.
     React.useEffect(() => {
         if (messagesLoaded && !message) {
-            router.back();
+            navigateToSession(router, sessionId!);
         }
-    }, [messagesLoaded, message, router]);
-    
-    // Configure header for tool messages
-    React.useLayoutEffect(() => {
-        if (message && message.kind === 'tool-call' && message.tool) {
-            // Header is configured in the Stack.Screen options
-        }
-    }, [message]);
-    
-    // Show loader while waiting for session and messages to load
-    if (!session || !messagesLoaded) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={theme.colors.textSecondary} />
-            </View>
-        );
+    }, [messagesLoaded, message, router, sessionId]);
+
+    if (!session || !messagesLoaded || !message) {
+        return <LoadingView />;
     }
-    
-    // If messages are loaded but specific message not found, show loader briefly
-    // The useEffect above will navigate back
-    if (!message) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={theme.colors.textSecondary} />
-            </View>
-        );
-    }
-    
+
     return (
         <>
-            {message && message.kind === 'tool-call' && message.tool && (
-                <Stack.Screen
-                    options={{
-                        headerTitle: () => <ToolHeader tool={message.tool} />,
-                        headerRight: () => <ToolStatusIndicator tool={message.tool} />,
-                        headerStyle: {
-                            backgroundColor: theme.colors.header.background,
-                        },
-                        headerTintColor: theme.colors.header.tint,
-                        headerShadowVisible: false,
-                    }}
-                />
-            )}
+            <ToolScreenHeader message={message} theme={theme} />
             <Deferred>
                 <FullView message={message} />
             </Deferred>
@@ -101,9 +98,8 @@ export default React.memo(() => {
 });
 
 function FullView(props: { message: Message }) {
-    const { theme } = useUnistyles();
     const styles = stylesheet;
-    
+
     if (props.message.kind === 'tool-call') {
         return <ToolFullView tool={props.message.tool} messages={props.message.children} />
     }

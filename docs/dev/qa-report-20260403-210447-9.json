@@ -1,0 +1,66 @@
+{
+  "pipeline_index": 9,
+  "timestamp_suffix": "20260403-210447-9",
+  "timestamp": "2026-04-03T22:30:00Z",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "sanitizeMermaidTimeline function exists",
+      "result": "pass",
+      "evidence": "Function defined at MermaidRenderer.tsx:12. Detects timeline diagrams via /^timeline\\b/i, strips non-ASCII via /[^\\x00-\\x7F]+/g, filters empty event lines via /^\\s*:\\s*$/."
+    },
+    {
+      "name": "sanitizeMermaidTimeline applied before render",
+      "result": "pass",
+      "evidence": "MermaidRenderer.tsx:102 - renderMermaidSvg(sanitizeMermaidTimeline(content), ...) - sanitizer is called with content before mermaid.render()."
+    },
+    {
+      "name": "sanitizeMermaidTimeline only applies to timeline type",
+      "result": "pass",
+      "evidence": "MermaidRenderer.tsx:13 - early return if /^timeline\\b/i does not match, preserving flowchart/gantt/pie behavior."
+    },
+    {
+      "name": "MermaidErrorFallback shows user-friendly message, not raw source",
+      "result": "pass",
+      "evidence": "MermaidRenderer.tsx:87 - renders 'Timeline diagram could not be rendered' text only. No codeBlock or raw source display."
+    },
+    {
+      "name": "Error message present in compiled bundle",
+      "result": "pass",
+      "evidence": "docker exec happy-web-dev grep -c 'Timeline diagram could not be rendered' index-b322726aab0e9591a2ca417b09ac63e9.js = 1 match."
+    },
+    {
+      "name": "Sanitizer logic in compiled bundle",
+      "result": "pass",
+      "evidence": "grep in compiled bundle found tokens: 'sanitiz', 'trimStart', '\\x00-\\x7F' - all three present, function was not tree-shaken."
+    },
+    {
+      "name": "Mermaid flowchart renders correctly in browser",
+      "result": "pass",
+      "evidence": "Screenshot qa-p10-1280.png shows a rendered Mermaid flowchart SVG (Start->Decision->Action/Skip->End) visible in session. MermaidWebRenderer is functional."
+    },
+    {
+      "name": "No raw mermaid source shown as fallback",
+      "result": "pass",
+      "evidence": "Accessibility tree shows rendered SVG paragraph nodes (Yes, No, Start, Decision, Action, Skip, End), not raw mermaid code text."
+    },
+    {
+      "name": "Band-aid detection",
+      "result": "pass",
+      "evidence": "Fix adds a pre-processor that sanitizes input upstream. No thresholds lowered, no exceptions swallowed, no checks removed. Root cause addressed by fixing input before the parser."
+    }
+  ],
+  "issues_found": [],
+  "hardcode_scan": {
+    "files_scanned": 1,
+    "violations": [],
+    "notes": "No hardcoded URLs, paths, credentials, or non-configurable values found in MermaidRenderer.tsx."
+  },
+  "build_verification": {
+    "status": "pass",
+    "build_timestamp": "2026-04-03T22:13:24Z",
+    "source_file_modified": "2026-04-03T22:06:10Z",
+    "conclusion": "Build postdates file modification. Error message and sanitizer tokens confirmed in deployed bundle index-b322726aab0e9591a2ca417b09ac63e9.js."
+  },
+  "summary": "Pipeline 9 PASSES. sanitizeMermaidTimeline() correctly strips non-ASCII characters from timeline diagrams before mermaid.render(). Scoped to timeline type only - other diagram types unaffected. MermaidErrorFallback renders 'Timeline diagram could not be rendered' instead of raw source. Both changes confirmed in the live compiled bundle. Mermaid SVG rendering is functional."
+}

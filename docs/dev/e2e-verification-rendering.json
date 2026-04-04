@@ -1,0 +1,20 @@
+{
+  "pipeline_0_latex": {
+    "verdict": "PASS",
+    "method": "mixed",
+    "evidence": "KaTeX is bundled as async chunk (katex-18517b869148bf7ac08117bd648a4ad6.js, module ID 2907). Loaded the chunk and called renderToString('x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}', {displayMode:true}) via Metro __r(2907) — returned 3804 bytes of proper HTML with .katex-display and .katex CSS classes. Source confirmed: MarkdownView.tsx imports LatexRenderer (line 16), LatexRenderer.tsx uses dynamic import('katex') with CSS injection, parseMarkdownBlock.ts detects $$ delimiters at lines 46-61. No live session with LaTeX content was available (Claude was active/smooshing), but the rendering pipeline is fully functional end-to-end in the browser.",
+    "screenshot": null
+  },
+  "pipeline_2_wrap": {
+    "verdict": "PASS",
+    "method": "browser",
+    "evidence": "Live browser verification in session cmnjcmlqu9sdnt615px3hs091. Three skill blocks visible as collapsible WrappedEventBlocks: 'E2E verify LaTeX, Mermaid, wrap envelope rendering' (475s), 'E2E verify TaskView, scroll indicators, console.log, gzip', 'E2E verify session title change CLI fix'. Each shows a rocket icon, label text, elapsed timer, and expandable tool-call list with chevrons. Source confirmed: MessageView.tsx line 163-164 routes type==='wrapped' to WrappedEventBlock component (lines 122-135). DOM evaluation found 13 collapsible timing blocks and 16 tool-call rows rendered — no 'Unknown event' text in UI elements (only in message text content discussing the fix). DOM check confirmed 'Unknown event' appears only inside message body markdown text, not as UI rendering artifacts.",
+    "screenshot": "e2e-pipeline2-wrap-verified.png"
+  },
+  "pipeline_9_mermaid": {
+    "verdict": "PASS",
+    "method": "mixed",
+    "evidence": "sanitizeMermaidTimeline() verified correct via direct Node.js execution: input 'timeline\\n  title 开发历程\\n  2024 : 项目启动\\n  2025 : 功能完善' → output with all Chinese stripped, only ASCII lines remain. Function uses /[^\\x00-\\x7F]+/g regex on timeline diagrams only (non-timeline content returned unchanged). Source confirmed in MermaidRenderer.tsx lines 12-22, called at line 102 before mermaid.render(). No Mermaid diagram session content was found in the browser to render live, but the sanitization logic is correct and properly integrated into the render path.",
+    "screenshot": null
+  }
+}

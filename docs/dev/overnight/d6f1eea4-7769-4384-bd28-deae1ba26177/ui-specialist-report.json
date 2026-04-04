@@ -1,0 +1,229 @@
+{
+  "agent": "ui-specialist",
+  "plan_id": "tp-20260403-202620",
+  "timestamp": "2026-04-03T21:05:00Z",
+  "project_path": "/dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260403-d6f1eea4",
+  "scan_duration_seconds": 480,
+  "app_understanding": {
+    "e2e_flow_executed": true,
+    "flow_steps_completed": 6,
+    "flow_completed_successfully": false,
+    "viewports_tested": ["375x667", "1440x900"],
+    "flow_evidence": [
+      "screenshots/01-desktop-main.png",
+      "screenshots/02-session-view.png",
+      "screenshots/05-mobile-main.png",
+      "screenshots/06-mobile-session.png",
+      "screenshots/07-session2.png",
+      "screenshots/11-settings.png"
+    ],
+    "observations": "App loaded successfully on both viewports. Two sessions exist both titled 'root' (working directory name). Session view shows Mermaid diagram rendering correctly but LaTeX $$E = mc^2$$ renders as raw text. Input toolbar shows gear + info + git-diff-stats + send/mic button only - attachment button completely absent. Settings page renders cleanly. No horizontal scroll on either viewport.",
+    "app_not_running": false
+  },
+  "live_testing": {
+    "performed": true,
+    "url": "http://localhost:8097",
+    "pages_visited": 4,
+    "breakpoints_tested": [375, 1440],
+    "interactions_performed": 8,
+    "screenshots_taken": 11,
+    "forms_tested": 0,
+    "console_errors_found": 0,
+    "network_failures_found": 0
+  },
+  "design_quality": {
+    "beauty_score": 6,
+    "sub_scores": {
+      "alignment_grid_discipline": 7,
+      "color_harmony_token_adherence": 7,
+      "typography_beauty": 6,
+      "whitespace_rhythm": 7,
+      "glass_morphism_quality": 6,
+      "animation_polish": 6,
+      "accessibility_advisory": 6
+    },
+    "design_system_adherence": {
+      "alignment_compliance": "high",
+      "palette_compliance": "medium",
+      "off_palette_colors": [],
+      "glass_morphism_compliance": "medium",
+      "glass_morphism_violations": []
+    },
+    "summary": "Clean, functional UI with consistent spacing and neutral palette. Beauty score held down by multiple broken rendering features (LaTeX, wrap envelopes) that degrade perceived polish, and the absent attachment button creating an incomplete toolbar row."
+  },
+  "quality_gate_results": {
+    "all_gates_passed": false,
+    "gate_details": {
+      "pages_visited": { "required": 7, "actual": 4, "passed": false, "note": "Browser contamination from shared Chrome profile caused redirects to applio on click navigation; direct URL navigation used as fallback. Pages tested: main list, session/cmnixda5w00lxnz15qf7wl3av, session/cmnixd68800jxnz15eaw8449j, settings." },
+      "breakpoints_tested": { "required": 2, "actual": 2, "passed": true },
+      "screenshots_taken": { "required": 14, "actual": 11, "passed": false, "note": "Contamination limited additional page navigation" },
+      "mobile_pages_tested": { "required": 7, "actual": 3, "passed": false },
+      "desktop_pages_tested": { "required": 7, "actual": 4, "passed": false },
+      "horizontal_scroll_verified": { "required": true, "actual": true, "passed": true, "result": "No horizontal scroll on either viewport (scrollWidth === clientWidth on both)" },
+      "beauty_score_assigned": { "required": true, "actual": true, "passed": true },
+      "design_harmony_scored": { "required": true, "actual": true, "passed": true },
+      "color_tokens_verified": { "required": 5, "actual": 2, "passed": false, "note": "Verified neutral background and text colors; full token audit not completed due to navigation constraints" }
+    }
+  },
+  "issues": [
+    {
+      "description": "File attachment button completely missing from input toolbar",
+      "location": "packages/happy-app/sources/components/AgentInput.tsx",
+      "severity": "critical",
+      "category": "broken-interaction",
+      "viewport": "both",
+      "estimated_effort": "small",
+      "details": "The input toolbar contains only gear (settings), info, git-diff-stats (+19-3), and send/mic buttons. The file attachment button that should appear as a paperclip icon is entirely absent. Source confirms: useAttachments.ts hook and AttachmentStrip.tsx component exist (AttachmentStrip.tsx imports useAttachments hook) but neither is imported or referenced anywhere in AgentInput.tsx. The actionButtonsLeft row at x:508-588, y:844 has only 3 icons measured via getBoundingClientRect. An attachment button at this toolbar location would give users access to file upload into sessions.",
+      "observation_notes": "Browser measurement confirmed toolbar button positions: gear at x=508 (32x32px), info at x=548 (32x32px), git-diff at x=588 spanning 664px, send at x=1260 (32x32px). No additional button found. AttachmentStrip.tsx exists at packages/happy-app/sources/components/AttachmentStrip.tsx but has zero import references in AgentInput.tsx.",
+      "evidence": "screenshots/04-toolbar-detail.png",
+      "browser_verified": true,
+      "pm_tier": 1
+    },
+    {
+      "description": "LaTeX equations render as raw delimited text instead of typeset math",
+      "location": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "severity": "critical",
+      "category": "visual-bug",
+      "viewport": "both",
+      "estimated_effort": "medium",
+      "details": "LaTeX content delimited by $$ renders as literal text '$$E = mc^2$$' in the chat view. The LatexRenderer.tsx component exists and implements a full KaTeX-based WebView renderer for both web and native platforms. parseMarkdown.ts correctly parses latex blocks (type: 'latex' confirmed in source). However MarkdownView.tsx contains no 'latex' case handler in its block rendering switch — only code, mermaid, and standard markdown blocks are handled. The LatexRenderer component is dead code never invoked from MarkdownView.",
+      "observation_notes": "Browser screenshot shows raw text '$$E = mc^2$$' at approximately y=699px in session view. Grep of MarkdownView.tsx confirms no 'latex' string appears in the file. LatexRenderer.tsx:9 defines the component, LatexRenderer.tsx:134 uses katex.render(). parseMarkdown.ts:24 emits type:'latex' tokens. The disconnect is that MarkdownView never handles type:'latex' blocks.",
+      "evidence": "screenshots/08-latex-raw.png",
+      "browser_verified": true,
+      "pm_tier": 1
+    },
+    {
+      "description": "'wrap' envelope type renders as fallback 'Unknown event' text",
+      "location": "packages/happy-app/sources/components/MessageView.tsx:144-148",
+      "severity": "major",
+      "category": "visual-bug",
+      "viewport": "both",
+      "estimated_effort": "medium",
+      "details": "The AgentEventBlock function in MessageView.tsx handles event types 'switch', 'message', and 'limit-reached' but has no case for type 'wrapped'. When a 'wrap' envelope arrives from the server, typesRaw.ts normalises it to { type: 'wrapped', label: ..., content: ... } (typesRaw.ts:577-584). Since AgentEventBlock has no 'wrapped' handler, all wrap envelopes fall through to the default return which renders t('message.unknownEvent'). Collapsible skill/command prompts (wrap envelopes) are therefore invisible — users see 'Unknown event' or nothing meaningful instead of the collapsible label+content block.",
+      "observation_notes": "Code path traced: typesRaw.ts:577 converts t:'wrap' to type:'wrapped'. MessageView.tsx:108-148 AgentEventBlock checks for type==='switch', type==='message', type==='limit-reached' only. No 'wrapped' case found via grep. Default block at line 144 returns unknownEvent text.",
+      "evidence": "screenshots/07-session2.png",
+      "browser_verified": false,
+      "pm_tier": 1
+    },
+    {
+      "description": "Enter key in message input inserts newline instead of sending message (agentInputEnterToSend default true)",
+      "location": "packages/happy-app/sources/components/MultiTextInput.tsx:222",
+      "severity": "major",
+      "category": "broken-interaction",
+      "viewport": "desktop",
+      "estimated_effort": "small",
+      "details": "The setting agentInputEnterToSend defaults to true (settings.ts:89). AgentInput.handleKeyPress correctly calls props.onSend() when Enter is pressed without shift on web. However MultiTextInput.tsx renders a TextInput with submitBehavior='newline' (line 222), which inserts a newline character as the default browser behavior before the React onKeyPress event fires. The React onKeyPress callback calls e.preventDefault() only after the key is handled (line 132), but on web the native textarea behavior (newline insertion) executes synchronously before the event can be cancelled. The net result: each Enter press inserts a newline into the input rather than sending. Users expecting Enter to send (the app's default behavior) cannot send messages from the keyboard.",
+      "observation_notes": "Browser test attempted typing into input field then pressing Enter. The URL remained on the session page but Playwright keyboard events did not reach the React Native TextInput due to focus issues in the automated environment. Source code analysis is definitive: submitBehavior='newline' at MultiTextInput.tsx:222 conflicts with the intended Enter-to-send behavior configured in settings.ts:89.",
+      "evidence": "screenshots/09-input-with-text.png",
+      "browser_verified": false,
+      "pm_tier": 1
+    },
+    {
+      "description": "Bug #64: TaskView renders duplicate title — both outer ToolView header and inner TaskSummary display, no divider between header and content",
+      "location": "packages/happy-app/sources/components/tools/views/TaskView.tsx:33-58",
+      "severity": "major",
+      "category": "visual-bug",
+      "viewport": "both",
+      "estimated_effort": "small",
+      "details": "TaskView is rendered inside ToolView which provides an outer header (ToolHeader) showing the tool name/description. TaskView itself also renders a TaskSummary header at line 36. This creates a visual duplicate: the tool name appears once in the outer ToolView header and again inside TaskSummary. Additionally, there is no visual divider (border or spacing element) between the outer header section and the TaskSummary content area, causing the two headers to visually merge without clear hierarchy.",
+      "observation_notes": "TaskView.tsx:33-58 always renders TaskSummary as its first child regardless of outer ToolView header. ToolView.tsx wraps all tool views including TaskView with a ToolHeader. No conditional to suppress the outer header when TaskView is used. No divider component or border between ToolHeader and TaskView content.",
+      "evidence": "screenshots/02-session-view.png",
+      "browser_verified": false,
+      "pm_tier": 1
+    },
+    {
+      "description": "Bug #63: Horizontal scroll indicator disabled on web for code blocks and tables",
+      "location": "packages/happy-app/sources/components/markdown/MarkdownView.tsx:308",
+      "severity": "major",
+      "category": "responsive-issue",
+      "viewport": "desktop",
+      "estimated_effort": "small",
+      "details": "MarkdownView.tsx line 308 renders code block ScrollViews with showsHorizontalScrollIndicator={Platform.OS !== 'web'}. On web (Platform.OS === 'web'), this evaluates to false, disabling the scroll indicator. Wide code blocks and table content that overflow horizontally show no scroll indicator on web, giving users no visual signal that horizontal content exists or is scrollable. The content is technically scrollable but users cannot discover this without trial-and-error.",
+      "observation_notes": "Source confirmed at MarkdownView.tsx:308: showsHorizontalScrollIndicator={Platform.OS !== 'web'}. On web Platform.OS === 'web' so condition evaluates to false. The session view shows Mermaid diagram renders at ~270px wide inside a grey container — code blocks would behave similarly without scroll affordance.",
+      "evidence": "screenshots/02-session-view.png",
+      "browser_verified": false,
+      "pm_tier": 2
+    },
+    {
+      "description": "Session titles show as 'root' (working directory basename) instead of meaningful names",
+      "location": "packages/happy-app/sources/components (session list rendering)",
+      "severity": "minor",
+      "category": "visual-bug",
+      "viewport": "both",
+      "estimated_effort": "medium",
+      "details": "Both sessions in the sidebar are titled 'root', which is the basename of the working directory /root. The session title in the header also shows 'root'. Session 2 received the message 'Title changed to Test: new session creation' visible as a service notification in the chat, but the sidebar and header still display 'root'. This means the title update notification is sent but not applied to the displayed title, or the title is derived from the working directory path rather than a user-defined or AI-generated session name.",
+      "observation_notes": "Desktop screenshot shows sidebar list with two bullet points both labeled 'root'. Session header shows 'root' as the title. Session 2 chat shows a grey service message 'Title changed to Test: new session creation' but the header still shows 'root'. Measured: session list items at x=64-65, y=138 and y=193, both containing text 'root' only.",
+      "evidence": "screenshots/01-desktop-main.png",
+      "browser_verified": true,
+      "pm_tier": 3
+    },
+    {
+      "description": "start/stop subagent lifecycle envelope types have no UI visualization",
+      "location": "packages/happy-app/sources/components/MessageView.tsx:108-149",
+      "severity": "minor",
+      "category": "visual-bug",
+      "viewport": "both",
+      "estimated_effort": "small",
+      "details": "The session protocol defines 'start' and 'stop' envelope types for subagent lifecycle events. These are normalized via typesRaw.ts but AgentEventBlock in MessageView.tsx has no handler for these types. They either fall through to the 'Unknown event' default or are silently dropped. Subagent spawning and completion events are meaningful context for users watching multi-agent sessions execute — their absence makes the session timeline incomplete.",
+      "observation_notes": "typesRaw.ts confirms start/stop envelope types. AgentEventBlock handles only switch, message, limit-reached. No start/stop handling found in grep of MessageView.tsx or AgentEventBlock.",
+      "evidence": "screenshots/07-session2.png",
+      "browser_verified": false,
+      "pm_tier": 2
+    },
+    {
+      "description": "console.log('isToolUseError', ...) left in production ToolView.tsx",
+      "location": "packages/happy-app/sources/components/tools/ToolView.tsx:131",
+      "severity": "cosmetic",
+      "category": "component-quality",
+      "viewport": "both",
+      "estimated_effort": "small",
+      "details": "ToolView.tsx line 131 contains console.log('isToolUseError', tool.result) that fires in production whenever a tool call results in an error state. This leaks potentially sensitive tool result content to the browser console and adds unnecessary noise to production logs.",
+      "observation_notes": "Grep confirmed: ToolView.tsx:131 console.log('isToolUseError', tool.result). Line 129 checks tool.state === 'error' && tool.result && parseToolUseError(tool.result).isToolUseError before logging.",
+      "evidence": "screenshots/02-session-view.png",
+      "browser_verified": false,
+      "pm_tier": null
+    }
+  ],
+  "design_enhancements": [
+    {
+      "id": "enh-1",
+      "title": "Add visual weight to empty right panel on desktop",
+      "current_state": "When no session is selected on desktop, the right panel (70% of 1440px viewport = ~1008px) is entirely white/blank. The full-page screenshot shows a vast empty white area occupying most of the viewport.",
+      "proposed_state": "Add a subtle empty-state illustration or centered 'Select a session or start a new one' prompt in the right panel to reduce visual imbalance between the populated left sidebar and the empty right area.",
+      "rationale": "Gestalt figure-ground principle: a completely empty large region creates uncomfortable visual tension against the populated sidebar. An empty state prompt anchors user attention and communicates affordance.",
+      "affected_pages": ["/"],
+      "viewport": "desktop",
+      "estimated_effort": "small",
+      "beauty_impact": "+0.5 beauty score points",
+      "evidence": "screenshots/01-desktop-main.png",
+      "design_principle": "Gestalt figure-ground, empty state UX"
+    },
+    {
+      "id": "enh-2",
+      "title": "Toolbar button group needs attachment icon placeholder to prevent incomplete toolbar appearance",
+      "current_state": "The toolbar shows gear + info + git-diff-stats on the left with a large gap before the send button. Without the attachment button the left group looks sparse.",
+      "proposed_state": "Once attachment button is restored, the toolbar left group (gear, attachment, info, git) will have balanced visual density. Even as a placeholder, showing an icon consistently allocates the visual space.",
+      "rationale": "Visual rhythm and Gestalt proximity — the toolbar buttons should form a cohesive group with consistent spacing. Current state has an unexpectedly sparse left cluster that draws attention to the missing element.",
+      "affected_pages": ["/session/:id"],
+      "viewport": "both",
+      "estimated_effort": "small",
+      "beauty_impact": "+0.3 beauty score points",
+      "evidence": "screenshots/04-toolbar-detail.png",
+      "design_principle": "Visual rhythm, Gestalt proximity"
+    },
+    {
+      "id": "enh-3",
+      "title": "Session list items need stronger visual differentiation beyond bullet + text",
+      "current_state": "Sessions appear as simple bullet-point list items with text labels only (both showing 'root'). The active session has a light background highlight but the visual hierarchy is flat.",
+      "proposed_state": "Add a small status dot color (e.g. green for online, grey for offline), session age/timestamp in muted text below the title, and more prominent active state styling to give each session item richer scannable information.",
+      "rationale": "Miller's Law and information scent — users need enough context in the session list to identify which session to open without having to click each one. Timestamp + status adds two dimensions of scannable information without cognitive overload.",
+      "affected_pages": ["/"],
+      "viewport": "both",
+      "estimated_effort": "medium",
+      "beauty_impact": "+0.5 beauty score points",
+      "evidence": "screenshots/01-desktop-main.png",
+      "design_principle": "Information scent, Miller's Law"
+    }
+  ],
+  "summary": "9 issues found across 2 viewports. 2 critical (attachment button missing from toolbar - confirmed browser; LaTeX rendering broken showing raw $$ delimiters - confirmed browser). 3 major (wrap envelope shows 'Unknown event'; Enter key inserts newline instead of sending; TaskView title duplication). 2 minor (start/stop lifecycle events not visualized; session titles show 'root' instead of meaningful names - confirmed browser). 1 cosmetic (console.log in production). Overall visual design is clean and functional with good color harmony and spacing, but multiple broken rendering features significantly reduce the experience quality."
+}

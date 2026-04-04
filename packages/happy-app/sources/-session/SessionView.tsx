@@ -16,6 +16,7 @@ import { EmptyMessages } from '@/components/EmptyMessages';
 import { SessionActionsAnchor, SessionActionsPopover } from '@/components/SessionActionsPopover';
 import { VoiceAssistantStatusBar } from '@/components/VoiceAssistantStatusBar';
 import { useDraft } from '@/hooks/useDraft';
+import { useAttachments } from '@/hooks/useAttachments';
 import { Modal } from '@/modal';
 import { voiceHooks } from '@/realtime/hooks/voiceHooks';
 import { startRealtimeSession, stopRealtimeSession } from '@/realtime/RealtimeSession';
@@ -243,6 +244,17 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
     // Use draft hook for auto-saving message drafts
     const { clearDraft } = useDraft(sessionId, message, setMessage);
 
+    // Attachment hook - manages pending file attachments for this session's composer
+    const {
+        attachments: pendingAttachments,
+        readyAttachments,
+        pickImage,
+        pickDocument,
+        removeAttachment,
+        clearAttachments,
+        hasAttachments,
+    } = useAttachments(sessionId);
+
     // Handle dismissing CLI version warning
     const handleDismissCliWarning = React.useCallback(() => {
         if (machineId && cliVersion) {
@@ -356,10 +368,12 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
             }}
             blockSend={isDisconnected}
             onSend={() => {
-                if (message.trim()) {
+                if (message.trim() || hasAttachments) {
+                    const attachmentsToSend = readyAttachments.length > 0 ? readyAttachments : undefined;
                     setMessage('');
                     clearDraft();
-                    sync.sendMessage(sessionId, message);
+                    clearAttachments();
+                    sync.sendMessage(sessionId, message, undefined, attachmentsToSend);
                     trackMessageSent();
                 }
             }}
@@ -384,6 +398,10 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
                 contextSize: session.latestUsage.contextSize
             } : undefined}
             alwaysShowContextSize={alwaysShowContextSize}
+            pendingAttachments={pendingAttachments}
+            onAttachImage={pickImage}
+            onAttachDocument={pickDocument}
+            onRemoveAttachment={removeAttachment}
         />
     );
 
