@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-04-04T07:30:10Z*
-**Total entries**: 559
+*Last updated: 2026-04-04T08:04:21Z*
+**Total entries**: 595
 **Convention**: kebab
 
 ## Tree
@@ -22,12 +22,48 @@ happy-dev/
 │   │   └── `qa-site-isolation-verification.json` - json config
 │   ├── e2e/
 │   │   ├── `console-initial.log` - log file
+│   │   ├── `mobile-01-sessions-list.png` - png file
+│   │   ├── `mobile-02-session-top.png` - png file
+│   │   ├── `mobile-03-latex.png` - png file
+│   │   ├── `mobile-04-latex-closeup.png` - png file
+│   │   ├── `mobile-05-wrap-envelopes.png` - png file
+│   │   ├── `mobile-06-wrap-closeup.png` - png file
+│   │   ├── `mobile-07-wrap-expanded.png` - png file
+│   │   ├── `mobile-08-taskview.png` - png file
+│   │   ├── `mobile-09-taskview-closeup.png` - png file
+│   │   ├── `mobile-10-table.png` - png file
+│   │   ├── `mobile-11-table-closeup.png` - png file
+│   │   ├── `mobile-12-mermaid-fallback.png` - png file
+│   │   ├── `mobile-13-input-area.png` - png file
+│   │   ├── `mobile-14-qa-report.png` - png file
+│   │   ├── `mobile-15-report-tables.png` - png file
+│   │   ├── `mobile-16-resources-table.png` - png file
+│   │   ├── `mobile-17-option-buttons.png` - png file
+│   │   ├── `mobile-18-mermaid-flowchart.png` - png file
+│   │   ├── `mobile-19-mermaid-flowchart-closeup.png` - png file
+│   │   ├── `mobile-20-fullpage.png` - png file
+│   │   ├── `mobile-21-back-to-list.png` - png file
 │   │   ├── `p12-console-after-toolclick.log` - log file
 │   │   ├── `p12-console-messages.log` - log file
+│   │   ├── `p5-initial-load.png` - png file
+│   │   ├── `p5-scrolled-top.png` - png file
+│   │   ├── `p5-session-opened.png` - png file
 │   │   ├── `p5-session-overview.png` - png file
+│   │   ├── `p5-taskview-block.png` - png file
+│   │   ├── `p5-taskview-closeup.png` - png file
+│   │   ├── `p5-taskview-top.png` - png file
+│   │   ├── `p5-taskview-verified.png` - png file
 │   │   ├── `p5-tool-call-expanded.png` - png file
 │   │   ├── `p5-tool-single-header.png` - png file
+│   │   ├── `p7-scroll-table-closeup.png` - png file
+│   │   ├── `p7-scroll-table-final.png` - png file
+│   │   ├── `p7-scroll-table-overview.png` - png file
+│   │   ├── `p7-scroll-table-scrolled.png` - png file
 │   │   ├── `p7-tables-with-scroll.png` - png file
+│   │   ├── `p9-mermaid-full-page.png` - png file
+│   │   ├── `p9-mermaid-timeline-chinese-fallback.png` - png file
+│   │   ├── `p9-mermaid-timeline-viewport.png` - png file
+│   │   ├── `p9-mermaid-user-message-fallback.png` - png file
 │   │   ├── `session-full-content.png` - png file
 │   │   ├── `session-view.png` - png file
 │   │   ├── `wrap-envelopes-clicked.png` - png file
