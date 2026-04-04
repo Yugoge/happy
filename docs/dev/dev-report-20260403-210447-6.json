@@ -1,0 +1,59 @@
+{
+  "request_id": "dev-20260403-210447-6",
+  "timestamp": "2026-04-03T21:10:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260403-210447-6.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Fix startHappyServer.ts: await updateMetadata before returning success and send chat service message only after persistence confirmed",
+        "type": "bug_fix",
+        "files_modified": ["packages/happy-cli/src/claude/utils/startHappyServer.ts"],
+        "changes": "Extracted persistTitle() helper that awaits client.updateMetadata() and then calls sendClaudeSessionMessage(). Refactored createMcpServer and startHappyServer into smaller helper functions (buildSuccessResult, buildErrorResult, registerChangeTitleTool, createMcpServer, handleMcpRequest, persistTitle, buildTitleHandler) to comply with quality gate (max 30 lines per function, max nesting depth 3). Added explicit type annotation on MCP tool callback args parameter.",
+        "rationale": "Root cause fix for Bug #62 (commit 76b5cec3): the handler called sendClaudeSessionMessage (which triggered updateMetadata as a fire-and-forget side effect via .catch()) and returned success immediately. Now updateMetadata is awaited directly before returning success, propagating failures as isError:true."
+      },
+      {
+        "id": 2,
+        "description": "Remove redundant fire-and-forget updateMetadata from sendClaudeSessionMessage in apiSession.ts",
+        "type": "bug_fix",
+        "files_modified": [],
+        "changes": "BLOCKED by quality gate: apiSession.ts has pre-existing function length violations (constructor 123 lines, fetchMessages 54 lines, sendClaudeSessionMessage 64 lines, nesting depth 6) that prevent any edit to the file. The apiSession.ts cleanup is deferred. The primary fix in startHappyServer.ts is sufficient: the handler now calls updateMetadata directly and awaits it, so the sendClaudeSessionMessage fire-and-forget side effect in apiSession.ts (lines 413-424) is now redundant but harmless - it will attempt a second updateMetadata that is a no-op if the version already matches.",
+        "rationale": "Pre-existing quality gate violations in apiSession.ts block editing. The redundant .catch() path in sendClaudeSessionMessage will attempt a second metadata update after the handler already succeeded - it may fail due to version mismatch but the error is silently swallowed. This is harmless since the title is already persisted."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-cli/src/claude/utils/startHappyServer.ts",
+        "imported_by": [
+          "packages/happy-cli/src/claude/runClaude.ts",
+          "packages/happy-cli/src/gemini/runGemini.ts",
+          "packages/happy-cli/src/codex/runCodex.ts",
+          "packages/happy-cli/src/agent/acp/runAcp.ts"
+        ]
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "76b5cec3 - feat: add Happy MCP server for Claude-driven title management",
+      "why_issue_occurred": "The MCP handler was designed to send a summary message as a side effect (via sendClaudeSessionMessage) which internally triggered updateMetadata in a fire-and-forget manner. The handler returned success before the metadata was persisted, and any errors from updateMetadata were silently swallowed by .catch().",
+      "how_fix_addresses_root": "Handler now calls updateMetadata directly (not via sendClaudeSessionMessage side effect) and awaits it. If updateMetadata fails (version mismatch, socket disconnect, server error), the handler returns isError:true with the error message. The chat service message is sent only after successful persistence."
+    },
+    "qa_ready": true,
+    "qa_notes": "Primary fix is in startHappyServer.ts. The apiSession.ts fire-and-forget path (lines 413-424) remains but is now a redundant second attempt - harmless since the title is already persisted when it runs. QA should: (1) have Claude invoke change_title MCP tool; (2) verify sidebar and header update within 5s; (3) reload page and verify title persists. Files to test beyond direct change: runClaude.ts, runGemini.ts, runCodex.ts, runAcp.ts all import startHappyServer and call startHappyServer(client) - ensure the change_title tool still works end-to-end for all agent runners.",
+    "implementation_notes": [
+      "Quality gate blocked editing apiSession.ts due to pre-existing violations in constructor (123 lines), fetchMessages (54 lines), sendClaudeSessionMessage (64 lines), and nesting depth 6. A separate refactoring task should fix these violations.",
+      "The startHappyServer.ts file was fully rewritten to split functions to comply with the quality gate (all functions now <= 30 lines, max nesting 3).",
+      "Pre-existing MCP SDK module resolution TS errors in startHappyServer.ts and happyMcpStdioBridge.ts are unrelated to this fix.",
+      "The redundant updateMetadata in sendClaudeSessionMessage (apiSession.ts lines 413-424) will still run after the handler's updateMetadata succeeds. It will likely get a version-mismatch response since the version was already incremented, and the .catch() will silently swallow it. This is harmless."
+    ],
+    "permissions_to_add": []
+  },
+  "blocking_issues": [
+    "apiSession.ts cleanup could not be applied due to pre-existing quality gate violations in that file. The redundant fire-and-forget .catch() path remains but is harmless."
+  ],
+  "recommendations": [
+    "Refactor apiSession.ts to split sendClaudeSessionMessage and constructor into smaller functions to comply with quality gate, then remove the redundant summary updateMetadata block at lines 413-424.",
+    "Add an integration test that verifies change_title MCP tool call results in metadata.summary being set in the server response."
+  ]
+}

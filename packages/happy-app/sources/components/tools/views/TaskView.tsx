@@ -16,8 +16,23 @@ interface FilteredTool {
     state: 'running' | 'completed' | 'error';
 }
 
+// Extract title for a single tool-call message
+function extractToolTitle(m: Message, metadata: Metadata | null): string {
+    if (m.kind !== 'tool-call') return m.kind;
+    const knownTool = knownTools[m.tool.name as keyof typeof knownTools] as any;
+    if (!knownTool) return m.tool.name;
+    if ('extractDescription' in knownTool && typeof knownTool.extractDescription === 'function') {
+        return knownTool.extractDescription({ tool: m.tool, metadata });
+    }
+    if (knownTool.title) {
+        return typeof knownTool.title === 'function'
+            ? knownTool.title({ tool: m.tool, metadata })
+            : knownTool.title;
+    }
+    return m.tool.name;
+}
+
 export const TaskView = React.memo<ToolViewProps>(({ tool, metadata, messages, sessionId }) => {
-    const { theme } = useUnistyles();
     const [expanded, setExpanded] = React.useState(false);
     const toggle = React.useCallback(() => setExpanded(v => !v), []);
 
@@ -29,20 +44,21 @@ export const TaskView = React.memo<ToolViewProps>(({ tool, metadata, messages, s
 
     const visibleTools = filtered.slice(filtered.length - 3);
     const remainingCount = filtered.length - 3;
+    const hasChildren = messages.length > 0;
 
     return (
         <View style={taskStyles.container}>
-            {/* Summary header - always visible */}
-            <TaskSummary
+            {/* Compact status row - tool status icons + expand chevron, no duplicate header */}
+            <TaskStatusRow
                 visibleTools={visibleTools}
                 remainingCount={remainingCount}
                 expanded={expanded}
-                hasChildren={messages.length > 0}
+                hasChildren={hasChildren}
                 onToggle={toggle}
             />
 
             {/* Expanded children - full message rendering */}
-            {expanded && messages.length > 0 && (
+            {expanded && hasChildren && (
                 <View style={taskStyles.childrenContainer}>
                     {messages.map((child) => (
                         <ChildMessageBlock
@@ -58,33 +74,23 @@ export const TaskView = React.memo<ToolViewProps>(({ tool, metadata, messages, s
     );
 });
 
-// Extracts tool-call messages for the summary row
+// Extracts tool-call messages for the status row
 function useFilteredTools(messages: Message[], metadata: Metadata | null): FilteredTool[] {
     return React.useMemo(() => {
         const result: FilteredTool[] = [];
         for (const m of messages) {
             if (m.kind !== 'tool-call') continue;
-            const knownTool = knownTools[m.tool.name as keyof typeof knownTools] as any;
-            let title = m.tool.name;
-            if (knownTool) {
-                if ('extractDescription' in knownTool && typeof knownTool.extractDescription === 'function') {
-                    title = knownTool.extractDescription({ tool: m.tool, metadata });
-                } else if (knownTool.title) {
-                    title = typeof knownTool.title === 'function'
-                        ? knownTool.title({ tool: m.tool, metadata })
-                        : knownTool.title;
-                }
-            }
-            if (m.tool.state === 'running' || m.tool.state === 'completed' || m.tool.state === 'error') {
-                result.push({ tool: m.tool, title, state: m.tool.state });
-            }
+            const state = m.tool.state;
+            if (state !== 'running' && state !== 'completed' && state !== 'error') continue;
+            result.push({ tool: m.tool, title: extractToolTitle(m, metadata), state });
         }
         return result;
     }, [messages, metadata]);
 }
 
-// Summary header with tool status icons and expand/collapse chevron
-const TaskSummary = React.memo<{
+// Compact status row: shows tool names + status icons + expand chevron.
+// Intentionally NOT styled as a header — the outer ToolView header is the single header.
+const TaskStatusRow = React.memo<{
     visibleTools: FilteredTool[];
     remainingCount: number;
     expanded: boolean;
@@ -94,7 +100,7 @@ const TaskSummary = React.memo<{
     const { theme } = useUnistyles();
 
     const content = (
-        <View style={taskStyles.summaryContent}>
+        <View style={taskStyles.statusRowContent}>
             <View style={taskStyles.toolsList}>
                 {visibleTools.map((item, index) => (
                     <View key={`${item.tool.name}-${index}`} style={taskStyles.toolItem}>
@@ -125,12 +131,12 @@ const TaskSummary = React.memo<{
     );
 
     if (!hasChildren) {
-        return <View style={taskStyles.summaryWrapper}>{content}</View>;
+        return <View style={taskStyles.statusRowWrapper}>{content}</View>;
     }
 
     return (
         <TouchableOpacity
-            style={taskStyles.summaryWrapper}
+            style={taskStyles.statusRowWrapper}
             onPress={onToggle}
             activeOpacity={0.7}
         >
@@ -139,7 +145,7 @@ const TaskSummary = React.memo<{
     );
 });
 
-// Status icon for a single tool in the summary
+// Status icon for a single tool in the status row
 function ToolStatusIcon({ state }: { state: 'running' | 'completed' | 'error' }) {
     const { theme } = useUnistyles();
     switch (state) {
@@ -188,10 +194,10 @@ const taskStyles = StyleSheet.create((theme) => ({
     container: {
         paddingBottom: 4,
     },
-    summaryWrapper: {
+    statusRowWrapper: {
         paddingVertical: 4,
     },
-    summaryContent: {
+    statusRowContent: {
         flexDirection: 'row',
         alignItems: 'flex-start',
     },

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { StyleSheet } from 'react-native-unistyles';
 import { MarkdownView } from "./markdown/MarkdownView";
 import { t } from '@/text';
@@ -10,6 +10,7 @@ import { ToolView } from "./tools/ToolView";
 import { AgentEvent } from "@/sync/typesRaw";
 import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
+import { Ionicons } from '@expo/vector-icons';
 
 
 export const MessageView = (props: {
@@ -32,7 +33,7 @@ export const MessageView = (props: {
   );
 };
 
-// RenderBlock function that dispatches to the correct component based on message kind
+// RenderBlock: dispatches to the correct component based on message kind
 function RenderBlock(props: {
   message: Message;
   metadata: Metadata | null;
@@ -57,7 +58,6 @@ function RenderBlock(props: {
     case 'agent-event':
       return <AgentEventBlock event={props.message.event} metadata={props.metadata} />;
 
-
     default:
       // Exhaustive check - TypeScript will error if we miss a case
       const _exhaustive: never = props.message;
@@ -77,9 +77,6 @@ function UserTextBlock(props: {
     <View style={styles.userMessageContainer}>
       <View style={styles.userMessageBubble}>
         <MarkdownView markdown={props.message.displayText || props.message.text} onOptionPress={handleOptionPress} sessionId={props.sessionId} />
-        {/* {__DEV__ && (
-          <Text style={styles.debugText}>{JSON.stringify(props.message.meta)}</Text>
-        )} */}
       </View>
     </View>
   );
@@ -93,7 +90,6 @@ function AgentTextBlock(props: {
     sync.sendMessage(props.sessionId, option.title);
   }, [props.sessionId]);
 
-  // Hide thinking messages
   if (props.message.isThinking) {
     return null;
   }
@@ -101,6 +97,44 @@ function AgentTextBlock(props: {
   return (
     <View style={styles.agentMessageContainer}>
       <MarkdownView markdown={props.message.text} onOptionPress={handleOptionPress} sessionId={props.sessionId} />
+    </View>
+  );
+}
+
+function LimitReachedBlock(props: { endsAt: number }) {
+  const formatTime = (timestamp: number): string => {
+    try {
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return t('message.unknownTime');
+    }
+  };
+  return (
+    <View style={styles.agentEventContainer}>
+      <Text style={styles.agentEventText}>
+        {t('message.usageLimitUntil', { time: formatTime(props.endsAt) })}
+      </Text>
+    </View>
+  );
+}
+
+function WrappedEventBlock(props: { label: string; content: string }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const hasContent = props.content.length > 0;
+  return (
+    <View style={styles.wrappedContainer}>
+      <Pressable style={styles.wrappedHeader} onPress={() => setExpanded(!expanded)}>
+        <Text style={styles.wrappedLabel} numberOfLines={1}>{props.label}</Text>
+        {hasContent && (
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} style={styles.wrappedChevron} />
+        )}
+      </Pressable>
+      {expanded && hasContent && (
+        <View style={styles.wrappedContent}>
+          <MarkdownView markdown={props.content} />
+        </View>
+      )}
     </View>
   );
 }
@@ -124,22 +158,10 @@ function AgentEventBlock(props: {
     );
   }
   if (props.event.type === 'limit-reached') {
-    const formatTime = (timestamp: number): string => {
-      try {
-        const date = new Date(timestamp * 1000); // Convert from Unix timestamp
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } catch {
-        return t('message.unknownTime');
-      }
-    };
-
-    return (
-      <View style={styles.agentEventContainer}>
-        <Text style={styles.agentEventText}>
-          {t('message.usageLimitUntil', { time: formatTime(props.event.endsAt) })}
-        </Text>
-      </View>
-    );
+    return <LimitReachedBlock endsAt={props.event.endsAt} />;
+  }
+  if (props.event.type === 'wrapped') {
+    return <WrappedEventBlock label={props.event.label} content={props.event.content} />;
   }
   return (
     <View style={styles.agentEventContainer}>
@@ -217,5 +239,33 @@ const styles = StyleSheet.create((theme) => ({
   debugText: {
     color: theme.colors.agentEventText,
     fontSize: 12,
+  },
+  wrappedContainer: {
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.agentEventText,
+    overflow: 'hidden',
+  },
+  wrappedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  wrappedLabel: {
+    flex: 1,
+    color: theme.colors.agentEventText,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  wrappedChevron: {
+    color: theme.colors.agentEventText,
+    marginLeft: 4,
+  },
+  wrappedContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
 }));

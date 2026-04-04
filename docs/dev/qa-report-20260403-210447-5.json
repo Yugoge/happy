@@ -1,0 +1,90 @@
+{
+  "pipeline_index": 5,
+  "timestamp_suffix": "20260403-210447-5",
+  "request_id": "dev-20260403-210447-5",
+  "timestamp": "2026-04-03T22:30:00Z",
+  "status": "pass",
+  "checks": [
+    {
+      "check": "TaskSummary removed / renamed to TaskStatusRow in TaskView.tsx",
+      "result": "pass",
+      "evidence": "TaskView.tsx line 52: renders <TaskStatusRow> (not TaskSummary). Line 93: component defined as 'TaskStatusRow'. No 'TaskSummary' identifier remains in the file. The component retains identical expand/collapse + status icon functionality but is not styled as a header.",
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx"
+    },
+    {
+      "check": "ToolView content style has borderTopWidth divider",
+      "result": "pass",
+      "evidence": "ToolView.tsx styles.content (lines 337-338): borderTopWidth: 1, borderTopColor: theme.colors.divider. This applies to all tool types when !minimal, adding a visual separator between header and content area.",
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx"
+    },
+    {
+      "check": "No duplicate header: TaskStatusRow has no header-level styling",
+      "result": "pass",
+      "evidence": "TaskStatusRow (lines 93-146) uses taskStyles.statusRowWrapper (paddingVertical: 4) and statusRowContent (flexDirection: row). No header-like background, no surfaceHighest color, no fontSize >= 16. The outer ToolView header is the single authoritative header for Task/Agent blocks.",
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx"
+    },
+    {
+      "check": "Expand/collapse functionality preserved",
+      "result": "pass",
+      "evidence": "TaskView lines 36-37: useState(false) + useCallback toggle. TaskStatusRow lines 137-145: TouchableOpacity wraps content when hasChildren, calls onToggle on press. Chevron icon (lines 122-129) rotates based on expanded state. Identical to original TaskSummary behavior.",
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx"
+    },
+    {
+      "check": "Child tool status icons (running/completed/error) preserved",
+      "result": "pass",
+      "evidence": "ToolStatusIcon function (lines 149-158) still renders ActivityIndicator for running, checkmark-circle for completed, close-circle for error. Called from TaskStatusRow line 109.",
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx"
+    },
+    {
+      "check": "ChildMessageBlock still uses ToolView correctly (nested TaskView)",
+      "result": "pass",
+      "evidence": "ChildMessageBlock (lines 162-191) renders ToolView for tool-call children with messageId=message.id. This enables recursive nested rendering. No regression introduced.",
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx"
+    },
+    {
+      "check": "extractToolTitle helper extracted (nesting depth fix)",
+      "result": "pass",
+      "evidence": "Function extractToolTitle defined at top level (lines 20-33), used in useFilteredTools (line 85). Quality gate nesting depth violation resolved.",
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx"
+    },
+    {
+      "check": "ToolView refactored into helper functions (nesting depth fix)",
+      "result": "pass",
+      "evidence": "ToolView.tsx defines: extractStrings (line 110), buildIcon (line 125), buildStatusIcon (line 139), resolveTitle (line 156), resolveFlags (line 170), buildToolConfig (line 196), ToolContent component (line 225). All functions are under 30 lines. Main ToolView component is clean.",
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx"
+    },
+    {
+      "check": "Band-aid detection",
+      "result": "pass",
+      "evidence": "No threshold lowering, no error swallowing, no validation skip detected. The fix removes the duplicate header rather than hiding it. TaskStatusRow is a genuine rename with functional content preserved."
+    },
+    {
+      "check": "Hardcode scan",
+      "result": "pass",
+      "evidence": "No hardcoded URLs, IPs, secrets, or absolute paths found in modified files. All values use theme tokens or constants."
+    }
+  ],
+  "issues_found": [],
+  "ui_test_results": [
+    {
+      "scenario": "Tool calls render with single header (no duplicate)",
+      "url": "http://localhost:8097/session/cmnixda5w00lxnz15qf7wl3av",
+      "status": "pass",
+      "reason": null,
+      "steps_performed": [
+        "browser_navigate to session URL",
+        "browser_snapshot to observe rendered tool call blocks"
+      ],
+      "assertions": [
+        {
+          "expected": "Tool call blocks (Bash, etc.) visible with header + content area",
+          "actual": "Tool calls rendered as pressable elements with tool name and command. Content shown below. Structure consistent with single-header pattern.",
+          "passed": true
+        }
+      ],
+      "evidence": "qa-p5-toolcalls.png - session rendered with tool call blocks visible. Accessibility tree shows tool call header (e.g. 'Read claudecodeui service file') + content (e.g. command text) as separate sections, consistent with single header + divider design.",
+      "note": "Code-level verification specified as sufficient by orchestrator. No Task/Agent tool calls existed in test sessions to verify TaskStatusRow specifically, but ToolView divider and TaskStatusRow code are verified correct."
+    }
+  ],
+  "summary": "Pipeline 5 (Bug #64 TaskView title duplication fix) passes. TaskSummary component correctly renamed to TaskStatusRow with identical functionality (status icons, expand/collapse, chevron) but without header-level styling. ToolView.tsx content style correctly adds borderTopWidth:1 + borderTopColor:theme.colors.divider divider for all tool types when !minimal. Both files refactored to resolve pre-existing quality gate nesting depth violations. No regressions introduced. Root cause (commit f6f129a1 unconditional TaskSummary rendering inside ToolView content) is addressed."
+}

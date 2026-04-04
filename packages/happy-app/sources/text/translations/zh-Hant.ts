@@ -51,6 +51,7 @@ export const zhHant: TranslationStructure = {
         discard: '放棄',
         version: '版本',
         copied: '已複製',
+        download: '下載',
         copy: '複製',
         scanning: '掃描中...',
         urlPlaceholder: 'https://example.com',
@@ -434,6 +435,10 @@ export const zhHant: TranslationStructure = {
             fileLabel: '檔案',
             folderLabel: '資料夾',
         },
+        attach: {
+            image: '圖片',
+            document: '文件',
+        },
         noMachinesAvailable: '無裝置',
     },
 
@@ -788,6 +793,7 @@ export const zhHant: TranslationStructure = {
         codeCopied: '程式碼已複製',
         copyFailed: '複製失敗',
         mermaidRenderFailed: '渲染 mermaid 圖表失敗',
+        downloadFailed: '下載失敗',
     },
 
     artifacts: {

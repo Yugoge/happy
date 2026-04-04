@@ -1,0 +1,85 @@
+{
+  "request_id": "dev-20260404-110000",
+  "timestamp": "2026-04-04T11:00:00Z",
+  "requirement": {
+    "original": "Fix MCP title change failure -- the STDIO bridge cannot connect to the HTTP MCP server, causing change_title to fail every time",
+    "clarified": "The mcp__happy__change_title tool fails every time because the pretool-workflow-gate.py PreToolUse hook blocks it before the call reaches the STDIO bridge. The bridge and HTTP MCP server are working correctly. Additionally, revert incorrect overnight changes to knownTools.tsx and messageToEvent.ts.",
+    "what": "Exempt mcp__happy__change_title from the workflow gate hook; revert overnight UI changes to knownTools.tsx and messageToEvent.ts",
+    "why": "Title changes fail 100% of the time in sessions with active workflows, which is most sessions. The tool is infrastructure, not a dev tool, and should not be subject to workflow gating.",
+    "where": [
+      "/root/.claude/hooks/pretool-workflow-gate.py",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/sync/reducer/messageToEvent.ts"
+    ],
+    "scope": {
+      "included": [
+        "Add mcp__happy__change_title to hook exemption list",
+        "Revert knownTools.tsx to pre-overnight state (restore hidden:true, minimal:true, noStatus:true)",
+        "Revert messageToEvent.ts to pre-overnight state (restore change_title interception)"
+      ],
+      "excluded": [
+        "No changes to STDIO bridge (happyMcpStdioBridge.ts)",
+        "No changes to HTTP MCP server (startHappyServer.ts)",
+        "No changes to MCP SDK or transport layer",
+        "No changes to how change_title renders in UI"
+      ]
+    },
+    "success_criteria": [
+      "mcp__happy__change_title tool call succeeds when workflow is active",
+      "knownTools.tsx change_title entry has hidden:true, minimal:true, noStatus:true",
+      "messageToEvent.ts intercepts mcp__happy__change_title and converts to service event",
+      "Other tools still blocked by workflow gate when TodoWrite not acknowledged"
+    ],
+    "constraints": [
+      "Hook file is global (~/.claude/hooks/), not project-specific",
+      "The hook has no matcher in settings.json -- it runs on ALL tools",
+      "Must not weaken workflow enforcement for actual dev tools"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "mcp__happy__change_title fails every time with 'PreToolUse:mcp__happy__change_title hook error'",
+    "root_cause": "The pretool-workflow-gate.py global PreToolUse hook blocks mcp__happy__change_title when there is an active workflow bookmark and TodoWrite has not been acknowledged. The hook only exempts TodoWrite and TodoRead but not MCP infrastructure tools.",
+    "root_cause_commit": "N/A - hook was introduced around 2026-03-16, not tracked in this repo",
+    "why_introduced": "The workflow gate was designed to enforce checklist discipline: agents must acknowledge their todo list before using other tools",
+    "why_problematic": "mcp__happy__change_title is an infrastructure/utility tool (changes session title), not a dev tool. It should be exempt from workflow enforcement like TodoWrite/TodoRead. Most sessions have active workflows, so title changes fail nearly 100% of the time.",
+    "timeline": "Before March 16: 100% success. March 16+: intermittent failures (depends on workflow state). Current: fails in most sessions.",
+    "affected_files": [
+      "/root/.claude/hooks/pretool-workflow-gate.py"
+    ]
+  },
+  "context": {
+    "codebase_state": "Worktree overnight-20260403-d6f1eea4 has incorrect changes to knownTools.tsx and messageToEvent.ts that must be reverted",
+    "recent_commits": "ec74f6e6 (overnight auto-commit) modified knownTools.tsx and messageToEvent.ts incorrectly",
+    "file_contents": {
+      "pretool-workflow-gate.py:131": "Only exempts 'TodoWrite' -- needs to also exempt 'mcp__happy__change_title'",
+      "knownTools.tsx:change_title": "Overnight removed hidden:true/minimal:true/noStatus:true and added mcp__happy__change_title entry -- must revert",
+      "messageToEvent.ts": "Overnight removed mcp__happy__change_title interception -- must revert"
+    },
+    "dependencies": {},
+    "environment": {
+      "mcp_sdk_version": "1.25.3",
+      "hook_config": "Global PreToolUse hook with no matcher runs pretool-workflow-gate.py on ALL tool calls"
+    }
+  },
+  "development_approach": {
+    "strategy": "Three-part fix: (1) Add mcp__happy__change_title to exemption list in pretool-workflow-gate.py, (2) git checkout the pre-overnight versions of knownTools.tsx and messageToEvent.ts, (3) Verify title changes succeed",
+    "files_to_create": [],
+    "files_to_modify": [
+      "/root/.claude/hooks/pretool-workflow-gate.py",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/sync/reducer/messageToEvent.ts"
+    ],
+    "validation_approach": "Check daemon logs after fix to confirm 'Successfully changed chat title' instead of hook errors. Verify other tools still blocked by workflow gate."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Bug fix with clear root cause identified from log analysis -- no industry research needed"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

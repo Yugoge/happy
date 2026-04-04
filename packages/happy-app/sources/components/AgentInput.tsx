@@ -2,6 +2,8 @@ import { Ionicons, Octicons } from '@expo/vector-icons';
 import * as React from 'react';
 import { View, Platform, useWindowDimensions, ViewStyle, Text, ActivityIndicator, TouchableWithoutFeedback, Image as RNImage, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { AttachmentStrip } from './AttachmentStrip';
+import { PendingAttachment } from '@/hooks/useAttachments';
 import { layout } from './layout';
 import { MultiTextInput, KeyPressEvent } from './MultiTextInput';
 import { Typography } from '@/constants/Typography';
@@ -73,6 +75,10 @@ interface AgentInputProps {
     isSendDisabled?: boolean;
     isSending?: boolean;
     minHeight?: number;
+    pendingAttachments?: PendingAttachment[];
+    onAttachImage?: () => void;
+    onAttachDocument?: () => void;
+    onRemoveAttachment?: (id: string) => void;
 }
 
 const MAX_CONTEXT_SIZE = 190000;
@@ -304,9 +310,10 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     const isSendBlocked = props.blockSend ?? false;
 
     const hasText = props.value.trim().length > 0;
+    const hasAttachments = (props.pendingAttachments?.length ?? 0) > 0;
     const canPressSendButton = !props.isSending
         && !props.isSendDisabled
-        && (isSendBlocked ? hasText : (hasText || !!props.onMicPress));
+        && (isSendBlocked ? (hasText || hasAttachments) : (hasText || hasAttachments || (Platform.OS !== 'web' && !!props.onMicPress)));
 
     // Check if this is a Codex, Gemini, or OpenClaw session
     // Use metadata.flavor for existing sessions, agentType prop for new sessions
@@ -474,12 +481,12 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         if (props.isSendDisabled || props.isSending) return;
 
         hapticsLight();
-        if (hasText) {
+        if (hasText || hasAttachments) {
             props.onSend();
         } else {
-            props.onMicPress?.();
+            Platform.OS !== 'web' && props.onMicPress?.();
         }
-    }, [handleBlockedSendAttempt, hasText, isSendBlocked, props]);
+    }, [handleBlockedSendAttempt, hasText, hasAttachments, isSendBlocked, props]);
 
     // Handle keyboard navigation
     const handleKeyPress = React.useCallback((event: KeyPressEvent): boolean => {
@@ -959,6 +966,14 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                     </View>
                 )}
 
+                {/* Attachment Strip - shown above input when attachments are present */}
+                {props.pendingAttachments && props.pendingAttachments.length > 0 && props.onRemoveAttachment && (
+                    <AttachmentStrip
+                        attachments={props.pendingAttachments}
+                        onRemove={props.onRemoveAttachment}
+                    />
+                )}
+
                 {/* Box 2: Action Area (Input + Send) */}
                 <Shaker ref={sendBlockShakerRef}>
                 <View style={styles.unifiedPanel}>
@@ -1080,6 +1095,14 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
                                 {/* Git Status Badge */}
                                 <GitStatusButton sessionId={props.sessionId} onPress={props.onFileViewerPress} />
+
+                                {/* Attach button */}
+                                {(props.onAttachImage || props.onAttachDocument) && (
+                                    <AttachButton
+                                        onAttachImage={props.onAttachImage}
+                                        onAttachDocument={props.onAttachDocument}
+                                    />
+                                )}
                                 </View>
 
                                 {/* Send/Voice button - aligned with first row */}
@@ -1087,7 +1110,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                     style={[
                                         styles.sendButton,
                                         isSendBlocked ? styles.sendButtonLocked :
-                                        (hasText || props.isSending || (props.onMicPress && !props.isMicActive))
+                                        (hasText || hasAttachments || props.isSending || (Platform.OS !== 'web' && props.onMicPress && !props.isMicActive))
                                             ? styles.sendButtonActive
                                             : styles.sendButtonInactive
                                     ]}
@@ -1125,7 +1148,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                                     { marginTop: Platform.OS === 'web' ? 2 : 0 }
                                                 ]}
                                             />
-                                        ) : props.onMicPress && !props.isMicActive ? (
+                                        ) : Platform.OS !== 'web' && props.onMicPress && !props.isMicActive ? (
                                             <Image
                                                 source={require('@/assets/images/icon-voice-white.png')}
                                                 style={{
@@ -1156,6 +1179,133 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         </View>
     );
 }));
+
+// Attach Button Component
+function AttachButton({ onAttachImage, onAttachDocument }: {
+    onAttachImage?: () => void;
+    onAttachDocument?: () => void;
+}) {
+    const { theme } = useUnistyles();
+    const [showMenu, setShowMenu] = React.useState(false);
+
+    if (!onAttachImage && !onAttachDocument) return null;
+
+    // If only one option, invoke it directly without menu
+    if (onAttachImage && !onAttachDocument) {
+        return (
+            <Pressable
+                onPress={() => { hapticsLight(); onAttachImage(); }}
+                hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
+                style={(p) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderRadius: Platform.select({ default: 16, android: 20 }),
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                    justifyContent: 'center',
+                    height: 32,
+                    opacity: p.pressed ? 0.7 : 1,
+                })}
+            >
+                <Ionicons name="attach" size={18} color={theme.colors.button.secondary.tint} />
+            </Pressable>
+        );
+    }
+
+    if (!onAttachImage && onAttachDocument) {
+        return (
+            <Pressable
+                onPress={() => { hapticsLight(); onAttachDocument(); }}
+                hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
+                style={(p) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderRadius: Platform.select({ default: 16, android: 20 }),
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                    justifyContent: 'center',
+                    height: 32,
+                    opacity: p.pressed ? 0.7 : 1,
+                })}
+            >
+                <Ionicons name="attach" size={18} color={theme.colors.button.secondary.tint} />
+            </Pressable>
+        );
+    }
+
+    return (
+        <View>
+            {showMenu && (
+                <>
+                    <TouchableWithoutFeedback onPress={() => setShowMenu(false)}>
+                        <View style={{ position: 'absolute', top: -1000, left: -1000, right: -1000, bottom: -1000, zIndex: 999 }} />
+                    </TouchableWithoutFeedback>
+                    <View style={{
+                        position: 'absolute',
+                        bottom: 40,
+                        left: 0,
+                        backgroundColor: theme.colors.input.background,
+                        borderRadius: 12,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.15,
+                        shadowRadius: 8,
+                        elevation: 8,
+                        zIndex: 1000,
+                        minWidth: 140,
+                    }}>
+                        <Pressable
+                            onPress={() => { setShowMenu(false); hapticsLight(); onAttachImage?.(); }}
+                            style={(p) => ({
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                paddingHorizontal: 16,
+                                paddingVertical: 12,
+                                gap: 10,
+                                backgroundColor: p.pressed ? theme.colors.surfacePressed : 'transparent',
+                                borderRadius: 12,
+                            })}
+                        >
+                            <Ionicons name="image-outline" size={18} color={theme.colors.text} />
+                            <Text style={{ color: theme.colors.text, fontSize: 14 }}>{t('agentInput.attach.image')}</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => { setShowMenu(false); hapticsLight(); onAttachDocument?.(); }}
+                            style={(p) => ({
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                paddingHorizontal: 16,
+                                paddingVertical: 12,
+                                gap: 10,
+                                backgroundColor: p.pressed ? theme.colors.surfacePressed : 'transparent',
+                                borderRadius: 12,
+                            })}
+                        >
+                            <Ionicons name="document-outline" size={18} color={theme.colors.text} />
+                            <Text style={{ color: theme.colors.text, fontSize: 14 }}>{t('agentInput.attach.document')}</Text>
+                        </Pressable>
+                    </View>
+                </>
+            )}
+            <Pressable
+                onPress={() => { hapticsLight(); setShowMenu(prev => !prev); }}
+                hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
+                style={(p) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderRadius: Platform.select({ default: 16, android: 20 }),
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                    justifyContent: 'center',
+                    height: 32,
+                    opacity: p.pressed ? 0.7 : 1,
+                })}
+            >
+                <Ionicons name="attach" size={18} color={theme.colors.button.secondary.tint} />
+            </Pressable>
+        </View>
+    );
+}
 
 // Git Status Button Component
 function GitStatusButton({ sessionId, onPress }: { sessionId?: string, onPress?: () => void }) {
