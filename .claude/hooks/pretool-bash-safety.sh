@@ -48,4 +48,46 @@ if echo "$COMMAND" | grep -qE 'git push\s+(--force|-f)\b'; then
   echo "Command: $COMMAND" >&2
 fi
 
+
+# ── ISOLATION: production must NEVER be contaminated by dev ──────────
+# 2026-04-04 catastrophe: npm install -g from dev worktree killed all production sessions
+
+# Block: npm install -g (only user may do this manually)
+CMD_NO_COMMENTS=$(echo "$COMMAND" | sed 's/#.*$//')
+if echo "$CMD_NO_COMMENTS" | grep -qE 'npm\s+install\s+-g' || echo "$CMD_NO_COMMENTS" | grep -qE 'npm\s+install\s+--global'; then
+  echo "BLOCKED: npm install -g is FORBIDDEN from agents" >&2
+  echo "Command: $COMMAND" >&2
+  echo "Only the user may install the global CLI manually." >&2
+  exit 2
+fi
+
+# Block: invoking /usr/bin/happy directly (triggers auto-upgrade)
+if echo "$COMMAND" | grep -qE '(^|[;&|]\s*)/usr/bin/happy\b' || echo "$COMMAND" | grep -qE '(^|[;&|]\s*)happy\s+(daemon|--version|auth)\b'; then
+  echo "BLOCKED: Direct invocation of global happy CLI is FORBIDDEN from agents" >&2
+  echo "Command: $COMMAND" >&2
+  exit 2
+fi
+
+# Block: kill with PIDs (use happy-restart.sh or daemon HTTP /stop)
+if echo "$COMMAND" | grep -qE '(^|[;&|]\s*)kill\s+[0-9]'; then
+  echo "BLOCKED: kill with PIDs is FORBIDDEN — use bash /root/bin/happy-restart.sh" >&2
+  echo "Command: $COMMAND" >&2
+  exit 2
+fi
+
+# Block: rsync/cp from happy-dev into production source
+if echo "$COMMAND" | grep -qE '(rsync|cp)\s' && echo "$COMMAND" | grep -qE '(/root/happy-dev/|/dev/shm/|worktree).*(/root/happy/packages/)'; then
+  echo "BLOCKED: Copying dev code into production source is FORBIDDEN" >&2
+  echo "Command: $COMMAND" >&2
+  echo "Use git merge/cherry-pick instead." >&2
+  exit 2
+fi
+
+# Block: raw systemctl restart for production daemons (use happy-restart.sh)
+if echo "$COMMAND" | grep -qE 'systemctl\s+(restart|stop)\s+happy-daemon'; then
+  echo "BLOCKED: Raw systemctl for daemon restart is FORBIDDEN — use bash /root/bin/happy-restart.sh" >&2
+  echo "Command: $COMMAND" >&2
+  exit 2
+fi
+
 exit 0
