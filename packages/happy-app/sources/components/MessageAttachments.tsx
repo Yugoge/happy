@@ -72,6 +72,7 @@ const FileAttachment = React.memo(({ attachment }: { attachment: AttachmentMetad
 
 const styles = StyleSheet.create(theme => ({
     container: {
+        marginTop: 4,
         marginBottom: 4,
         gap: 6,
     },
