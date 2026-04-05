@@ -1,0 +1,268 @@
+{
+  "timestamp": "2026-04-05T20:15:00Z",
+  "audit_type": "project-hooks-completeness",
+  "project": "happy-dev",
+  "files_audited": [
+    "/dev/shm/dev-workspace/happy-dev/.claude/settings.json",
+    "/dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-docker-dev-guard.sh",
+    "/dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-bash-safety.sh",
+    "/root/.claude/hooks/pretool-block-production.sh",
+    "/root/.claude/hooks/pretool-block-production-files.sh",
+    "/root/.claude/hooks/pretool-bash-safety.sh",
+    "/root/.claude/settings.json"
+  ],
+
+  "section_1_docker_build_hook": {
+    "file": "/dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-docker-dev-guard.sh",
+    "status": "pass_with_notes",
+    "test_results": [
+      {
+        "input": "docker build --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:dev .",
+        "expected": "blocked",
+        "actual": "blocked (exit 2)",
+        "result": "pass"
+      },
+      {
+        "input": "docker build --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev .",
+        "expected": "allowed",
+        "actual": "allowed (exit 0)",
+        "result": "pass"
+      },
+      {
+        "input": "docker build -t happy-app:dev . (no URL)",
+        "expected": "allowed by THIS hook (global hook handles missing URL for Dockerfile.webapp)",
+        "actual": "allowed (exit 0)",
+        "result": "pass",
+        "note": "Global pretool-bash-safety.sh catches missing HAPPY_SERVER_URL for Dockerfile.webapp builds. This hook only guards against wrong URL, not missing URL. Division of responsibility is correct."
+      },
+      {
+        "input": "docker build -f Dockerfile.server-slim --build-arg HAPPY_SERVER_URL=https://api.life-ai.app .",
+        "expected": "blocked",
+        "actual": "blocked (exit 2)",
+        "result": "pass",
+        "note": "Hook correctly blocks production URL regardless of Dockerfile type"
+      },
+      {
+        "input": "ls -la (non-docker command)",
+        "expected": "allowed",
+        "actual": "allowed (exit 0)",
+        "result": "pass"
+      }
+    ],
+    "edge_case_findings": [
+      {
+        "severity": "minor",
+        "finding": "Hook allows docker build with BOTH api-dev.life-ai.app AND api.life-ai.app present in the same command",
+        "detail": "The grep logic is: block if 'api.life-ai.app' present AND 'api-dev.life-ai.app' NOT present. If both are present, it passes. This is acceptable because having api-dev in the command means the dev URL regex matched, and having two --build-arg for HAPPY_SERVER_URL would be unusual/nonsensical.",
+        "recommendation": "No action needed -- edge case is unlikely in practice"
+      }
+    ]
+  },
+
+  "section_2_settings_json_registration": {
+    "file": "/dev/shm/dev-workspace/happy-dev/.claude/settings.json",
+    "status": "pass",
+    "hooks_registered": [
+      {
+        "matcher": "mcp__playwright__browser_navigate",
+        "command": "bash $HOME/.claude/hooks/pretool-block-production.sh",
+        "purpose": "Block Playwright navigation to production URLs",
+        "status": "correctly_registered"
+      },
+      {
+        "matcher": "mcp__playwright__browser_run_code",
+        "command": "bash $HOME/.claude/hooks/pretool-block-production.sh",
+        "purpose": "Block Playwright run_code that could navigate to production",
+        "status": "correctly_registered"
+      },
+      {
+        "matcher": "WebFetch",
+        "command": "bash $HOME/.claude/hooks/pretool-block-production.sh",
+        "purpose": "Block WebFetch to production URLs",
+        "status": "registered_but_ineffective",
+        "detail": "See section_3 findings"
+      },
+      {
+        "matcher": "Bash",
+        "command": "bash /dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-docker-dev-guard.sh",
+        "purpose": "Block docker build with production URLs in happy-dev",
+        "status": "correctly_registered",
+        "note": "Uses absolute path to project hook, which is correct for this workspace"
+      },
+      {
+        "matcher": "Write",
+        "command": "bash $HOME/.claude/hooks/pretool-block-production-files.sh",
+        "purpose": "Block Write to production file paths",
+        "status": "correctly_registered"
+      },
+      {
+        "matcher": "Edit",
+        "command": "bash $HOME/.claude/hooks/pretool-block-production-files.sh",
+        "purpose": "Block Edit to production file paths",
+        "status": "correctly_registered"
+      }
+    ]
+  },
+
+  "section_3_production_url_blocking": {
+    "status": "warning",
+    "findings": [
+      {
+        "severity": "major",
+        "location": "/root/.claude/hooks/pretool-block-production.sh:11-14",
+        "finding": "WebFetch tool is NOT checked by pretool-block-production.sh despite being registered for it in settings.json",
+        "detail": "The hook's case statement only matches 'mcp__playwright__browser_navigate' and 'mcp__playwright__browser_click'. When tool_name='WebFetch', the case falls through to '*)' which exits 0 (allow). This means WebFetch to https://life-ai.app or https://api.life-ai.app is silently allowed.",
+        "recommendation": "Add 'WebFetch' to the case statement in pretool-block-production.sh and extract 'url' from tool_input for URL checking",
+        "test_evidence": "echo '{\"tool_name\":\"WebFetch\",\"tool_input\":{\"url\":\"https://life-ai.app/auth/default\"}}' | bash hook -> exit 0 (should be exit 2)"
+      },
+      {
+        "severity": "minor",
+        "location": "/root/.claude/hooks/pretool-block-production.sh:11",
+        "finding": "browser_run_code is NOT checked by the hook despite being registered in project settings.json",
+        "detail": "mcp__playwright__browser_run_code is registered in the project settings.json but the global hook only handles browser_navigate and browser_click. Code like page.goto('https://life-ai.app') inside browser_run_code would not be caught. However, the hook reads tool_input as JSON and greps for URL patterns -- but the case statement exits before reaching that code for browser_run_code.",
+        "recommendation": "Add 'mcp__playwright__browser_run_code' to the case statement"
+      },
+      {
+        "severity": "pass",
+        "check": "Playwright navigation to life-ai.app (non-dev)",
+        "detail": "Correctly blocked by case match on browser_navigate"
+      },
+      {
+        "severity": "pass",
+        "check": "Playwright navigation to localhost:8090 (production web)",
+        "detail": "Correctly blocked by localhost:8090 check"
+      },
+      {
+        "severity": "pass",
+        "check": "Playwright navigation to localhost:3000 (production API)",
+        "detail": "Correctly blocked by localhost:3000 check"
+      }
+    ]
+  },
+
+  "section_4_completeness_gaps": {
+    "status": "warning",
+    "gaps": [
+      {
+        "severity": "major",
+        "category": "network_access",
+        "finding": "curl/wget GET to production API (localhost:3000) is NOT blocked",
+        "detail": "The global pretool-bash-safety.sh blocks curl/wget POST/PUT/PATCH/DELETE to session/machine endpoints, but does NOT block GET requests to localhost:3000 (production API). A subagent could do 'curl http://localhost:3000/v1/sessions' and read production session data.",
+        "recommendation": "Add a rule to block curl/wget to localhost:3000 and api.life-ai.app entirely from dev environment, or at minimum block non-health endpoints. Health checks via localhost:3000/health are used for isolation verification so those may need to remain allowed.",
+        "risk": "medium -- read-only access to production data, no mutation"
+      },
+      {
+        "severity": "minor",
+        "category": "docker_compose",
+        "finding": "docker compose restart is blocked globally but docker compose stop is not explicitly checked",
+        "detail": "The global hook blocks 'docker.compose (down|restart)' but 'docker compose stop happy-server' is not matched by this pattern. However, 'docker compose stop' is unusual (most use 'docker stop <container>') and docker stop of non-dev containers IS blocked.",
+        "recommendation": "Add 'stop' to the docker.compose pattern: 'docker.compose (down|restart|stop)'"
+      },
+      {
+        "severity": "minor",
+        "category": "systemctl",
+        "finding": "systemctl enable/disable for production services not blocked",
+        "detail": "The global hook blocks 'systemctl (stop|restart)' for non-dev services, but 'systemctl disable happy-daemon' or 'systemctl enable' are not checked. These could prevent production services from auto-starting on reboot.",
+        "recommendation": "Add 'enable|disable' to the systemctl check, or at least 'disable'"
+      },
+      {
+        "severity": "pass",
+        "category": "docker_compose_up",
+        "finding": "docker compose up/build for production services is correctly blocked",
+        "detail": "Global hook has whitelist-based checking: only applio-*, happy-web-dev, happy-server-dev, postgres-dev, redis-dev are allowed"
+      },
+      {
+        "severity": "pass",
+        "category": "npm_install_g",
+        "finding": "npm install -g is correctly blocked globally",
+        "detail": "Both 'npm install -g' and 'npm install --global' are blocked"
+      },
+      {
+        "severity": "pass",
+        "category": "happy_cli",
+        "finding": "/usr/bin/happy invocation is correctly blocked",
+        "detail": "Both direct /usr/bin/happy and bare 'happy daemon/--version/auth' are blocked"
+      },
+      {
+        "severity": "pass",
+        "category": "kill_processes",
+        "finding": "kill with PIDs and kill -9 are correctly blocked",
+        "detail": "Both 'kill -9' and 'kill <PID>' are blocked"
+      },
+      {
+        "severity": "pass",
+        "category": "file_writes",
+        "finding": "Write/Edit to production paths correctly blocked",
+        "detail": "/root/happy/*, /root/.happy/*, /root/.happy-jade/*, /usr/lib/node_modules/happy*, /usr/bin/happy* all blocked"
+      },
+      {
+        "severity": "pass",
+        "category": "sql_writes",
+        "finding": "Direct SQL writes to production DB correctly blocked",
+        "detail": "INSERT/UPDATE/DELETE/DROP/TRUNCATE/ALTER on happy-postgres and happydb blocked"
+      },
+      {
+        "severity": "pass",
+        "category": "session_creation",
+        "finding": "curl/API session creation correctly blocked",
+        "detail": "POST/PUT/PATCH/DELETE to /v1/sessions, /v1/machines, /session-started, /spawn-session all blocked"
+      }
+    ]
+  },
+
+  "section_5_project_bash_safety": {
+    "file": "/dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-bash-safety.sh",
+    "status": "pass_with_notes",
+    "assessment": "This is a lighter version of the global hook, focused on sensitive file writes, destructive disk ops, recursive deletes, and force push warnings. The heavy lifting (docker, systemctl, npm, kill, SQL) is handled by the global hook.",
+    "note": "Both the project-level and global pretool-bash-safety.sh run on Bash commands (global via $HOME/.claude/hooks/, project via settings.json registration). This means Bash commands go through TWO safety checks, which is defense-in-depth."
+  },
+
+  "section_6_hook_layering_summary": {
+    "description": "How hooks layer: global settings.json hooks + project settings.json hooks both apply",
+    "layers": [
+      {
+        "layer": "global",
+        "file": "/root/.claude/settings.json",
+        "hooks_relevant": [
+          "pretool-bash-safety.sh (Bash matcher) -- comprehensive docker/systemctl/npm/kill/SQL blocking",
+          "pretool-block-production.sh (via project settings.json registration, not global)"
+        ]
+      },
+      {
+        "layer": "project",
+        "file": "/dev/shm/dev-workspace/happy-dev/.claude/settings.json",
+        "hooks_relevant": [
+          "pretool-docker-dev-guard.sh (Bash matcher) -- blocks production URL in docker build",
+          "pretool-block-production.sh (browser_navigate, browser_run_code, WebFetch matchers)",
+          "pretool-block-production-files.sh (Write, Edit matchers)"
+        ]
+      }
+    ],
+    "execution_order": "Global hooks fire first, then project hooks. A block at any layer stops the tool."
+  },
+
+  "summary": {
+    "status": "warning",
+    "critical_issues": 0,
+    "major_issues": 2,
+    "minor_issues": 3,
+    "findings": [
+      "MAJOR: pretool-block-production.sh does not check WebFetch tool despite being registered for it -- production URLs accessible via WebFetch",
+      "MAJOR: curl GET to localhost:3000 (production API) is not blocked -- read access to production data possible",
+      "MINOR: pretool-block-production.sh does not check browser_run_code despite registration",
+      "MINOR: docker compose stop not blocked (only down/restart)",
+      "MINOR: systemctl enable/disable for production services not blocked"
+    ],
+    "strengths": [
+      "Docker build URL guard works correctly for all tested cases",
+      "npm install -g comprehensively blocked",
+      "Production file writes blocked via Write/Edit hooks",
+      "Docker compose up/build whitelist-based approach is robust",
+      "Kill/kill -9 blocked",
+      "SQL writes to production DB blocked",
+      "Session creation via API blocked",
+      "Defense-in-depth: two layers of bash safety hooks"
+    ],
+    "release_recommendation": "approve-with-warnings"
+  }
+}

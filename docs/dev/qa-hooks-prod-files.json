@@ -1,0 +1,113 @@
+{
+  "audit": "pretool-block-production-files.sh",
+  "file": "/root/.claude/hooks/pretool-block-production-files.sh",
+  "timestamp": "2026-04-05T20:15:00Z",
+  "status": "fail",
+  "overall_assessment": "Hook has 2 critical bugs (false positives blocking /usr/bin/happy-dev and /usr/bin/happy-mcp) and 1 major gap (missing /root/.happy-qijie/ protection). The dev service file check at line 67 is correct.",
+
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "critical",
+      "category": "false_positive",
+      "location": "pretool-block-production-files.sh:50-55",
+      "pattern": "/usr/bin/happy*",
+      "issue": "Glob pattern /usr/bin/happy* blocks ALL files starting with 'happy' in /usr/bin/, including the legitimate dev binary /usr/bin/happy-dev and /usr/bin/happy-mcp. Verified: /usr/bin/happy-dev exists as symlink to /root/happy-dev/packages/happy-cli/bin/happy-dev.mjs",
+      "affected_paths_blocked_incorrectly": [
+        "/usr/bin/happy-dev",
+        "/usr/bin/happy-mcp"
+      ],
+      "recommendation": "Replace the case pattern with a regex or multi-pattern that excludes -dev. Suggested fix: replace `case` block lines 50-55 with a bash test using regex: if [[ \"$FILE_PATH\" =~ ^/usr/bin/happy([^-]|$) ]]; then ... fi. This matches /usr/bin/happy and /usr/bin/happy-coder but NOT /usr/bin/happy-dev or /usr/bin/happy-mcp.",
+      "fix_pattern": "[[ \"$FILE_PATH\" =~ ^/usr/bin/happy([^-]|$) ]]"
+    },
+    {
+      "id": "F2",
+      "severity": "major",
+      "category": "false_positive",
+      "location": "pretool-block-production-files.sh:43-48",
+      "pattern": "/usr/lib/node_modules/happy*",
+      "issue": "Glob pattern /usr/lib/node_modules/happy* would block any hypothetical /usr/lib/node_modules/happy-dev-* path. Currently only /usr/lib/node_modules/happy-coder exists (symlink to /root/happy/packages/happy-cli), so no actual false positive occurs today. However, the pattern is overly broad. Note: happy-coder IS a production module and SHOULD be blocked.",
+      "current_risk": "low (no happy-dev module currently installed globally)",
+      "recommendation": "Acceptable as-is since dev modules should never be installed globally (per CLAUDE.md rule). But for consistency with the /usr/bin/ fix, could use the same ([^-]|$) pattern. Lower priority than F1."
+    },
+    {
+      "id": "F3",
+      "severity": "major",
+      "category": "missing_protection",
+      "location": "pretool-block-production-files.sh (missing)",
+      "issue": "No case block protects /root/.happy-qijie/ (qijie daemon home). The hook blocks /root/.happy/ and /root/.happy-jade/ but not .happy-qijie. The CLAUDE.md documents 4 daemons: default (.happy), jade (.happy-jade), dev (.happy-dev), and qijie (.happy-qijie). Qijie is a production daemon and its home should be protected.",
+      "verified": "echo test | case '/root/.happy-qijie/access.key' in /root/.happy/*|/root/.happy-jade/*) echo blocked ;; *) echo NOT blocked ;; esac => NOT blocked",
+      "recommendation": "Add a case block after line 39: case \"$FILE_PATH\" in /root/.happy-qijie/*) echo 'BLOCKED: ...' >&2; exit 2 ;; esac"
+    },
+    {
+      "id": "F4",
+      "severity": "info",
+      "category": "correct_implementation",
+      "location": "pretool-block-production-files.sh:67",
+      "pattern": "Exec(Start|Stop)=.*/usr/bin/happy([^-]|$)",
+      "issue": "The dev service file content check correctly uses ([^-]|$) regex pattern to distinguish /usr/bin/happy from /usr/bin/happy-dev. This is the CORRECT pattern -- it matches /usr/bin/happy followed by a non-dash character or end-of-string, thus excluding /usr/bin/happy-dev.",
+      "recommendation": "No change needed. This pattern should be used as the model for fixing F1."
+    }
+  ],
+
+  "verification_matrix": {
+    "production_paths_blocked": {
+      "/root/happy/*": { "line": 20, "status": "pass", "tested": true },
+      "/root/.happy/*": { "line": 29, "status": "pass", "tested": true },
+      "/root/.happy-jade/*": { "line": 36, "status": "pass", "tested": true },
+      "/root/.happy-qijie/*": { "line": "missing", "status": "FAIL_MISSING", "tested": true },
+      "/usr/lib/node_modules/happy*": { "line": 44, "status": "pass_with_caveat", "note": "Blocks correctly but pattern is overly broad" },
+      "/usr/bin/happy": { "line": 51, "status": "pass", "tested": true },
+      "/usr/bin/happy (not -dev)": { "line": 51, "status": "FAIL_FALSE_POSITIVE", "note": "Pattern also blocks /usr/bin/happy-dev" }
+    },
+    "dev_paths_allowed": {
+      "/root/happy-dev/*": { "status": "pass", "tested": true, "note": "Shell glob /root/happy/* does not match /root/happy-dev/" },
+      "/dev/shm/dev-workspace/happy-dev/*": { "status": "pass", "tested": true },
+      "/root/.happy-dev/*": { "status": "pass", "tested": true, "note": "Shell glob /root/.happy/* does not match /root/.happy-dev/" },
+      "/usr/bin/happy-dev": { "status": "FAIL_BLOCKED", "tested": true, "note": "Incorrectly blocked by /usr/bin/happy* pattern at line 51" }
+    },
+    "service_file_check": {
+      "blocks_ExecStart=/usr/bin/happy": { "status": "pass", "line": 67 },
+      "allows_ExecStart=/usr/bin/happy-dev": { "status": "pass", "line": 67, "note": "([^-]|$) correctly excludes -dev" },
+      "checks_both_ExecStart_and_ExecStop": { "status": "pass", "note": "Regex covers Exec(Start|Stop)" }
+    }
+  },
+
+  "substring_matching_audit": {
+    "description": "Audit of all patterns that match '/usr/bin/happy' to ensure they correctly distinguish from '/usr/bin/happy-dev'",
+    "patterns_found": [
+      {
+        "line": 51,
+        "type": "case_glob",
+        "pattern": "/usr/bin/happy*",
+        "correctly_distinguishes": false,
+        "reason": "Shell glob * matches any characters including '-dev'. /usr/bin/happy-dev MATCHES this pattern."
+      },
+      {
+        "line": 67,
+        "type": "grep_regex",
+        "pattern": "/usr/bin/happy([^-]|$)",
+        "correctly_distinguishes": true,
+        "reason": "Regex ([^-]|$) matches any char that is NOT a dash, or end-of-string. /usr/bin/happy-dev has '-' after 'happy' so it does NOT match."
+      }
+    ],
+    "note_on_word_boundary": "The task correctly identifies that \\b would be WRONG here. \\b matches at word boundaries, and the '-' in 'happy-dev' IS a word boundary (transition from word char 'y' to non-word char '-'). So /usr/bin/happy\\b would match BOTH /usr/bin/happy AND /usr/bin/happy-dev. The hook correctly avoids \\b and uses ([^-]|$) at line 67, but the case glob at line 51 has an equivalent bug."
+  },
+
+  "recommended_fix": {
+    "description": "Replace case glob at lines 50-55 with bash regex test",
+    "before": "case \"$FILE_PATH\" in\n  /usr/bin/happy*)\n    echo \"BLOCKED: Write/Edit to global happy binary is FORBIDDEN\" >&2\n    echo \"Path: $FILE_PATH\" >&2\n    exit 2 ;;\nesac",
+    "after": "if [[ \"$FILE_PATH\" =~ ^/usr/bin/happy([^-]|$) ]]; then\n  echo \"BLOCKED: Write/Edit to global happy binary is FORBIDDEN\" >&2\n  echo \"Path: $FILE_PATH\" >&2\n  exit 2\nfi",
+    "additional": "Add after line 39:\ncase \"$FILE_PATH\" in\n  /root/.happy-qijie/*)\n    echo \"BLOCKED: Write/Edit to qijie daemon home /root/.happy-qijie/ is FORBIDDEN\" >&2\n    echo \"Path: $FILE_PATH\" >&2\n    exit 2 ;;\nesac"
+  },
+
+  "summary": {
+    "critical_issues": 1,
+    "major_issues": 2,
+    "minor_issues": 0,
+    "info_items": 1,
+    "total_findings": 4,
+    "release_recommendation": "reject",
+    "rationale": "The /usr/bin/happy* glob false positive (F1) is critical because it blocks editing the legitimate dev binary /usr/bin/happy-dev. The missing /root/.happy-qijie/ protection (F3) leaves a production daemon home unprotected. Both must be fixed."
+  }
+}
