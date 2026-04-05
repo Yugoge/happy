@@ -1,0 +1,94 @@
+{
+  "request_id": "dev-20260405-130000",
+  "timestamp": "2026-04-05T13:00:00Z",
+  "requirement": {
+    "original": "修复为什么happy-dev的图片和文件上传功能失败？happy prod是正常运行的，这是在happy prod merge happy官方的最新的更新之后产生的",
+    "clarified": "Fix broken file/image upload in happy-dev caused by missing happy-wire export after upstream merge",
+    "what": "Restore AttachmentMetadata export from happy-wire package that was lost during upstream merge",
+    "why": "File and image upload is non-functional in happy-dev web app; users cannot attach files to sessions",
+    "where": ["packages/happy-wire/src/index.ts"],
+    "scope": {
+      "included": [
+        "Add missing messageMeta export to happy-wire index.ts",
+        "Verify typecheck passes",
+        "Rebuild happy-web-dev Docker image"
+      ],
+      "excluded": [
+        "Server-side upload logic (already working)",
+        "Production deployment",
+        "happy-cli file download changes"
+      ]
+    },
+    "success_criteria": [
+      "import { AttachmentMetadata } from '@slopus/happy-wire' resolves successfully",
+      "yarn workspace happy-app typecheck has no AttachmentMetadata errors",
+      "File upload works end-to-end in dev.life-ai.app browser"
+    ],
+    "constraints": [
+      "Must keep the upstream voice export - add messageMeta alongside it",
+      "Must rebuild happy-wire before happy-app can consume the fix",
+      "Docker image must be built from happy-dev repo, not /root/happy"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "File and image upload fails in happy-dev web app",
+    "root_cause": "Upstream merge (925f5960) replaced local 'export * from ./messageMeta' with upstream 'export * from ./voice' in happy-wire/src/index.ts. The messageMeta.ts file still exists but is no longer exported from the package.",
+    "root_cause_commit": "925f5960 - Merge upstream slopus/happy (153 commits)",
+    "why_introduced": "The upstream repo does not have the attachment feature. Their index.ts has voice instead of messageMeta. During merge, the local messageMeta line was replaced by the upstream voice line.",
+    "why_problematic": "AttachmentMetadata type is imported by 5+ files in happy-app. Without the export, TypeScript fails and runtime behavior is broken for all upload functionality.",
+    "timeline": "2026-03-27 (merge commit 925f5960)",
+    "affected_files": ["packages/happy-wire/src/index.ts"]
+  },
+  "context": {
+    "codebase_state": "happy-wire/src/messageMeta.ts exists with correct types but is not exported from index.ts",
+    "recent_commits": "925f5960 merge overwrote index.ts; f8b208fa originally added the export correctly",
+    "file_contents": {
+      "packages/happy-wire/src/index.ts": "export * from './messages';\nexport * from './legacyProtocol';\nexport * from './sessionProtocol';\nexport * from './voice';",
+      "packages/happy-wire/src/messageMeta.ts": "Contains AttachmentMetadataSchema, AttachmentMetadata type, MessageMetaSchema, MessageMeta type"
+    },
+    "dependencies": {
+      "happy-app -> happy-wire": "AttachmentMetadata imported in useAttachments.ts, sync.ts, typesRaw.ts, typesMessage.ts, MessageAttachments.tsx, reducer.ts"
+    },
+    "environment": {
+      "dev_server": "localhost:3005 (Docker happy-server-dev) - upload endpoint works",
+      "dev_web": "localhost:8097 (Docker happy-web-dev) - last built 2026-04-05",
+      "s3_bucket": "happy-storage-dev on minio - exists and accessible"
+    }
+  },
+  "development_approach": {
+    "strategy": "One-line fix: add 'export * from ./messageMeta' to happy-wire/src/index.ts, then rebuild and deploy",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-wire/src/index.ts"
+    ],
+    "validation_approach": "1. yarn typecheck in happy-app (no AttachmentMetadata errors), 2. Docker rebuild happy-web-dev, 3. Browser test upload on dev.life-ai.app"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward bug fix with clear root cause identified via git analysis"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "additional_typecheck_errors": [
+    {
+      "file": "sources/sync/sync.ts:2272",
+      "error": "Property 'applySessionUsage' does not exist on type 'StorageState'",
+      "likely_cause": "Method added locally but not present in upstream storage types"
+    },
+    {
+      "file": "sources/components/SidebarNavigator.tsx:15",
+      "error": "sidebarCollapsed not in settings type",
+      "likely_cause": "Local setting not added to upstream settings schema"
+    },
+    {
+      "file": "sources/components/SessionActionsNativeMenu.android.tsx",
+      "error": "Missing DropdownMenu from @expo/ui/jetpack-compose",
+      "likely_cause": "Android-only, not relevant for web upload fix"
+    }
+  ]
+}
