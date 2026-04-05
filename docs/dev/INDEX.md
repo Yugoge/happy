@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-05T12:48:42Z*
-**Total entries**: 94
+*Last updated: 2026-04-05T19:31:50Z*
+**Total entries**: 98
 **Convention**: kebab
 
 ## Tree
@@ -39,6 +39,7 @@ dev/
 ├── `ba-spec-20260404-110000.md` - BA Specification: Fix MCP change_title Tool Failure
 ├── `ba-spec-20260404-120000.md` - BA Specification: Fix MCP Title Change - Stateless Transport Reuse Error
 ├── `ba-spec-20260405-130000.md` - BA Specification: Fix File/Image Upload in happy-dev
+├── `ba-spec-20260405-mcp-title.md` - BA Specification: MCP change_title Survives Daemon/Session Restarts
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
 ├── `context-20260403-210447-1.json` - json config
@@ -57,6 +58,7 @@ dev/
 ├── `context-20260404-110000.json` - json config
 ├── `context-20260404-120000.json` - json config
 ├── `context-20260405-130000.json` - json config
+├── `context-20260405-mcp-title.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
@@ -74,6 +76,7 @@ dev/
 ├── `dev-report-20260404-110000.json` - json config
 ├── `dev-report-20260404-120000.json` - json config
 ├── `dev-report-20260405-130000.json` - json config
+├── `dev-report-20260405-mcp-title.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config
@@ -100,6 +103,7 @@ dev/
 ├── `qa-report-20260404-120000-v2.json` - json config
 ├── `qa-report-20260404-120000.json` - json config
 ├── `qa-report-20260405-130000.json` - json config
+├── `qa-report-20260405-mcp-title.json` - json config
 └── `qa-site-isolation-verification.json` - json config
 ```
 

@@ -1,0 +1,89 @@
+{
+  "request_id": "dev-20260405-mcp-title",
+  "timestamp": "2026-04-05T18:45:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260405-mcp-title.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Updated happy-daemon-dev.service to use dev binary directly instead of production /usr/bin/happy",
+        "type": "config",
+        "files_modified": ["/etc/systemd/system/happy-daemon-dev.service"],
+        "changes": "ExecStart and ExecStop changed from /usr/bin/happy to /usr/bin/node --no-warnings --no-deprecation /root/happy-dev/packages/happy-cli/dist/index.mjs. All other lines (Environment, WorkingDirectory, etc.) preserved exactly.",
+        "rationale": "Dev daemon was invoking the production global binary at /usr/bin/happy which resolves to /root/happy/ source tree. This caused all Bug #62 MCP fixes applied to /root/happy-dev/ to be ignored. Direct node invocation ensures dev daemon runs dev code."
+      },
+      {
+        "id": 2,
+        "description": "Added Bash hook rule to block any command combining happy-daemon-dev with /usr/bin/happy",
+        "type": "hook",
+        "files_modified": ["/root/.claude/hooks/pretool-bash-safety.sh"],
+        "changes": "Added rule before force-push warning: if command contains both 'happy-daemon-dev' and '/usr/bin/happy', block with exit 2.",
+        "rationale": "Prevents any future Bash command from reverting the dev service to use the production binary."
+      },
+      {
+        "id": 3,
+        "description": "Added Write/Edit hook rule to block writing /usr/bin/happy into happy-daemon-dev.service",
+        "type": "hook",
+        "files_modified": ["/root/.claude/hooks/pretool-block-production-files.sh"],
+        "changes": "Added content-level check: when editing /etc/systemd/system/happy-daemon-dev.service, block if new_string or content contains ExecStart=/usr/bin/happy or ExecStop=/usr/bin/happy.",
+        "rationale": "Prevents file edits from reintroducing the production binary reference into the dev service file."
+      },
+      {
+        "id": 4,
+        "description": "Ran systemctl daemon-reload to apply service file changes",
+        "type": "command",
+        "files_modified": [],
+        "changes": "systemctl daemon-reload executed successfully. Service NOT restarted (user's session is running).",
+        "rationale": "daemon-reload is safe — it only re-reads unit files without affecting running services. The new ExecStart will take effect on next daemon restart."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "Original service file creation used /usr/bin/happy (the global CLI binary) for convenience, not realizing this resolves to /root/happy/ production source tree",
+      "why_issue_occurred": "Dev daemon service was created before the isolation architecture was established. /usr/bin/happy is a global symlink to /root/happy/ production code, so dev daemon was effectively running production code and ignoring all dev-specific fixes.",
+      "how_fix_addresses_root": "Direct node invocation of /root/happy-dev/packages/happy-cli/dist/index.mjs ensures dev daemon always runs dev code. Hook rules prevent regression."
+    },
+    "blast_radius": [
+      {
+        "modified": "/etc/systemd/system/happy-daemon-dev.service",
+        "imported_by": [],
+        "note": "Systemd service file, not imported by code. Affects only happy-daemon-dev service on next restart."
+      },
+      {
+        "modified": "/root/.claude/hooks/pretool-bash-safety.sh",
+        "imported_by": [],
+        "note": "PreToolUse hook, executed by Claude Code harness. Affects all Bash tool invocations."
+      },
+      {
+        "modified": "/root/.claude/hooks/pretool-block-production-files.sh",
+        "imported_by": [],
+        "note": "PreToolUse hook, executed by Claude Code harness. Affects all Write/Edit tool invocations."
+      }
+    ],
+    "qa_ready": true,
+    "qa_notes": "The service file change takes effect on next daemon restart. Do NOT restart the daemon now — the user's current session is running on it. Verify with the verification_commands below. Hook rules can be tested by attempting blocked operations (they should be rejected).",
+    "tdd_skipped": true,
+    "tdd_skip_reason": "Systemd service config change and hook rules are infrastructure/config changes, not programmatically testable code. Verification is via systemctl show and manual hook testing.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "On next daemon restart, verify dev daemon runs from /root/happy-dev/ by checking daemon logs for the correct binary path",
+    "After restart, verify mcp__happy__change_title tool is available by checking Claude tool list in dev sessions"
+  ],
+  "verification_commands": [
+    {
+      "command": "grep -E 'Exec(Start|Stop)=' /etc/systemd/system/happy-daemon-dev.service",
+      "expected": "Both lines reference /root/happy-dev/packages/happy-cli/dist/index.mjs, NOT /usr/bin/happy"
+    },
+    {
+      "command": "systemctl show happy-daemon-dev.service --property=ExecStart",
+      "expected": "path=/usr/bin/node with argv including /root/happy-dev/packages/happy-cli/dist/index.mjs"
+    },
+    {
+      "command": "systemctl show happy-daemon-dev.service --property=Environment",
+      "expected": "All environment variables preserved: HAPPY_HOME_DIR=/root/.happy-dev, HAPPY_SERVER_URL=http://localhost:3005, IS_SANDBOX=1"
+    }
+  ]
+}

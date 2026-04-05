@@ -3,19 +3,16 @@ import { View, Text, Pressable, ActivityIndicator, ScrollView, Image } from 'rea
 import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { PendingAttachment } from '@/hooks/useAttachments';
-
 type Props = {
     attachments: PendingAttachment[];
     onRemove: (id: string) => void;
 };
-
 /**
  * Horizontal strip showing pending attachments above the message input.
  * Each attachment shows a thumbnail (images) or file icon, upload spinner, and remove button.
  */
 export const AttachmentStrip = React.memo(({ attachments, onRemove }: Props) => {
     if (attachments.length === 0) return null;
-
     return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.strip}>
             {attachments.map(att => (
@@ -24,7 +21,6 @@ export const AttachmentStrip = React.memo(({ attachments, onRemove }: Props) => 
         </ScrollView>
     );
 });
-
 const AttachmentChip = React.memo(({ attachment, onRemove }: {
     attachment: PendingAttachment;
     onRemove: (id: string) => void;
@@ -32,7 +28,6 @@ const AttachmentChip = React.memo(({ attachment, onRemove }: {
     const isImage = attachment.mimeType.startsWith('image/');
     // Use previewUri if available, fall back to server URL for restored attachments
     const imageUri = attachment.previewUri || (isImage ? attachment.metadata?.url : undefined);
-
     return (
         <View style={styles.chip}>
             {isImage && imageUri ? (
@@ -42,32 +37,26 @@ const AttachmentChip = React.memo(({ attachment, onRemove }: {
                     <Ionicons name="document-outline" size={24} color="#666" />
                 </View>
             )}
-
             {attachment.status === 'uploading' && (
                 <View style={styles.overlay}>
                     <ActivityIndicator size="small" color="#fff" />
                 </View>
             )}
-
             {attachment.status === 'error' && (
                 <View style={styles.overlay}>
                     <Ionicons name="alert-circle" size={20} color="#ff3b30" />
                 </View>
             )}
-
             <Text style={styles.name} numberOfLines={1}>{attachment.filename}</Text>
-
             <Pressable style={styles.removeBtn} onPress={() => onRemove(attachment.id)} hitSlop={8}>
                 <Ionicons name="close-circle" size={18} color="#888" />
             </Pressable>
         </View>
     );
 });
-
 const styles = StyleSheet.create(theme => ({
     strip: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        padding: 12,
         flexDirection: 'row',
     },
     chip: {
