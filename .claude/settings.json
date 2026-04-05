@@ -29,6 +29,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-docker-dev-guard.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {

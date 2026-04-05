@@ -1,8 +1,8 @@
 # .claude
 
-*Last updated: 2026-04-04T15:45:50Z*
-**Total entries**: 540
-**Convention**: lower
+*Last updated: 2026-04-05T19:55:14Z*
+**Total entries**: 542
+**Convention**: kebab
 
 ## Tree
 ```
@@ -14,6 +14,7 @@
 │   ├── `posttool-todo-sequence.py` - PostToolUse Hook: Enforce one-step-at-a-time progression in workflow checklists
 │   ├── `posttool-todo-tracker.py` - PostToolUse Hook: Output checklist progress after every TodoWrite call
 │   ├── `pretool-bash-safety.sh` - PreToolUse Safety Hook - Warn or block before dangerous operations
+│   ├── `pretool-docker-dev-guard.sh` - pretool-docker-dev-guard.sh
 │   ├── `pretool-workflow-gate.py` - PreToolUse Hook: Require TodoWrite/TodoRead acknowledgment before other tools
 │   ├── `pretool-worktree-guard.sh` - PreToolUse hook: Detect stale agent worktrees before ANY tool call
 │   ├── `prompt-workflow.py` - UserPromptSubmit Hook: Checklist Injection for Slash Commands
@@ -546,6 +547,7 @@
 ├── `settings.local.json` - json config
 ├── `workflow-049baf2c-547f-4a07-82af-06eb4ed42d8c.json` - json config
 ├── `workflow-9ae57c91-b5ff-4178-b883-eba53319be14.json` - json config
+├── `workflow-d12e561c-040d-484b-9e82-66c46dd5c95b.json` - json config
 └── `workflow-d6f1eea4-7769-4384-bd28-deae1ba26177.json` - json config
 ```
 
