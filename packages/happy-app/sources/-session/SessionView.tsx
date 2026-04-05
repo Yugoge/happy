@@ -253,6 +253,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
         removeAttachment,
         clearAttachments,
         hasAttachments,
+        addFileFromPaste,
     } = useAttachments(sessionId);
 
     // Handle dismissing CLI version warning
@@ -402,6 +403,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
             onAttachImage={pickImage}
             onAttachDocument={pickDocument}
             onRemoveAttachment={removeAttachment}
+            onFilePaste={addFileFromPaste}
         />
     );
 

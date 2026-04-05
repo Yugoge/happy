@@ -111,6 +111,7 @@ interface StorageState {
     applyLocalSettings: (settings: Partial<LocalSettings>) => void;
     applyPurchases: (customerInfo: CustomerInfo) => void;
     applyProfile: (profile: Profile) => void;
+    applySessionUsage: (sessionId: string, usage: { inputTokens: number; outputTokens: number; cacheCreation: number; cacheRead: number; contextSize: number; timestamp: number }) => void;
     applyGitStatus: (sessionId: string, status: GitStatus | null) => void;
     applyGitStatusFiles: (sessionId: string, files: GitStatusFiles | null) => void;
     applyFileCache: (sessionId: string, filePath: string, content: string | null, diff: string | null, isBinary: boolean) => void;
@@ -919,6 +920,18 @@ export const storage = create<StorageState>()((set, get) => {
                 ...state,
                 machines: mergedMachines,
                 sessionListViewData
+            };
+        }),
+        applySessionUsage: (sessionId: string, usage: { inputTokens: number; outputTokens: number; cacheCreation: number; cacheRead: number; contextSize: number; timestamp: number }) => set((state) => {
+            const session = state.sessions[sessionId];
+            if (!session) return state;
+            const existingSession = state.sessionMessages[sessionId];
+            if (existingSession) {
+                existingSession.reducerState.latestUsage = usage;
+            }
+            return {
+                ...state,
+                sessions: { ...state.sessions, [sessionId]: { ...session, latestUsage: usage } }
             };
         }),
         // Artifact methods
