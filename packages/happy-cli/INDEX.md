@@ -1,7 +1,7 @@
 # happy-cli
 
-*Last updated: 2026-03-24T22:39:53Z*
-**Total entries**: 190
+*Last updated: 2026-04-05T11:15:25Z*
+**Total entries**: 225
 **Convention**: kebab
 
 ## Tree
@@ -15,6 +15,11 @@ happy-cli/
 │   └── `main.go` - go file
 ├── docs/
 │   └── `bug-fix-plan-2025-01-15-athundt.md` - Minimal Fix Plan for Happy-CLI Bugs with TDD
+├── experiments/
+│   ├── `codex-reject.ts` - ts file
+│   ├── `codex.ts` - ts file
+│   ├── `NOTES.md` - Codex Experiments
+│   └── `test-codex-protocol.cjs` - cjs file
 ├── scripts/
 │   ├── __tests__/
 │   │   └── `ripgrep_launcher.test.ts` - ts file
@@ -47,12 +52,14 @@ happy-cli/
 │   │   ├── `apiSession.ts` - ts file
 │   │   ├── `auth.ts` - ts file
 │   │   ├── `encryption.ts` - ts file
+│   │   ├── `pushNotifications.test.ts` - ts file
 │   │   ├── `pushNotifications.ts` - ts file
 │   │   ├── `types.ts` - ts file
 │   │   └── `webAuth.ts` - ts file
 │   ├── claude/
 │   │   ├── sdk/
 │   │   ├── utils/
+│   │   ├── `claude.integration.test.ts` - ts file
 │   │   ├── `claudeLocal.test.ts` - ts file
 │   │   ├── `claudeLocal.ts` - ts file
 │   │   ├── `claudeLocalLauncher.ts` - ts file
@@ -66,11 +73,17 @@ happy-cli/
 │   ├── codex/
 │   │   ├── __tests__/
 │   │   ├── utils/
-│   │   ├── `codexMcpClient.ts` - ts file
+│   │   ├── `cliArgs.test.ts` - ts file
+│   │   ├── `cliArgs.ts` - ts file
+│   │   ├── `codex.integration.test.ts` - ts file
+│   │   ├── `codexAppServerClient.test.ts` - ts file
+│   │   ├── `codexAppServerClient.ts` - ts file
+│   │   ├── `codexAppServerTypes.ts` - ts file
 │   │   ├── `executionPolicy.ts` - ts file
 │   │   ├── `happyMcpStdioBridge.ts` - ts file
-│   │   ├── `runCodex.ts` - ts file
-│   │   └── `types.ts` - ts file
+│   │   ├── `resumeExistingThread.test.ts` - ts file
+│   │   ├── `resumeExistingThread.ts` - ts file
+│   │   └── `runCodex.ts` - ts file
 │   ├── commands/
 │   │   ├── connect/
 │   │   ├── `auth.ts` - ts file
@@ -99,9 +112,23 @@ happy-cli/
 │   │   ├── proxy/
 │   │   ├── ripgrep/
 │   │   └── watcher/
+│   ├── openclaw/
+│   │   ├── `openclaw.integration.test.ts` - ts file
+│   │   ├── `openclawAuth.test.ts` - ts file
+│   │   ├── `openclawAuth.ts` - ts file
+│   │   ├── `OpenClawBackend.ts` - ts file
+│   │   ├── `OpenClawSocket.ts` - ts file
+│   │   ├── `openclawTypes.ts` - ts file
+│   │   └── `runOpenClaw.ts` - ts file
 │   ├── parsers/
 │   │   ├── `specialCommands.test.ts` - ts file
 │   │   └── `specialCommands.ts` - ts file
+│   ├── resume/
+│   │   ├── `handleResumeCommand.test.ts` - ts file
+│   │   ├── `handleResumeCommand.ts` - ts file
+│   │   ├── `localHappyAgentAuth.ts` - ts file
+│   │   ├── `resolveHappySession.test.ts` - ts file
+│   │   └── `resolveHappySession.ts` - ts file
 │   ├── sandbox/
 │   │   ├── `config.test.ts` - ts file
 │   │   ├── `config.ts` - ts file
@@ -111,6 +138,12 @@ happy-cli/
 │   ├── sessionProtocol/
 │   │   ├── `types.test.ts` - ts file
 │   │   └── `types.ts` - ts file
+│   ├── testing/
+│   │   ├── `currentIntegrationEnv.ts` - ts file
+│   │   ├── `installIntegrationEnvironment.ts` - ts file
+│   │   ├── `integration.setup.authenticated.ts` - ts file
+│   │   ├── `integration.setup.empty.ts` - ts file
+│   │   └── `integrationEnvironment.ts` - ts file
 │   ├── ui/
 │   │   ├── ink/
 │   │   ├── `auth.ts` - ts file
@@ -131,6 +164,7 @@ happy-cli/
 │   │   ├── `createSessionMetadata.ts` - ts file
 │   │   ├── `deriveKey.appspec.ts` - ts file
 │   │   ├── `deriveKey.ts` - ts file
+│   │   ├── `detectCLI.ts` - ts file
 │   │   ├── `deterministicJson.test.ts` - ts file
 │   │   ├── `deterministicJson.ts` - ts file
 │   │   ├── `expandEnvVars.test.ts` - ts file
@@ -191,6 +225,7 @@ happy-cli/
 │       ├── `difft` - unknown file
 │       ├── `rg` - unknown file
 │       └── `ripgrep.node` - node file
+├── `agents.md` - Happy CLI Agent Tests
 ├── `CLAUDE.md` - Happy CLI Codebase Overview
 ├── `CONTRIBUTING.md` - Contributing to Happy CLI
 ├── `package.json` - json config

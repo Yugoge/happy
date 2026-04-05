@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-04T12:08:22Z*
-**Total entries**: 80
+*Last updated: 2026-04-05T12:39:06Z*
+**Total entries**: 92
 **Convention**: kebab
 
 ## Tree
@@ -38,6 +38,7 @@ dev/
 ├── `ba-spec-20260404-080000.md` - BA Specification: Permanently Fix Title Change (Bug #62)
 ├── `ba-spec-20260404-110000.md` - BA Specification: Fix MCP change_title Tool Failure
 ├── `ba-spec-20260404-120000.md` - BA Specification: Fix MCP Title Change - Stateless Transport Reuse Error
+├── `ba-spec-20260405-130000.md` - BA Specification: Fix File/Image Upload in happy-dev
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
 ├── `context-20260403-210447-1.json` - json config
@@ -55,6 +56,7 @@ dev/
 ├── `context-20260404-080000.json` - json config
 ├── `context-20260404-110000.json` - json config
 ├── `context-20260404-120000.json` - json config
+├── `context-20260405-130000.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
@@ -68,9 +70,15 @@ dev/
 ├── `dev-report-20260403-210447-7.json` - json config
 ├── `dev-report-20260403-210447-8.json` - json config
 ├── `dev-report-20260403-210447-9.json` - json config
+├── `dev-report-20260404-080000.json` - json config
+├── `dev-report-20260404-110000.json` - json config
+├── `dev-report-20260404-120000.json` - json config
+├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config
 ├── `e2e-verification-ui.json` - json config
+├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
+├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
 ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
 ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
 ├── `qa-report-20260403-210447-0.json` - json config
@@ -86,6 +94,10 @@ dev/
 ├── `qa-report-20260403-210447-7.json` - json config
 ├── `qa-report-20260403-210447-8.json` - json config
 ├── `qa-report-20260403-210447-9.json` - json config
+├── `qa-report-20260404-080000.json` - json config
+├── `qa-report-20260404-110000.json` - json config
+├── `qa-report-20260404-120000-v2.json` - json config
+├── `qa-report-20260404-120000.json` - json config
 └── `qa-site-isolation-verification.json` - json config
 ```
 
