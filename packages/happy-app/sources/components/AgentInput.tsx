@@ -79,6 +79,7 @@ interface AgentInputProps {
     onAttachImage?: () => void;
     onAttachDocument?: () => void;
     onRemoveAttachment?: (id: string) => void;
+    onFilePaste?: (file: File) => void;
 }
 
 const MAX_CONTEXT_SIZE = 190000;
@@ -366,6 +367,26 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     const sendBlockShakerRef = React.useRef<ShakeInstance>(null);
     const inputRef = React.useRef<MultiTextInputHandle>(null);
 
+    // Web: listen for paste events with files/images
+    React.useEffect(() => {
+        if (Platform.OS !== 'web' || !props.onFilePaste) return;
+        const handler = (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) {
+                        e.preventDefault();
+                        props.onFilePaste!(file);
+                    }
+                }
+            }
+        };
+        document.addEventListener('paste', handler as any);
+        return () => document.removeEventListener('paste', handler as any);
+    }, [props.onFilePaste]);
     // Forward ref to the MultiTextInput
     React.useImperativeHandle(ref, () => inputRef.current!, []);
 
@@ -1093,12 +1114,17 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                 {/* Git Status Badge */}
                                 <GitStatusButton sessionId={props.sessionId} onPress={props.onFileViewerPress} />
 
-                                {/* Attach button */}
-                                {(props.onAttachImage || props.onAttachDocument) && (
-                                    <AttachButton
-                                        onAttachImage={props.onAttachImage}
-                                        onAttachDocument={props.onAttachDocument}
-                                    />
+                                {/* Attach file button */}
+                                {props.onAttachDocument && (
+                                    <Pressable onPress={props.onAttachDocument} hitSlop={8} style={{ marginLeft: 4, padding: 4 }}>
+                                        <Ionicons name="attach-outline" size={20} color="#888" />
+                                    </Pressable>
+                                )}
+                                {/* Attach image button */}
+                                {props.onAttachImage && (
+                                    <Pressable onPress={props.onAttachImage} hitSlop={8} style={{ marginLeft: 4, padding: 4 }}>
+                                        <Ionicons name="image-outline" size={20} color="#888" />
+                                    </Pressable>
                                 )}
                                 </View>
 
