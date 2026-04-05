@@ -1,0 +1,208 @@
+[     238ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[     485ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    1379ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    1557ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    2025ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    2480ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    2600ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[    3471ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    3910ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    4713ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    5291ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    5926ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    6128ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    6428ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    6874ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    7166ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    8170ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    8892ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    9470ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[    9627ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   10167ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[   10600ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   11371ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   12053ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   12482ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   13441ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   14281ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   14936ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   15212ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   15416ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[   16213ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   17312ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   18335ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   19126ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   19902ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   20239ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   21153ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   21730ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   21883ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   22279ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   23229ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   24016ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   24975ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   25677ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   26599ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   27407ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   27689ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   28394ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   29474ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   30358ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   30495ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   30907ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   31658ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   32631ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   33150ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   34040ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   34639ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   35499ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   36450ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   36696ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   37071ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   38066ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   39043ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   39846ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   40081ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   40967ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   42044ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   42932ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   43755ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   44411ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   44869ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   45696ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   45859ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   46936ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   47372ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   47590ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[   47592ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[   47942ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   48404ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   49335ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   49789ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[   49941ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   50722ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   51374ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   52299ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   52613ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   53478ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   54351ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   54528ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   55271ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   55695ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   56239ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   56850ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   57912ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   58404ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   58949ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   59615ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   60531ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   61401ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   62135ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   62566ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   63219ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   64265ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
+[   64368ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1396:28136)
+    at s.<anonymous> (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1472:3534)
+    at s.emitEvent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4658)
+    at s.onevent (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4486)
+    at s.onpacket (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1500:4096)
+    at t.emit (http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1478:1159)
+    at http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:1494:3492
+[   64503ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-3f1b9dc19f7ac60d02e508b8774f1f16.js:2997
