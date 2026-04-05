@@ -1,0 +1,767 @@
+[     151ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:2997
+[    6816ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[    6871ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   16267ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   17621ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   17956ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   26105ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   27063ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   27248ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   32250ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   32252ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   37741ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   38112ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   48979ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   50023ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   56991ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   58786ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   59026ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   59426ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   59535ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   62096ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   62307ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   62676ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   62764ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   66384ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   66830ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   69429ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   71268ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   74182ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   77073ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   79463ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   84728ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   86549ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   89546ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   91993ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   95423ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[   97795ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  100081ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  103101ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  105295ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  108143ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  110300ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  113425ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  116628ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  119464ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  140338ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  140820ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  141125ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  146064ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  146993ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  147172ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  150041ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  158589ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  158594ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  159766ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  164889ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  165301ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  169361ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  169920ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  181360ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  181387ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  185429ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  187107ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  193268ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  193690ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  198512ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  199036ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  215775ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  217083ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  227479ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  228413ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  233737ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  234831ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  247957ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  248203ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  254219ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  254853ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  257896ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  268970ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  270413ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  275375ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  279891ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  284735ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  285796ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  291854ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  292755ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  293454ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  297568ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  301189ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
+[  301281ms] TypeError: _r(...).storage.getState(...).applySessionUsage is not a function
+    at r.handleEphemeralUpdate (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1396:28136)
+    at s.<anonymous> (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1472:3534)
+    at s.emitEvent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4658)
+    at s.onevent (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4486)
+    at s.onpacket (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1500:4096)
+    at t.emit (https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1478:1159)
+    at https://dev.life-ai.app/_expo/static/js/web/index-70bd7baedcc4d704e7e9816dccabe874.js:1494:3492
