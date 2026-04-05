@@ -1,7 +1,7 @@
 # happy
 
-*Last updated: 2026-04-03T13:31:19Z*
-**Total entries**: 111
+*Last updated: 2026-04-05T12:28:11Z*
+**Total entries**: 114
 **Convention**: kebab
 
 ## Tree
@@ -13,6 +13,8 @@ happy/
 │   │   ├── `ba-spec-20260403-investigation.md` - BA Specification: Sidechain Display Bug Root Cause Analysis
 │   │   ├── `context-20260323-210000.json` - json config
 │   │   ├── `context-20260403-investigation.json` - json config
+│   │   ├── `context-20260405-qijie.json` - json config
+│   │   ├── `context-20260405-restore-fix.json` - json config
 │   │   └── `dev-report-20260403-investigation.json` - json config
 │   ├── plans/
 │   │   ├── `cli-v3-messages-api.md` - CLI V3 Messages API Migration (happy-cli)
@@ -81,6 +83,7 @@ happy/
 │   │   ├── tools/
 │   │   ├── `CLAUDE.md` - Happy CLI Codebase Overview
 │   │   ├── `CONTRIBUTING.md` - Contributing to Happy CLI
+│   │   ├── `nohup.out` - out file
 │   │   ├── `package.json` - json config
 │   │   ├── `roadmap.md` - APi eeror?
 │   │   ├── `tsconfig.json` - json config
