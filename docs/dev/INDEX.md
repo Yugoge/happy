@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-05T12:01:58Z*
-**Total entries**: 6
+*Last updated: 2026-04-05T12:17:03Z*
+**Total entries**: 7
 **Convention**: kebab
 
 ## Tree
@@ -12,6 +12,7 @@ dev/
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-investigation.json` - json config
 ├── `context-20260405-qijie.json` - json config
+├── `context-20260405-restore-fix.json` - json config
 └── `dev-report-20260403-investigation.json` - json config
 ```
 
