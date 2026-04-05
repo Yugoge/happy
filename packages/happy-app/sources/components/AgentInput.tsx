@@ -525,10 +525,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
         // Original key handling
         if (Platform.OS === 'web') {
-            // On mobile web (touch devices), Enter should insert a newline since
-            // there's no Shift key available. Users send via the send button instead.
-            const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-            if (agentInputEnterToSend && event.key === 'Enter' && !event.shiftKey && !isTouchDevice) {
+            if (agentInputEnterToSend && event.key === 'Enter' && !event.shiftKey) {
                 if (props.value.trim()) {
                     if (isSendBlocked) {
                         handleBlockedSendAttempt();
