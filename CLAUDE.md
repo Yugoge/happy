@@ -128,7 +128,8 @@ docker exec -it happy-postgres psql -U yuge -d happydb
 | `happy-daemon.service` | Default account daemon (`/root/.happy/`) |
 | `happy-daemon-jade.service` | Jade account daemon (`/root/.happy-jade/`, account `cmmu4tj8f4gi5nv14xz4nr6ud`) |
 | `happy-daemon-dev.service` | Dev account daemon (`/root/.happy-dev/`, account `cmi5mv9eh00wzpg14ph73jj3n`) |
-| `happy-session-watcher.service` | Continuous session monitoring + auto-restore (monitors all 3 homes) |
+| `happy-daemon-qijie.service` | Qijie account daemon (`/root/.happy-qijie/`, account `c0199b9c94ea34f0d457d2418`) |
+| `happy-session-watcher.service` | Continuous session monitoring + auto-restore (monitors all 4 homes) |
 | `happy-claude-cleanup.timer` | Hourly orphan Claude process cleanup |
 
 ---
@@ -268,15 +269,15 @@ happy daemon start
 }
 ```
 
-### Triple Daemon Architecture
+### Quad Daemon Architecture
 
-| | Default Daemon | Jade Daemon | Dev Daemon |
-|---|---|---|---|
-| Home dir | `/root/.happy/` | `/root/.happy-jade/` | `/root/.happy-dev/` |
-| Env var | default | `HAPPY_HOME_DIR=/root/.happy-jade` | `HAPPY_HOME_DIR=/root/.happy-dev` |
-| systemd | `happy-daemon.service` | `happy-daemon-jade.service` | `happy-daemon-dev.service` |
-| Account | default | jade (`cmmu4tj8f4gi5nv14xz4nr6ud`) | dev (`cmi5mv9eh00wzpg14ph73jj3n`) |
-| Purpose | Production sessions | Production sessions (jade) | **Dev/overnight testing** |
+| | Default Daemon | Jade Daemon | Dev Daemon | Qijie Daemon |
+|---|---|---|---|---|
+| Home dir | `/root/.happy/` | `/root/.happy-jade/` | `/root/.happy-dev/` | `/root/.happy-qijie/` |
+| Env var | default | `HAPPY_HOME_DIR=/root/.happy-jade` | `HAPPY_HOME_DIR=/root/.happy-dev` | `HAPPY_HOME_DIR=/root/.happy-qijie` |
+| systemd | `happy-daemon.service` | `happy-daemon-jade.service` | `happy-daemon-dev.service` | `happy-daemon-qijie.service` |
+| Account | default | jade (`cmmu4tj8f4gi5nv14xz4nr6ud`) | dev (`cmi5mv9eh00wzpg14ph73jj3n`) | qijie (`c0199b9c94ea34f0d457d2418`) |
+| Purpose | Production sessions | Production sessions (jade) | **Dev/overnight testing** | **Production sessions (qijie)** |
 
 ### Auto-Upgrade
 
@@ -611,6 +612,7 @@ curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
 9. Safe Docker restart: `docker restart happy-server` or `happy-web` (doesn't affect daemon/sessions)
 10. Before daemon restart: `bash /root/bin/happy-session-recovery.sh save && check` -> get user confirmation
 11. After every CLI build: verify binary with 3-point check (sendExisting, no shouldHideParentToolCall, Task||Agent present)
+12. Session recovery `save`/`restore` in systemd ExecStartPre/ExecStartPost must use `--home <dir>` to scope to the starting daemon only — global restore causes cross-daemon cascade (Bug #61, 2026-04-05)
 
 ---
 
