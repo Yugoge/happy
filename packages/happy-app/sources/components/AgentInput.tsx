@@ -984,17 +984,13 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                     </View>
                 )}
 
-                {/* Attachment Strip - shown above input when attachments are present */}
-                {props.pendingAttachments && props.pendingAttachments.length > 0 && props.onRemoveAttachment && (
-                    <AttachmentStrip
-                        attachments={props.pendingAttachments}
-                        onRemove={props.onRemoveAttachment}
-                    />
-                )}
-
                 {/* Box 2: Action Area (Input + Send) */}
                 <Shaker ref={sendBlockShakerRef}>
                 <View style={styles.unifiedPanel}>
+                    {/* Pending attachment strip */}
+                    {props.pendingAttachments && props.pendingAttachments.length > 0 && props.onRemoveAttachment && (
+                        <AttachmentStrip attachments={props.pendingAttachments} onRemove={props.onRemoveAttachment} />
+                    )}
                     {/* Input field */}
                     <View style={[styles.inputContainer, props.minHeight ? { minHeight: props.minHeight } : undefined]}>
                         <MultiTextInput
