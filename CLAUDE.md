@@ -716,3 +716,4 @@ Full postmortem: `/root/docs/REBOOT-RECOVERY-POSTMORTEM.md`
 | Server Setup | `/root/docs/SERVER-SETUP.md` | Systemd services, IS_SANDBOX |
 | Claude Exit Investigation | `/root/docs/CLAUDE-SESSION-EXIT-INVESTIGATION.md` | Mode hash, context compaction |
 | Implementation Notes | `/root/docs/IMPLEMENTATION-NOTES.md` | AsyncLock, backoff, protocol internals |
+| Web Auth Pages | `/root/docs/WEB-AUTH-PAGES.md` | Mobile browser login, auth page setup, qijie account creation |
