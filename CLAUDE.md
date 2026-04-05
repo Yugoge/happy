@@ -597,6 +597,27 @@ curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
   -d '{"directory": "/root/happy"}'
 ```
 
+### Web Auth Pages (Mobile/Desktop Browser Login)
+
+Password-protected static HTML pages that inject `auth_credentials` + server URL into localStorage, then redirect to the app. Deployed via volume mount (`/root/deploy/auth-pages/` → `/usr/share/nginx/html/auth/` in happy-web and happy-web-dev containers).
+
+| Account | URL | Password |
+|---------|-----|----------|
+| Default | `https://life-ai.app/auth/default` | `1900015516` |
+| Jade | `https://life-ai.app/auth/jade` | `1900015516` |
+| Qijie | `https://life-ai.app/auth/qijie` | `15828522037` |
+| Dev | `https://dev.life-ai.app/auth/dev` | `1900015516` |
+
+**Files**: `/root/deploy/auth-pages/{default,jade,qijie,dev}/index.html`
+
+**How it works**: Password verified via charCode comparison (no crypto.subtle dependency for compatibility with Chinese domestic browsers). On success: sets `localStorage['auth_credentials']` and `localStorage['mmkv.server-config\custom-server-url']`, then redirects to app root.
+
+**Key constraints**:
+- Must use HTTPS (crypto.subtle required by app for key derivation)
+- Auth page includes HTTP→HTTPS auto-redirect for domestic browser compatibility
+- Volume mount is read-only (`:ro`), pages update without container restart
+- Docker compose: `./auth-pages:/usr/share/nginx/html/auth:ro` on both happy-web and happy-web-dev
+
 ---
 
 ## Critical Operational Rules
