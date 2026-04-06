@@ -48,7 +48,7 @@ export const SessionView = React.memo((props: { id: string }) => {
     return <SessionViewInner id={props.id} />;
 });
 
-function useHeaderProps(session: Session | undefined, isDataReady: boolean, sessionId: string) {
+function useHeaderProps(session: Session | null, isDataReady: boolean, sessionId: string) {
     const router = useRouter();
     return useMemo(() => {
         if (!isDataReady) {
@@ -62,7 +62,7 @@ function useHeaderProps(session: Session | undefined, isDataReady: boolean, sess
             title: getSessionName(session),
             subtitle: session.metadata?.path ? formatPathRelativeToHome(session.metadata.path, session.metadata?.homeDir) : undefined,
             avatarId: getSessionAvatarId(session),
-            onAvatarPress: () => router.push('/session/' + sessionId + '/info'),
+            onAvatarPress: () => router.push(`/session/${sessionId}/info` as any),
             isConnected,
             flavor: session.metadata?.flavor || null,
             tintColor: isConnected ? '#000' : '#8E8E93'
@@ -102,7 +102,7 @@ function SessionViewInner({ id }: { id: string }) {
 }
 
 function SessionActionsOverlay({ session, anchor, setAnchor }: {
-    session: Session | undefined; anchor: SessionActionsAnchor | null; setAnchor: (a: SessionActionsAnchor | null) => void;
+    session: Session | null; anchor: SessionActionsAnchor | null; setAnchor: (a: SessionActionsAnchor | null) => void;
 }) {
     const router = useRouter();
     if (Platform.OS !== 'web' || !session) return null;
@@ -134,7 +134,7 @@ function LandscapeStatusBarShadow() {
 }
 
 function SessionHeader({ headerProps, session, anchor, setAnchor, isTablet, realtimeStatus }: {
-    headerProps: any; session: Session | undefined;
+    headerProps: any; session: Session | null;
     anchor: SessionActionsAnchor | null; setAnchor: (a: SessionActionsAnchor | null) => void;
     isTablet: boolean; realtimeStatus: string;
 }) {
@@ -157,7 +157,7 @@ function SessionHeader({ headerProps, session, anchor, setAnchor, isTablet, real
 }
 
 function SessionContent({ isDataReady, session, sessionId, realtimeStatus, isTablet }: {
-    isDataReady: boolean; session: Session | undefined; sessionId: string; realtimeStatus: string; isTablet: boolean;
+    isDataReady: boolean; session: Session | null; sessionId: string; realtimeStatus: string; isTablet: boolean;
 }) {
     const { theme } = useUnistyles();
     const safeArea = useSafeAreaInsets();
@@ -313,7 +313,11 @@ function SessionMainContent({ session, sessionId, micBtn, bottom }: {
 }) {
     const { theme } = useUnistyles();
     const { messages, isLoaded } = useSessionMessages(sessionId);
-    const content = (<Deferred>{messages.length > 0 && <ChatList session={session} />}</Deferred>);
+    const openSidebar = useRightSidebar((s) => s.open);
+    const handleContentPress = React.useCallback((data: { tool: any; messages: any[]; metadata: any; sessionId: string }) => {
+        openSidebar(data);
+    }, [openSidebar]);
+    const content = (<Deferred>{messages.length > 0 && <ChatList session={session} onContentPress={handleContentPress} />}</Deferred>);
     const placeholder = messages.length === 0 ? (isLoaded ? <EmptyMessages session={session} /> : <ActivityIndicator size="small" color={theme.colors.textSecondary} />) : null;
     const input = (<SessionInputArea session={session} sessionId={sessionId} micBtn={micBtn} />);
     return (
@@ -418,7 +422,7 @@ function ComposerInput({ session, sessionId, msg, setMsg, m, cbs, onSend, conn, 
             isMicActive={settings.disconnected ? false : micBtn.isMicActive}
             onAbort={settings.disconnected ? undefined : () => sessionAbort(sessionId)}
             showAbortButton={abort}
-            onFileViewerPress={settings.experiments ? () => router.push('/session/' + sessionId + '/files') : undefined}
+            onFileViewerPress={settings.experiments ? () => router.push(`/session/${sessionId}/files` as any) : undefined}
             autocompletePrefixes={['@', '/']} autocompleteSuggestions={(query) => getSuggestions(sessionId, query)}
             usageData={usage} alwaysShowContextSize={settings.showCtx}
             pendingAttachments={att.attachments} onAttachImage={att.pickImage}
@@ -427,9 +431,7 @@ function ComposerInput({ session, sessionId, msg, setMsg, m, cbs, onSend, conn, 
     );
 }
 
-const backBtnShadowIos = { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 };
-const backBtnShadowAndroid = { elevation: 2 };
-const backBtnShadow = Platform.select({ ios: backBtnShadowIos, android: backBtnShadowAndroid });
+const backBtnShadow = Platform.OS === 'ios' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 } : { elevation: 2 };
 
 function LandscapeBackButton() {
     const { theme } = useUnistyles();

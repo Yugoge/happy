@@ -88,7 +88,7 @@ function DesktopSidebar({ tool, onClose }: { tool: ToolCall; onClose: () => void
     return (
         <View style={{
             width: SIDEBAR_WIDTH, borderLeftWidth: 1,
-            borderLeftColor: theme.colors.border, backgroundColor: theme.colors.surface,
+            borderLeftColor: theme.colors.divider, backgroundColor: theme.colors.surface,
         }}>
             <SidebarHeader tool={tool} onClose={onClose} />
             <SidebarContent toolName={tool.name} />
