@@ -46,7 +46,23 @@ function SidebarCloseButton({ onClose }: { onClose: () => void }) {
     );
 }
 
-function SidebarHeader({ tool, onClose }: { tool: ToolCall; onClose: () => void }) {
+function SidebarBackButton({ onBack }: { onBack: () => void }) {
+    const { theme } = useUnistyles();
+    return (
+        <Pressable
+            onPress={onBack}
+            hitSlop={8}
+            style={{
+                width: 28, height: 28, borderRadius: 14,
+                alignItems: 'center', justifyContent: 'center', marginRight: 8,
+            }}
+        >
+            <Ionicons name="arrow-back" size={18} color={theme.colors.textSecondary} />
+        </Pressable>
+    );
+}
+
+function SidebarHeader({ tool, onClose, hasHistory, onBack }: { tool: ToolCall; onClose: () => void; hasHistory: boolean; onBack: () => void }) {
     const { theme } = useUnistyles();
     return (
         <View style={{
@@ -54,6 +70,7 @@ function SidebarHeader({ tool, onClose }: { tool: ToolCall; onClose: () => void 
             paddingHorizontal: 16, paddingVertical: 12,
             borderBottomWidth: 1, borderBottomColor: theme.colors.divider,
         }}>
+            {hasHistory && <SidebarBackButton onBack={onBack} />}
             <Text style={{ fontSize: 15, fontWeight: '600', color: theme.colors.text, flex: 1 }} numberOfLines={1}>
                 {tool.name || t('sidebar.toolDetail')}
             </Text>
@@ -74,29 +91,29 @@ function SidebarContent({ tool, messages, metadata, sessionId }: {
 
 interface SidebarPanelProps {
     tool: ToolCall; messages: Message[]; metadata: Metadata | null;
-    sessionId: string; onClose: () => void;
+    sessionId: string; onClose: () => void; hasHistory: boolean; onBack: () => void;
 }
 
-function MobileSidebar({ tool, messages, metadata, sessionId, onClose }: SidebarPanelProps) {
+function MobileSidebar({ tool, messages, metadata, sessionId, onClose, hasHistory, onBack }: SidebarPanelProps) {
     const { theme } = useUnistyles();
     return (
         <RNModal visible={true} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: theme.colors.surface }}>
-                <SidebarHeader tool={tool} onClose={onClose} />
+                <SidebarHeader tool={tool} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
                 <SidebarContent tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
             </View>
         </RNModal>
     );
 }
 
-function DesktopSidebar({ tool, messages, metadata, sessionId, onClose }: SidebarPanelProps) {
+function DesktopSidebar({ tool, messages, metadata, sessionId, onClose, hasHistory, onBack }: SidebarPanelProps) {
     const { theme } = useUnistyles();
     return (
         <View style={{
             width: SIDEBAR_WIDTH, borderLeftWidth: 1,
             borderLeftColor: theme.colors.divider, backgroundColor: theme.colors.surface,
         }}>
-            <SidebarHeader tool={tool} onClose={onClose} />
+            <SidebarHeader tool={tool} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
             <SidebarContent tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
         </View>
     );
@@ -107,9 +124,10 @@ function DesktopSidebar({ tool, messages, metadata, sessionId, onClose }: Sideba
  * Closes on Escape key (web).
  */
 export const RightSidebar = React.memo(function RightSidebar() {
-    const { isOpen, data, close } = useRightSidebar();
+    const { isOpen, data, close, history, pop } = useRightSidebar();
     const { width } = useWindowDimensions();
     const isDesktop = width >= DESKTOP_MIN_WIDTH;
+    const hasHistory = history.length > 0;
 
     useEscapeToClose(isOpen, close);
 
@@ -118,8 +136,8 @@ export const RightSidebar = React.memo(function RightSidebar() {
     }
 
     if (!isDesktop) {
-        return <MobileSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} />;
+        return <MobileSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} hasHistory={hasHistory} onBack={pop} />;
     }
 
-    return <DesktopSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} />;
+    return <DesktopSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} hasHistory={hasHistory} onBack={pop} />;
 });

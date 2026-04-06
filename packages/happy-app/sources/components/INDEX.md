@@ -1,7 +1,7 @@
 # components
 
-*Last updated: 2026-04-06T12:24:58Z*
-**Total entries**: 164
+*Last updated: 2026-04-06T13:46:26Z*
+**Total entries**: 165
 **Convention**: kebab
 
 ## Tree
@@ -51,7 +51,8 @@ components/
 │   ├── `SidebarBashView.tsx` - tsx file
 │   ├── `SidebarContentRenderer.tsx` - tsx file
 │   ├── `SidebarFileView.tsx` - tsx file
-│   └── `SidebarGenericView.tsx` - tsx file
+│   ├── `SidebarGenericView.tsx` - tsx file
+│   └── `SidebarTodoView.tsx` - tsx file
 ├── tools/
 │   ├── views/
 │   │   ├── `_all.tsx` - tsx file

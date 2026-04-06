@@ -1,7 +1,7 @@
 # sidebar
 
-*Last updated: 2026-04-06T11:50:39Z*
-**Total entries**: 5
+*Last updated: 2026-04-06T13:48:14Z*
+**Total entries**: 6
 **Convention**: kebab
 
 ## Tree
@@ -11,7 +11,8 @@ sidebar/
 ├── `SidebarBashView.tsx` - tsx file
 ├── `SidebarContentRenderer.tsx` - tsx file
 ├── `SidebarFileView.tsx` - tsx file
-└── `SidebarGenericView.tsx` - tsx file
+├── `SidebarGenericView.tsx` - tsx file
+└── `SidebarTodoView.tsx` - tsx file
 ```
 
 ---
