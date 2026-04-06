@@ -43,33 +43,28 @@ export const MessageView = (props: {
   );
 };
 
-// RenderBlock: dispatches to the correct component based on message kind
-function RenderBlock(props: {
+interface RenderBlockProps {
   message: Message;
   metadata: Metadata | null;
   sessionId: string;
   getMessageById?: (id: string) => Message | null;
-}): React.ReactElement {
+  onContentPress?: (data: ToolContentPressData) => void;
+}
+
+// RenderBlock: dispatches to the correct component based on message kind
+function RenderBlock(props: RenderBlockProps): React.ReactElement {
   switch (props.message.kind) {
     case 'user-text':
       return <UserTextBlock message={props.message} sessionId={props.sessionId} />;
-
     case 'agent-text':
       return <AgentTextBlock message={props.message} sessionId={props.sessionId} />;
-
     case 'tool-call':
-      return <ToolCallBlock
-        message={props.message}
-        metadata={props.metadata}
-        sessionId={props.sessionId}
-        getMessageById={props.getMessageById}
-      />;
-
+      return <ToolCallBlock message={props.message} metadata={props.metadata}
+        sessionId={props.sessionId} getMessageById={props.getMessageById}
+        onContentPress={props.onContentPress} />;
     case 'agent-event':
       return <AgentEventBlock event={props.message.event} metadata={props.metadata} />;
-
     default:
-      // Exhaustive check - TypeScript will error if we miss a case
       const _exhaustive: never = props.message;
       throw new Error(`Unknown message kind: ${_exhaustive}`);
   }
