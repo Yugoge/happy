@@ -97,7 +97,7 @@ const styles = StyleSheet.create((theme) => ({
         color: '#007AFF',
     },
     pendingText: {
-        color: theme.colors.text,
+        color: theme.colors.textSecondary,
     },
     iconCompleted: {
         color: theme.colors.success,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create((theme) => ({
         color: '#007AFF',
     },
     iconPending: {
-        color: theme.colors.text,
+        color: theme.colors.textSecondary,
     },
     iconMargin: {
         marginTop: 1,
