@@ -16,8 +16,97 @@ interface ToolFullViewProps {
     messages?: Message[];
 }
 
+// Extracted generic sections so ToolFullView stays under line-count limits
+
+function ToolDescriptionSection({ tool }: { tool: ToolCall }) {
+    if (!tool.description) return null;
+    return (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Ionicons name="information-circle" size={20} color="#5856D6" />
+                <Text style={styles.sectionTitle}>{t('tools.fullView.description')}</Text>
+            </View>
+            <Text style={styles.description}>{tool.description}</Text>
+        </View>
+    );
+}
+
+function ToolInputSection({ tool }: { tool: ToolCall }) {
+    if (!tool.input) return null;
+    return (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Ionicons name="log-in" size={20} color="#5856D6" />
+                <Text style={styles.sectionTitle}>{t('tools.fullView.inputParams')}</Text>
+            </View>
+            <CodeView code={JSON.stringify(tool.input, null, 2)} />
+        </View>
+    );
+}
+
+function ToolOutputSection({ tool }: { tool: ToolCall }) {
+    if (tool.state !== 'completed' || !tool.result) return null;
+    return (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Ionicons name="log-out" size={20} color="#34C759" />
+                <Text style={styles.sectionTitle}>{t('tools.fullView.output')}</Text>
+            </View>
+            <CodeView
+                code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
+            />
+        </View>
+    );
+}
+
+function ToolErrorSection({ tool }: { tool: ToolCall }) {
+    if (tool.state !== 'error' || !tool.result) return null;
+    return (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Ionicons name="close-circle" size={20} color="#FF3B30" />
+                <Text style={styles.sectionTitle}>{t('tools.fullView.error')}</Text>
+            </View>
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{String(tool.result)}</Text>
+            </View>
+        </View>
+    );
+}
+
+function ToolEmptyOutputSection({ tool }: { tool: ToolCall }) {
+    if (tool.state !== 'completed' || tool.result) return null;
+    return (
+        <View style={styles.section}>
+            <View style={styles.emptyOutputContainer}>
+                <Ionicons name="checkmark-circle-outline" size={48} color="#34C759" />
+                <Text style={styles.emptyOutputText}>{t('tools.fullView.completed')}</Text>
+                <Text style={styles.emptyOutputSubtext}>{t('tools.fullView.noOutput')}</Text>
+            </View>
+        </View>
+    );
+}
+
+function ToolRawJsonSection({ tool, messages }: { tool: ToolCall; messages: Message[] }) {
+    return (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Ionicons name="code-slash" size={20} color="#FF9500" />
+                <Text style={styles.sectionTitle}>{t('tools.fullView.rawJsonDevMode')}</Text>
+            </View>
+            <CodeView
+                code={JSON.stringify({
+                    name: tool.name, state: tool.state, description: tool.description,
+                    input: tool.input, result: tool.result, createdAt: tool.createdAt,
+                    startedAt: tool.startedAt, completedAt: tool.completedAt,
+                    permission: tool.permission, messages
+                }, null, 2)}
+            />
+        </View>
+    );
+}
+
 export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProps) {
-    // Check if there's a specialized content view for this tool
     const SpecializedFullView = getToolFullViewComponent(tool.name);
     const screenWidth = useWindowDimensions().width;
     const devModeEnabled = (useLocalSetting('devModeEnabled') || __DEV__);
@@ -26,96 +115,15 @@ export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProp
     return (
         <ScrollView style={[styles.container, { paddingHorizontal: screenWidth > 700 ? 16 : 0 }]}>
             <View style={styles.contentWrapper}>
-                {/* Tool-specific content or generic fallback */}
+                <ToolDescriptionSection tool={tool} />
+                <ToolInputSection tool={tool} />
                 {SpecializedFullView ? (
                     <SpecializedFullView tool={tool} metadata={metadata || null} messages={messages} />
-                ) : (
-                    <>
-                    {/* Generic fallback for tools without specialized views */}
-                    {/* Tool Description */}
-                    {tool.description && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="information-circle" size={20} color="#5856D6" />
-                                <Text style={styles.sectionTitle}>{t('tools.fullView.description')}</Text>
-                            </View>
-                            <Text style={styles.description}>{tool.description}</Text>
-                        </View>
-                    )}
-                    {/* Input Parameters */}
-                    {tool.input && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="log-in" size={20} color="#5856D6" />
-                                <Text style={styles.sectionTitle}>{t('tools.fullView.inputParams')}</Text>
-                            </View>
-                            <CodeView code={JSON.stringify(tool.input, null, 2)} />
-                        </View>
-                    )}
-
-                    {/* Result/Output */}
-                    {tool.state === 'completed' && tool.result && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="log-out" size={20} color="#34C759" />
-                                <Text style={styles.sectionTitle}>{t('tools.fullView.output')}</Text>
-                            </View>
-                            <CodeView
-                                code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
-                            />
-                        </View>
-                    )}
-
-                    {/* Error Details */}
-                    {tool.state === 'error' && tool.result && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="close-circle" size={20} color="#FF3B30" />
-                                <Text style={styles.sectionTitle}>{t('tools.fullView.error')}</Text>
-                            </View>
-                            <View style={styles.errorContainer}>
-                                <Text style={styles.errorText}>{String(tool.result)}</Text>
-                            </View>
-                        </View>
-                    )}
-
-                    {/* No Output Message */}
-                    {tool.state === 'completed' && !tool.result && (
-                        <View style={styles.section}>
-                            <View style={styles.emptyOutputContainer}>
-                                <Ionicons name="checkmark-circle-outline" size={48} color="#34C759" />
-                                <Text style={styles.emptyOutputText}>{t('tools.fullView.completed')}</Text>
-                                <Text style={styles.emptyOutputSubtext}>{t('tools.fullView.noOutput')}</Text>
-                            </View>
-                        </View>
-                    )}
-
-                </>
-                )}
-                
-                {/* Raw JSON View (Dev Mode Only) */}
-                {devModeEnabled && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Ionicons name="code-slash" size={20} color="#FF9500" />
-                            <Text style={styles.sectionTitle}>{t('tools.fullView.rawJsonDevMode')}</Text>
-                        </View>
-                        <CodeView 
-                            code={JSON.stringify({
-                                name: tool.name,
-                                state: tool.state,
-                                description: tool.description,
-                                input: tool.input,
-                                result: tool.result,
-                                createdAt: tool.createdAt,
-                                startedAt: tool.startedAt,
-                                completedAt: tool.completedAt,
-                                permission: tool.permission,
-                                messages
-                            }, null, 2)} 
-                        />
-                    </View>
-                )}
+                ) : null}
+                <ToolOutputSection tool={tool} />
+                <ToolErrorSection tool={tool} />
+                {!SpecializedFullView && <ToolEmptyOutputSection tool={tool} />}
+                {devModeEnabled && <ToolRawJsonSection tool={tool} messages={messages} />}
             </View>
         </ScrollView>
     );
