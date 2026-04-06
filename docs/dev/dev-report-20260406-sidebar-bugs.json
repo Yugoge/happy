@@ -1,0 +1,63 @@
+{
+  "request_id": "dev-20260406-sidebar-bugs",
+  "timestamp": "2026-04-06T09:00:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260406-sidebar-bugs.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 2,
+        "description": "Fixed todo color scheme in TodoView.tsx and SidebarTodoView.tsx",
+        "type": "bugfix",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/views/TodoView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarTodoView.tsx"
+        ],
+        "changes": "Replaced all theme.colors.typography (non-existent) with theme.colors.text. Completed: green icon + green text + strikethrough. In-progress: #007AFF blue icon + blue text. Pending: theme.colors.text (dark gray) icon + text.",
+        "rationale": "theme.colors.typography does not exist in the theme, causing undefined/black text. Color scheme now matches spec: green=completed, blue=in_progress, gray=pending."
+      },
+      {
+        "id": 3,
+        "description": "Fixed sidebar scroll position preservation in RightSidebar.tsx",
+        "type": "bugfix",
+        "files_modified": [
+          "packages/happy-app/sources/components/RightSidebar.tsx"
+        ],
+        "changes": "Replaced single SidebarContent renderer with SidebarContentStack that renders all history layers + current layer. Previous layers are hidden (opacity:0, pointerEvents:none, position:absolute) but stay mounted, preserving their ScrollView position. On pop(), the previous layer becomes visible with scroll position intact.",
+        "rationale": "When push() saved current data to history, the ScrollView was unmounted and re-created on pop(), losing scroll position. Keeping all layers mounted preserves their internal state."
+      },
+      {
+        "id": 4,
+        "description": "Show only latest TodoWrite in sidebar agent conversation",
+        "type": "bugfix",
+        "files_modified": [
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+        ],
+        "changes": "Added filterToLatestTodoWrite() that removes all but the last TodoWrite tool call from the rendered messages. Earlier TodoWrite snapshots are hidden since only the latest state is relevant.",
+        "rationale": "When a subagent calls TodoWrite multiple times, each showed its own snapshot. Users want to see only the latest todo state."
+      },
+      {
+        "id": 5,
+        "description": "Disabled content interaction in sidebar ToolViews",
+        "type": "bugfix",
+        "files_modified": [
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+        ],
+        "changes": "Removed onContentPress prop from ToolView in ChildToolBlock. Header click (onPress) still works for push navigation. Content body clicks do nothing (safe).",
+        "rationale": "onContentPress made content areas clickable but they didn't navigate properly in the sidebar context, causing issues with push()."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {"modified": "packages/happy-app/sources/components/tools/views/TodoView.tsx", "imported_by": ["packages/happy-app/sources/components/tools/views/_all.tsx"]},
+      {"modified": "packages/happy-app/sources/components/sidebar/SidebarTodoView.tsx", "imported_by": ["packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"]},
+      {"modified": "packages/happy-app/sources/components/RightSidebar.tsx", "imported_by": ["packages/happy-app/sources/-session/SessionView.tsx"]},
+      {"modified": "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx", "imported_by": ["packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"]}
+    ],
+    "qa_ready": true,
+    "qa_notes": "All 4 bugs fixed. TypeScript compiles with zero errors. Verify in browser: (1) Todo items show correct colors per status, (2) sidebar scroll position preserved on push/pop, (3) only latest TodoWrite shown in agent conversation sidebar, (4) clicking tool content body in sidebar does nothing while header still navigates.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": []
+}

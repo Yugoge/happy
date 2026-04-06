@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Platform, Pressable, Text, View, useWindowDimensions, Modal as RNModal } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
-import { useRightSidebar } from '@/stores/rightSidebarStore';
+import { useRightSidebar, SidebarData } from '@/stores/rightSidebarStore';
 import { t } from '@/text';
 import type { ToolCall, Message } from '@/sync/typesMessage';
 import type { Metadata } from '@/sync/storageTypes';
@@ -112,27 +112,33 @@ interface SidebarPanelProps {
     sessionId: string; onClose: () => void; hasHistory: boolean; onBack: () => void;
 }
 
-function MobileSidebar({ tool, messages, metadata, sessionId, onClose, hasHistory, onBack }: SidebarPanelProps) {
+interface SidebarPanelPropsExt extends SidebarPanelProps {
+    history: SidebarData[];
+}
+
+function MobileSidebar({ tool, messages, metadata, sessionId, onClose, hasHistory, onBack, history }: SidebarPanelPropsExt) {
     const { theme } = useUnistyles();
+    const current = React.useMemo(() => ({ tool, messages, metadata, sessionId }), [tool, messages, metadata, sessionId]);
     return (
         <RNModal visible={true} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: theme.colors.surface }}>
                 <SidebarHeader tool={tool} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
-                <SidebarContent tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
+                <SidebarContentStack history={history} current={current} />
             </View>
         </RNModal>
     );
 }
 
-function DesktopSidebar({ tool, messages, metadata, sessionId, onClose, hasHistory, onBack }: SidebarPanelProps) {
+function DesktopSidebar({ tool, messages, metadata, sessionId, onClose, hasHistory, onBack, history }: SidebarPanelPropsExt) {
     const { theme } = useUnistyles();
+    const current = React.useMemo(() => ({ tool, messages, metadata, sessionId }), [tool, messages, metadata, sessionId]);
     return (
         <View style={{
             width: SIDEBAR_WIDTH, borderLeftWidth: 1,
             borderLeftColor: theme.colors.divider, backgroundColor: theme.colors.surface,
         }}>
             <SidebarHeader tool={tool} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
-            <SidebarContent tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
+            <SidebarContentStack history={history} current={current} />
         </View>
     );
 }
@@ -154,8 +160,8 @@ export const RightSidebar = React.memo(function RightSidebar() {
     }
 
     if (!isDesktop) {
-        return <MobileSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} hasHistory={hasHistory} onBack={pop} />;
+        return <MobileSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} hasHistory={hasHistory} onBack={pop} history={history} />;
     }
 
-    return <DesktopSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} hasHistory={hasHistory} onBack={pop} />;
+    return <DesktopSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} hasHistory={hasHistory} onBack={pop} history={history} />;
 });
