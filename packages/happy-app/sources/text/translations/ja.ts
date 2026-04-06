@@ -452,6 +452,8 @@ export const ja: TranslationStructure = {
 
     sidebar: {
         sessionsTitle: 'Happy',
+        close: '閉じる',
+        toolDetail: 'ツール詳細',
     },
 
     toolView: {

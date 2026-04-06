@@ -50,7 +50,7 @@ function SidebarHeader({ tool, onClose }: { tool: ToolCall; onClose: () => void 
         <View style={{
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
             paddingHorizontal: 16, paddingVertical: 12,
-            borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+            borderBottomWidth: 1, borderBottomColor: theme.colors.divider,
         }}>
             <Text style={{ fontSize: 15, fontWeight: '600', color: theme.colors.text, flex: 1 }} numberOfLines={1}>
                 {tool.name || t('sidebar.toolDetail')}

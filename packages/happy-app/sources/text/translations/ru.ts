@@ -460,6 +460,8 @@ export const ru: TranslationStructure = {
 
     sidebar: {
         sessionsTitle: 'Happy',
+        close: 'Закрыть',
+        toolDetail: 'Детали инструмента',
     },
 
     toolView: {

@@ -449,6 +449,8 @@ export const it: TranslationStructure = {
 
     sidebar: {
         sessionsTitle: 'Happy',
+        close: 'Chiudi',
+        toolDetail: 'Dettaglio strumento',
     },
 
     toolView: {

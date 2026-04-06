@@ -461,6 +461,8 @@ export const pl: TranslationStructure = {
 
     sidebar: {
         sessionsTitle: 'Happy',
+        close: 'Zamknij',
+        toolDetail: 'Szczegóły narzędzia',
     },
 
     toolView: {
