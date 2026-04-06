@@ -469,6 +469,7 @@ export const zhHans: TranslationStructure = {
             noOutput: '未产生输出',
             running: '工具正在运行...',
             rawJsonDevMode: '原始 JSON（开发模式）',
+            subTools: '子工具',
         },
         taskView: {
             initializing: '正在初始化 agent...',

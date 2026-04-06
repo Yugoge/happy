@@ -75,7 +75,7 @@ const ChildMessageBlock = React.memo<{
 
 const localStyles = StyleSheet.create((theme) => ({
     childrenBox: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.surface,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: theme.colors.divider,

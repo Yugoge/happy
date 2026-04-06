@@ -466,6 +466,7 @@ export const it: TranslationStructure = {
             noOutput: 'Nessun output prodotto',
             running: 'Strumento in esecuzione...',
             rawJsonDevMode: 'JSON grezzo (Modalità sviluppatore)',
+            subTools: 'Sotto-strumenti',
         },
         taskView: {
             initializing: 'Inizializzazione agente...',

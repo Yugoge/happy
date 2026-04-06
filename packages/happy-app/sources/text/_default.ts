@@ -466,6 +466,7 @@ export const en = {
             noOutput: 'No output was produced',
             running: 'Tool is running...',
             rawJsonDevMode: 'Raw JSON (Dev Mode)',
+            subTools: 'Sub-tools',
         },
         taskView: {
             initializing: 'Initializing agent...',

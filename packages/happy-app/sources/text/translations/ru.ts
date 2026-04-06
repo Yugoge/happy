@@ -477,6 +477,7 @@ export const ru: TranslationStructure = {
             noOutput: 'Результат не получен',
             running: 'Выполняется...',
             rawJsonDevMode: 'Исходный JSON (режим разработчика)',
+            subTools: 'Подзадачи',
         },
         taskView: {
             initializing: 'Инициализация агента...',
