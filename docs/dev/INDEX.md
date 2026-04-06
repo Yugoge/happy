@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-06T19:24:17Z*
-**Total entries**: 126
+*Last updated: 2026-04-06T19:42:16Z*
+**Total entries**: 128
 **Convention**: kebab
 
 ## Tree
@@ -40,6 +40,7 @@ dev/
 ├── `ba-spec-20260404-120000.md` - BA Specification: Fix MCP Title Change - Stateless Transport Reuse Error
 ├── `ba-spec-20260405-130000.md` - BA Specification: Fix File/Image Upload in happy-dev
 ├── `ba-spec-20260405-mcp-title.md` - BA Specification: MCP change_title Survives Daemon/Session Restarts
+├── `ba-spec-20260406-1930.md` - BA Specification: Fix 5 Remaining UI Issues (Edit File View, AskUserQuestion Persistence, Subagent Sidebar, Bash/Detail Confirmation)
 ├── `ba-spec-20260406-agent-edit-detail.md` - BA Specification: Agent Inline/Full View Split + Edit Detail Cleanup
 ├── `ba-spec-20260406-data-gaps.md` - BA Specification: Sidebar Data Display Gaps
 ├── `ba-spec-20260406-sidebar-bugs.md` - BA Specification: 5 Sidebar Bugs
@@ -67,6 +68,7 @@ dev/
 ├── `context-20260404-120000.json` - json config
 ├── `context-20260405-130000.json` - json config
 ├── `context-20260405-mcp-title.json` - json config
+├── `context-20260406-1930.json` - json config
 ├── `context-20260406-agent-edit-detail.json` - json config
 ├── `context-20260406-data-gaps.json` - json config
 ├── `context-20260406-sidebar-bugs.json` - json config
