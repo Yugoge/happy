@@ -1,0 +1,46 @@
+{
+  "request_id": "dev-20260406-sidebar-polish",
+  "timestamp": "2026-04-06T09:30:00.000Z",
+  "dev_report_path": "docs/dev/dev-report-20260406-sidebar-polish.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "R3 Step 1: Added navigation stack (history, push, pop) to rightSidebarStore.ts",
+        "type": "code",
+        "files_modified": ["packages/happy-app/sources/stores/rightSidebarStore.ts"],
+        "changes": "Added history array, push() saves current data to stack and shows new, pop() restores previous or closes. open() clears history. close() clears all. Exported SidebarData interface.",
+        "rationale": "Enables sub-tool clicks inside sidebar to push new views onto a stack instead of navigating away"
+      },
+      {
+        "id": 2,
+        "description": "R3 Step 2: Added back button to RightSidebar.tsx header when history exists",
+        "type": "code",
+        "files_modified": ["packages/happy-app/sources/components/RightSidebar.tsx"],
+        "changes": "Added SidebarBackButton component with arrow-back icon. SidebarHeader now accepts hasHistory and onBack props. Back button shown before tool name when history.length > 0. Both MobileSidebar and DesktopSidebar pass through history/pop.",
+        "rationale": "Provides visual back navigation within the sidebar stack"
+      },
+      {
+        "id": 3,
+        "description": "R2: Enhanced SidebarAgentConversation with prompt display, all message kinds, and sub-tool push",
+        "type": "code",
+        "files_modified": ["packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"],
+        "changes": "1) Added prompt section at top with chatbubble-outline icon and MarkdownView for tool.input.prompt. 2) Extracted ChildToolBlock (uses push for sub-tool navigation), ChildEventBlock (gray italic text for agent-event), ChildUserTextBlock (surfaceHighest background for user-text). 3) Result section already existed. 4) ToolView in sidebar no longer passes sessionId/messageId, instead passes onPress and onContentPress callbacks that call push().",
+        "rationale": "Shows full agent conversation context and enables sidebar-internal navigation for sub-tools"
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {"modified": "packages/happy-app/sources/stores/rightSidebarStore.ts", "imported_by": ["sources/-session/SessionView.tsx", "sources/components/RightSidebar.tsx", "sources/components/sidebar/SidebarAgentConversation.tsx"]},
+      {"modified": "packages/happy-app/sources/components/RightSidebar.tsx", "imported_by": ["sources/-session/SessionView.tsx"]},
+      {"modified": "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx", "imported_by": ["sources/components/sidebar/SidebarContentRenderer.tsx"]}
+    ],
+    "qa_ready": true,
+    "qa_notes": "Verify in browser: 1) Open an Agent/Task tool in sidebar - prompt should appear at top. 2) Click a sub-tool inside the sidebar - should push new view with back button. 3) Click back button - should return to previous view. 4) agent-event messages should show as gray italic. 5) user-text messages should have distinct background. 6) Escape key still closes sidebar. 7) Test on both desktop and mobile viewports.",
+    "implementation_notes": "TDD skipped: pure UI rendering changes not programmatically reproducible without browser. All theme colors used (textSecondary, surfaceHighest) are verified to exist in theme.ts. The onContentPress callback type in ToolView matches SidebarData structurally.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": []
+}
