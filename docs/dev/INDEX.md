@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-06T08:16:38Z*
-**Total entries**: 108
+*Last updated: 2026-04-06T11:46:08Z*
+**Total entries**: 111
 **Convention**: kebab
 
 ## Tree
@@ -41,6 +41,8 @@ dev/
 ├── `ba-spec-20260405-130000.md` - BA Specification: Fix File/Image Upload in happy-dev
 ├── `ba-spec-20260405-mcp-title.md` - BA Specification: MCP change_title Survives Daemon/Session Restarts
 ├── `ba-spec-20260406-agent-edit-detail.md` - BA Specification: Agent Inline/Full View Split + Edit Detail Cleanup
+├── `ba-spec-20260406-sidebar-content.md` - BA Specification: Right Sidebar Content Renderers
+├── `ba-spec-20260406-sidebar-routing.md` - BA Specification: Tool Click Routing -- Dual Click Targets for Sidebar
 ├── `ba-spec-20260406-tool-detail.md` - BA Specification: Unified Tool Detail View Layout
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -62,6 +64,7 @@ dev/
 ├── `context-20260405-130000.json` - json config
 ├── `context-20260405-mcp-title.json` - json config
 ├── `context-20260406-agent-edit-detail.json` - json config
+├── `context-20260406-sidebar-routing.json` - json config
 ├── `context-20260406-tool-detail.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
