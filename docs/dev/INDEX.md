@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-06T12:10:50Z*
-**Total entries**: 115
+*Last updated: 2026-04-06T13:43:20Z*
+**Total entries**: 118
 **Convention**: kebab
 
 ## Tree
@@ -43,6 +43,7 @@ dev/
 ├── `ba-spec-20260406-agent-edit-detail.md` - BA Specification: Agent Inline/Full View Split + Edit Detail Cleanup
 ├── `ba-spec-20260406-sidebar-content.md` - BA Specification: Right Sidebar Content Renderers
 ├── `ba-spec-20260406-sidebar-layout.md` - BA Specification: Right Sidebar Infrastructure (3-Panel Layout)
+├── `ba-spec-20260406-sidebar-polish.md` - BA Specification: Sidebar Polish - Requirements 2-5
 ├── `ba-spec-20260406-sidebar-routing.md` - BA Specification: Tool Click Routing -- Dual Click Targets for Sidebar
 ├── `ba-spec-20260406-tool-detail.md` - BA Specification: Unified Tool Detail View Layout
 ├── `context-20260323-210000.json` - json config
@@ -67,6 +68,7 @@ dev/
 ├── `context-20260406-agent-edit-detail.json` - json config
 ├── `context-20260406-sidebar-content.json` - json config
 ├── `context-20260406-sidebar-layout.json` - json config
+├── `context-20260406-sidebar-polish.json` - json config
 ├── `context-20260406-sidebar-routing.json` - json config
 ├── `context-20260406-tool-detail.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
@@ -120,6 +122,7 @@ dev/
 ├── `qa-report-20260405-130000.json` - json config
 ├── `qa-report-20260405-mcp-title.json` - json config
 ├── `qa-report-20260406-agent-edit-detail.json` - json config
+├── `qa-report-20260406-sidebar.json` - json config
 ├── `qa-report-20260406-tool-detail.json` - json config
 └── `qa-site-isolation-verification.json` - json config
 ```

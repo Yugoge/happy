@@ -1,0 +1,180 @@
+{
+  "request_id": "dev-20260406-sidebar-polish",
+  "timestamp": "2026-04-06T09:00:00Z",
+  "requirement": {
+    "original": "Four sidebar polish requirements: R2 (agent sidebar full conversation), R3 (sub-tool clicks stay in sidebar), R4 (bash inline abbreviated content + sidebar), R5 (todo sidebar + checkbox icons)",
+    "clarified": "Polish the right sidebar with full agent conversations, sidebar-internal navigation for sub-tools, abbreviated bash output inline, and todo sidebar with Ionicon checkboxes",
+    "what": "Four UI improvements to the right sidebar and inline tool card rendering",
+    "why": "Improve user experience when inspecting tool details - avoid disruptive navigation, show more context inline, use consistent iconography",
+    "where": [
+      "components/sidebar/SidebarAgentConversation.tsx",
+      "components/sidebar/SidebarContentRenderer.tsx",
+      "components/RightSidebar.tsx",
+      "stores/rightSidebarStore.ts",
+      "components/tools/views/BashView.tsx",
+      "components/tools/views/TodoView.tsx",
+      "components/tools/views/TaskView.tsx"
+    ],
+    "scope": {
+      "included": [
+        "R2: Show orchestrator prompt + all child message types in agent sidebar",
+        "R3: Sub-tool clicks replace sidebar content instead of navigating main area",
+        "R4: Show abbreviated bash output inline, full terminal in sidebar on click",
+        "R5: Todo content click opens sidebar, replace text checkboxes with Ionicons"
+      ],
+      "excluded": [
+        "Changing detail page ([messageId].tsx) behavior",
+        "Adding new sidebar renderers for file tools (already exist)",
+        "Modifying main chat message ordering",
+        "Native mobile platform-specific changes"
+      ]
+    },
+    "success_criteria": [
+      "Agent sidebar shows tool.input.prompt at top and renders all child message kinds",
+      "Clicking sub-tool header in sidebar replaces sidebar content (main area unchanged)",
+      "Back button in sidebar returns to parent agent conversation",
+      "Bash inline content area shows first 3-5 lines of terminal output",
+      "Clicking bash content area opens sidebar with full CommandView terminal",
+      "Todo content click opens sidebar with full todo list",
+      "Todo checkboxes use Ionicons: checkmark-circle (green/completed), time-outline (blue/in-progress), ellipse-outline (gray/pending)"
+    ],
+    "constraints": [
+      "Never use router.push() from sidebar components",
+      "Must work on desktop (side panel) and mobile (modal) sidebar modes",
+      "All new user-facing strings must use t() i18n function",
+      "Follow existing component patterns (memo, StyleSheet.create with theme)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "N/A - feature enhancement, not bug fix",
+    "root_cause": "N/A",
+    "root_cause_commit": "N/A",
+    "why_introduced": "N/A",
+    "why_problematic": "N/A",
+    "timeline": "N/A",
+    "affected_files": []
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI modifications following existing codebase patterns. No novel architecture or design decisions needed."
+  },
+  "context": {
+    "codebase_state": "Main branch, sidebar system already functional with Zustand store",
+    "recent_commits": "Recent commits include sidebar and tool view work",
+    "file_contents": {
+      "SidebarAgentConversation.tsx": {
+        "current_behavior": "Renders agent-text and tool-call children only. Shows result at bottom. Does NOT show orchestrator prompt. Switch default returns null for agent-event, user-text.",
+        "data_available": {
+          "tool.input.prompt": "Contains the orchestrator prompt text sent to the sub-agent",
+          "tool.input.description": "Used for the title in ToolView header, separate from prompt",
+          "tool.result": "String result shown at bottom when completed",
+          "messages": "Message[] = children of the Agent/Task tool call, contains agent-text, tool-call, agent-event types"
+        },
+        "child_ToolView_navigation": "ToolView receives sessionId and messageId, so handlePress calls router.push() navigating main content area away"
+      },
+      "SidebarContentRenderer.tsx": {
+        "routing": {
+          "AGENT_TOOLS": ["Task", "Agent"],
+          "FILE_TOOLS": ["Edit", "Write", "MultiEdit", "CodexPatch", "edit"],
+          "BASH_TOOLS": ["Bash", "CodexBash", "execute", "shell"],
+          "fallthrough": "SidebarGenericView for everything else including TodoWrite"
+        }
+      },
+      "rightSidebarStore.ts": {
+        "state": {
+          "isOpen": "boolean",
+          "data": "{ tool, messages, metadata, sessionId } | null"
+        },
+        "actions": ["open(data)", "close()"],
+        "note": "No navigation stack - single flat state. R3 requires adding history/stack."
+      },
+      "ToolView.tsx": {
+        "header_press": "router.push(/session/${sessionId}/message/${messageId}) - navigates main area",
+        "content_press": "Calls onContentPress callback which opens sidebar via Zustand store",
+        "content_pressable": "Only when onContentPress is provided AND tool has specialized view AND not minimal"
+      },
+      "BashView.tsx": {
+        "current_inline": "Shows CommandView with command only (stdout=null, stderr=null). No output shown inline.",
+        "sidebar": "SidebarBashView already renders full terminal with stdout/stderr in sidebar",
+        "detail_page": "BashViewFull renders full terminal with horizontal scroll"
+      },
+      "TodoView.tsx": {
+        "current_icons": "Text characters: completed='checkmark', pending/in_progress='square'",
+        "current_styles": "Green+strikethrough for completed, blue for in-progress, gray for pending",
+        "no_sidebar": "TodoWrite not in SidebarContentRenderer routing, falls to SidebarGenericView",
+        "no_full_view": "TodoWrite not in toolFullViewRegistry in _all.tsx"
+      },
+      "TaskView.tsx": {
+        "ToolStatusIcon": "Uses Ionicons: checkmark-circle (green) for completed, ActivityIndicator for running, close-circle for error",
+        "reference_for_R5": "The green checkmark-circle icon at line 130 is the target icon for todo completed items"
+      }
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Implement four independent improvements in order R5 (simplest) -> R4 -> R2 -> R3 (most complex)",
+    "files_to_create": [
+      "components/sidebar/SidebarTodoView.tsx"
+    ],
+    "files_to_modify": [
+      {
+        "file": "components/tools/views/TodoView.tsx",
+        "changes": [
+          "Replace text checkbox characters with Ionicons components",
+          "completed: Ionicons checkmark-circle size=18 color=theme.colors.success",
+          "in_progress: Ionicons time-outline size=18 color=#007AFF",
+          "pending: Ionicons ellipse-outline size=18 color=#666",
+          "Add View wrapper for icon + text in row layout"
+        ]
+      },
+      {
+        "file": "components/sidebar/SidebarContentRenderer.tsx",
+        "changes": [
+          "Add TODO_TOOLS = new Set(['TodoWrite']) routing to SidebarTodoView"
+        ]
+      },
+      {
+        "file": "components/tools/views/BashView.tsx",
+        "changes": [
+          "Parse tool.result to extract stdout/stderr (same pattern as BashViewFull)",
+          "Show first 3-5 lines of stdout in CommandView instead of null",
+          "Add maxHeight to limit inline display"
+        ]
+      },
+      {
+        "file": "components/sidebar/SidebarAgentConversation.tsx",
+        "changes": [
+          "Add orchestrator prompt section at top (from tool.input.prompt or tool.input.description)",
+          "Handle agent-event message kind in ChildMessageBlock switch",
+          "Pass custom onPress to child ToolView to prevent router navigation",
+          "When sub-tool clicked, call sidebar open with sub-tool data"
+        ]
+      },
+      {
+        "file": "stores/rightSidebarStore.ts",
+        "changes": [
+          "Add history: SidebarData[] array for navigation stack",
+          "Add pushView(data) action that saves current to history and sets new",
+          "Add popView() action that restores previous from history",
+          "Modify close() to clear history"
+        ]
+      },
+      {
+        "file": "components/RightSidebar.tsx",
+        "changes": [
+          "Add back button to SidebarHeader when history.length > 0",
+          "Wire back button to popView()"
+        ]
+      }
+    ],
+    "validation_approach": "Playwright E2E on dev.life-ai.app: open session with Agent tool calls, verify sidebar shows prompt, click sub-tool stays in sidebar, bash shows abbreviated output, todo shows correct icons"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": false
+  }
+}

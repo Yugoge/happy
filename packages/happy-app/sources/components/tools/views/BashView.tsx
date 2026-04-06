@@ -30,14 +30,26 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
         error = result;
     }
 
+    // Truncate output to first 3 lines for inline preview
+    const truncate = (text: string | null | undefined, lines: number = 3): string | null => {
+        if (!text || !text.trim()) return null;
+        const allLines = text.split('\n');
+        if (allLines.length <= lines) return text;
+        return allLines.slice(0, lines).join('\n') + '\n…';
+    };
+
+    const previewStdout = parsedResult
+        ? truncate(parsedResult.stdout)
+        : truncate(unparsedOutput);
+    const previewStderr = parsedResult ? truncate(parsedResult.stderr) : null;
+
     return (
         <>
             <ToolSectionView>
-                <CommandView 
+                <CommandView
                     command={input.command}
-                    // Don't show output in compact view
-                    stdout={null}
-                    stderr={null}
+                    stdout={previewStdout}
+                    stderr={previewStderr}
                     error={error}
                     hideEmptyOutput
                 />

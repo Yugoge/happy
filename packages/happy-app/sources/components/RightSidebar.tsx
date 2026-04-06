@@ -4,7 +4,9 @@ import { useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { t } from '@/text';
-import type { ToolCall } from '@/sync/typesMessage';
+import type { ToolCall, Message } from '@/sync/typesMessage';
+import type { Metadata } from '@/sync/storageTypes';
+import { SidebarContentRenderer } from './sidebar/SidebarContentRenderer';
 
 const SIDEBAR_WIDTH = 450;
 const DESKTOP_MIN_WIDTH = 901;
@@ -60,30 +62,34 @@ function SidebarHeader({ tool, onClose }: { tool: ToolCall; onClose: () => void 
     );
 }
 
-function SidebarContent({ toolName }: { toolName: string }) {
-    const { theme } = useUnistyles();
+function SidebarContent({ tool, messages, metadata, sessionId }: {
+    tool: ToolCall; messages: Message[]; metadata: Metadata | null; sessionId: string;
+}) {
     return (
-        <View style={{ flex: 1, padding: 16 }}>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>
-                {t('sidebar.toolDetail')}: {toolName}
-            </Text>
+        <View style={{ flex: 1 }}>
+            <SidebarContentRenderer tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
         </View>
     );
 }
 
-function MobileSidebar({ tool, onClose }: { tool: ToolCall; onClose: () => void }) {
+interface SidebarPanelProps {
+    tool: ToolCall; messages: Message[]; metadata: Metadata | null;
+    sessionId: string; onClose: () => void;
+}
+
+function MobileSidebar({ tool, messages, metadata, sessionId, onClose }: SidebarPanelProps) {
     const { theme } = useUnistyles();
     return (
         <RNModal visible={true} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: theme.colors.surface }}>
                 <SidebarHeader tool={tool} onClose={onClose} />
-                <SidebarContent toolName={tool.name} />
+                <SidebarContent tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
             </View>
         </RNModal>
     );
 }
 
-function DesktopSidebar({ tool, onClose }: { tool: ToolCall; onClose: () => void }) {
+function DesktopSidebar({ tool, messages, metadata, sessionId, onClose }: SidebarPanelProps) {
     const { theme } = useUnistyles();
     return (
         <View style={{
@@ -91,7 +97,7 @@ function DesktopSidebar({ tool, onClose }: { tool: ToolCall; onClose: () => void
             borderLeftColor: theme.colors.divider, backgroundColor: theme.colors.surface,
         }}>
             <SidebarHeader tool={tool} onClose={onClose} />
-            <SidebarContent toolName={tool.name} />
+            <SidebarContent tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
         </View>
     );
 }
@@ -112,8 +118,8 @@ export const RightSidebar = React.memo(function RightSidebar() {
     }
 
     if (!isDesktop) {
-        return <MobileSidebar tool={data.tool} onClose={close} />;
+        return <MobileSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} />;
     }
 
-    return <DesktopSidebar tool={data.tool} onClose={close} />;
+    return <DesktopSidebar tool={data.tool} messages={data.messages} metadata={data.metadata} sessionId={data.sessionId} onClose={close} />;
 });
