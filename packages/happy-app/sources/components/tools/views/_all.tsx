@@ -8,6 +8,7 @@ import { TodoView } from './TodoView';
 import { ExitPlanToolView } from './ExitPlanToolView';
 import { MultiEditView } from './MultiEditView';
 import { TaskView } from './TaskView';
+import { TaskViewFull } from './TaskViewFull';
 import { BashViewFull } from './BashViewFull';
 import { EditViewFull } from './EditViewFull';
 import { MultiEditViewFull } from './MultiEditViewFull';
@@ -51,10 +52,9 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
 export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     Bash: BashViewFull,
     CodexBash: CodexBashView,
-    Edit: EditViewFull,
     MultiEdit: MultiEditViewFull,
-    Task: TaskView,
-    Agent: TaskView,
+    Task: TaskViewFull,
+    Agent: TaskViewFull,
 };
 
 // Helper function to get the appropriate view component for a tool

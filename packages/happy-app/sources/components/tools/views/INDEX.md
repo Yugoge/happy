@@ -1,7 +1,7 @@
 # views
 
-*Last updated: 2026-04-03T21:57:22Z*
-**Total entries**: 18
+*Last updated: 2026-04-06T08:04:20Z*
+**Total entries**: 19
 **Convention**: kebab
 
 ## Tree
@@ -23,6 +23,7 @@ views/
 ├── `MultiEditView.tsx` - tsx file
 ├── `MultiEditViewFull.tsx` - tsx file
 ├── `TaskView.tsx` - tsx file
+├── `TaskViewFull.tsx` - tsx file
 ├── `TodoView.tsx` - tsx file
 └── `WriteView.tsx` - tsx file
 ```
