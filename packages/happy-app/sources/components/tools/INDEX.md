@@ -1,7 +1,7 @@
 # tools
 
-*Last updated: 2026-04-06T07:15:48Z*
-**Total entries**: 28
+*Last updated: 2026-04-06T11:49:59Z*
+**Total entries**: 29
 **Convention**: kebab
 
 ## Tree
@@ -24,6 +24,7 @@ tools/
 │   ├── `MultiEditView.tsx` - tsx file
 │   ├── `MultiEditViewFull.tsx` - tsx file
 │   ├── `TaskView.tsx` - tsx file
+│   ├── `TaskViewFull.tsx` - tsx file
 │   ├── `TodoView.tsx` - tsx file
 │   └── `WriteView.tsx` - tsx file
 ├── `knownTools.tsx` - tsx file

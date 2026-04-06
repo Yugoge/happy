@@ -1,7 +1,7 @@
 # components
 
-*Last updated: 2026-04-03T21:27:21Z*
-**Total entries**: 156
+*Last updated: 2026-04-06T11:50:11Z*
+**Total entries**: 158
 **Convention**: kebab
 
 ## Tree
@@ -46,6 +46,7 @@ components/
 │   ├── `QRCode.tsx` - tsx file
 │   ├── `QRCode.web.tsx` - tsx file
 │   └── `qrMatrix.ts` - ts file
+├── sidebar/
 ├── tools/
 │   ├── views/
 │   │   ├── `_all.tsx` - tsx file
@@ -64,6 +65,7 @@ components/
 │   │   ├── `MultiEditView.tsx` - tsx file
 │   │   ├── `MultiEditViewFull.tsx` - tsx file
 │   │   ├── `TaskView.tsx` - tsx file
+│   │   ├── `TaskViewFull.tsx` - tsx file
 │   │   ├── `TodoView.tsx` - tsx file
 │   │   └── `WriteView.tsx` - tsx file
 │   ├── `knownTools.tsx` - tsx file

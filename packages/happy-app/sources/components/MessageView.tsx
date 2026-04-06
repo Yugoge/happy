@@ -3,7 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import { StyleSheet } from 'react-native-unistyles';
 import { MarkdownView } from "./markdown/MarkdownView";
 import { t } from '@/text';
-import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage } from "@/sync/typesMessage";
+import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage, ToolCall } from "@/sync/typesMessage";
 import { MessageAttachments } from "./MessageAttachments";
 import { Metadata } from "@/sync/storageTypes";
 import { layout } from "./layout";
@@ -14,11 +14,19 @@ import { Option } from './markdown/MarkdownView';
 import { Ionicons } from '@expo/vector-icons';
 
 
+export type ToolContentPressData = {
+  tool: ToolCall;
+  messages: Message[];
+  metadata: Metadata | null;
+  sessionId: string;
+};
+
 export const MessageView = (props: {
   message: Message;
   metadata: Metadata | null;
   sessionId: string;
   getMessageById?: (id: string) => Message | null;
+  onContentPress?: (data: ToolContentPressData) => void;
 }) => {
   return (
     <View style={styles.messageContainer} renderToHardwareTextureAndroid={true}>
@@ -28,6 +36,7 @@ export const MessageView = (props: {
           metadata={props.metadata}
           sessionId={props.sessionId}
           getMessageById={props.getMessageById}
+          onContentPress={props.onContentPress}
         />
       </View>
     </View>

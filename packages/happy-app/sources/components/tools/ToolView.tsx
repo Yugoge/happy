@@ -21,6 +21,7 @@ interface ToolViewProps {
     tool: ToolCall;
     messages?: Message[];
     onPress?: () => void;
+    onContentPress?: (data: { tool: ToolCall; messages: Message[]; metadata: Metadata | null; sessionId: string }) => void;
     sessionId?: string;
     messageId?: string;
 }
@@ -28,7 +29,7 @@ interface ToolViewProps {
 const SPINNER_SCALE = [{ scaleX: 0.8 }, { scaleY: 0.8 }];
 
 export const ToolView = React.memo<ToolViewProps>((props) => {
-    const { tool, onPress, sessionId, messageId } = props;
+    const { tool, onPress, onContentPress, sessionId, messageId } = props;
     const router = useRouter();
     const { theme } = useUnistyles();
 
@@ -39,6 +40,19 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
             router.push(`/session/${sessionId}/message/${messageId}`);
         }
     }, [onPress, sessionId, messageId, router]);
+
+    const hasSpecializedView = !!getToolViewComponent(tool.name);
+
+    const handleContentPress = React.useCallback(() => {
+        if (onContentPress && sessionId) {
+            onContentPress({
+                tool,
+                messages: props.messages ?? [],
+                metadata: props.metadata,
+                sessionId,
+            });
+        }
+    }, [onContentPress, tool, props.messages, props.metadata, sessionId]);
 
     const isPressable = !!(onPress || (sessionId && messageId));
     const knownTool = knownTools[tool.name as keyof typeof knownTools] as any;
@@ -82,7 +96,18 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
                 <View style={styles.header}>{headerContent}</View>
             )}
 
-            {!cfg.minimal && (
+            {!cfg.minimal && hasSpecializedView && onContentPress ? (
+                <TouchableOpacity onPress={handleContentPress} activeOpacity={0.7}>
+                    <ToolContent
+                        tool={tool}
+                        metadata={props.metadata}
+                        messages={props.messages}
+                        sessionId={sessionId}
+                        hideDefaultError={cfg.hideDefaultError}
+                        isToolUseError={cfg.isToolUseError}
+                    />
+                </TouchableOpacity>
+            ) : !cfg.minimal ? (
                 <ToolContent
                     tool={tool}
                     metadata={props.metadata}
@@ -91,7 +116,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
                     hideDefaultError={cfg.hideDefaultError}
                     isToolUseError={cfg.isToolUseError}
                 />
-            )}
+            ) : null}
 
             {tool.permission && sessionId && tool.name !== 'AskUserQuestion' && (
                 <PermissionFooter
