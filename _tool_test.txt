@@ -1,0 +1,3 @@
+Hello from Write tool!
+This is line 2.
+This is line 3 - EDITED by Edit tool!
