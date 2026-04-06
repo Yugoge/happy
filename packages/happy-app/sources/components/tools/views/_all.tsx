@@ -79,6 +79,7 @@ export { MultiEditViewFull } from './MultiEditViewFull';
 export { ExitPlanToolView } from './ExitPlanToolView';
 export { MultiEditView } from './MultiEditView';
 export { TaskView } from './TaskView';
+export { TaskViewFull } from './TaskViewFull';
 export { AskUserQuestionView } from './AskUserQuestionView';
 export { GeminiEditView } from './GeminiEditView';
 export { GeminiExecuteView } from './GeminiExecuteView';

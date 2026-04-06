@@ -468,6 +468,7 @@ export const ca: TranslationStructure = {
             noOutput: 'No s\'ha produït cap sortida',
             running: 'L\'eina s\'està executant...',
             rawJsonDevMode: 'JSON en brut (mode desenvolupador)',
+            subTools: 'Sub-eines',
         },
         taskView: {
             initializing: 'Inicialitzant l\'agent...',

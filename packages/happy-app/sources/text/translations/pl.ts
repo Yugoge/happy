@@ -478,6 +478,7 @@ export const pl: TranslationStructure = {
             noOutput: 'Nie wygenerowano żadnego wyjścia',
             running: 'Narzędzie działa...',
             rawJsonDevMode: 'Surowy JSON (tryb deweloperski)',
+            subTools: 'Podnarzędzia',
         },
         taskView: {
             initializing: 'Inicjalizacja agenta...',

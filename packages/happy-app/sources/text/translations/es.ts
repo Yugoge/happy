@@ -468,6 +468,7 @@ export const es: TranslationStructure = {
             noOutput: 'No se produjo salida',
             running: 'La herramienta está ejecutándose...',
             rawJsonDevMode: 'JSON crudo (modo desarrollador)',
+            subTools: 'Sub-herramientas',
         },
         taskView: {
             initializing: 'Inicializando agente...',

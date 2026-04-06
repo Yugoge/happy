@@ -469,6 +469,7 @@ export const ja: TranslationStructure = {
             noOutput: '出力がありません',
             running: 'ツールを実行中...',
             rawJsonDevMode: 'Raw JSON (開発モード)',
+            subTools: 'サブツール',
         },
         taskView: {
             initializing: 'エージェントを初期化中...',
