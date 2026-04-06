@@ -185,7 +185,7 @@ const styles = StyleSheet.create((theme) => ({
     childUserText: {
         paddingHorizontal: 4,
         paddingVertical: 4,
-        backgroundColor: theme.colors.backgroundTertiary,
+        backgroundColor: theme.colors.surfaceHighest,
         borderRadius: 8,
     },
     resultBox: {

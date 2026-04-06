@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-06T13:43:20Z*
-**Total entries**: 118
+*Last updated: 2026-04-06T16:55:50Z*
+**Total entries**: 120
 **Convention**: kebab
 
 ## Tree
@@ -90,6 +90,7 @@ dev/
 ├── `dev-report-20260405-130000.json` - json config
 ├── `dev-report-20260405-mcp-title.json` - json config
 ├── `dev-report-20260406-sidebar-layout.json` - json config
+├── `dev-report-20260406-sidebar-polish.json` - json config
 ├── `dev-report-20260406-tool-detail.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
@@ -122,6 +123,7 @@ dev/
 ├── `qa-report-20260405-130000.json` - json config
 ├── `qa-report-20260405-mcp-title.json` - json config
 ├── `qa-report-20260406-agent-edit-detail.json` - json config
+├── `qa-report-20260406-sidebar-polish.json` - json config
 ├── `qa-report-20260406-sidebar.json` - json config
 ├── `qa-report-20260406-tool-detail.json` - json config
 └── `qa-site-isolation-verification.json` - json config

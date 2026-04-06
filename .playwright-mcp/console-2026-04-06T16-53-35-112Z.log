@@ -1,0 +1,133 @@
+[      13ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[     195ms] [WARNING] [Layout children]: No route named "dev/masked-progress" exists in nested children: [
+  "changelog",
+  "index",
+  "server",
+  "text-selection",
+  "artifacts/[id]",
+  "artifacts/index",
+  "artifacts/new",
+  "artifacts/edit/[id]",
+  "dev/colors",
+  "dev/device-info",
+  "dev/expo-constants",
+  "dev/index",
+  "dev/input-styles",
+  "dev/inverted-list",
+  "dev/list-demo",
+  "dev/logs",
+  "dev/messages-demo-data",
+  "dev/messages-demo",
+  "dev/modal-demo",
+  "dev/multi-text-input",
+  "dev/purchases",
+  "dev/qr-test",
+  "dev/session-composer",
+  "dev/shimmer-demo",
+  "dev/tests",
+  "dev/tools2",
+  "dev/typography",
+  "dev/unistyles-demo",
+  "friends/index",
+  "friends/search",
+  "inbox/index",
+  "machine/[id]",
+  "new/index",
+  "restore/index",
+  "restore/manual",
+  "session/[id]",
+  "session/recent",
+  "session/[id]/file",
+  "session/[id]/files",
+  "session/[id]/info",
+  "session/[id]/message/[messageId]",
+  "settings/account",
+  "settings/appearance",
+  "settings/features",
+  "settings/index",
+  "settings/language",
+  "settings/usage",
+  "settings/voice",
+  "settings/connect/claude",
+  "settings/voice/language",
+  "terminal/connect",
+  "terminal/index",
+  "user/[id]"
+] @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[     374ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[     723ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    1736ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    2694ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    3020ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    3711ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    4639ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    5535ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    5948ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    6622ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    7395ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    8050ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    9078ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[    9864ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   10770ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   11378ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   11807ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   12749ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   12899ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   13514ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   14293ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   14775ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   15631ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   16647ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   17112ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   18152ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   19211ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   20155ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   20711ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   21298ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   21914ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   22194ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   22572ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   23079ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   23761ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   24419ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   25440ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   26232ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   26495ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   27509ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   28280ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   29271ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   29844ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   30392ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   30730ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   31485ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   31736ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   32452ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   33038ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   33168ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   34190ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   34509ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   35516ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   36095ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   36654ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   37282ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   37617ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   38265ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   39309ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   40429ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   41480ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   42400ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   42610ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   42766ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   43745ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   44749ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   45121ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   45761ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   45976ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   46110ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   47038ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   48054ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   48677ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   49237ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   50075ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   50437ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
+[   51338ms] [WARNING] {} @ http://localhost:8097/_expo/static/js/web/index-73e6d212c42f4a4df674ca1a4e5db8f1.js:3007
