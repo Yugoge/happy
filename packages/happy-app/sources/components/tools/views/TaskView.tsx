@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ToolViewProps } from './_all';
-import { Text, View, ActivityIndicator, Platform } from 'react-native';
+import { Text, View, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
 import { knownTools } from '../../tools/knownTools';
 import { Message, ToolCall } from '@/sync/typesMessage';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -30,25 +30,28 @@ function extractToolTitle(m: Message, metadata: Metadata | null): string {
     return m.tool.name;
 }
 
-export const TaskView = React.memo<ToolViewProps>(({ tool, metadata, messages, sessionId }) => {
-    const filtered = useFilteredTools(messages, metadata);
+export const TaskView = React.memo<ToolViewProps & { onSubToolPress?: (tool: ToolCall) => void }>(
+    ({ tool, metadata, messages, sessionId, onSubToolPress }) => {
+        const filtered = useFilteredTools(messages, metadata);
 
-    if (filtered.length === 0 && messages.length === 0) {
-        return null;
+        if (filtered.length === 0 && messages.length === 0) {
+            return null;
+        }
+
+        const visibleTools = filtered.slice(filtered.length - 3);
+        const remainingCount = filtered.length - 3;
+
+        return (
+            <View style={taskStyles.container}>
+                <TaskStatusRow
+                    visibleTools={visibleTools}
+                    remainingCount={remainingCount}
+                    onSubToolPress={onSubToolPress}
+                />
+            </View>
+        );
     }
-
-    const visibleTools = filtered.slice(filtered.length - 3);
-    const remainingCount = filtered.length - 3;
-
-    return (
-        <View style={taskStyles.container}>
-            <TaskStatusRow
-                visibleTools={visibleTools}
-                remainingCount={remainingCount}
-            />
-        </View>
-    );
-});
+);
 
 // Extracts tool-call messages for the status row
 export function useFilteredTools(messages: Message[], metadata: Metadata | null): FilteredTool[] {
@@ -64,23 +67,45 @@ export function useFilteredTools(messages: Message[], metadata: Metadata | null)
     }, [messages, metadata]);
 }
 
+// Single tool item in the status row, optionally pressable
+function ToolItemRow({ item, index, onSubToolPress }: {
+    item: FilteredTool;
+    index: number;
+    onSubToolPress?: (tool: ToolCall) => void;
+}) {
+    const content = (
+        <>
+            <Text style={taskStyles.toolTitle}>{item.title}</Text>
+            <View style={taskStyles.statusContainer}>
+                <ToolStatusIcon state={item.state} />
+            </View>
+        </>
+    );
+    if (onSubToolPress) {
+        return (
+            <TouchableOpacity key={`${item.tool.name}-${index}`} style={taskStyles.toolItem}
+                onPress={() => onSubToolPress(item.tool)} activeOpacity={0.7}>
+                {content}
+            </TouchableOpacity>
+        );
+    }
+    return <View key={`${item.tool.name}-${index}`} style={taskStyles.toolItem}>{content}</View>;
+}
+
 // Compact status row: shows tool names + status icons.
 // Intentionally NOT styled as a header — the outer ToolView header is the single header.
 export const TaskStatusRow = React.memo<{
     visibleTools: FilteredTool[];
     remainingCount: number;
-}>(({ visibleTools, remainingCount }) => {
+    onSubToolPress?: (tool: ToolCall) => void;
+}>(({ visibleTools, remainingCount, onSubToolPress }) => {
     return (
         <View style={taskStyles.statusRowWrapper}>
             <View style={taskStyles.statusRowContent}>
                 <View style={taskStyles.toolsList}>
                     {visibleTools.map((item, index) => (
-                        <View key={`${item.tool.name}-${index}`} style={taskStyles.toolItem}>
-                            <Text style={taskStyles.toolTitle}>{item.title}</Text>
-                            <View style={taskStyles.statusContainer}>
-                                <ToolStatusIcon state={item.state} />
-                            </View>
-                        </View>
+                        <ToolItemRow key={`${item.tool.name}-${index}`}
+                            item={item} index={index} onSubToolPress={onSubToolPress} />
                     ))}
                     {remainingCount > 0 && (
                         <View style={taskStyles.moreToolsItem}>

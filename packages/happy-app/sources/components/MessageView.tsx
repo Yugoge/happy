@@ -183,6 +183,7 @@ function ToolCallBlock(props: {
   metadata: Metadata | null;
   sessionId: string;
   getMessageById?: (id: string) => Message | null;
+  onContentPress?: (data: ToolContentPressData) => void;
 }) {
   if (!props.message.tool) {
     return null;
@@ -195,6 +196,7 @@ function ToolCallBlock(props: {
         messages={props.message.children}
         sessionId={props.sessionId}
         messageId={props.message.id}
+        onContentPress={props.onContentPress}
       />
     </View>
   );
