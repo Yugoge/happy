@@ -1,0 +1,124 @@
+{
+  "request_id": "dev-20260406-sidebar-routing",
+  "timestamp": "2026-04-06T09:00:00Z",
+  "requirement": {
+    "original": "Modify tool click behavior to have TWO click targets: title -> detail page, content -> right sidebar. For tools without rendered content, keep single click. TaskView sub-tool items should open sidebar with sub-agent conversation.",
+    "clarified": "Split ToolView into dual click zones. Header click preserves existing navigation to /session/[id]/message/[messageId]. Content body click opens new right sidebar via callback. Only tools with registered SpecificToolView in toolViewRegistry get the content click zone. TaskView status row items become individually pressable to open sidebar.",
+    "what": "Add dual-click-zone routing to ToolView component and make TaskView sub-tool items pressable",
+    "why": "Enable rich tool content to be viewed in a right sidebar without losing the existing detail page navigation",
+    "where": ["packages/happy-app/sources/components/tools/ToolView.tsx", "packages/happy-app/sources/components/tools/views/TaskView.tsx", "packages/happy-app/sources/components/MessageView.tsx"],
+    "scope": {
+      "included": [
+        "ToolView click zone splitting (header vs content)",
+        "onContentPress callback prop on ToolView",
+        "TaskView status row item pressability",
+        "Passing sidebar callback through MessageView -> ToolCallBlock -> ToolView"
+      ],
+      "excluded": [
+        "Building the right sidebar component itself",
+        "Modifying the detail page ([messageId].tsx)",
+        "Modifying ToolFullView",
+        "Adding new tool view registry entries",
+        "SidebarNavigator or SidebarView changes"
+      ]
+    },
+    "success_criteria": [
+      "Header click on any tool card navigates to detail page (existing behavior preserved)",
+      "Content body click on tools with SpecificToolView triggers onContentPress callback",
+      "Tools without SpecificToolView have no content click zone",
+      "Minimal tools (no content rendered) unchanged",
+      "TaskView sub-tool items individually pressable",
+      "PermissionFooter click not intercepted by content click zone",
+      "TypeScript compiles without errors (yarn typecheck passes)"
+    ],
+    "constraints": [
+      "Must not break existing navigation behavior",
+      "Must work on both web and mobile viewports",
+      "PermissionFooter must remain independently interactive",
+      "Nested ToolView instances (inside TaskViewFull) must also support dual-click"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "N/A - new feature",
+    "root_cause": "N/A - new feature, not a bug fix",
+    "root_cause_commit": "N/A",
+    "why_introduced": "N/A",
+    "why_problematic": "N/A",
+    "timeline": "N/A",
+    "affected_files": []
+  },
+  "context": {
+    "codebase_state": "ToolView currently has a single click target on the header area only. Content area has no click handler.",
+    "recent_commits": "de9c3d38 Auto-commit: 2026-04-06 08:17:48",
+    "file_contents": {
+      "ToolView.tsx": {
+        "current_click_handling": "handlePress callback on line 35-41. Wraps header in TouchableOpacity when isPressable (line 77-83). Content area (ToolContent, line 86-93) has no click handler.",
+        "isPressable_logic": "Line 43: isPressable = !!(onPress || (sessionId && messageId))",
+        "header_structure": "Lines 52-73: headerLeft View with iconContainer, titleContainer, elapsedContainer, statusIcon",
+        "content_structure": "Lines 85-94: ToolContent rendered when !cfg.minimal. Separate component on lines 225-273.",
+        "permission_footer": "Lines 96-104: PermissionFooter rendered after content, inside container but should NOT be part of content click zone"
+      },
+      "_all.tsx": {
+        "toolViewRegistry_entries": ["Edit", "Bash", "CodexBash", "CodexPatch", "CodexDiff", "Write", "TodoWrite", "ExitPlanMode", "exit_plan_mode", "MultiEdit", "Task", "Agent", "AskUserQuestion", "edit", "execute"],
+        "toolFullViewRegistry_entries": ["Bash", "CodexBash", "MultiEdit", "Task", "Agent"],
+        "getToolViewComponent": "Line 61-63: returns toolViewRegistry[toolName] || null"
+      },
+      "TaskView.tsx": {
+        "status_row_items": "Lines 77-85: toolItem Views rendered in a map. Currently plain View, not pressable.",
+        "filtered_tools": "useFilteredTools hook (lines 54-65) extracts tool-call messages with running/completed/error state",
+        "FilteredTool_type": "{ tool: ToolCall; title: string; state: 'running' | 'completed' | 'error' }"
+      },
+      "MessageView.tsx": {
+        "tool_call_block": "Lines 177-197: ToolCallBlock passes tool, metadata, messages (children), sessionId, messageId to ToolView",
+        "integration_point": "ToolCallBlock is where onContentPress callback needs to be threaded through"
+      }
+    },
+    "dependencies": {
+      "ToolView_props": {
+        "current": "{ metadata, tool, messages?, onPress?, sessionId?, messageId? }",
+        "proposed_addition": "onContentPress?: (data: { tool: ToolCall; messages: Message[]; metadata: Metadata | null; sessionId: string }) => void"
+      }
+    },
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Add onContentPress prop to ToolView. In ToolView render, check if SpecificToolView exists for this tool. If yes AND onContentPress is provided, wrap the ToolContent in a TouchableOpacity. Header click behavior unchanged. In TaskView, accept onSubToolPress prop and wrap each toolItem in TouchableOpacity. In MessageView, thread the sidebar callback through ToolCallBlock to ToolView.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/views/TaskView.tsx",
+      "packages/happy-app/sources/components/MessageView.tsx"
+    ],
+    "implementation_details": {
+      "ToolView_changes": [
+        "Add onContentPress to ToolViewProps interface",
+        "Import getToolViewComponent at top (already imported indirectly via ToolContent)",
+        "In the render, check hasSpecializedView = !!getToolViewComponent(tool.name)",
+        "When !cfg.minimal && hasSpecializedView && onContentPress: wrap ToolContent in TouchableOpacity with onPress calling onContentPress({ tool, messages: props.messages, metadata: props.metadata, sessionId })",
+        "When !hasSpecializedView: render ToolContent without wrapper (current behavior)",
+        "PermissionFooter stays OUTSIDE the content TouchableOpacity wrapper"
+      ],
+      "TaskView_changes": [
+        "Add onSubToolPress prop to TaskView and TaskStatusRow",
+        "In TaskStatusRow, wrap each toolItem View in TouchableOpacity when onSubToolPress is provided",
+        "onSubToolPress signature: (filteredTool: FilteredTool) => void"
+      ],
+      "MessageView_changes": [
+        "Add onContentPress prop threading: MessageView -> RenderBlock -> ToolCallBlock -> ToolView",
+        "The actual callback value will come from the session view context (sidebar provider, built by another group)"
+      ]
+    },
+    "validation_approach": "yarn typecheck must pass. Playwright verification: click header -> navigates to detail page. Click content body -> callback fires (can be verified by checking no navigation occurs and console.log in dev)."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI click zone splitting on existing component structure. No novel patterns needed."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

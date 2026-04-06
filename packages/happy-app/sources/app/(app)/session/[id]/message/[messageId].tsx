@@ -58,12 +58,25 @@ function LoadingView() {
     );
 }
 
+// Search for a message by ID recursively through children
+function findInChildren(messages: Message[], id: string): Message | null {
+    for (const m of messages) {
+        if (m.id === id) return m;
+        if (m.kind === 'tool-call' && m.children) {
+            const found = findInChildren(m.children, id);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
 export default React.memo(() => {
     const { id: sessionId, messageId } = useLocalSearchParams<{ id: string; messageId: string }>();
     const router = useRouter();
     const session = useSession(sessionId!);
-    const { isLoaded: messagesLoaded } = useSessionMessages(sessionId!);
-    const message = useMessage(sessionId!, messageId!);
+    const { messages: allMessages, isLoaded: messagesLoaded } = useSessionMessages(sessionId!);
+    const topLevelMessage = useMessage(sessionId!, messageId!);
+    const message = topLevelMessage ?? (messagesLoaded ? findInChildren(allMessages, messageId!) : null);
     const { theme } = useUnistyles();
 
     React.useEffect(() => {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ToolViewProps } from './_all';
 import { toolFullViewStyles } from '../ToolFullView';
@@ -8,34 +8,56 @@ import { MarkdownView } from '../../markdown/MarkdownView';
 import { Message } from '@/sync/typesMessage';
 import { Metadata } from '@/sync/storageTypes';
 import { t } from '@/text';
-import { useFilteredTools, TaskStatusRow } from './TaskView';
-import { StyleSheet } from 'react-native-unistyles';
+import { useFilteredTools } from './TaskView';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { useLocalSearchParams } from 'expo-router';
 
-export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, messages, sessionId }) => {
+// Renders the list of child messages inside the bordered box
+const ChildMessageList = React.memo<{
+    messages: Message[];
+    metadata: Metadata | null;
+    sessionId: string;
+}>(({ messages, metadata, sessionId }) => (
+    <View style={localStyles.childrenBox}>
+        {messages.map((child) => (
+            <ChildMessageBlock
+                key={child.id}
+                message={child}
+                metadata={metadata}
+                sessionId={sessionId}
+            />
+        ))}
+    </View>
+));
+
+export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, messages }) => {
     const filtered = useFilteredTools(messages, metadata);
-    const visibleTools = filtered.slice(filtered.length - 3);
-    const remainingCount = filtered.length - 3;
+    const [expanded, setExpanded] = React.useState(false);
+    const toggle = React.useCallback(() => setExpanded(v => !v), []);
+    const { theme } = useUnistyles();
+    const { id: routeSessionId } = useLocalSearchParams<{ id: string }>();
+    const toolCount = filtered.length;
+
+    if (messages.length === 0) return null;
 
     return (
-        <View>
-            {/* Sub-tools section */}
-            {messages.length > 0 && (
-                <View style={toolFullViewStyles.section}>
-                    <View style={toolFullViewStyles.sectionHeader}>
-                        <Ionicons name="layers-outline" size={20} color="#5856D6" />
-                        <Text style={toolFullViewStyles.sectionTitle}>{t('tools.fullView.subTools')}</Text>
-                    </View>
-                    <View style={localStyles.childrenBox}>
-                        {messages.map((child) => (
-                            <ChildMessageBlock
-                                key={child.id}
-                                message={child}
-                                metadata={metadata}
-                                sessionId={sessionId}
-                            />
-                        ))}
-                    </View>
+        <View style={toolFullViewStyles.section}>
+            <TouchableOpacity onPress={toggle} activeOpacity={0.7}>
+                <View style={toolFullViewStyles.sectionHeader}>
+                    <Ionicons name="layers-outline" size={20} color="#5856D6" />
+                    <Text style={toolFullViewStyles.sectionTitle}>
+                        {t('tools.fullView.subTools')}{toolCount > 0 ? ` (${toolCount})` : ''}
+                    </Text>
+                    <Ionicons
+                        name={expanded ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={theme.colors.textSecondary}
+                        style={{ marginLeft: 'auto' }}
+                    />
                 </View>
+            </TouchableOpacity>
+            {expanded && (
+                <ChildMessageList messages={messages} metadata={metadata} sessionId={routeSessionId} />
             )}
         </View>
     );
@@ -45,7 +67,7 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
 const ChildMessageBlock = React.memo<{
     message: Message;
     metadata: Metadata | null;
-    sessionId?: string;
+    sessionId: string;
 }>(({ message, metadata, sessionId }) => {
     switch (message.kind) {
         case 'agent-text':
