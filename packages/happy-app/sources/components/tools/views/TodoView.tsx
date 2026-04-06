@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
+import { Ionicons } from '@expo/vector-icons';
 import { ToolViewProps } from "./_all";
 import { knownTools } from '../../tools/knownTools';
 import { ToolSectionView } from '../../tools/ToolSectionView';
@@ -11,80 +13,102 @@ export interface Todo {
     id?: string;
 }
 
-export const TodoView = React.memo<ToolViewProps>(({ tool }) => {
+const TodoStatusIcon = React.memo<{ status: string }>(({ status }) => {
+    switch (status) {
+        case 'completed':
+            return <Ionicons name="checkmark-circle" size={18} style={styles.iconCompleted} />;
+        case 'in_progress':
+            return <Ionicons name="time-outline" size={18} style={styles.iconInProgress} />;
+        default:
+            return <Ionicons name="ellipse-outline" size={18} style={styles.iconPending} />;
+    }
+});
+
+const TodoItem = React.memo<{ todo: Todo; index: number }>(({ todo, index }) => {
+    return (
+        <View key={todo.id || `todo-${index}`} style={styles.todoItem}>
+            <TodoStatusIcon status={todo.status} />
+            <Text style={[
+                styles.todoText,
+                todo.status === 'completed' && styles.completedText,
+                todo.status === 'in_progress' && styles.inProgressText,
+                todo.status === 'pending' && styles.pendingText,
+            ]}>
+                {todo.content}
+            </Text>
+        </View>
+    );
+});
+
+function parseTodos(tool: ToolViewProps['tool']): Todo[] {
     let todosList: Todo[] = [];
-    
-    // Try to get todos from input first
-    let parsedArguments = knownTools.TodoWrite.input.safeParse(tool.input);
+
+    const parsedArguments = knownTools.TodoWrite.input.safeParse(tool.input);
     if (parsedArguments.success && parsedArguments.data.todos) {
         todosList = parsedArguments.data.todos;
     }
-    
-    // If we have a properly structured result, use newTodos from there
-    let parsed = knownTools.TodoWrite.result.safeParse(tool.result);
+
+    const parsed = knownTools.TodoWrite.result.safeParse(tool.result);
     if (parsed.success && parsed.data.newTodos) {
         todosList = parsed.data.newTodos;
     }
-    
-    // If we have todos to display, show them
-    if (todosList.length > 0) {
-        return (
-            <ToolSectionView>
-                <View style={styles.container}>
-                    {todosList.map((todo, index) => {
-                        const isCompleted = todo.status === 'completed';
-                        const isInProgress = todo.status === 'in_progress';
-                        const isPending = todo.status === 'pending';
 
-                        let textStyle: any = styles.todoText;
-                        let icon = '☐';
+    return todosList;
+}
 
-                        if (isCompleted) {
-                            textStyle = [styles.todoText, styles.completedText];
-                            icon = '☑';
-                        } else if (isInProgress) {
-                            textStyle = [styles.todoText, styles.inProgressText];
-                            icon = '☐';
-                        } else if (isPending) {
-                            textStyle = [styles.todoText, styles.pendingText];
-                        }
+export const TodoView = React.memo<ToolViewProps>(({ tool }) => {
+    const todosList = parseTodos(tool);
 
-                        return (
-                            <View key={todo.id || `todo-${index}`} style={styles.todoItem}>
-                                <Text style={textStyle}>
-                                    {icon} {todo.content}
-                                </Text>
-                            </View>
-                        );
-                    })}
-                </View>
-            </ToolSectionView>
-        )
+    if (todosList.length === 0) {
+        return null;
     }
 
-    return null;
+    return (
+        <ToolSectionView>
+            <View style={styles.container}>
+                {todosList.map((todo, index) => (
+                    <TodoItem key={todo.id || `todo-${index}`} todo={todo} index={index} />
+                ))}
+            </View>
+        </ToolSectionView>
+    );
 });
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
     container: {
         gap: 4,
     },
     todoItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 6,
         paddingVertical: 2,
     },
     todoText: {
         fontSize: 14,
-        color: '#000',
+        color: theme.colors.typography,
         flex: 1,
     },
     completedText: {
-        color: '#34C759',
+        color: theme.colors.success,
         textDecorationLine: 'line-through',
     },
     inProgressText: {
-        color: '#007AFF',
+        color: theme.colors.warning,
     },
     pendingText: {
-        color: '#666',
+        color: theme.colors.textSecondary,
     },
-});
+    iconCompleted: {
+        color: theme.colors.success,
+        marginTop: 1,
+    },
+    iconInProgress: {
+        color: theme.colors.warning,
+        marginTop: 1,
+    },
+    iconPending: {
+        color: theme.colors.textSecondary,
+        marginTop: 1,
+    },
+}));
