@@ -86,7 +86,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     todoText: {
         fontSize: 14,
-        color: theme.colors.typography,
+        color: theme.colors.text,
         flex: 1,
     },
     completedText: {
@@ -94,21 +94,21 @@ const styles = StyleSheet.create((theme) => ({
         textDecorationLine: 'line-through',
     },
     inProgressText: {
-        color: theme.colors.warning,
+        color: '#007AFF',
     },
     pendingText: {
-        color: theme.colors.textSecondary,
+        color: theme.colors.text,
     },
     iconCompleted: {
         color: theme.colors.success,
         marginTop: 1,
     },
     iconInProgress: {
-        color: theme.colors.warning,
+        color: '#007AFF',
         marginTop: 1,
     },
     iconPending: {
-        color: theme.colors.textSecondary,
+        color: theme.colors.text,
         marginTop: 1,
     },
 }));
