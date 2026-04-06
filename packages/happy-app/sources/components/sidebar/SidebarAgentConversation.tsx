@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { ToolCall, Message, ToolCallMessage, ModeSwitchMessage, UserTextMessage } from '@/sync/typesMessage';
 import { Metadata } from '@/sync/storageTypes';
-import { useRightSidebar, SidebarData } from '@/stores/rightSidebarStore';
+import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { ToolView } from '../tools/ToolView';
 import { MarkdownView } from '../markdown/MarkdownView';
 
@@ -27,9 +27,6 @@ const ChildToolBlock = React.memo<{
     const handlePress = React.useCallback(() => {
         push({ tool, messages: children, metadata, sessionId });
     }, [push, tool, children, metadata, sessionId]);
-    const handleContentPress = React.useCallback((data: SidebarData) => {
-        push(data);
-    }, [push]);
 
     return (
         <View style={styles.childTool}>
@@ -38,7 +35,6 @@ const ChildToolBlock = React.memo<{
                 metadata={metadata}
                 messages={children}
                 onPress={handlePress}
-                onContentPress={handleContentPress}
             />
         </View>
     );
@@ -99,9 +95,31 @@ const SectionHeader = React.memo<{ icon: keyof typeof Ionicons.glyphMap; title: 
     </View>
 ));
 
+/**
+ * Filter out non-last TodoWrite tool calls so only the latest snapshot is shown.
+ * All other messages pass through unchanged.
+ */
+function filterToLatestTodoWrite(messages: Message[]): Message[] {
+    let lastTodoIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].kind === 'tool-call' && (messages[i] as ToolCallMessage).tool?.name === 'TodoWrite') {
+            lastTodoIdx = i;
+            break;
+        }
+    }
+    if (lastTodoIdx === -1) return messages;
+    return messages.filter((msg, idx) => {
+        if (msg.kind === 'tool-call' && (msg as ToolCallMessage).tool?.name === 'TodoWrite' && idx !== lastTodoIdx) {
+            return false;
+        }
+        return true;
+    });
+}
+
 export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps>(({ tool, messages, metadata, sessionId }) => {
     const hasResult = tool.state === 'completed' && tool.result && typeof tool.result === 'string' && tool.result.length > 0;
     const promptText = typeof tool.input?.prompt === 'string' ? tool.input.prompt : null;
+    const visibleMessages = React.useMemo(() => filterToLatestTodoWrite(messages), [messages]);
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -111,9 +129,9 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
                     <MarkdownView markdown={promptText} />
                 </View>
             )}
-            {messages.length > 0 && (
+            {visibleMessages.length > 0 && (
                 <View style={styles.messagesBox}>
-                    {messages.map((child) => (
+                    {visibleMessages.map((child) => (
                         <ChildMessageBlock
                             key={child.id}
                             message={child}
