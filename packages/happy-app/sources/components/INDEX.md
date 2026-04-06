@@ -1,7 +1,7 @@
 # components
 
-*Last updated: 2026-04-06T11:50:38Z*
-**Total entries**: 158
+*Last updated: 2026-04-06T11:51:37Z*
+**Total entries**: 164
 **Convention**: kebab
 
 ## Tree
@@ -47,6 +47,11 @@ components/
 │   ├── `QRCode.web.tsx` - tsx file
 │   └── `qrMatrix.ts` - ts file
 ├── sidebar/
+│   ├── `SidebarAgentConversation.tsx` - tsx file
+│   ├── `SidebarBashView.tsx` - tsx file
+│   ├── `SidebarContentRenderer.tsx` - tsx file
+│   ├── `SidebarFileView.tsx` - tsx file
+│   └── `SidebarGenericView.tsx` - tsx file
 ├── tools/
 │   ├── views/
 │   │   ├── `_all.tsx` - tsx file
@@ -137,6 +142,7 @@ components/
 ├── `PlusPlus.tsx` - tsx file
 ├── `PlusPlus.web.tsx` - tsx file
 ├── `ProjectGitStatus.tsx` - tsx file
+├── `RightSidebar.tsx` - tsx file
 ├── `RoundButton.tsx` - tsx file
 ├── `SearchableListSelector.tsx` - tsx file
 ├── `SessionActionsNativeMenu.android.tsx` - tsx file
