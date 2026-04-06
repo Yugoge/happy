@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-06T08:01:03Z*
-**Total entries**: 107
+*Last updated: 2026-04-06T08:16:38Z*
+**Total entries**: 108
 **Convention**: kebab
 
 ## Tree
@@ -112,6 +112,7 @@ dev/
 ├── `qa-report-20260404-120000.json` - json config
 ├── `qa-report-20260405-130000.json` - json config
 ├── `qa-report-20260405-mcp-title.json` - json config
+├── `qa-report-20260406-agent-edit-detail.json` - json config
 ├── `qa-report-20260406-tool-detail.json` - json config
 └── `qa-site-isolation-verification.json` - json config
 ```
