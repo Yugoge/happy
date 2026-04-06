@@ -79,12 +79,30 @@ function SidebarHeader({ tool, onClose, hasHistory, onBack }: { tool: ToolCall; 
     );
 }
 
-function SidebarContent({ tool, messages, metadata, sessionId }: {
-    tool: ToolCall; messages: Message[]; metadata: Metadata | null; sessionId: string;
-}) {
+const HIDDEN_LAYER_STYLE = { position: 'absolute' as const, width: '100%' as const, height: '100%' as const, opacity: 0, pointerEvents: 'none' as const };
+const VISIBLE_LAYER_STYLE = { flex: 1 };
+
+/** Single sidebar stack layer -- visible or hidden to preserve scroll position */
+function SidebarLayer({ layer, isTop }: { layer: SidebarData; isTop: boolean }) {
+    return (
+        <View style={isTop ? VISIBLE_LAYER_STYLE : HIDDEN_LAYER_STYLE}>
+            <SidebarContentRenderer tool={layer.tool} messages={layer.messages} metadata={layer.metadata} sessionId={layer.sessionId} />
+        </View>
+    );
+}
+
+/**
+ * Renders all sidebar stack layers. Previous layers stay mounted (hidden) to preserve
+ * scroll position. Only the topmost layer is visible.
+ */
+function SidebarContentStack({ history, current }: { history: SidebarData[]; current: SidebarData }) {
+    const allLayers = React.useMemo(() => [...history, current], [history, current]);
+
     return (
         <View style={{ flex: 1 }}>
-            <SidebarContentRenderer tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />
+            {allLayers.map((layer, index) => (
+                <SidebarLayer key={`sidebar-layer-${index}`} layer={layer} isTop={index === allLayers.length - 1} />
+            ))}
         </View>
     );
 }

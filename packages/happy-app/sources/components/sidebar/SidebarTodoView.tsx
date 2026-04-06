@@ -42,6 +42,8 @@ export const SidebarTodoView = React.memo<SidebarTodoViewProps>(({ tool }) => {
                         style={[
                             styles.text,
                             todo.status === 'completed' && styles.completedText,
+                            todo.status === 'in_progress' && styles.inProgressText,
+                            todo.status === 'pending' && styles.pendingText,
                         ]}
                     >
                         {todo.content}
@@ -76,23 +78,29 @@ const styles = StyleSheet.create((theme) => ({
     text: {
         fontSize: 14,
         lineHeight: 20,
-        color: theme.colors.typography,
+        color: theme.colors.text,
         flex: 1,
     },
     completedText: {
         textDecorationLine: 'line-through',
-        color: theme.colors.textSecondary,
+        color: theme.colors.success,
+    },
+    inProgressText: {
+        color: '#007AFF',
+    },
+    pendingText: {
+        color: theme.colors.text,
     },
     iconCompleted: {
         color: theme.colors.success,
         marginTop: 1,
     },
     iconInProgress: {
-        color: theme.colors.warning,
+        color: '#007AFF',
         marginTop: 1,
     },
     iconPending: {
-        color: theme.colors.textSecondary,
+        color: theme.colors.text,
         marginTop: 1,
     },
 }));

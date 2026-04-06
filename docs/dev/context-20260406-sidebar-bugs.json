@@ -1,0 +1,152 @@
+{
+  "request_id": "dev-20260406-sidebar-bugs",
+  "timestamp": "2026-04-06T09:00:00Z",
+  "requirement": {
+    "original": "Fix 5 sidebar bugs: AskUserQuestion answer disappears on re-entry, Todo color rendering issues, sidebar scroll position resets on push/pop, subagent todo updates not reflected, disable interaction on rendered elements inside sidebar.",
+    "clarified": "Fix 5 bugs related to the sidebar feature: (1) persist AskUserQuestion selected answers across component remounts, (2) apply correct color scheme to todo items in both TodoView and SidebarTodoView, (3) preserve scroll position when pushing/popping sidebar navigation, (4) show only latest TodoWrite state in sidebar, (5) disable content-area press handlers on nested ToolViews in sidebar.",
+    "what": "Fix 5 sidebar-related bugs in the happy-app React Native application",
+    "why": "Sidebar tool views have broken state persistence, wrong colors, lost scroll position, stale data, and confusing interactions",
+    "where": [
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx",
+      "packages/happy-app/sources/components/tools/views/TodoView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarTodoView.tsx",
+      "packages/happy-app/sources/stores/rightSidebarStore.ts",
+      "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+    ],
+    "scope": {
+      "included": [
+        "AskUserQuestionView answer recovery on remount",
+        "TodoView and SidebarTodoView color scheme (completed=green, in_progress=blue, pending=dark gray)",
+        "Sidebar push/pop scroll position preservation",
+        "TodoWrite deduplication in sidebar agent conversation",
+        "Disable onContentPress on ToolView instances inside sidebar"
+      ],
+      "excluded": [
+        "Server-side changes to persist AskUserQuestion answers",
+        "CLI-side changes to write answers into tool.result",
+        "Sidebar architecture rewrite",
+        "Full-screen scroll virtualization",
+        "Production deployment"
+      ]
+    },
+    "success_criteria": [
+      "AskUserQuestion shows previously selected answer when re-entering conversation",
+      "Todo items render with correct colors: completed=green, in_progress=blue, pending=dark gray, no black",
+      "Scroll position preserved on sidebar pop after push",
+      "Only latest TodoWrite prominently shown in sidebar agent conversation",
+      "Content areas in sidebar ToolViews are not clickable (header remains clickable)"
+    ],
+    "constraints": [
+      "Must not touch production files",
+      "Must use existing theme color tokens (no new colors)",
+      "Must work on both desktop and mobile viewports"
+    ]
+  },
+  "root_cause_analysis": {
+    "bugs": [
+      {
+        "id": "bug-1-askuserquestion-answer-persistence",
+        "symptom": "Selected AskUserQuestion answer disappears when leaving and re-entering conversation",
+        "root_cause": "AskUserQuestionView.tsx:271-273 tries to recover answers from tool.result.answers or tool.permission.answers, but neither field is populated after component remount. The answers are sent via sessionAllow() RPC as reason text and answers record, but the app does not persist these on the tool object. Local React state (selections Map) is lost on unmount.",
+        "root_cause_commit": "N/A - design gap",
+        "why_introduced": "AskUserQuestion was implemented with local state only; answer persistence was not considered for re-mount scenario",
+        "why_problematic": "Users lose visual confirmation of their selection when navigating away and back",
+        "affected_files": [
+          "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx",
+          "packages/happy-app/sources/sync/ops.ts"
+        ],
+        "fix_direction": "Parse the reason text (format 'Header: Label\\nHeader2: Label2') from tool.permission.reason to recover answers. Or check if permission object retains the reason/answers fields after resolution."
+      },
+      {
+        "id": "bug-2-todo-colors",
+        "symptom": "Todo items have wrong colors: in_progress shows gray (warning=#8E8E93) instead of blue, pending text may be black, sidebar completed text is gray not green",
+        "root_cause": "Both TodoView.tsx and SidebarTodoView.tsx reference theme.colors.typography which DOES NOT EXIST in theme.ts (only theme.colors.text exists). This resolves to undefined, causing fallback to black/default. Additionally: (1) inProgressText uses theme.colors.warning (#8E8E93 = gray) not blue, (2) SidebarTodoView only applies completedText style (gray+strikethrough), missing inProgressText and pendingText conditional styles, (3) SidebarTodoView completedText uses textSecondary (gray) not success (green).",
+        "root_cause_commit": "N/A - original implementation used wrong theme keys",
+        "why_introduced": "theme.colors.typography was likely renamed to theme.colors.text at some point, or was never a valid key",
+        "why_problematic": "Colors don't match user expectation: completed should be green, in_progress should be blue, pending should be dark gray body text color",
+        "affected_files": [
+          "packages/happy-app/sources/components/tools/views/TodoView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarTodoView.tsx"
+        ],
+        "fix_direction": "Replace theme.colors.typography with theme.colors.text. Change inProgressText and iconInProgress from warning to radio.active (blue). In SidebarTodoView: add inProgressText and pendingText conditional style application, change completedText to use success color. Ensure icon colors match text colors."
+      },
+      {
+        "id": "bug-3-sidebar-scroll-reset",
+        "symptom": "Sidebar scroll position resets to top when popping back from a pushed sub-tool view",
+        "root_cause": "rightSidebarStore.ts SidebarData interface has no scrollY field. When push() is called (line 28-31), current data is saved to history but scroll position is not captured. SidebarAgentConversation.tsx uses a plain ScrollView with no scroll position tracking or restoration.",
+        "root_cause_commit": "N/A - feature not implemented",
+        "why_introduced": "Scroll preservation was not part of original sidebar push/pop design",
+        "why_problematic": "Users lose their place in long agent conversations when drilling into sub-tools",
+        "affected_files": [
+          "packages/happy-app/sources/stores/rightSidebarStore.ts",
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+        ],
+        "fix_direction": "Add scrollY to SidebarData. Track scroll position via onScroll handler on ScrollView. On push, save current scrollY to the history entry. On pop, restore scrollY via scrollTo() in useEffect."
+      },
+      {
+        "id": "bug-4-subagent-todo-updates",
+        "symptom": "Sidebar shows all intermediate TodoWrite snapshots instead of highlighting the latest state",
+        "root_cause": "Each tool-call message for TodoWrite is rendered independently in SidebarAgentConversation. This is technically correct (each call IS distinct), but the UX expectation is to see only the latest todo state prominently.",
+        "root_cause_commit": "N/A - design decision",
+        "why_introduced": "Sidebar renders all child messages linearly without special handling for superseded tool calls",
+        "why_problematic": "Users see outdated todo lists alongside the current one, causing confusion",
+        "affected_files": [
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+        ],
+        "fix_direction": "Before rendering messages, identify consecutive TodoWrite calls and only render the last one expanded. Earlier TodoWrite calls can be collapsed or hidden. Filter in ChildMessageBlock or in the messages array before mapping."
+      },
+      {
+        "id": "bug-5-disable-sidebar-content-interaction",
+        "symptom": "Tapping content areas (Edit diffs, Todo lists) inside sidebar triggers push navigation to a new sidebar level showing the same content",
+        "root_cause": "SidebarAgentConversation.tsx:30-31 ChildToolBlock passes onContentPress to ToolView. ToolView.tsx:99-109 wraps specialized content in TouchableOpacity when onContentPress is provided. This makes ALL content areas clickable, even for tools where drilling into content makes no sense.",
+        "root_cause_commit": "N/A - onContentPress was designed for main chat navigation, not sidebar",
+        "why_introduced": "ChildToolBlock copied the main chat pattern of passing onContentPress without considering that sidebar already provides push navigation via header",
+        "why_problematic": "Users accidentally trigger confusing navigation when tapping content in the sidebar",
+        "affected_files": [
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx"
+        ],
+        "fix_direction": "Remove onContentPress from ChildToolBlock in SidebarAgentConversation.tsx. Keep onPress for header navigation. Content areas will render without TouchableOpacity wrapper."
+      }
+    ]
+  },
+  "context": {
+    "codebase_state": "main branch with staged changes in sidebar-related files",
+    "recent_commits": "de9c3d38 Auto-commit 2026-04-06, sidebar routing and content work",
+    "file_contents": {
+      "theme_colors": {
+        "text": "#000000 (light) / #ffffff (dark)",
+        "textSecondary": "#8E8E93 (light) / #8E8E93/#CAC4D0 (dark)",
+        "warning": "#8E8E93 (both themes -- gray, NOT orange/yellow)",
+        "success": "#34C759 (light) / #32D74B (dark) -- green",
+        "radio.active": "#007AFF (light) / #0A84FF (dark) -- blue",
+        "typography": "DOES NOT EXIST in theme.ts"
+      }
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Fix each bug independently in order of priority. Bug 2 (colors) and Bug 5 (interaction) are simplest. Bug 1 (answer persistence) requires investigating how permission.reason is persisted. Bug 3 (scroll) requires adding state to the store. Bug 4 (todo dedup) requires message filtering logic.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx",
+      "packages/happy-app/sources/components/tools/views/TodoView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarTodoView.tsx",
+      "packages/happy-app/sources/stores/rightSidebarStore.ts",
+      "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+    ],
+    "validation_approach": "Deploy to happy-web-dev, use Playwright to navigate to dev.life-ai.app, verify each bug fix by rendering real content in both desktop and mobile viewports"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI bug fixes with clear root causes identified from code analysis"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
