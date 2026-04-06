@@ -1,0 +1,42 @@
+{
+  "request_id": "dev-20260406-tool-detail",
+  "timestamp": "2026-04-06T07:30:00.000Z",
+  "dev_report_path": "docs/dev/dev-report-20260406-tool-detail.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Refactored ToolFullView.tsx to always render generic sections (Description, Input, Output/Error) alongside specialized views",
+        "type": "code_edit",
+        "files_modified": ["packages/happy-app/sources/components/tools/ToolFullView.tsx"],
+        "changes": "Changed from either/or rendering (specialized XOR generic) to always showing Description + Input + Specialized + Output/Error. Extracted 6 helper components (ToolDescriptionSection, ToolInputSection, ToolOutputSection, ToolErrorSection, ToolEmptyOutputSection, ToolRawJsonSection) to comply with function line-count limits.",
+        "rationale": "Root cause was the ternary branch at line 30 that rendered ONLY SpecializedFullView when registered, completely skipping generic Description/Input/Output sections. Edit and Agent tools had specialized views, so users never saw their parameters or output."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx",
+          "packages/happy-app/sources/components/tools/views/EditViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/MultiEditViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/BashViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ]
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A - original design decision, not a regression",
+      "why_issue_occurred": "ToolFullView was designed with either/or logic: specialized views completely replaced generic sections. This made sense initially but became a UX gap as Edit and Agent tools only showed their specialized content without Description/Input/Output context.",
+      "how_fix_addresses_root": "Changed rendering from ternary (specialized XOR generic) to sequential (Description + Input + Specialized + Output/Error), so all tools show structured metadata regardless of whether they have a specialized view."
+    },
+    "qa_ready": true,
+    "qa_notes": "Verify via Playwright on dev.life-ai.app: 1) Open an Edit tool detail page - should now show Description, Input Parameters, the diff view, and Output sections. 2) Open an Agent tool detail page - should show Description, Input Parameters, sub-tool list, and Output. 3) Open a Read tool (no specialized view) - should show Description, Input Parameters, Output as before. 4) Verify 'No Output' empty state only shows for non-specialized tools. 5) Check both desktop and mobile viewports. Pre-existing typecheck errors (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx) are unrelated.",
+    "permissions_to_add": [],
+    "tdd_skip_reason": "Pure UI layout change - not programmatically reproducible without browser rendering. QA must verify via Playwright."
+  },
+  "blocking_issues": [],
+  "recommendations": []
+}

@@ -1,0 +1,94 @@
+{
+  "request_id": "dev-20260406-tool-detail",
+  "timestamp": "2026-04-06T00:00:00Z",
+  "requirement": {
+    "original": "Edit and Agent tool detail pages should show the same structured layout as Read: Description + Input Parameters + Output",
+    "clarified": "When clicking into an Edit or Agent tool call to view its detail page, the view should include Description, Input Parameters (JSON code block), and Output sections matching the Read tool's generic fallback layout, in addition to their existing specialized content (diff view for Edit, sub-tool list for Agent).",
+    "what": "Add Description + Input Parameters + Output structured sections to Edit and Agent tool detail views",
+    "why": "Consistency -- Read tool detail view shows useful structured info but Edit and Agent skip it, showing only specialized content without the standard context sections",
+    "where": ["EditViewFull.tsx", "TaskView.tsx", "ToolFullView.tsx"],
+    "scope": {
+      "included": [
+        "EditViewFull component - add structured sections around diff",
+        "TaskView component - add structured sections around sub-tool list (full view only)",
+        "Optionally extract shared ToolStructuredSections component"
+      ],
+      "excluded": [
+        "Inline/compact tool views (EditView.tsx, ToolView.tsx)",
+        "Read tool rendering (already correct)",
+        "BashViewFull (has appropriate specialized UI)",
+        "Other full view components (MultiEditViewFull, CodexBashView, etc.)"
+      ]
+    },
+    "success_criteria": [
+      "Edit detail page shows Description + Input Parameters + Diff + Output sections",
+      "Agent detail page shows Description + Input Parameters + Sub-tool list + Output sections",
+      "Visual style of new sections matches Read tool's generic fallback exactly",
+      "Sections conditionally render (no empty Description section when description is null)"
+    ],
+    "constraints": [
+      "Must use existing translation keys from tools.fullView.*",
+      "Must use existing toolFullViewStyles for consistency",
+      "TaskView is shared between inline and full view -- structured sections must only appear in full view context"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Edit detail view shows only diff; Agent detail view shows only sub-tool list. Both missing Description, Input Parameters, Output sections.",
+    "root_cause": "EditViewFull and TaskView are registered in toolFullViewRegistry (_all.tsx:51-58), which causes ToolFullView.tsx to render them INSTEAD of the generic fallback. The generic fallback (lines 33-93) contains the Description/Input/Output sections. Specialized components never replicate these sections.",
+    "root_cause_commit": "N/A - architectural design choice, not a regression",
+    "why_introduced": "Specialized views were created to show tool-specific content (diff for Edit, sub-tools for Agent) but they completely replaced rather than augmented the generic layout",
+    "why_problematic": "Users lose useful context (description, raw input params, output) when viewing Edit and Agent details compared to Read or other tools that use the generic fallback",
+    "timeline": "Since initial implementation of specialized full views",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/views/EditViewFull.tsx",
+      "packages/happy-app/sources/components/tools/views/TaskView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx"
+    ]
+  },
+  "context": {
+    "codebase_state": "Main branch, no pending changes to tool view files",
+    "recent_commits": "N/A - not a regression",
+    "file_contents": {
+      "ToolFullView.tsx": "Generic fallback renders: Description (tool.description with info-circle icon) + Input Parameters (tool.input as JSON via CodeView with log-in icon) + Output (tool.result via CodeView with log-out icon) + Error (tool.result with close-circle icon) + No Output (checkmark-circle icon). Uses toolFullViewStyles. Exports styles for reuse.",
+      "EditViewFull.tsx": "Only renders ToolDiffView with old_string/new_string parsed from knownTools.Edit.input schema. Uses toolFullViewStyles.sectionFullWidth. No description, input params, or output sections.",
+      "TaskView.tsx": "Renders TaskStatusRow (compact list of sub-tool names + status icons + expand chevron) + expanded children (full message blocks). Used for both inline and full view. No description, input params, or output sections.",
+      "_all.tsx": "toolFullViewRegistry maps: Bash->BashViewFull, CodexBash->CodexBashView, Edit->EditViewFull, MultiEdit->MultiEditViewFull, Task->TaskView, Agent->TaskView. toolViewRegistry maps the inline views."
+    },
+    "dependencies": {
+      "CodeView": "components/CodeView - renders code blocks, used in generic fallback for JSON input/output",
+      "ToolDiffView": "components/tools/ToolDiffView - renders red/green diff, used by EditViewFull",
+      "toolFullViewStyles": "Exported from ToolFullView.tsx - section, sectionHeader, sectionTitle, description, etc.",
+      "Ionicons": "@expo/vector-icons - used for section header icons (information-circle, log-in, log-out, etc.)",
+      "t()": "@/text translation function - keys: tools.fullView.description, tools.fullView.inputParams, tools.fullView.output, tools.fullView.error, tools.fullView.completed, tools.fullView.noOutput"
+    },
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Add the standard Description/Input/Output sections to EditViewFull and create a TaskViewFull wrapper for Agent/Task detail view. The recommended approach is to extract a reusable ToolStructuredSections component from ToolFullView's generic fallback, then compose it with the specialized content in EditViewFull and a new TaskViewFull.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/views/EditViewFull.tsx",
+      "packages/happy-app/sources/components/tools/views/TaskView.tsx",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx"
+    ],
+    "implementation_options": {
+      "option_A_inline": "Directly add Description/Input/Output JSX to EditViewFull and TaskView (duplicates code but simple)",
+      "option_B_extract": "Extract ToolStructuredSections from ToolFullView generic fallback, use in EditViewFull and a new TaskViewFull wrapper (cleaner, DRY)",
+      "option_C_wrapper": "Change toolFullViewRegistry to NOT register Edit/Agent, and modify ToolFullView to render BOTH generic sections AND specialized view (SpecializedFullView) instead of OR. This is the cleanest but changes the ToolFullView contract."
+    },
+    "recommended": "option_B_extract - Extract shared sections component, compose with specialized content. For TaskView specifically, either add an isFullView prop or create a separate TaskViewFull that wraps TaskView with structured sections and register that in toolFullViewRegistry instead.",
+    "validation_approach": "Navigate to Edit and Agent tool detail pages in dev web app (dev.life-ai.app), verify Description/Input/Output sections appear with correct styling matching Read tool detail view. Verify on both desktop and mobile viewports."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI layout change within existing codebase patterns - the reference implementation (generic fallback) already exists in the codebase"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
