@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-06T17:29:07Z*
-**Total entries**: 124
+*Last updated: 2026-04-06T19:24:17Z*
+**Total entries**: 126
 **Convention**: kebab
 
 ## Tree
@@ -41,6 +41,7 @@ dev/
 ├── `ba-spec-20260405-130000.md` - BA Specification: Fix File/Image Upload in happy-dev
 ├── `ba-spec-20260405-mcp-title.md` - BA Specification: MCP change_title Survives Daemon/Session Restarts
 ├── `ba-spec-20260406-agent-edit-detail.md` - BA Specification: Agent Inline/Full View Split + Edit Detail Cleanup
+├── `ba-spec-20260406-data-gaps.md` - BA Specification: Sidebar Data Display Gaps
 ├── `ba-spec-20260406-sidebar-bugs.md` - BA Specification: 5 Sidebar Bugs
 ├── `ba-spec-20260406-sidebar-content.md` - BA Specification: Right Sidebar Content Renderers
 ├── `ba-spec-20260406-sidebar-layout.md` - BA Specification: Right Sidebar Infrastructure (3-Panel Layout)
@@ -67,6 +68,7 @@ dev/
 ├── `context-20260405-130000.json` - json config
 ├── `context-20260405-mcp-title.json` - json config
 ├── `context-20260406-agent-edit-detail.json` - json config
+├── `context-20260406-data-gaps.json` - json config
 ├── `context-20260406-sidebar-bugs.json` - json config
 ├── `context-20260406-sidebar-content.json` - json config
 ├── `context-20260406-sidebar-layout.json` - json config

@@ -11,6 +11,7 @@ import { ToolError } from './ToolError';
 import { knownTools } from '@/components/tools/knownTools';
 import { Metadata } from '@/sync/storageTypes';
 import { useRouter } from 'expo-router';
+import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { PermissionFooter } from './PermissionFooter';
 import { parseToolUseError } from '@/utils/toolErrorParser';
 import { formatMCPTitle } from './views/MCPToolView';
@@ -32,14 +33,16 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
     const { tool, onPress, onContentPress, sessionId, messageId } = props;
     const router = useRouter();
     const { theme } = useUnistyles();
+    const closeSidebar = useRightSidebar((s) => s.close);
 
     const handlePress = React.useCallback(() => {
+        closeSidebar();
         if (onPress) {
             onPress();
         } else if (sessionId && messageId) {
             router.push(`/session/${sessionId}/message/${messageId}`);
         }
-    }, [onPress, sessionId, messageId, router]);
+    }, [onPress, sessionId, messageId, router, closeSidebar]);
 
     const hasSpecializedView = !!getToolViewComponent(tool.name);
 
