@@ -1,0 +1,160 @@
+{
+  "request_id": "dev-20260406-sidebar-content",
+  "timestamp": "2026-04-06T08:00:00.000Z",
+  "requirement": {
+    "original": "Create right sidebar content renderers: Agent/Task conversation, File modification (Edit/Write/MultiEdit), Terminal/Bash output, and Generic tool content",
+    "clarified": "Build four sidebar content renderer components that display tool-specific content when a user clicks a tool call in the main conversation. Reuse existing rendering components (TaskViewFull, EditViewFull, BashViewFull, ToolFullView) adapted for sidebar display.",
+    "what": "Four sidebar content renderers + a dispatcher component",
+    "why": "The right sidebar needs to show detailed tool content without full-screen navigation, providing a split-pane experience on desktop/tablet",
+    "where": ["packages/happy-app/sources/components/sidebar/"],
+    "scope": {
+      "included": [
+        "SidebarContentRenderer dispatcher component",
+        "SidebarAgentConversation renderer (Agent/Task tools)",
+        "SidebarFileView renderer (Edit/Write/MultiEdit/CodexPatch tools)",
+        "SidebarBashView renderer (Bash/CodexBash tools)",
+        "SidebarGenericView renderer (all other tools)"
+      ],
+      "excluded": [
+        "Sidebar shell/container (GROUP A responsibility)",
+        "Sidebar open/close logic (GROUP B responsibility)",
+        "Mobile layout for sidebar",
+        "Inline editing or command execution from sidebar",
+        "Full file content fetching (only changed portions available)"
+      ]
+    },
+    "success_criteria": [
+      "Agent/Task tool click renders full sub-conversation with MarkdownView and nested ToolView",
+      "Edit tool click renders unified diff with line numbers and +/- symbols",
+      "Write tool click renders all-green additions diff",
+      "MultiEdit tool click renders sequential edit hunks with edit numbers",
+      "Bash tool click renders command + stdout/stderr output",
+      "Unknown tools render generic input/output view",
+      "Dispatcher correctly routes tool names to renderers",
+      "All renderers handle running/completed/error tool states"
+    ],
+    "constraints": [
+      "Must reuse existing rendering components, not duplicate logic",
+      "Must use react-native-unistyles StyleSheet.create for styling",
+      "Must use t() for all user-visible strings",
+      "Must follow existing patterns: React.memo, 4-space indent",
+      "Must handle deeply nested Agent sub-conversations"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "N/A - new feature",
+    "root_cause": "N/A - new feature",
+    "root_cause_commit": "N/A",
+    "why_introduced": "N/A",
+    "why_problematic": "N/A",
+    "timeline": "N/A",
+    "affected_files": []
+  },
+  "context": {
+    "codebase_state": "Main branch, existing tool view components well-established",
+    "recent_commits": "de9c3d38 Auto-commit: 2026-04-06 08:17:48",
+    "file_contents": {
+      "rendering_pipeline": {
+        "summary": "MessageView dispatches by message.kind. ToolCallMessage -> ToolView (inline) with click -> router.push to /session/{id}/message/{messageId} -> ToolFullView (full). The sidebar replaces the router.push navigation with inline sidebar rendering.",
+        "message_view": "sources/components/MessageView.tsx - dispatches user-text, agent-text, tool-call, agent-event",
+        "tool_view": "sources/components/tools/ToolView.tsx - inline tool card with header + content, uses getToolViewComponent() registry",
+        "tool_full_view": "sources/components/tools/ToolFullView.tsx - expanded view with description, input, specialized view, output, error sections in ScrollView",
+        "chat_list": "sources/components/ChatList.tsx - FlatList rendering MessageView for each message"
+      },
+      "existing_renderers": {
+        "task_view_full": {
+          "path": "sources/components/tools/views/TaskViewFull.tsx",
+          "key_pattern": "ChildMessageList renders Message[] -> ChildMessageBlock dispatches agent-text to MarkdownView, tool-call to ToolView. Toggle expand/collapse. Uses useFilteredTools from TaskView.",
+          "reuse_strategy": "Extract ChildMessageList/ChildMessageBlock logic, remove toggle (always expanded in sidebar)"
+        },
+        "edit_view_full": {
+          "path": "sources/components/tools/views/EditViewFull.tsx",
+          "key_pattern": "Parses knownTools.Edit.input (old_string, new_string), passes to ToolDiffView with showLineNumbers=true, showPlusMinusSymbols=true",
+          "reuse_strategy": "Reuse ToolDiffView directly with same parsing logic"
+        },
+        "write_view": {
+          "path": "sources/components/tools/views/WriteView.tsx",
+          "key_pattern": "Parses knownTools.Write.input (content), renders ToolDiffView with oldText='', newText=content",
+          "reuse_strategy": "Same pattern as Edit but with empty old_string"
+        },
+        "multi_edit_view_full": {
+          "path": "sources/components/tools/views/MultiEditViewFull.tsx",
+          "key_pattern": "Parses knownTools.MultiEdit.input (edits array), renders DiffView for each edit with edit number headers and separators",
+          "reuse_strategy": "Reuse entire component or extract edit rendering logic"
+        },
+        "bash_view_full": {
+          "path": "sources/components/tools/views/BashViewFull.tsx",
+          "key_pattern": "Parses knownTools.Bash.result (stdout, stderr), renders CommandView in ScrollView with horizontal scroll",
+          "reuse_strategy": "Reuse CommandView with same parsing logic"
+        },
+        "tool_diff_view": {
+          "path": "sources/components/tools/ToolDiffView.tsx",
+          "key_pattern": "Wraps DiffView with optional horizontal ScrollView based on wrapLines setting",
+          "reuse_strategy": "Use directly for Edit/Write sidebar content"
+        },
+        "diff_view": {
+          "path": "sources/components/diff/DiffView.tsx",
+          "key_pattern": "Calculates unified diff with inline highlighting, renders hunks with line numbers, +/- symbols, leading space dots",
+          "reuse_strategy": "Use via ToolDiffView wrapper"
+        }
+      },
+      "tool_registry": {
+        "path": "sources/components/tools/views/_all.tsx",
+        "inline_views": "toolViewRegistry: Edit, Bash, CodexBash, CodexPatch, CodexDiff, Write, TodoWrite, ExitPlanMode, MultiEdit, Task, Agent, AskUserQuestion, edit, execute",
+        "full_views": "toolFullViewRegistry: Bash, CodexBash, MultiEdit, Task, Agent"
+      },
+      "tool_name_mapping": {
+        "agent_renderers": ["Task", "Agent"],
+        "file_renderers": ["Edit", "Write", "MultiEdit", "CodexPatch", "GeminiPatch", "edit"],
+        "bash_renderers": ["Bash", "CodexBash", "GeminiBash", "execute", "shell"],
+        "generic_renderers": "everything else"
+      },
+      "types": {
+        "tool_call": "{ name, state, input, result, createdAt, startedAt, completedAt, description, permission }",
+        "tool_view_props": "{ tool: ToolCall, metadata: Metadata | null, messages: Message[], sessionId?: string }",
+        "message": "UserTextMessage | AgentTextMessage | ToolCallMessage | ModeSwitchMessage",
+        "tool_call_message": "{ kind: 'tool-call', id, localId, createdAt, tool: ToolCall, children: Message[] }"
+      }
+    },
+    "dependencies": {
+      "ToolDiffView": "sources/components/tools/ToolDiffView.tsx",
+      "DiffView": "sources/components/diff/DiffView.tsx",
+      "CommandView": "sources/components/CommandView.tsx",
+      "MarkdownView": "sources/components/markdown/MarkdownView.tsx",
+      "ToolView": "sources/components/tools/ToolView.tsx",
+      "ToolFullView": "sources/components/tools/ToolFullView.tsx",
+      "knownTools": "sources/components/tools/knownTools.tsx",
+      "resolvePath": "sources/utils/pathUtils.ts",
+      "trimIdent": "sources/utils/trimIdent.ts"
+    },
+    "environment": {
+      "framework": "React Native (Expo SDK 54)",
+      "styling": "react-native-unistyles",
+      "routing": "expo-router v6",
+      "i18n": "t() from @/text"
+    }
+  },
+  "development_approach": {
+    "strategy": "Create new sidebar renderer components that compose existing rendering primitives (ToolDiffView, CommandView, MarkdownView, ToolView). Each renderer follows the same pattern as the existing FullView components but adapted for sidebar context (no navigation, always expanded, consistent props interface).",
+    "files_to_create": [
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx"
+    ],
+    "files_to_modify": [],
+    "validation_approach": "Build dev web image, navigate to a session with Agent/Edit/Bash tools, click each tool type, verify sidebar renders correct content. Test on desktop viewport."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward component composition reusing existing well-established rendering patterns in the codebase"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": false
+  }
+}
