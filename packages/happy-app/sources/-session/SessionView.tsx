@@ -281,7 +281,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
                 <SessionMainContent session={session} sessionId={sessionId} micBtn={micBtn} bottom={safeArea.bottom} />
                 <LandscapeBackButton />
             </View>
-            {isDesktop && <RightSidebar />}
+            <RightSidebar />
         </View>
     );
 }
