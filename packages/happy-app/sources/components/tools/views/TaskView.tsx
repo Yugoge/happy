@@ -1,16 +1,14 @@
 import * as React from 'react';
 import { ToolViewProps } from './_all';
-import { Text, View, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
+import { Text, View, ActivityIndicator, Platform } from 'react-native';
 import { knownTools } from '../../tools/knownTools';
-import { Ionicons } from '@expo/vector-icons';
 import { Message, ToolCall } from '@/sync/typesMessage';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { MarkdownView } from '../../markdown/MarkdownView';
-import { ToolView } from '../ToolView';
+import { Ionicons } from '@expo/vector-icons';
 import { Metadata } from '@/sync/storageTypes';
 import { t } from '@/text';
 
-interface FilteredTool {
+export interface FilteredTool {
     tool: ToolCall;
     title: string;
     state: 'running' | 'completed' | 'error';
@@ -33,9 +31,6 @@ function extractToolTitle(m: Message, metadata: Metadata | null): string {
 }
 
 export const TaskView = React.memo<ToolViewProps>(({ tool, metadata, messages, sessionId }) => {
-    const [expanded, setExpanded] = React.useState(false);
-    const toggle = React.useCallback(() => setExpanded(v => !v), []);
-
     const filtered = useFilteredTools(messages, metadata);
 
     if (filtered.length === 0 && messages.length === 0) {
@@ -44,38 +39,19 @@ export const TaskView = React.memo<ToolViewProps>(({ tool, metadata, messages, s
 
     const visibleTools = filtered.slice(filtered.length - 3);
     const remainingCount = filtered.length - 3;
-    const hasChildren = messages.length > 0;
 
     return (
         <View style={taskStyles.container}>
-            {/* Compact status row - tool status icons + expand chevron, no duplicate header */}
             <TaskStatusRow
                 visibleTools={visibleTools}
                 remainingCount={remainingCount}
-                expanded={expanded}
-                hasChildren={hasChildren}
-                onToggle={toggle}
             />
-
-            {/* Expanded children - full message rendering */}
-            {expanded && hasChildren && (
-                <View style={taskStyles.childrenContainer}>
-                    {messages.map((child) => (
-                        <ChildMessageBlock
-                            key={child.id}
-                            message={child}
-                            metadata={metadata}
-                            sessionId={sessionId}
-                        />
-                    ))}
-                </View>
-            )}
         </View>
     );
 });
 
 // Extracts tool-call messages for the status row
-function useFilteredTools(messages: Message[], metadata: Metadata | null): FilteredTool[] {
+export function useFilteredTools(messages: Message[], metadata: Metadata | null): FilteredTool[] {
     return React.useMemo(() => {
         const result: FilteredTool[] = [];
         for (const m of messages) {
@@ -88,65 +64,39 @@ function useFilteredTools(messages: Message[], metadata: Metadata | null): Filte
     }, [messages, metadata]);
 }
 
-// Compact status row: shows tool names + status icons + expand chevron.
+// Compact status row: shows tool names + status icons.
 // Intentionally NOT styled as a header — the outer ToolView header is the single header.
-const TaskStatusRow = React.memo<{
+export const TaskStatusRow = React.memo<{
     visibleTools: FilteredTool[];
     remainingCount: number;
-    expanded: boolean;
-    hasChildren: boolean;
-    onToggle: () => void;
-}>(({ visibleTools, remainingCount, expanded, hasChildren, onToggle }) => {
-    const { theme } = useUnistyles();
-
-    const content = (
-        <View style={taskStyles.statusRowContent}>
-            <View style={taskStyles.toolsList}>
-                {visibleTools.map((item, index) => (
-                    <View key={`${item.tool.name}-${index}`} style={taskStyles.toolItem}>
-                        <Text style={taskStyles.toolTitle}>{item.title}</Text>
-                        <View style={taskStyles.statusContainer}>
-                            <ToolStatusIcon state={item.state} />
-                        </View>
-                    </View>
-                ))}
-                {remainingCount > 0 && (
-                    <View style={taskStyles.moreToolsItem}>
-                        <Text style={taskStyles.moreToolsText}>
-                            {t('tools.taskView.moreTools', { count: remainingCount })}
-                        </Text>
-                    </View>
-                )}
-            </View>
-            {hasChildren && (
-                <View style={taskStyles.chevronContainer}>
-                    <Ionicons
-                        name={expanded ? 'chevron-up' : 'chevron-down'}
-                        size={16}
-                        color={theme.colors.textSecondary}
-                    />
-                </View>
-            )}
-        </View>
-    );
-
-    if (!hasChildren) {
-        return <View style={taskStyles.statusRowWrapper}>{content}</View>;
-    }
-
+}>(({ visibleTools, remainingCount }) => {
     return (
-        <TouchableOpacity
-            style={taskStyles.statusRowWrapper}
-            onPress={onToggle}
-            activeOpacity={0.7}
-        >
-            {content}
-        </TouchableOpacity>
+        <View style={taskStyles.statusRowWrapper}>
+            <View style={taskStyles.statusRowContent}>
+                <View style={taskStyles.toolsList}>
+                    {visibleTools.map((item, index) => (
+                        <View key={`${item.tool.name}-${index}`} style={taskStyles.toolItem}>
+                            <Text style={taskStyles.toolTitle}>{item.title}</Text>
+                            <View style={taskStyles.statusContainer}>
+                                <ToolStatusIcon state={item.state} />
+                            </View>
+                        </View>
+                    ))}
+                    {remainingCount > 0 && (
+                        <View style={taskStyles.moreToolsItem}>
+                            <Text style={taskStyles.moreToolsText}>
+                                {t('tools.taskView.moreTools', { count: remainingCount })}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+            </View>
+        </View>
     );
 });
 
 // Status icon for a single tool in the status row
-function ToolStatusIcon({ state }: { state: 'running' | 'completed' | 'error' }) {
+export function ToolStatusIcon({ state }: { state: 'running' | 'completed' | 'error' }) {
     const { theme } = useUnistyles();
     switch (state) {
         case 'running':
@@ -157,38 +107,6 @@ function ToolStatusIcon({ state }: { state: 'running' | 'completed' | 'error' })
             return <Ionicons name="close-circle" size={16} color={theme.colors.textDestructive} />;
     }
 }
-
-// Renders a single child message inside the expanded section
-const ChildMessageBlock = React.memo<{
-    message: Message;
-    metadata: Metadata | null;
-    sessionId?: string;
-}>(({ message, metadata, sessionId }) => {
-    switch (message.kind) {
-        case 'agent-text':
-            if (!message.text) return null;
-            return (
-                <View style={taskStyles.childText}>
-                    <MarkdownView markdown={message.text} />
-                </View>
-            );
-        case 'tool-call':
-            if (!message.tool) return null;
-            return (
-                <View style={taskStyles.childTool}>
-                    <ToolView
-                        tool={message.tool}
-                        metadata={metadata}
-                        messages={message.children}
-                        sessionId={sessionId}
-                        messageId={message.id}
-                    />
-                </View>
-            );
-        default:
-            return null;
-    }
-});
 
 const taskStyles = StyleSheet.create((theme) => ({
     container: {
@@ -231,23 +149,5 @@ const taskStyles = StyleSheet.create((theme) => ({
         color: theme.colors.textSecondary,
         fontStyle: 'italic',
         opacity: 0.7,
-    },
-    chevronContainer: {
-        paddingTop: 6,
-        paddingLeft: 8,
-        paddingRight: 4,
-    },
-    childrenContainer: {
-        marginTop: 4,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.divider,
-    },
-    childText: {
-        paddingHorizontal: 4,
-        marginBottom: 8,
-    },
-    childTool: {
-        marginBottom: 4,
     },
 }));
