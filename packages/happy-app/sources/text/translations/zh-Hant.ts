@@ -451,6 +451,8 @@ export const zhHant: TranslationStructure = {
 
     sidebar: {
         sessionsTitle: 'Happy',
+        close: '關閉',
+        toolDetail: '工具詳情',
     },
 
     toolView: {

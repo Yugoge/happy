@@ -449,6 +449,8 @@ export const en = {
 
     sidebar: {
         sessionsTitle: 'Happy',
+        close: 'Close',
+        toolDetail: 'Tool Detail',
     },
 
     toolView: {
