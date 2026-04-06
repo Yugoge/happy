@@ -57,11 +57,11 @@ export const SidebarTodoView = React.memo<SidebarTodoViewProps>(({ tool }) => {
 const TodoIcon = React.memo<{ status: string }>(({ status }) => {
     switch (status) {
         case 'completed':
-            return <Ionicons name="checkmark-circle" size={18} style={styles.iconCompleted} />;
+            return <Ionicons name="checkmark-circle" size={18} color={styles.iconCompleted.color} style={styles.iconMargin} />;
         case 'in_progress':
-            return <Ionicons name="time-outline" size={18} style={styles.iconInProgress} />;
+            return <Ionicons name="time-outline" size={18} color={styles.iconInProgress.color} style={styles.iconMargin} />;
         default:
-            return <Ionicons name="ellipse-outline" size={18} style={styles.iconPending} />;
+            return <Ionicons name="ellipse-outline" size={18} color={styles.iconPending.color} style={styles.iconMargin} />;
     }
 });
 
@@ -93,14 +93,14 @@ const styles = StyleSheet.create((theme) => ({
     },
     iconCompleted: {
         color: theme.colors.success,
-        marginTop: 1,
     },
     iconInProgress: {
         color: '#007AFF',
-        marginTop: 1,
     },
     iconPending: {
         color: theme.colors.text,
+    },
+    iconMargin: {
         marginTop: 1,
     },
 }));
