@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { View } from 'react-native';
 import { ToolCall } from '@/sync/typesMessage';
 import { ToolSectionView } from '../../tools/ToolSectionView';
 import { CommandView } from '@/components/CommandView';
@@ -46,13 +47,15 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
     return (
         <>
             <ToolSectionView>
-                <CommandView
-                    command={input.command}
-                    stdout={previewStdout}
-                    stderr={previewStderr}
-                    error={error}
-                    hideEmptyOutput
-                />
+                <View style={{ maxHeight: 80, overflow: 'hidden' }}>
+                    <CommandView
+                        command={input.command}
+                        stdout={previewStdout}
+                        stderr={previewStderr}
+                        error={error}
+                        hideEmptyOutput
+                    />
+                </View>
             </ToolSectionView>
         </>
     );

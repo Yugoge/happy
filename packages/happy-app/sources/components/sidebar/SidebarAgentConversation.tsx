@@ -51,12 +51,36 @@ const ChildEventBlock = React.memo<{ message: ModeSwitchMessage }>(({ message })
     );
 });
 
-// Renders a user-text message with distinct background
+// Renders a user-text message with distinct background and person icon
 const ChildUserTextBlock = React.memo<{ message: UserTextMessage }>(({ message }) => {
     if (!message.text) return null;
     return (
         <View style={styles.childUserText}>
-            <MarkdownView markdown={message.text} />
+            <View style={styles.iconRow}>
+                <View style={styles.messageIcon}>
+                    <Ionicons name="person-outline" size={16} color={styles.eventText.color as string} />
+                </View>
+                <View style={styles.iconRowContent}>
+                    <MarkdownView markdown={message.text} />
+                </View>
+            </View>
+        </View>
+    );
+});
+
+// Renders an agent thinking block with brain icon and italic styling
+const ChildThinkingBlock = React.memo<{ message: Message }>(({ message }) => {
+    if (!message.text) return null;
+    return (
+        <View style={styles.childThinking}>
+            <View style={styles.iconRow}>
+                <View style={styles.messageIcon}>
+                    <Ionicons name="bulb-outline" size={16} color={styles.thinkingText.color as string} />
+                </View>
+                <View style={styles.iconRowContent}>
+                    <Text style={styles.thinkingText}>{message.text}</Text>
+                </View>
+            </View>
         </View>
     );
 });
@@ -70,9 +94,20 @@ const ChildMessageBlock = React.memo<{
     switch (message.kind) {
         case 'agent-text':
             if (!message.text) return null;
+            // Show thinking messages with special styling
+            if (message.isThinking) {
+                return <ChildThinkingBlock message={message} />;
+            }
             return (
                 <View style={styles.childText}>
-                    <MarkdownView markdown={message.text} />
+                    <View style={styles.iconRow}>
+                        <View style={styles.messageIcon}>
+                            <Ionicons name="sparkles" size={16} color={styles.eventText.color as string} />
+                        </View>
+                        <View style={styles.iconRowContent}>
+                            <MarkdownView markdown={message.text} />
+                        </View>
+                    </View>
                 </View>
             );
         case 'tool-call':
@@ -205,6 +240,31 @@ const styles = StyleSheet.create((theme) => ({
         paddingVertical: 4,
         backgroundColor: theme.colors.surfaceHighest,
         borderRadius: 8,
+    },
+    childThinking: {
+        paddingHorizontal: 4,
+        paddingVertical: 4,
+        opacity: 0.7,
+    },
+    thinkingText: {
+        fontSize: 13,
+        fontStyle: 'italic',
+        color: theme.colors.textSecondary,
+    },
+    iconRow: {
+        flexDirection: 'row' as const,
+        alignItems: 'flex-start' as const,
+        gap: 8,
+    },
+    messageIcon: {
+        width: 20,
+        height: 20,
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        marginTop: 2,
+    },
+    iconRowContent: {
+        flex: 1,
     },
     resultBox: {
         backgroundColor: theme.colors.surface,
