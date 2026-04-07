@@ -49,15 +49,21 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
     const previewStdout = parsed ? truncateLines(parsed.stdout, MAX_PREVIEW_LINES) : truncateLines(unparsed, MAX_PREVIEW_LINES);
     const previewStderr = parsed ? truncateLines(parsed.stderr, MAX_PREVIEW_LINES) : null;
 
-    // Count total lines across all outputs for truncation indicator
-    const totalLines = (parsed ? countLines(parsed.stdout) + countLines(parsed.stderr) : countLines(unparsed));
-    const extraLines = Math.max(0, totalLines - MAX_PREVIEW_LINES);
+    // Truncate command itself (heredoc/multiline commands can be very long)
+    const cmdLines = countLines(input.command);
+    const previewCommand = truncateLines(input.command, MAX_PREVIEW_LINES) || input.command;
+
+    // Count total lines across command + all outputs for truncation indicator
+    const outputLines = (parsed ? countLines(parsed.stdout) + countLines(parsed.stderr) : countLines(unparsed));
+    const totalLines = cmdLines + outputLines;
+    const shownLines = Math.min(cmdLines, MAX_PREVIEW_LINES) + Math.min(outputLines, MAX_PREVIEW_LINES);
+    const extraLines = Math.max(0, totalLines - shownLines);
 
     return (
         <View style={styles.container}>
             <ScrollView horizontal showsHorizontalScrollIndicator>
                 <CommandView
-                    command={input.command}
+                    command={previewCommand}
                     stdout={previewStdout}
                     stderr={previewStderr}
                     error={error}
