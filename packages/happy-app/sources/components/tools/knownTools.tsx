@@ -90,12 +90,7 @@ export const knownTools = {
             }
             return t('tools.names.terminal');
         },
-        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            if (typeof opts.tool.input.command === 'string') {
-                return opts.tool.input.command;
-            }
-            return null;
-        }
+        extractSubtitle: () => null
     },
     'Glob': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
