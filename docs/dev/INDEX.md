@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-07T08:14:05Z*
-**Total entries**: 134
+*Last updated: 2026-04-07T08:18:43Z*
+**Total entries**: 135
 **Convention**: kebab
 
 ## Tree
@@ -104,6 +104,7 @@ dev/
 ├── `dev-report-20260406-sidebar-layout.json` - json config
 ├── `dev-report-20260406-sidebar-polish.json` - json config
 ├── `dev-report-20260406-tool-detail.json` - json config
+├── `dev-report-20260407-sidebar-detail-coexist.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config

@@ -82,7 +82,8 @@ function useSessionViewInnerState(sessionId: string) {
     const [anchor, setAnchor] = React.useState<SessionActionsAnchor | null>(null);
     const headerProps = useHeaderProps(session, isDataReady, sessionId);
     const closeSidebar = useRightSidebar((s) => s.close);
-    React.useEffect(() => { closeSidebar(); }, [sessionId, closeSidebar]);
+    const closeDetail = useDetailView((s) => s.close);
+    React.useEffect(() => { closeSidebar(); closeDetail(); }, [sessionId, closeSidebar, closeDetail]);
     return { session, isDataReady, realtimeStatus, isTablet, anchor, setAnchor, headerProps };
 }
 
@@ -311,21 +312,89 @@ function CliVersionWarning({ show, onDismiss, isLandscape, deviceType }: {
     );
 }
 
+// Search for a message by ID recursively through children
+function findInChildren(messages: any[], id: string): any | null {
+    for (const m of messages) {
+        if (m.id === id) return m;
+        if (m.kind === 'tool-call' && m.children) {
+            const found = findInChildren(m.children, id);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+// Header bar for the inline detail view with back button, tool name, and status
+function InlineDetailHeader({ tool, onBack }: { tool: any; onBack: () => void }) {
+    const { theme } = useUnistyles();
+    return (
+        <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 8,
+            paddingHorizontal: 16, paddingVertical: 10,
+            borderBottomWidth: 1, borderBottomColor: theme.colors.divider,
+            backgroundColor: theme.colors.surface,
+        }}>
+            <Pressable onPress={onBack} hitSlop={8}>
+                <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+                <ToolHeader tool={tool} />
+            </View>
+            <ToolStatusIndicator tool={tool} />
+        </View>
+    );
+}
+
+// Inline detail view rendered in the middle area on desktop
+// so the right sidebar stays visible when viewing tool details
+function InlineDetailView({ messages }: { messages: any[] }) {
+    const detailMessageId = useDetailView((s) => s.messageId);
+    const closeDetail = useDetailView((s) => s.close);
+    const message = detailMessageId ? findInChildren(messages, detailMessageId) : null;
+
+    if (!message || message.kind !== 'tool-call' || !message.tool) return null;
+
+    return (
+        <View style={{ flex: 1 }}>
+            <InlineDetailHeader tool={message.tool} onBack={closeDetail} />
+            <Deferred>
+                <ToolFullView tool={message.tool} messages={message.children} />
+            </Deferred>
+        </View>
+    );
+}
+
+function useMainContentData(sessionId: string) {
+    const { messages, isLoaded } = useSessionMessages(sessionId);
+    const detailIsOpen = useDetailView((s) => s.isOpen);
+    const openSidebar = useRightSidebar((s) => s.open);
+    const handleContentPress = React.useCallback((data: { tool: any; messages: any[]; metadata: any; sessionId: string }) => {
+        openSidebar(data);
+    }, [openSidebar]);
+    return { messages, isLoaded, detailIsOpen, handleContentPress };
+}
+
 function SessionMainContent({ session, sessionId, micBtn, bottom }: {
     session: Session; sessionId: string;
     micBtn: { onMicPress: () => void; isMicActive: boolean }; bottom: number;
 }) {
     const { theme } = useUnistyles();
-    const { messages, isLoaded } = useSessionMessages(sessionId);
-    const openSidebar = useRightSidebar((s) => s.open);
-    const handleContentPress = React.useCallback((data: { tool: any; messages: any[]; metadata: any; sessionId: string }) => {
-        openSidebar(data);
-    }, [openSidebar]);
+    const { messages, isLoaded, detailIsOpen, handleContentPress } = useMainContentData(sessionId);
+    const padBottom = bottom + ((isRunningOnMac() || Platform.OS === 'web') ? 8 : 0);
+
+    if (detailIsOpen) {
+        return (
+            <View style={{ flexBasis: 0, flexGrow: 1, paddingBottom: padBottom }}>
+                <InlineDetailView messages={messages} />
+            </View>
+        );
+    }
+
     const content = (<Deferred>{messages.length > 0 && <ChatList session={session} onContentPress={handleContentPress} />}</Deferred>);
     const placeholder = messages.length === 0 ? (isLoaded ? <EmptyMessages session={session} /> : <ActivityIndicator size="small" color={theme.colors.textSecondary} />) : null;
     const input = (<SessionInputArea session={session} sessionId={sessionId} micBtn={micBtn} />);
     return (
-        <View style={{ flexBasis: 0, flexGrow: 1, paddingBottom: bottom + ((isRunningOnMac() || Platform.OS === 'web') ? 8 : 0) }}>
+        <View style={{ flexBasis: 0, flexGrow: 1, paddingBottom: padBottom }}>
             <AgentContentView content={content} input={input} placeholder={placeholder} />
         </View>
     );

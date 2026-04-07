@@ -1,0 +1,55 @@
+{
+  "request_id": "dev-20260407-sidebar-detail-coexist",
+  "timestamp": "2026-04-07T08:30:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260407-sidebar-detail-coexist.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Created detailViewStore.ts Zustand store for inline detail view state",
+        "type": "new_file",
+        "files_created": ["packages/happy-app/sources/stores/detailViewStore.ts"],
+        "rationale": "Provides a simple isOpen/messageId store to coordinate between ToolView (opener) and SessionView (renderer) without router navigation"
+      },
+      {
+        "id": 2,
+        "description": "Modified ToolView.tsx to use detailViewStore on desktop instead of router.push",
+        "type": "code_change",
+        "files_modified": ["packages/happy-app/sources/components/tools/ToolView.tsx"],
+        "changes": "On desktop (width >= 901), clicking a tool title calls openDetail(messageId) instead of router.push(). On mobile (width < 901), keeps existing router.push() behavior. Removed closeSidebar() call — the whole point is keeping the sidebar open. Extracted handlePress logic into useToolPress() helper function.",
+        "rationale": "Root cause was router.push() pushing a new Stack screen that replaced SessionView entirely, hiding the right sidebar"
+      },
+      {
+        "id": 3,
+        "description": "Modified SessionView.tsx to render inline detail view when detailViewStore.isOpen is true",
+        "type": "code_change",
+        "files_modified": ["packages/happy-app/sources/-session/SessionView.tsx"],
+        "changes": "Added InlineDetailView and InlineDetailHeader components. SessionMainContent now checks detailIsOpen — if true, renders InlineDetailView (back button + ToolHeader + ToolFullView) instead of ChatList. Detail view auto-closes on session switch via useEffect in useSessionViewInnerState. Added findInChildren() for recursive message lookup (same as [messageId].tsx).",
+        "rationale": "Renders tool detail in the middle panel area while keeping RightSidebar visible in the flex row layout"
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {"modified": "packages/happy-app/sources/stores/detailViewStore.ts", "imported_by": ["packages/happy-app/sources/components/tools/ToolView.tsx", "packages/happy-app/sources/-session/SessionView.tsx"]},
+      {"modified": "packages/happy-app/sources/components/tools/ToolView.tsx", "imported_by": ["packages/happy-app/sources/components/MessageView.tsx", "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx", "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx", "packages/happy-app/sources/components/tools/views/_all.tsx", "packages/happy-app/sources/app/(app)/dev/tools2.tsx"]},
+      {"modified": "packages/happy-app/sources/-session/SessionView.tsx", "imported_by": []}
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A - design limitation",
+      "why_issue_occurred": "ToolView.handlePress used router.push() to navigate to [messageId].tsx Stack screen, which replaced the SessionView entirely including the right sidebar",
+      "how_fix_addresses_root": "On desktop, bypass router navigation entirely. Use a Zustand store to signal SessionMainContent to render ToolFullView inline, keeping the flex row layout with RightSidebar intact"
+    },
+    "qa_ready": true,
+    "qa_notes": "Verify on desktop (width >= 901): 1) Click a tool title in sidebar -> detail view renders in middle area, sidebar stays open. 2) Click back arrow -> returns to chat list. 3) Switch sessions -> detail view closes automatically. 4) On mobile (width < 901): clicking tool title still pushes Stack screen as before.",
+    "permissions_to_add": [],
+    "implementation_notes": [
+      "The [messageId].tsx Stack screen is preserved for mobile navigation and direct URL access",
+      "ToolView.tsx no longer calls closeSidebar() on desktop — this was the wrong approach that the original code used",
+      "The InlineDetailView uses the same ToolFullView component as [messageId].tsx for consistent rendering"
+    ]
+  },
+  "blocking_issues": [],
+  "recommendations": [],
+  "tdd_skip_reason": "Pure UI navigation/layout change — not programmatically testable without browser rendering. QA must verify via Playwright."
+}
