@@ -30,12 +30,19 @@ const ChildToolBlock = React.memo<{
 
     return (
         <View style={styles.childTool}>
-            <ToolView
-                tool={tool}
-                metadata={metadata}
-                messages={children}
-                onPress={handlePress}
-            />
+            <View style={styles.iconRow}>
+                <View style={styles.messageIcon}>
+                    <Ionicons name="construct-outline" size={16} color={styles.eventText.color as string} />
+                </View>
+                <View style={styles.iconRowContent}>
+                    <ToolView
+                        tool={tool}
+                        metadata={metadata}
+                        messages={children}
+                        onPress={handlePress}
+                    />
+                </View>
+            </View>
         </View>
     );
 });
@@ -46,7 +53,14 @@ const ChildEventBlock = React.memo<{ message: ModeSwitchMessage }>(({ message })
     const label = 'message' in message.event ? message.event.message : message.event.type;
     return (
         <View style={styles.childEvent}>
-            <Text style={styles.eventText}>{label}</Text>
+            <View style={styles.iconRow}>
+                <View style={styles.messageIcon}>
+                    <Ionicons name="information-circle-outline" size={16} color={styles.eventText.color as string} />
+                </View>
+                <View style={styles.iconRowContent}>
+                    <Text style={styles.eventText}>{label}</Text>
+                </View>
+            </View>
         </View>
     );
 });
