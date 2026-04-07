@@ -1,12 +1,13 @@
 # stores
 
-*Last updated: 2026-04-06T13:45:55Z*
-**Total entries**: 1
+*Last updated: 2026-04-07T08:16:05Z*
+**Total entries**: 2
 **Convention**: kebab
 
 ## Tree
 ```
 stores/
+├── `detailViewStore.ts` - ts file
 └── `rightSidebarStore.ts` - ts file
 ```
 
