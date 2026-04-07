@@ -30,19 +30,12 @@ const ChildToolBlock = React.memo<{
 
     return (
         <View style={styles.childTool}>
-            <View style={styles.iconRow}>
-                <View style={styles.messageIcon}>
-                    <Ionicons name="construct-outline" size={16} color={styles.eventText.color as string} />
-                </View>
-                <View style={styles.iconRowContent}>
-                    <ToolView
-                        tool={tool}
-                        metadata={metadata}
-                        messages={children}
-                        onPress={handlePress}
-                    />
-                </View>
-            </View>
+            <ToolView
+                tool={tool}
+                metadata={metadata}
+                messages={children}
+                onPress={handlePress}
+            />
         </View>
     );
 });
@@ -180,6 +173,7 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
             )}
             {visibleMessages.length > 0 && (
                 <View style={styles.messagesBox}>
+                    <SectionHeader icon="construct-outline" title="Tool Calls" />
                     {visibleMessages.map((child) => (
                         <ChildMessageBlock
                             key={child.id}
@@ -192,7 +186,7 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
             )}
             {hasResult && (
                 <View style={styles.resultBox}>
-                    <Text style={styles.resultLabel}>Result</Text>
+                    <SectionHeader icon="checkmark-done-outline" title="Result" />
                     <MarkdownView markdown={String(tool.result)} />
                 </View>
             )}
@@ -286,11 +280,5 @@ const styles = StyleSheet.create((theme) => ({
         borderWidth: 1,
         borderColor: theme.colors.divider,
         padding: 12,
-    },
-    resultLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.textSecondary,
-        marginBottom: 8,
     },
 }));

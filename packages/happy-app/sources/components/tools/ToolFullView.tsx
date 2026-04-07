@@ -110,7 +110,6 @@ export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProp
     const SpecializedFullView = getToolFullViewComponent(tool.name);
     const screenWidth = useWindowDimensions().width;
     const devModeEnabled = (useLocalSetting('devModeEnabled') || __DEV__);
-    console.log('ToolFullView', devModeEnabled);
 
     return (
         <ScrollView style={[styles.container, { paddingHorizontal: screenWidth > 700 ? 16 : 0 }]}>
