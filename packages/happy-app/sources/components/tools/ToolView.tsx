@@ -115,7 +115,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
                 <View style={styles.header}>{headerContent}</View>
             )}
 
-            {!cfg.minimal && hasSpecializedView && onContentPress ? (
+            {hasSpecializedView && onContentPress ? (
                 <TouchableOpacity onPress={handleContentPress} activeOpacity={0.7}>
                     <ToolContent
                         tool={tool}
