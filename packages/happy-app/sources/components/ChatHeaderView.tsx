@@ -236,7 +236,6 @@ const styles = StyleSheet.create({
         }),
         fontWeight: '600',
         marginBottom: 1,
-        width: '100%',
     },
     subtitle: {
         fontSize: 12,

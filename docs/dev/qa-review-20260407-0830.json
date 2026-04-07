@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-04-07T08:30:00Z",
+  "reviewer": "QA subagent",
+  "purpose": "Verify BA research findings for two bugs by tracing actual source code",
+
+  "finding_1_askuserquestion_answers_lost": {
+    "verdict": "CONFIRMED",
+    "summary": "completedRequests entry in permissionHandler.ts lines 444-466 drops the answers field. BA analysis is fully correct.",
+    "evidence": {
+      "permission_response_interface": {
+        "file": "packages/happy-cli/src/claude/utils/permissionHandler.ts",
+        "lines": "19-28",
+        "fields": ["id", "approved", "reason", "mode", "allowedTools", "allowTools", "answers", "receivedAt"],
+        "note": "answers is defined as Record<string, string> at line 26"
+      },
+      "handle_permission_response_uses_answers": {
+        "file": "packages/happy-cli/src/claude/utils/permissionHandler.ts",
+        "lines": "123-136",
+        "detail": "Line 123: condition checks `response.answers`. Line 131-136: resolves with `updatedInput: { ...baseInput, answers: response.answers }`. The answers ARE correctly used to resolve the SDK permission promise."
+      },
+      "completed_requests_update_drops_answers": {
+        "file": "packages/happy-cli/src/claude/utils/permissionHandler.ts",
+        "lines": "444-466",
+        "exact_fields_copied": ["...request (tool, arguments, createdAt)", "completedAt", "status", "reason", "mode", "allowedTools (conditional)"],
+        "missing_field": "answers",
+        "detail": "The updateAgentState callback at line 444 spreads `...request` (which only has tool/arguments/createdAt) and explicitly adds completedAt, status, reason, mode, and conditionally allowedTools. The `message.answers` field from PermissionResponse is NOT included."
+      },
+      "reducer_never_references_answers": {
+        "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+        "detail": "grep for 'answers' in the reducer returns zero matches. The reducer processes completedRequests at lines 474-636 and copies status, reason, mode, allowedTools, decision to tool.permission, but since answers is never in completedRequests, it can never reach the app."
+      },
+      "reducer_permission_fields_copied": {
+        "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+        "lines": "506-514 (new permission), 518-525 (update existing)",
+        "fields_copied_to_tool_permission": ["id (permId)", "status", "mode", "allowedTools", "decision", "reason"],
+        "note": "If answers were added to completedRequests, the reducer would need an explicit `answers: completed.answers` line too, since it cherry-picks fields rather than spreading the whole object."
+      }
+    },
+    "fix_assessment": {
+      "cli_fix": "Add `answers: message.answers` to the completedRequests entry at permissionHandler.ts line 454 (inside the [id] object spread). Only add it when message.answers is defined to avoid null pollution.",
+      "reducer_fix_also_needed": true,
+      "reducer_fix_detail": "The reducer at lines 506-514 and 518-525 must also explicitly copy `answers: completed.answers` to tool.permission. The reducer does NOT spread the completed object - it cherry-picks fields. Without this change, answers will be in agentState.completedRequests but never reach tool.permission in the message.",
+      "app_display_fix": "The app component that renders AskUserQuestion permission details must read tool.permission.answers and display them. This is a third layer of the fix beyond CLI and reducer."
+    }
+  },
+
+  "finding_2_subagent_sidebar_dual_message": {
+    "verdict": "CONFIRMED for Task tools, NOT applicable to Agent tools",
+    "summary": "The BA correctly identified the dual-message ID mismatch for Task tools. The sessionProtocolMapper uses a CUID2 as the `call` field for Task tool-call-start envelopes, while the permission system uses the original tool_use block.id (toolu_*). The reducer Phase 0 keys toolIdToMessageId by toolu_*, Phase 2 looks up by CUID2 -> miss -> creates duplicate message.",
+    "evidence": {
+      "mapper_tool_use_processing": {
+        "file": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+        "lines": "547-601",
+        "detail": "Line 548: `call` is set to `block.id` (the original tool_use ID like 'toolu_01XYZ'). Line 553: `sessionSubagentForCall = ensureSessionSubagentIdForProviderSubagent(state, call)` creates a CUID2 mapped from the block.id."
+      },
+      "task_tool_uses_cuid2_as_call": {
+        "file": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+        "lines": "565-586",
+        "detail": "For Task tools (shouldHideParentToolCall=true), line 573 emits tool-call-start with `call: sessionSubagentForCall` (the CUID2). This is DIFFERENT from the original block.id."
+      },
+      "agent_tool_uses_original_id_as_call": {
+        "file": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+        "lines": "588-595",
+        "detail": "For Agent tools (non-hidden), line 590 emits tool-call-start with `call: call` (the original block.id like 'toolu_01XYZ'). Agent tools do NOT have the mismatch."
+      },
+      "typesRaw_normalizes_call_to_id": {
+        "file": "packages/happy-app/sources/sync/typesRaw.ts",
+        "lines": "644-662",
+        "detail": "When normalizing tool-call-start envelope, line 653: `id: envelope.ev.call`. So the normalized message's tool-call content.id = the envelope's call field. For Task tools this is CUID2, for Agent tools this is the original block.id."
+      },
+      "permission_handler_uses_original_block_id": {
+        "file": "packages/happy-cli/src/claude/utils/permissionHandler.ts",
+        "lines": "336-342",
+        "detail": "toolCalls are tracked by `block.id` (line 338: `id: block.id!`). resolveToolCallId returns this original ID. The permission request key [id] in agentState.requests uses this original block.id."
+      },
+      "reducer_phase0_keys_by_original_id": {
+        "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+        "lines": "404-470",
+        "detail": "Phase 0 processes agentState.requests using `permId` as key (the original toolu_* ID). Line 458: `toolIdToMessageId.set(permId, mid)` creates mapping from toolu_* -> messageA."
+      },
+      "reducer_phase2_looks_up_by_content_id": {
+        "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+        "lines": "720-826",
+        "detail": "Phase 2 at line 724: `state.toolIdToMessageId.get(c.id)` where c.id comes from the normalized message. For Task tools, c.id = CUID2 (from mapper). For Agent tools, c.id = toolu_* (matches). TASK TOOLS MISS -> line 756-823 creates a NEW message B."
+      },
+      "the_mismatch_chain": {
+        "task_tool_flow": [
+          "1. Claude SDK emits tool_use with block.id = 'toolu_01XYZ'",
+          "2. permissionHandler stores permission with key 'toolu_01XYZ' in agentState.requests",
+          "3. sessionProtocolMapper creates CUID2 for Task tool, emits tool-call-start with call = CUID2",
+          "4. Reducer Phase 0 processes agentState.requests: toolIdToMessageId.set('toolu_01XYZ', midA)",
+          "5. Reducer Phase 2 processes tool-call content: toolIdToMessageId.get(CUID2) -> MISS",
+          "6. Reducer Phase 2 creates NEW message B: toolIdToMessageId.set(CUID2, midB)",
+          "7. Result: TWO messages exist for same tool. Message A (from permission, realID=null) has permission data. Message B (from tool-call, realID=msg.id) has tool execution data.",
+          "8. Sidechain children link to message B (via CUID2 in toolCallToMessageId). Message A is rendered in main chat but has no children -> empty sidebar."
+        ],
+        "agent_tool_flow": [
+          "1. Claude SDK emits tool_use with block.id = 'toolu_01XYZ'",
+          "2. permissionHandler stores permission with key 'toolu_01XYZ'",
+          "3. sessionProtocolMapper for Agent tool (non-hidden) emits tool-call-start with call = 'toolu_01XYZ'",
+          "4. Reducer Phase 0: toolIdToMessageId.set('toolu_01XYZ', midA)",
+          "5. Reducer Phase 2: toolIdToMessageId.get('toolu_01XYZ') -> HIT -> updates midA in place",
+          "6. NO duplicate message. Agent tools work correctly."
+        ]
+      }
+    },
+    "tracer_analysis": {
+      "file": "packages/happy-app/sources/sync/reducer/reducerTracer.ts",
+      "lines": "117-124, 183-206",
+      "detail": "The tracer's getToolCallParentIds extracts both content.id AND content.input.sessionSubagent. For Task tools, both are the same CUID2. The tracer correctly maps CUID2 -> message.id (the Phase 2 message B). So sidechain children are correctly linked to message B. The problem is message A (from Phase 0) is the one rendered in the main chat, and it has no sidechain children.",
+      "isUuidLike_removal_impact": "The old isUuidLike check was removed from the tracer. This is benign because the current tracer uses toolCallToMessageId (line 257) which maps by exact string match, not UUID format detection. CUID2 strings work fine as map keys."
+    },
+    "fix_direction": {
+      "option_a_mapper_fix": "Change the mapper for Task tools to emit tool-call-start with `call: block.id` (original toolu_*) instead of `call: sessionSubagentForCall`. This makes Phase 2 find the Phase 0 message and update it in place. However, this may break the tracer's sidechain linking which depends on the CUID2.",
+      "option_b_reducer_fix": "In the reducer Phase 2, when toolIdToMessageId.get(c.id) misses, also check if the tool input has a sessionSubagent field and try to look up by the original permission ID. Or maintain a reverse map from CUID2 -> original toolu_* ID.",
+      "option_c_dual_key": "In Phase 0, when the tool is a Task/Agent subagent tool, also store toolIdToMessageId keyed by the sessionSubagent CUID2 (if available from args). This requires the completedRequests to include the args.sessionSubagent value.",
+      "recommended": "Option B or C. The mapper's CUID2 usage is intentional for sidechain linking. The reducer should be made aware of the mapping."
+    }
+  },
+
+  "browser_verification_note": "Playwright auth succeeded and session loaded with visible Agent/Task tool calls (TodoWrite, Agent subagents like 'BA: Detail page + sidebar coexist', 'Dev: Detail view inline + sidebar coexist'). React fiber traversal could not locate the reducer state Maps directly (likely due to bundling/closure scoping). However, the code trace is conclusive - the mismatch is provable from the source code alone without needing runtime state inspection.",
+
+  "self_verification": {
+    "claims_total": 8,
+    "claims_with_evidence": 8,
+    "claims_superficial": 0,
+    "superficial_details": [],
+    "confidence": "high",
+    "note": "Both findings are verified by exact line-by-line code tracing through 4 files. The data flow is deterministic and the mismatch is provable without runtime observation."
+  }
+}
