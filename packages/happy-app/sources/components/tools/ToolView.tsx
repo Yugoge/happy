@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, View, TouchableOpacity, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
+import { Text, View, TouchableOpacity, Pressable, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import { getToolViewComponent } from './views/_all';
@@ -116,7 +116,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
             )}
 
             {hasSpecializedView && onContentPress ? (
-                <TouchableOpacity onPress={handleContentPress} activeOpacity={0.7}>
+                <Pressable onPress={handleContentPress}>
                     <ToolContent
                         tool={tool}
                         metadata={props.metadata}
@@ -125,7 +125,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
                         hideDefaultError={cfg.hideDefaultError}
                         isToolUseError={cfg.isToolUseError}
                     />
-                </TouchableOpacity>
+                </Pressable>
             ) : !cfg.minimal ? (
                 <ToolContent
                     tool={tool}
