@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-07T11:47:23Z*
-**Total entries**: 140
+*Last updated: 2026-04-07T12:24:54Z*
+**Total entries**: 142
 **Convention**: kebab
 
 ## Tree
@@ -116,6 +116,7 @@ dev/
 ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
 ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
 ├── `qa-audit-20260407.json` - json config
+├── `qa-build-deploy-20260407.json` - json config
 ├── `qa-hooks-bash-safety.json` - json config
 ├── `qa-hooks-prod-files.json` - json config
 ├── `qa-hooks-project.json` - json config
@@ -145,6 +146,7 @@ dev/
 ├── `qa-report-20260406-sidebar-polish.json` - json config
 ├── `qa-report-20260406-sidebar.json` - json config
 ├── `qa-report-20260406-tool-detail.json` - json config
+├── `qa-report-20260407-0930.json` - json config
 ├── `qa-review-20260407-0830.json` - json config
 └── `qa-site-isolation-verification.json` - json config
 ```
