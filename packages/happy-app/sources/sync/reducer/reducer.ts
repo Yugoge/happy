@@ -494,7 +494,8 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                             message.tool.permission?.reason !== completed.reason ||
                             message.tool.permission?.mode !== completed.mode ||
                             message.tool.permission?.allowedTools !== completed.allowedTools ||
-                            message.tool.permission?.decision !== completed.decision;
+                            message.tool.permission?.decision !== completed.decision ||
+                            message.tool.permission?.answers !== completed.answers;
 
                         if (!needsUpdate) {
                             continue;
@@ -510,6 +511,7 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                                 mode: completed.mode || undefined,
                                 allowedTools: completed.allowedTools || undefined,
                                 decision: completed.decision || undefined,
+                                answers: completed.answers || undefined,
                                 reason: completed.reason || undefined
                             };
                             hasChanged = true;
@@ -519,6 +521,7 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                             message.tool.permission.mode = completed.mode || undefined;
                             message.tool.permission.allowedTools = completed.allowedTools || undefined;
                             message.tool.permission.decision = completed.decision || undefined;
+                            message.tool.permission.answers = completed.answers || undefined;
                             if (completed.reason) {
                                 message.tool.permission.reason = completed.reason;
                             }

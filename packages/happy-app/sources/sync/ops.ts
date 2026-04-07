@@ -7,19 +7,6 @@ import { apiSocket } from './apiSocket';
 import { sync } from './sync';
 import type { MachineMetadata } from './storageTypes';
 
-/**
- * Module-level store for AskUserQuestion answers, keyed by permission ID.
- * Persists across component remounts within the same app session.
- * The reducer does not store answers from completedRequests agentState,
- * so this serves as the local persistence layer.
- */
-const permissionAnswersStore = new Map<string, Record<string, string>>();
-
-/** Retrieve previously submitted answers for a permission request. */
-export function getPermissionAnswers(permissionId: string): Record<string, string> | undefined {
-    return permissionAnswersStore.get(permissionId);
-}
-
 // Strict type definitions for all operations
 
 // Permission operation types
@@ -337,10 +324,6 @@ export async function sessionAbort(sessionId: string): Promise<void> {
  * Allow a permission request
  */
 export async function sessionAllow(sessionId: string, id: string, mode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan', allowedTools?: string[], decision?: 'approved' | 'approved_for_session', reason?: string, answers?: Record<string, string>): Promise<void> {
-    // Persist answers locally before the async RPC so they survive component remounts
-    if (answers && Object.keys(answers).length > 0) {
-        permissionAnswersStore.set(id, answers);
-    }
     const request: SessionPermissionRequest = { id, approved: true, mode, allowTools: allowedTools, decision, reason, answers };
     await apiSocket.sessionRPC(sessionId, 'permission', request);
 }
