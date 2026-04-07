@@ -1,10 +1,37 @@
 import * as React from 'react';
-import { View, ScrollView, Text } from 'react-native';
+import { View, ScrollView, Text, Pressable } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
 import { knownTools } from '@/components/tools/knownTools';
 import { ToolDiffView } from '@/components/tools/ToolDiffView';
 import { trimIdent } from '@/utils/trimIdent';
+import { SimpleSyntaxHighlighter } from '@/components/SimpleSyntaxHighlighter';
+
+// Tools whose result may contain full file content injected by the CLI
+const FILE_CONTENT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit']);
+
+// Detect file language from extension for syntax highlighting
+function getLanguageFromPath(filePath: string): string | null {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    if (!ext) return null;
+    const map: Record<string, string> = {
+        ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript',
+        py: 'python', rb: 'ruby', go: 'go', rs: 'rust', java: 'java',
+        json: 'json', yaml: 'yaml', yml: 'yaml', toml: 'toml',
+        md: 'markdown', css: 'css', scss: 'css', html: 'html',
+        sh: 'bash', bash: 'bash', zsh: 'bash',
+        sql: 'sql', swift: 'swift', kt: 'kotlin',
+    };
+    return map[ext] ?? null;
+}
+
+// Check if tool.result contains full file content (long multiline string from CLI enrichment)
+function hasFileContent(tool: ToolCall): boolean {
+    return FILE_CONTENT_TOOLS.has(tool.name)
+        && typeof tool.result === 'string'
+        && tool.result.length > 100
+        && tool.result.includes('\n');
+}
 
 interface SidebarFileViewProps {
     tool: ToolCall;
@@ -12,13 +39,40 @@ interface SidebarFileViewProps {
 
 export const SidebarFileView = React.memo<SidebarFileViewProps>(({ tool }) => {
     const filePath = tool.input?.file_path || tool.input?.path || '';
+    const showFileContent = hasFileContent(tool);
+    const [activeTab, setActiveTab] = React.useState<'diff' | 'file'>(showFileContent ? 'file' : 'diff');
+    const language = filePath ? getLanguageFromPath(filePath) : null;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             {filePath ? (
                 <Text style={styles.filePath} numberOfLines={1}>{filePath}</Text>
             ) : null}
-            <FileContent tool={tool} />
+            {showFileContent ? (
+                <View style={styles.tabBar}>
+                    <Pressable
+                        style={[styles.tab, activeTab === 'file' && styles.tabActive]}
+                        onPress={() => setActiveTab('file')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'file' && styles.tabTextActive]}>File</Text>
+                    </Pressable>
+                    <Pressable
+                        style={[styles.tab, activeTab === 'diff' && styles.tabActive]}
+                        onPress={() => setActiveTab('diff')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'diff' && styles.tabTextActive]}>Diff</Text>
+                    </Pressable>
+                </View>
+            ) : null}
+            {activeTab === 'diff' ? (
+                <FileContent tool={tool} />
+            ) : (
+                <SimpleSyntaxHighlighter
+                    code={tool.result as string}
+                    language={language}
+                    selectable={true}
+                />
+            )}
         </ScrollView>
     );
 });
@@ -161,6 +215,28 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: '600',
         color: theme.colors.textSecondary,
         marginBottom: 8,
+    },
+    tabBar: {
+        flexDirection: 'row',
+        marginBottom: 8,
+        gap: 4,
+    },
+    tab: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+        backgroundColor: theme.colors.surfaceHighest,
+    },
+    tabActive: {
+        backgroundColor: theme.colors.textLink,
+    },
+    tabText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.textSecondary,
+    },
+    tabTextActive: {
+        color: '#fff',
     },
     multiEditContainer: {
         gap: 12,
