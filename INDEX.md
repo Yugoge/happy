@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-04-04T15:46:32Z*
-**Total entries**: 682
+*Last updated: 2026-04-07T20:08:45Z*
+**Total entries**: 842
 **Convention**: kebab
 
 ## Tree
@@ -16,18 +16,133 @@ happy-dev/
 │   │   └── `comparison-matrix.md` - Competitor Protocol Matrix
 │   ├── dev/
 │   │   ├── overnight/
+│   │   ├── `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
+│   │   ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
+│   │   ├── `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
+│   │   ├── `ba-spec-20260403-210447-10.md` - BA Specification: Send Button Voice Mode on Web -- Disable Mic Trigger
+│   │   ├── `ba-spec-20260403-210447-11.md` - BA Specification: Enable Gzip Compression in Nginx for Web App
+│   │   ├── `ba-spec-20260403-210447-12.md` - BA Specification: Remove Debug console.log from ToolView.tsx
+│   │   ├── `ba-spec-20260403-210447-2.md` - BA Specification: Add wrapped event rendering to AgentEventBlock
+│   │   ├── `ba-spec-20260403-210447-3.md` - BA Specification: Enter Key Does Not Send Message in Web Input
+│   │   ├── `ba-spec-20260403-210447-4.md` - BA Specification: Code Block Download Button
+│   │   ├── `ba-spec-20260403-210447-5.md` - BA Specification: Fix TaskView Title Duplication in ToolView
+│   │   ├── `ba-spec-20260403-210447-6.md` - BA Specification: Bug #62 -- Session Title Not Updating in Sidebar/Header After MCP change_title
+│   │   ├── `ba-spec-20260403-210447-7.md` - BA Specification: Fix Hidden Horizontal Scroll Indicators on Web
+│   │   ├── `ba-spec-20260403-210447-8.md` - BA Specification: Fix Session Navigation on Web
+│   │   ├── `ba-spec-20260403-210447-9.md` - BA Specification: Mermaid Timeline Diagram Chinese Character / Empty Event Rendering Fix
+│   │   ├── `ba-spec-20260404-080000.md` - BA Specification: Permanently Fix Title Change (Bug #62)
+│   │   ├── `ba-spec-20260404-110000.md` - BA Specification: Fix MCP change_title Tool Failure
+│   │   ├── `ba-spec-20260404-120000.md` - BA Specification: Fix MCP Title Change - Stateless Transport Reuse Error
+│   │   ├── `ba-spec-20260405-130000.md` - BA Specification: Fix File/Image Upload in happy-dev
+│   │   ├── `ba-spec-20260405-mcp-title.md` - BA Specification: MCP change_title Survives Daemon/Session Restarts
+│   │   ├── `ba-spec-20260406-1930.md` - BA Specification: Fix 5 Remaining UI Issues (Edit File View, AskUserQuestion Persistence, Subagent Sidebar, Bash/Detail Confirmation)
+│   │   ├── `ba-spec-20260406-agent-edit-detail.md` - BA Specification: Agent Inline/Full View Split + Edit Detail Cleanup
+│   │   ├── `ba-spec-20260406-data-gaps.md` - BA Specification: Sidebar Data Display Gaps
+│   │   ├── `ba-spec-20260406-sidebar-bugs.md` - BA Specification: 5 Sidebar Bugs
+│   │   ├── `ba-spec-20260406-sidebar-content.md` - BA Specification: Right Sidebar Content Renderers
+│   │   ├── `ba-spec-20260406-sidebar-layout.md` - BA Specification: Right Sidebar Infrastructure (3-Panel Layout)
+│   │   ├── `ba-spec-20260406-sidebar-polish.md` - BA Specification: Sidebar Polish - Requirements 2-5
+│   │   ├── `ba-spec-20260406-sidebar-routing.md` - BA Specification: Tool Click Routing -- Dual Click Targets for Sidebar
+│   │   ├── `ba-spec-20260406-tool-detail.md` - BA Specification: Unified Tool Detail View Layout
+│   │   ├── `ba-spec-20260407-0830.md` - BA Specification: AskUserQuestion Answer Persistence + Subagent Sidebar Data Flow
+│   │   ├── `ba-spec-20260407-sidebar-detail-coexist.md` - BA Specification: Right Sidebar Must Coexist with Tool Detail Page
 │   │   ├── `context-20260323-210000.json` - json config
+│   │   ├── `context-20260403-210447-0.json` - json config
+│   │   ├── `context-20260403-210447-1.json` - json config
+│   │   ├── `context-20260403-210447-10.json` - json config
+│   │   ├── `context-20260403-210447-11.json` - json config
+│   │   ├── `context-20260403-210447-12.json` - json config
+│   │   ├── `context-20260403-210447-2.json` - json config
+│   │   ├── `context-20260403-210447-3.json` - json config
+│   │   ├── `context-20260403-210447-4.json` - json config
+│   │   ├── `context-20260403-210447-5.json` - json config
+│   │   ├── `context-20260403-210447-6.json` - json config
+│   │   ├── `context-20260403-210447-7.json` - json config
+│   │   ├── `context-20260403-210447-8.json` - json config
+│   │   ├── `context-20260403-210447-9.json` - json config
+│   │   ├── `context-20260404-080000.json` - json config
+│   │   ├── `context-20260404-110000.json` - json config
+│   │   ├── `context-20260404-120000.json` - json config
+│   │   ├── `context-20260405-130000.json` - json config
+│   │   ├── `context-20260405-mcp-title.json` - json config
+│   │   ├── `context-20260406-1930.json` - json config
+│   │   ├── `context-20260406-agent-edit-detail.json` - json config
+│   │   ├── `context-20260406-data-gaps.json` - json config
+│   │   ├── `context-20260406-sidebar-bugs.json` - json config
+│   │   ├── `context-20260406-sidebar-content.json` - json config
+│   │   ├── `context-20260406-sidebar-layout.json` - json config
+│   │   ├── `context-20260406-sidebar-polish.json` - json config
+│   │   ├── `context-20260406-sidebar-routing.json` - json config
+│   │   ├── `context-20260406-tool-detail.json` - json config
+│   │   ├── `context-20260407-0830.json` - json config
+│   │   ├── `context-20260407-sidebar-detail-coexist.json` - json config
+│   │   ├── `dev-report-20260403-210447-0.json` - json config
+│   │   ├── `dev-report-20260403-210447-1.json` - json config
+│   │   ├── `dev-report-20260403-210447-10.json` - json config
+│   │   ├── `dev-report-20260403-210447-11.json` - json config
+│   │   ├── `dev-report-20260403-210447-12.json` - json config
+│   │   ├── `dev-report-20260403-210447-2.json` - json config
+│   │   ├── `dev-report-20260403-210447-3.json` - json config
+│   │   ├── `dev-report-20260403-210447-4.json` - json config
+│   │   ├── `dev-report-20260403-210447-5.json` - json config
+│   │   ├── `dev-report-20260403-210447-6.json` - json config
+│   │   ├── `dev-report-20260403-210447-7.json` - json config
+│   │   ├── `dev-report-20260403-210447-8.json` - json config
+│   │   ├── `dev-report-20260403-210447-9.json` - json config
 │   │   ├── `dev-report-20260404-080000.json` - json config
 │   │   ├── `dev-report-20260404-110000.json` - json config
 │   │   ├── `dev-report-20260404-120000.json` - json config
+│   │   ├── `dev-report-20260405-130000.json` - json config
+│   │   ├── `dev-report-20260405-mcp-title.json` - json config
+│   │   ├── `dev-report-20260406-1930.json` - json config
+│   │   ├── `dev-report-20260406-sidebar-bugs.json` - json config
+│   │   ├── `dev-report-20260406-sidebar-layout.json` - json config
+│   │   ├── `dev-report-20260406-sidebar-polish.json` - json config
+│   │   ├── `dev-report-20260406-tool-detail.json` - json config
+│   │   ├── `dev-report-20260407-0930.json` - json config
+│   │   ├── `dev-report-20260407-sidebar-detail-coexist.json` - json config
 │   │   ├── `dev-report-tools2-filter-fix.json` - json config
+│   │   ├── `e2e-verification-rendering.json` - json config
+│   │   ├── `e2e-verification-title.json` - json config
+│   │   ├── `e2e-verification-ui.json` - json config
 │   │   ├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 │   │   ├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
+│   │   ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
+│   │   ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
+│   │   ├── `qa-audit-20260407.json` - json config
+│   │   ├── `qa-build-deploy-20260407.json` - json config
+│   │   ├── `qa-hooks-bash-safety.json` - json config
+│   │   ├── `qa-hooks-prod-files.json` - json config
+│   │   ├── `qa-hooks-project.json` - json config
+│   │   ├── `qa-issue3-browser-debug-20260407.json` - json config
+│   │   ├── `qa-report-20260403-210447-0.json` - json config
+│   │   ├── `qa-report-20260403-210447-1.json` - json config
+│   │   ├── `qa-report-20260403-210447-10.json` - json config
+│   │   ├── `qa-report-20260403-210447-11.json` - json config
+│   │   ├── `qa-report-20260403-210447-12.json` - json config
+│   │   ├── `qa-report-20260403-210447-2.json` - json config
+│   │   ├── `qa-report-20260403-210447-3.json` - json config
+│   │   ├── `qa-report-20260403-210447-4.json` - json config
+│   │   ├── `qa-report-20260403-210447-5.json` - json config
+│   │   ├── `qa-report-20260403-210447-6.json` - json config
+│   │   ├── `qa-report-20260403-210447-7.json` - json config
+│   │   ├── `qa-report-20260403-210447-8.json` - json config
+│   │   ├── `qa-report-20260403-210447-9.json` - json config
 │   │   ├── `qa-report-20260404-080000.json` - json config
 │   │   ├── `qa-report-20260404-110000.json` - json config
 │   │   ├── `qa-report-20260404-120000-v2.json` - json config
 │   │   ├── `qa-report-20260404-120000.json` - json config
+│   │   ├── `qa-report-20260405-130000.json` - json config
+│   │   ├── `qa-report-20260405-mcp-title.json` - json config
+│   │   ├── `qa-report-20260406-1930.json` - json config
+│   │   ├── `qa-report-20260406-agent-edit-detail.json` - json config
+│   │   ├── `qa-report-20260406-sidebar-bugs.json` - json config
+│   │   ├── `qa-report-20260406-sidebar-polish.json` - json config
+│   │   ├── `qa-report-20260406-sidebar.json` - json config
+│   │   ├── `qa-report-20260406-tool-detail.json` - json config
+│   │   ├── `qa-report-20260407-0930.json` - json config
+│   │   ├── `qa-review-20260407-0830.json` - json config
 │   │   └── `qa-site-isolation-verification.json` - json config
 │   ├── e2e/
 │   │   ├── `console-initial.log` - log file
@@ -318,6 +433,8 @@ happy-dev/
 ├── `16-input-bar-attachments.png` - png file
 ├── `17-mermaid-message-typed.png` - png file
 ├── `18-mermaid-rendered.png` - png file
+├── `_test_notebook.ipynb` - ipynb file
+├── `_tool_test.txt` - txt file
 ├── `arch-session-latex-test.png` - png file
 ├── `bug-hunt-01-initial-load.png` - png file
 ├── `bug-hunt-02-session-view.png` - png file
@@ -501,6 +618,18 @@ happy-dev/
 ├── `po-step0-landing.png` - png file
 ├── `po-usage.png` - png file
 ├── `qa-after-reload.png` - png file
+├── `qa-agent-detail-desktop.png` - png file
+├── `qa-agent-detail-mobile.png` - png file
+├── `qa-agent-detail-scrolled.png` - png file
+├── `qa-agent-detail-subtools-section.png` - png file
+├── `qa-agent-detail-subtools.png` - png file
+├── `qa-agent-sidebar-opened.png` - png file
+├── `qa-agent-sidebar-scrolled.png` - png file
+├── `qa-agent-sidebar-test.png` - png file
+├── `qa-agent-sidebar-toolcalls.png` - png file
+├── `qa-agent-sidebar-tools.png` - png file
+├── `qa-back-to-session.md` - No description
+├── `qa-baseline-session-view.png` - png file
 ├── `qa-before-enter.png` - png file
 ├── `qa-bug64-conversation-view.png` - png file
 ├── `qa-bug64-detail-page-no-duplication.png` - png file
@@ -510,9 +639,20 @@ happy-dev/
 ├── `qa-cycle2-p3-tools2.png` - png file
 ├── `qa-cycle2-p6-other-tools-filtered.png` - png file
 ├── `qa-cycle2-p6-other-tools.png` - png file
+├── `qa-desktop-bash-truncation.png` - png file
+├── `qa-desktop-edit-sidebar.png` - png file
+├── `qa-desktop-overview.png` - png file
+├── `qa-desktop-session-view.png` - png file
+├── `qa-dev-agent-subtools.png` - png file
 ├── `qa-dev-app-state.png` - png file
+├── `qa-find-agent-tools.png` - png file
+├── `qa-inline-todo-overview.png` - png file
+├── `qa-issue3-sidebar-ba-agent.png` - png file
 ├── `qa-latex-inline-closeup.png` - png file
 ├── `qa-latex-inline-rendering.png` - png file
+├── `qa-mid-scroll.md` - No description
+├── `qa-mobile-agent-detail.png` - png file
+├── `qa-mobile-session-view.jpeg` - jpeg file
 ├── `qa-p10-1280.png` - png file
 ├── `qa-p10-root-session.png` - png file
 ├── `qa-p10-send-button-empty.png` - png file
@@ -531,10 +671,29 @@ happy-dev/
 ├── `qa-pipeline3-enter-sent.png` - png file
 ├── `qa-pipeline3-new-session.png` - png file
 ├── `qa-root-session.png` - png file
+├── `qa-scrolled-bottom.md` - No description
 ├── `qa-session-latex-view.png` - png file
 ├── `qa-session-overview.png` - png file
+├── `qa-sidebar-after-pop-scroll-preserved.png` - png file
+├── `qa-sidebar-after-push.png` - png file
+├── `qa-sidebar-before-subtool-click.png` - png file
+├── `qa-sidebar-content-click-no-push.png` - png file
+├── `qa-sidebar-content-interaction-test.png` - png file
+├── `qa-sidebar-scroll-15k.md` - No description
+├── `qa-sidebar-scroll-4000.png` - png file
+├── `qa-sidebar-scrolled-before-push.png` - png file
 ├── `qa-sidebar-snapshot.md` - No description
+├── `qa-sidebar-subtool-area.png` - png file
+├── `qa-sidebar-todo-colors.png` - png file
+├── `qa-sidebar-todowrite-check.png` - png file
+├── `qa-subtool-click-result.png` - png file
 ├── `qa-task-detail-view.png` - png file
+├── `qa-tc1-detail-page.png` - png file
+├── `qa-tc2-sidebar-open.png` - png file
+├── `qa-tc5-mobile-sidebar.png` - png file
+├── `qa-tc6-agent-sidebar-placeholder.png` - png file
+├── `qa-todo-bash-inline.png` - png file
+├── `qa-todo-sidebar.png` - png file
 ├── `screenshot-01-initial-state.png` - png file
 ├── `screenshot-02-loading.png` - png file
 ├── `screenshot-03-new-session-form.png` - png file
@@ -592,6 +751,7 @@ happy-dev/
 ├── `step9-settings-account.png` - png file
 ├── `step9-settings.png` - png file
 ├── `step9-tools-demo-examples.png` - png file
+├── `tmp-test-edit.ts` - ts file
 ├── `tools2-initial.png` - png file
 ├── `tools2-permission-states.png` - png file
 ├── `tools2-status-icons.png` - png file
