@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-07T07:56:58Z*
-**Total entries**: 130
+*Last updated: 2026-04-07T08:13:13Z*
+**Total entries**: 133
 **Convention**: kebab
 
 ## Tree
@@ -49,6 +49,8 @@ dev/
 ├── `ba-spec-20260406-sidebar-polish.md` - BA Specification: Sidebar Polish - Requirements 2-5
 ├── `ba-spec-20260406-sidebar-routing.md` - BA Specification: Tool Click Routing -- Dual Click Targets for Sidebar
 ├── `ba-spec-20260406-tool-detail.md` - BA Specification: Unified Tool Detail View Layout
+├── `ba-spec-20260407-0830.md` - BA Specification: AskUserQuestion Answer Persistence + Subagent Sidebar Data Flow
+├── `ba-spec-20260407-sidebar-detail-coexist.md` - BA Specification: Right Sidebar Must Coexist with Tool Detail Page
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
 ├── `context-20260403-210447-1.json` - json config
@@ -77,6 +79,7 @@ dev/
 ├── `context-20260406-sidebar-polish.json` - json config
 ├── `context-20260406-sidebar-routing.json` - json config
 ├── `context-20260406-tool-detail.json` - json config
+├── `context-20260407-sidebar-detail-coexist.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config

@@ -1,0 +1,111 @@
+{
+  "request_id": "dev-20260407-sidebar-detail-coexist",
+  "timestamp": "2026-04-07T08:00:00Z",
+  "requirement": {
+    "original": "When the user opens the right sidebar (tool detail panel), then clicks a tool TITLE to navigate to the detail page, the detail page replaces the entire SessionView including the right sidebar. The user wants them to COEXIST: detail page shows in the MIDDLE area while sidebar stays open on the right.",
+    "clarified": "Implement inline detail view rendering within SessionView so that clicking a tool title shows ToolFullView in the middle panel while keeping the right sidebar open. Use Option A: state-based rendering swap inside SessionViewLoaded, not Stack navigation.",
+    "what": "Replace Stack-based tool detail navigation with inline state-based rendering inside SessionView, so the right sidebar persists when viewing tool details",
+    "why": "Currently clicking a tool title pushes a new Stack screen that hides the entire SessionView including the right sidebar, breaking the 3-panel layout UX",
+    "where": [
+      "packages/happy-app/sources/-session/SessionView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/stores/rightSidebarStore.ts",
+      "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx"
+    ],
+    "scope": {
+      "included": [
+        "Add detail view state management (detailMessageId) to SessionView or a dedicated store",
+        "Conditionally render ToolFullView vs ChatList in the middle panel based on detail state",
+        "Update ToolView.handlePress to set detail state instead of router.push()",
+        "Remove closeSidebar() workaround from ToolView.handlePress",
+        "Add back button / header update when in detail mode",
+        "Keep [messageId].tsx Stack screen as fallback for direct URL access"
+      ],
+      "excluded": [
+        "Modifying left sidebar (SidebarNavigator/Drawer)",
+        "Changing ToolFullView component content",
+        "Supporting multiple simultaneous detail views",
+        "Mobile 3-panel layout (mobile uses modal sidebar, acceptable as-is)",
+        "Moving RightSidebar outside SessionView (Option B, future refactor)"
+      ]
+    },
+    "success_criteria": [
+      "Right sidebar remains visible and interactive when tool detail is shown in middle panel",
+      "Back navigation from detail view returns to ChatList",
+      "closeSidebar() workaround removed from ToolView.tsx",
+      "Desktop 3-panel layout (left sidebar | detail/chat | right sidebar) preserved",
+      "No regressions in sidebar open/close/push/pop behavior"
+    ],
+    "constraints": [
+      "Must work on web platform (primary target for desktop 3-panel layout)",
+      "Must not break mobile behavior (sidebar as modal)",
+      "Must follow existing patterns: Zustand for state, memo for components, useCallback for handlers",
+      "Must not modify _layout.tsx Stack structure (Option A approach)",
+      "Keep [messageId].tsx Stack screen functional for direct URL navigation"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Clicking tool title in sidebar closes sidebar and navigates to full-screen detail page, losing 3-panel layout",
+    "root_cause": "RightSidebar is rendered INSIDE SessionViewLoaded (line 284 of SessionView.tsx) as a child of the session/[id] Stack screen. The detail page session/[id]/message/[messageId] is a SEPARATE Stack screen in _layout.tsx (line 70-77). When expo-router pushes the message detail screen, it replaces the session screen entirely, hiding SessionView and its RightSidebar child.",
+    "root_cause_commit": "1db5cb38 - feat: right sidebar for tool detail viewing (3-panel layout)",
+    "why_introduced": "The right sidebar was added inside SessionView for simplicity -- it only needs to be visible during a session. The message detail page was already a Stack screen from before the sidebar was added.",
+    "why_problematic": "The two features (sidebar panel + detail page navigation) use incompatible rendering models. The sidebar lives inside a Stack screen that gets hidden when another Stack screen is pushed. The closeSidebar() call in ToolView.tsx was added as a workaround to prevent the sidebar from being visible in a stale state.",
+    "timeline": "Right sidebar added in commit 1db5cb38 (2026-04-06). The closeSidebar() workaround was added in the same commit or shortly after.",
+    "affected_files": [
+      "packages/happy-app/sources/-session/SessionView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/stores/rightSidebarStore.ts"
+    ]
+  },
+  "context": {
+    "codebase_state": "Right sidebar is fully functional with open/close/push/pop stack navigation. ToolView has dual click zones (header -> detail page, content -> sidebar). The closeSidebar() workaround in ToolView.handlePress (line 39) is the only thing preventing a broken UX.",
+    "recent_commits": "1db5cb38 feat: right sidebar for tool detail viewing (3-panel layout)",
+    "file_contents": {
+      "SessionView.tsx:264-287": "SessionViewLoaded renders flex-row with main content (flex: 1) and RightSidebar as siblings. This is the 3-panel structure.",
+      "ToolView.tsx:38-45": "handlePress calls closeSidebar() then router.push() to message detail page. This is the workaround to be removed.",
+      "_layout.tsx:64-77": "Stack.Screen entries for session/[id] (headerShown: false) and session/[id]/message/[messageId] (headerShown: true). These are sibling screens in a flat Stack.",
+      "[messageId].tsx:73-111": "Detail page loads session messages, finds message by ID, renders ToolFullView. Uses Stack.Screen options for dynamic header.",
+      "rightSidebarStore.ts:1-41": "Zustand store with isOpen, data, history[], open/close/push/pop actions."
+    },
+    "dependencies": {
+      "expo-router": "Stack navigator, useRouter, useLocalSearchParams",
+      "zustand": "rightSidebarStore for sidebar state management",
+      "react-native": "View, TouchableOpacity, Platform for layout"
+    },
+    "environment": {
+      "platform": "web (primary for 3-panel), mobile (secondary)",
+      "desktop_breakpoint": "width >= 901px",
+      "sidebar_width": "450px constant"
+    }
+  },
+  "development_approach": {
+    "strategy": "Option A: Replace Stack navigation with state-based rendering inside SessionView. Add a detailMessageId state/store that conditionally swaps ChatList with ToolFullView in the middle panel. Remove closeSidebar() workaround from ToolView.",
+    "files_to_create": [
+      "packages/happy-app/sources/stores/detailViewStore.ts"
+    ],
+    "files_to_modify": [
+      "packages/happy-app/sources/-session/SessionView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx"
+    ],
+    "implementation_steps": [
+      "1. Create detailViewStore.ts with Zustand: { messageId: string | null, sessionId: string | null, open(sessionId, messageId), close() }",
+      "2. In SessionMainContent (SessionView.tsx): read detailViewStore. When messageId is set and matches current sessionId, render ToolFullView instead of ChatList. Add a detail header with back button that calls close().",
+      "3. In ToolView.tsx handlePress: instead of closeSidebar() + router.push(), call detailViewStore.open(sessionId, messageId). Only use router.push() as fallback when not in a session context (e.g., standalone page).",
+      "4. Clear detail view state when sessionId changes (already have useEffect for closeSidebar on sessionId change in SessionView, add similar for detail store).",
+      "5. Handle message loading and not-found cases inline (similar to [messageId].tsx logic).",
+      "6. Keep [messageId].tsx Stack screen functional for direct URL access and non-desktop viewports."
+    ],
+    "validation_approach": "Open right sidebar on desktop. Click tool title. Verify sidebar stays open and detail content appears in middle panel. Click back to return to chat. Verify sidebar still works. Test on mobile viewport to ensure no regression."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward architectural decision within the existing codebase. The three options are well-understood React/expo-router patterns. No external research needed."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
