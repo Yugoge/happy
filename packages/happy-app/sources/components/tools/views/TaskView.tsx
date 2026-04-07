@@ -30,27 +30,10 @@ function extractToolTitle(m: Message, metadata: Metadata | null): string {
     return m.tool.name;
 }
 
+// Inline view: renders nothing — sub-tool details are in the right sidebar now.
+// The ToolView header (title + status icon) is sufficient for the main chat.
 export const TaskView = React.memo<ToolViewProps & { onSubToolPress?: (tool: ToolCall) => void }>(
-    ({ tool, metadata, messages, sessionId, onSubToolPress }) => {
-        const filtered = useFilteredTools(messages, metadata);
-
-        if (filtered.length === 0 && messages.length === 0) {
-            return null;
-        }
-
-        const visibleTools = filtered.slice(filtered.length - 3);
-        const remainingCount = filtered.length - 3;
-
-        return (
-            <View style={taskStyles.container}>
-                <TaskStatusRow
-                    visibleTools={visibleTools}
-                    remainingCount={remainingCount}
-                    onSubToolPress={onSubToolPress}
-                />
-            </View>
-        );
-    }
+    () => null
 );
 
 // Extracts tool-call messages for the status row
