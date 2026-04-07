@@ -460,6 +460,7 @@ export class PermissionHandler {
                             ...(Array.isArray(message.allowedTools ?? message.allowTools)
                                 ? { allowedTools: (message.allowedTools ?? message.allowTools)! }
                                 : null),
+                            ...(message.answers ? { answers: message.answers } : null),
                         }
                     }
                 };
