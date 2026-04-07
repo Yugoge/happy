@@ -1,0 +1,148 @@
+{
+  "request_id": "qa-audit-20260407",
+  "timestamp": "2026-04-07T12:00:00Z",
+  "scope": "Code cleanliness audit of uncommitted changes in packages/happy-app/sources/",
+  "files_audited": [
+    "packages/happy-app/sources/components/tools/views/BashView.tsx",
+    "packages/happy-app/sources/components/tools/knownTools.tsx",
+    "packages/happy-app/sources/components/tools/views/_all.tsx",
+    "packages/happy-app/sources/components/tools/ToolView.tsx",
+    "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx"
+  ],
+  "changed_files": [
+    "packages/happy-app/sources/components/tools/views/BashView.tsx",
+    "packages/happy-app/sources/components/tools/knownTools.tsx",
+    "packages/happy-app/sources/components/tools/views/INDEX.md"
+  ],
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "major",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "line": 8,
+      "category": "unused_import",
+      "issue": "Import of `t` from '@/text' is unused. The file does not call `t()` anywhere.",
+      "recommendation": "Remove the unused import: `import { t } from '@/text';`"
+    },
+    {
+      "id": "F-002",
+      "severity": "major",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "line": 69,
+      "category": "hardcoded_color",
+      "issue": "Hardcoded color `#888` used for the truncation indicator text. Per CLAUDE.md, all colors should come from the theme system via Unistyles.",
+      "recommendation": "Use `theme.colors.textSecondary` or another appropriate theme token instead of `#888`."
+    },
+    {
+      "id": "F-003",
+      "severity": "major",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "lines": "59, 67-73",
+      "category": "inline_styles",
+      "issue": "Multiple inline style objects are used instead of StyleSheet.create from Unistyles. The component uses `{ marginHorizontal: -12, marginTop: -9, marginBottom: -1, backgroundColor: termBg }`, `{ paddingHorizontal: 16, paddingBottom: 10 }`, and `{ color: '#888', fontSize: 13, fontStyle: 'italic', opacity: 0.7 }`. Per CLAUDE.md: 'Always put styles in the very end of the component or page file' and 'Always use StyleSheet.create from react-native-unistyles'.",
+      "recommendation": "Move all inline styles to a `StyleSheet.create((theme) => ({...}))` block at the bottom of the file, using theme tokens for colors."
+    },
+    {
+      "id": "F-004",
+      "severity": "minor",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "line": 59,
+      "category": "magic_numbers",
+      "issue": "Magic numbers `-12`, `-9`, `-1` in negative margins are not documented. These appear to compensate for parent padding (ToolView.tsx content area has `paddingHorizontal: 12` and presumably some vertical padding), but this is fragile and not self-documenting.",
+      "recommendation": "Add a comment explaining why these negative margins are needed (e.g., '// Extend terminal background to fill parent content area which has 12px horizontal padding'). Consider using a shared constant."
+    },
+    {
+      "id": "F-005",
+      "severity": "minor",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "lines": "52-56",
+      "category": "logic_correctness",
+      "issue": "The truncation line count logic uses `||` chaining (`parsedResult?.stdout || parsedResult?.stderr || unparsedOutput || ''`) which will skip empty strings. If stdout is an empty string and stderr has 50 lines, `fullOutput` would be set to stderr. However, the `previewStdout`/`previewStderr` calculation above uses different logic (lines 43-46) which handles stdout and stderr separately. This means `extraLines` may be wrong when both stdout AND stderr have content -- it only counts lines from one of them, not both combined.",
+      "recommendation": "Consider computing totalLines as the sum of lines from all non-empty output fields, matching the actual truncated display. Example: count stdout lines + stderr lines if both are present."
+    },
+    {
+      "id": "F-006",
+      "severity": "minor",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "line": 76,
+      "category": "missing_newline",
+      "issue": "File does not end with a newline character (the diff shows 'No newline at end of file').",
+      "recommendation": "Add a trailing newline after the closing `});`."
+    },
+    {
+      "id": "F-007",
+      "severity": "minor",
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "lines": "48, 59",
+      "category": "double_background",
+      "issue": "BashView sets `backgroundColor: termBg` on its outer View (line 59). Inside, it renders `CommandView` which also sets its own `backgroundColor: theme.colors.terminal.background` (CommandView.tsx line 35) plus `borderRadius: 8` and `padding: 16`. This means the terminal background is applied twice. The outer container has no border-radius, so the dark terminal background will have square corners in BashView but the CommandView inside has rounded corners. The visual result is a dark rectangle with a rounded darker rectangle inside it -- likely unintentional.",
+      "recommendation": "Either remove the background from the outer container and let CommandView handle it, or set CommandView's background to transparent when used inside BashView. The negative margins suggest the intent is to extend the CommandView to fill the tool content area, so the outer background may be correct as a safety net -- but the doubled background should be reviewed visually."
+    },
+    {
+      "id": "F-008",
+      "severity": "minor",
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line": 93,
+      "category": "intentional_behavior_change",
+      "issue": "The Bash tool's `extractSubtitle` was changed from returning the command string to always returning null. This means the command text will no longer appear as a subtitle in the tool header. This is an intentional change -- the command is now rendered inside BashView's CommandView instead -- but worth noting that for tools in 'minimal' mode (where ToolContent is hidden), the command is no longer visible at all in the header description.",
+      "recommendation": "Verify this is the intended behavior. Since Bash has `minimal: true`, when `onContentPress` is not provided, the ToolContent (BashView) will NOT be rendered (ToolView.tsx line 129-138). The user will see only the title (which uses `tool.description` or falls back to 'Terminal') with no command preview. Previously they would see the command as a subtitle. If this is intentional (command shown only in expanded/detail view), document the rationale."
+    },
+    {
+      "id": "F-009",
+      "severity": "minor",
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line": 93,
+      "category": "dead_parameter",
+      "issue": "The `extractSubtitle` for Bash is now `() => null` with no parameters, but the type signature expects `(opts: { metadata: Metadata | null, tool: ToolCall }) => string | null`. While TypeScript allows fewer parameters than declared, this inconsistency differs from all other extractSubtitle implementations which accept opts.",
+      "recommendation": "No action needed -- TypeScript handles this correctly. Just a style observation."
+    },
+    {
+      "id": "F-010",
+      "severity": "info",
+      "file": "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "category": "registry_unchanged",
+      "issue": "No changes detected in _all.tsx. The registry is correct -- BashView is registered as the view for 'Bash' tools (line 35). No issues found.",
+      "recommendation": "None."
+    },
+    {
+      "id": "F-011",
+      "severity": "info",
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "category": "logic_review",
+      "issue": "ToolView's minimal/onContentPress logic is correct. When `hasSpecializedView && onContentPress` is true (line 118), the content is wrapped in a TouchableOpacity. When not minimal and no onContentPress, content renders plain. When minimal, content is hidden. The Bash tool has `minimal: true` so BashView content only appears when `onContentPress` is provided (i.e., in contexts where the parent passes it). This is consistent behavior.",
+      "recommendation": "None -- logic is sound."
+    },
+    {
+      "id": "F-012",
+      "severity": "info",
+      "file": "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+      "category": "section_headers",
+      "issue": "Section headers use hardcoded English strings: 'Prompt' (line 170), 'Tool Calls' (line 176), 'Result' (line 189). These are NOT wrapped in `t()` and violate the i18n guidelines in CLAUDE.md: 'Always use the t(...) function for ALL user-visible strings'. However, this file has NO uncommitted changes, so this is a pre-existing issue, not a regression.",
+      "recommendation": "Future cleanup: wrap section header titles in `t()` calls and add translations."
+    }
+  ],
+  "summary": {
+    "total_findings": 12,
+    "by_severity": {
+      "major": 3,
+      "minor": 6,
+      "info": 3
+    },
+    "critical_issues": 0,
+    "blocking_issues": 0,
+    "files_with_issues": {
+      "BashView.tsx": 7,
+      "knownTools.tsx": 2,
+      "_all.tsx": 0,
+      "ToolView.tsx": 0,
+      "SidebarAgentConversation.tsx": 1
+    },
+    "top_concerns": [
+      "BashView.tsx has an unused import (t from @/text) that should be removed",
+      "BashView.tsx uses hardcoded color #888 instead of theme token",
+      "BashView.tsx uses inline styles instead of StyleSheet.create per project conventions",
+      "Bash extractSubtitle returning null means command is invisible in minimal mode -- verify this is intentional",
+      "BashView truncation line count logic may be inaccurate when both stdout and stderr have content"
+    ]
+  }
+}

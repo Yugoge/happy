@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { View } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
+import { useUnistyles } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
 import { CommandView } from '@/components/CommandView';
 import { knownTools } from '@/components/tools/knownTools';
@@ -30,8 +31,8 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
         error = result;
     }
 
-    // Truncate output to first 3 lines for inline preview
-    const truncate = (text: string | null | undefined, lines: number = 3): string | null => {
+    // Truncate output to first 2 lines for inline preview
+    const truncate = (text: string | null | undefined, lines: number = 2): string | null => {
         if (!text || !text.trim()) return null;
         const allLines = text.split('\n');
         if (allLines.length <= lines) return text;
@@ -43,15 +44,34 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
         : truncate(unparsedOutput);
     const previewStderr = parsedResult ? truncate(parsedResult.stderr) : null;
 
+    const { theme } = useUnistyles();
+    const termBg = theme.colors.terminal.background;
+
+    // Count total output lines for truncation indicator
+    const fullOutput = parsedResult?.stdout || parsedResult?.stderr || unparsedOutput || '';
+    const totalLines = fullOutput.split('\n').length;
+    const shownLines = 2;
+    const extraLines = Math.max(0, totalLines - shownLines);
+    const isTruncated = extraLines > 0;
+
     return (
-        <View style={{ maxHeight: 80, overflow: 'hidden' }}>
-            <CommandView
-                command={input.command}
-                stdout={previewStdout}
-                stderr={previewStderr}
-                error={error}
-                hideEmptyOutput
-            />
+        <View style={{ marginHorizontal: -12, marginTop: -9, marginBottom: -1, backgroundColor: termBg }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                <CommandView
+                    command={input.command}
+                    stdout={previewStdout}
+                    stderr={previewStderr}
+                    error={error}
+                    hideEmptyOutput
+                />
+            </ScrollView>
+            {isTruncated && (
+                <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
+                    <Text style={{ color: '#888', fontSize: 13, fontStyle: 'italic', opacity: 0.7 }}>
+                        +{extraLines} more lines
+                    </Text>
+                </View>
+            )}
         </View>
     );
 });

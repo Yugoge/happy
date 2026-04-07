@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-07T10:53:25Z*
-**Total entries**: 139
+*Last updated: 2026-04-07T11:47:23Z*
+**Total entries**: 140
 **Convention**: kebab
 
 ## Tree
@@ -115,6 +115,7 @@ dev/
 ├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
 ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
 ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
+├── `qa-audit-20260407.json` - json config
 ├── `qa-hooks-bash-safety.json` - json config
 ├── `qa-hooks-prod-files.json` - json config
 ├── `qa-hooks-project.json` - json config
