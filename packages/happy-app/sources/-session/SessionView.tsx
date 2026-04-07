@@ -27,6 +27,10 @@ import { storage, useIsDataReady, useLocalSetting, useRealtimeStatus, useSession
 import { useSession } from '@/sync/storage';
 import { Session } from '@/sync/storageTypes';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
+import { useDetailView } from '@/stores/detailViewStore';
+import { ToolFullView } from '@/components/tools/ToolFullView';
+import { ToolHeader } from '@/components/tools/ToolHeader';
+import { ToolStatusIndicator } from '@/components/tools/ToolStatusIndicator';
 import { sync } from '@/sync/sync';
 import { t } from '@/text';
 import { tracking, trackMessageSent } from '@/track';

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, View, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { Text, View, TouchableOpacity, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import { getToolViewComponent } from './views/_all';
@@ -12,6 +12,7 @@ import { knownTools } from '@/components/tools/knownTools';
 import { Metadata } from '@/sync/storageTypes';
 import { useRouter } from 'expo-router';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
+import { useDetailView } from '@/stores/detailViewStore';
 import { PermissionFooter } from './PermissionFooter';
 import { parseToolUseError } from '@/utils/toolErrorParser';
 import { formatMCPTitle } from './views/MCPToolView';
@@ -29,20 +30,35 @@ interface ToolViewProps {
 
 const SPINNER_SCALE = [{ scaleX: 0.8 }, { scaleY: 0.8 }];
 
+// Builds the press handler for the tool header row.
+// On desktop (width >= 901), opens the inline detail view so the sidebar stays visible.
+// On mobile, pushes a Stack screen as before.
+function useToolPress(deps: {
+    onPress?: () => void;
+    sessionId?: string;
+    messageId?: string;
+    isDesktop: boolean;
+    openDetail: (id: string) => void;
+    router: ReturnType<typeof useRouter>;
+}) {
+    const { onPress, sessionId, messageId, isDesktop, openDetail, router } = deps;
+    return React.useCallback(() => {
+        if (onPress) return onPress();
+        if (!sessionId || !messageId) return;
+        if (isDesktop) return openDetail(messageId);
+        router.push(`/session/${sessionId}/message/${messageId}`);
+    }, [onPress, sessionId, messageId, isDesktop, openDetail, router]);
+}
+
 export const ToolView = React.memo<ToolViewProps>((props) => {
     const { tool, onPress, onContentPress, sessionId, messageId } = props;
     const router = useRouter();
     const { theme } = useUnistyles();
-    const closeSidebar = useRightSidebar((s) => s.close);
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 901;
+    const openDetail = useDetailView((s) => s.open);
 
-    const handlePress = React.useCallback(() => {
-        closeSidebar();
-        if (onPress) {
-            onPress();
-        } else if (sessionId && messageId) {
-            router.push(`/session/${sessionId}/message/${messageId}`);
-        }
-    }, [onPress, sessionId, messageId, router, closeSidebar]);
+    const handlePress = useToolPress({ onPress, sessionId, messageId, isDesktop, openDetail, router });
 
     const hasSpecializedView = !!getToolViewComponent(tool.name);
 
