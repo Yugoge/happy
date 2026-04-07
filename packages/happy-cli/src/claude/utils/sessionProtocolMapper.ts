@@ -5,6 +5,7 @@ import {
     type SessionEnvelope,
     type SessionTurnEndStatus,
 } from '@slopus/happy-wire';
+import { FILE_CONTENT_TOOLS, readFileContentForToolEnd } from './fileContentReader';
 
 export type ClaudeSessionProtocolState = {
     currentTurnId: string | null;
@@ -16,6 +17,8 @@ export type ClaudeSessionProtocolState = {
     hiddenParentToolCalls?: Set<string>;
     startedSubagents?: Set<string>;
     activeSubagents?: Set<string>;
+    /** Tracks tool_use blocks by their id so tool_result can look up tool name/input */
+    toolUseMap?: Map<string, { name: string; input: Record<string, unknown> }>;
     /** UUID of the command-message whose next child is the skill prompt to wrap */
     pendingSkillCommandUuid?: string;
     /** Slash command name (e.g. "/review") for the pending skill prompt label */
@@ -41,6 +44,31 @@ function extractToolResultOutput(block: { content?: unknown }): string | undefin
         return texts.length > 0 ? texts.join('\n') : undefined;
     }
     return undefined;
+}
+
+/**
+ * Enrich tool-call-end output with file content for Edit/Write tools.
+ * Reads the file at input.file_path and returns it as the output so the app
+ * can display the full file in SidebarFileView.
+ */
+function enrichToolResultOutput(
+    block: { content?: unknown; tool_use_id?: string },
+    state: ClaudeSessionProtocolState,
+): string | undefined {
+    const baseOutput = extractToolResultOutput(block);
+    const toolUseId = typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined;
+    if (!toolUseId) return baseOutput;
+
+    const toolInfo = getToolUseMap(state).get(toolUseId);
+    if (!toolInfo || !FILE_CONTENT_TOOLS.has(toolInfo.name)) return baseOutput;
+
+    const filePath = toolInfo.input?.file_path;
+    if (typeof filePath !== 'string' || filePath.length === 0) return baseOutput;
+
+    const fileContent = readFileContentForToolEnd(filePath);
+    if (!fileContent) return baseOutput;
+
+    return fileContent;
 }
 
 function isSubagentTool(name: string): boolean {
@@ -151,6 +179,13 @@ function getActiveSubagents(state: ClaudeSessionProtocolState): Set<string> {
         state.activeSubagents = new Set<string>();
     }
     return state.activeSubagents;
+}
+
+function getToolUseMap(state: ClaudeSessionProtocolState): Map<string, { name: string; input: Record<string, unknown> }> {
+    if (!state.toolUseMap) {
+        state.toolUseMap = new Map();
+    }
+    return state.toolUseMap;
 }
 
 function pickUuid(message: RawJSONLines): string | undefined {
@@ -393,6 +428,7 @@ function clearSubagentTracking(state: ClaudeSessionProtocolState): void {
     getHiddenParentToolCalls(state).clear();
     getStartedSubagents(state).clear();
     getActiveSubagents(state).clear();
+    getToolUseMap(state).clear();
 }
 
 function ensureTurn(state: ClaudeSessionProtocolState, envelopes: SessionEnvelope[]): string {
@@ -511,6 +547,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
             if (block.type === 'tool_use') {
                 const call = typeof block.id === 'string' && block.id.length > 0 ? block.id : createId();
                 const name = typeof block.name === 'string' && block.name.length > 0 ? block.name : 'unknown';
+                getToolUseMap(state).set(call, { name, input: (block.input as Record<string, unknown>) ?? {} });
                 const baseArgs = toToolArgs(block.input);
                 const title = toolTitle(name, block.input);
                 const sessionSubagentForCall = ensureSessionSubagentIdForProviderSubagent(state, call);
@@ -741,7 +778,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                                 envelopes.push(createEnvelope('agent', {
                                     t: 'tool-call-end',
                                     call: sessionSubagentForToolResult,
-                                    output: extractToolResultOutput(block),
+                                    output: enrichToolResultOutput(block, state),
                                 }, { turn: turnId, subagent }));
                             }
                             getHiddenParentToolCalls(state).delete(block.tool_use_id);
@@ -753,7 +790,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                         envelopes.push(createEnvelope('agent', {
                             t: 'tool-call-end',
                             call: block.tool_use_id,
-                            output: extractToolResultOutput(block),
+                            output: enrichToolResultOutput(block, state),
                         }, { turn: turnId, subagent }));
                     }
                 }
@@ -772,7 +809,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                             envelopes.push(createEnvelope('agent', {
                                 t: 'tool-call-end',
                                 call: sessionSubagentForToolResult,
-                                output: extractToolResultOutput(block),
+                                output: enrichToolResultOutput(block, state),
                             }, { turn: turnId, subagent }));
                         }
                         getHiddenParentToolCalls(state).delete(block.tool_use_id);
@@ -784,7 +821,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     envelopes.push(createEnvelope('agent', {
                         t: 'tool-call-end',
                         call: block.tool_use_id,
-                        output: extractToolResultOutput(block),
+                        output: enrichToolResultOutput(block, state),
                     }, { turn: turnId, subagent }));
                     continue;
                 }

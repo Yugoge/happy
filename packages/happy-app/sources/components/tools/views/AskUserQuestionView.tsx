@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ToolViewProps } from './_all';
 import { ToolSectionView } from '../ToolSectionView';
-import { sessionAllow } from '@/sync/ops';
+import { sessionAllow, getPermissionAnswers } from '@/sync/ops';
 import { t } from '@/text';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -267,10 +267,11 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
     // When component remounts after completion, local selections state is empty.
     // Fall back to the tool result or permission reason to recover the displayed answers.
     if (isSubmitted || tool.state === 'completed') {
-        // Try to extract saved answers from tool result
+        // Try to extract saved answers from tool result, permission, or module-level store
         const savedAnswers: Record<string, string> | undefined =
             (tool.result as any)?.answers
-            ?? (tool.permission as any)?.answers;
+            ?? tool.permission?.answers
+            ?? (tool.permission?.id ? getPermissionAnswers(tool.permission.id) : undefined);
 
         return (
             <ToolSectionView>
