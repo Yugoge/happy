@@ -19,6 +19,7 @@ export type ToolCall = {
         allowedTools?: string[];
         decision?: 'approved' | 'approved_for_session' | 'denied' | 'abort';
         date?: number;
+        answers?: Record<string, string>;
     };
 }
 

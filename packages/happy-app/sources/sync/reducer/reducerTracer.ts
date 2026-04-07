@@ -114,10 +114,6 @@ function getParentUuid(message: NormalizedMessage): string | null {
     return null;
 }
 
-function isUuidLike(value: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
 function getToolCallParentIds(content: { id: string; input: any }): string[] {
     const ids = new Set<string>([content.id]);
     const sessionSubagent = content.input?.sessionSubagent;
@@ -279,19 +275,11 @@ export function traceMessages(state: TracerState, messages: NormalizedMessage[])
                     results.push(...orphanResults);
                 }
             } else {
-                // For non-UUID parent references (e.g. subagent ids), treat as standalone
-                // when no parent mapping exists. CLI mapper is expected to resolve/sequence
-                // subagent ownership, so app should not permanently orphan these messages.
-                if (!isUuidLike(parentUuid)) {
-                    state.processedIds.add(message.id);
-                    const tracedMessage: TracedMessage = {
-                        ...message
-                    };
-                    results.push(tracedMessage);
-                    continue;
-                }
-
-                // Parent not yet processed - buffer this message as an orphan
+                // Parent not yet processed - buffer this message as an orphan.
+                // This covers both UUID-like parent references and non-UUID ones
+                // (e.g. CUID2 subagent ids from session protocol). When the parent
+                // tool call is later processed, processOrphans will flush these
+                // buffered messages with the correct sidechainId.
                 const orphans = state.orphanMessages.get(parentUuid) || [];
                 orphans.push(message);
                 state.orphanMessages.set(parentUuid, orphans);

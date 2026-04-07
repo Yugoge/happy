@@ -1,7 +1,7 @@
 # utils
 
-*Last updated: 2026-04-03T21:58:46Z*
-**Total entries**: 34
+*Last updated: 2026-04-06T19:53:12Z*
+**Total entries**: 35
 **Convention**: kebab
 
 ## Tree
@@ -21,6 +21,7 @@ utils/
 ├── `claudeFindLastSession.ts` - ts file
 ├── `claudeSettings.test.ts` - ts file
 ├── `claudeSettings.ts` - ts file
+├── `fileContentReader.ts` - ts file
 ├── `generateHookSettings.ts` - ts file
 ├── `getToolDescriptor.ts` - ts file
 ├── `getToolName.ts` - ts file
