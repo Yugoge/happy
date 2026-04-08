@@ -1,0 +1,170 @@
+{
+  "request_id": "dev-20260408-bug62",
+  "timestamp": "2026-04-08T12:00:00+08:00",
+  "requirement": {
+    "original": "Redesign the session recovery strategy in happy-session-recovery.sh and happy-daemon-post-start.sh to permanently fix Bug #62. Two QA reviews found 6 critical/major issues with the initial fix attempt.",
+    "clarified": "Fix all 6 issues (2 critical, 3 major, 1 minor) in the session recovery system: partial crash data loss, local-outside-function syntax error, per-home peak search broken for non-default daemons, snapshot count reads wrong home, qijie home misassignment, and watcher/ExecStartPost race condition.",
+    "what": "Comprehensive fix of 6 bugs in session recovery system",
+    "why": "Initial Bug #62 fix introduced regressions: sessions permanently lost on partial OOM, non-default daemons cannot find peak snapshots, qijie sessions assigned to wrong home, bash syntax error on every restore invocation",
+    "where": [
+      "/root/bin/happy-session-recovery.sh",
+      "/root/bin/happy-daemon-post-start.sh"
+    ],
+    "scope": {
+      "included": [
+        "Fix update_snapshot_with_peak_protection() to handle partial crashes without resurrecting archived sessions",
+        "Fix local keyword syntax error in case block",
+        "Fix find_peak_snapshot() to search correct home's snapshot directory",
+        "Fix read_snapshot_count() to respect SCOPE_HOME",
+        "Fix qijie home_dir assignment (eliminate empty-string-means-default convention)",
+        "Fix watcher/ExecStartPost race condition with marker file"
+      ],
+      "excluded": [
+        "Rewriting watcher architecture",
+        "Changes to daemon spawn logic or Claude SDK",
+        "Changes to systemd service types",
+        "Changes to daemon start/stop flow"
+      ]
+    },
+    "success_criteria": [
+      "Partial OOM (10->7 sessions) preserves the 3 dead sessions for restore",
+      "User archive (10->9 sessions) does NOT resurrect the archived session",
+      "bash -n happy-session-recovery.sh passes with no syntax errors",
+      "find_peak_snapshot() returns jade/qijie/dev peak when scoped to those homes",
+      "read_snapshot_count() returns correct home's count when SCOPE_HOME is set",
+      "Qijie sessions have home_dir=/root/.happy-qijie in scan output and snapshots",
+      "No double-restore churn when daemon restarts while watcher is running"
+    ],
+    "constraints": [
+      "Must be backward-compatible with existing snapshots that use home_dir='' for default",
+      "Must not break existing session recovery for default/jade daemons",
+      "Watcher must never be destructive (no --kill-orphans)",
+      "ExecStartPost must only kill genuine orphans for its own home"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "6 bugs found by QA in initial Bug #62 fix: partial crash data loss, syntax error, broken per-home peak, wrong home count, qijie misassignment, race condition",
+    "root_cause": "The initial fix changed peak merge from count<prev_count to count==0, only partially implemented per-home scoping (snapshots yes, peak search/count no), used bash local outside function, kept empty-string convention for default home that captures qijie, and did not address watcher/ExecStartPost timing",
+    "root_cause_commit": "0662fcb - Auto-commit: 2026-04-05 19:59:57 (Bug #62 initial fix)",
+    "why_introduced": "Bug #62 initial fix focused on preventing archived session resurrection (old merge on any drop) but over-corrected by only merging on zero-drop, and only partially implemented per-home scoping",
+    "why_problematic": "Partial crash (OOM kills subset) leaves count > 0, so zero-drop check never fires. Per-home peak/count functions still use first-home-wins pattern. Empty-string convention for default collides with qijie's fallback path.",
+    "timeline": "Bug introduced in commit 0662fcb (2026-04-05), found by QA review on 2026-04-07/08",
+    "affected_files": [
+      "/root/bin/happy-session-recovery.sh",
+      "/root/bin/happy-daemon-post-start.sh"
+    ]
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Bug fix with clear root cause analysis from QA reports; no architectural patterns to research"
+  },
+  "context": {
+    "codebase_state": "Uncommitted changes from initial Bug #62 fix on /root/bin/happy-session-recovery.sh and happy-daemon-post-start.sh. Changes include: --kill-orphans flag, per-home JSON snapshots, zero-drop peak merge, watcher no-kill comment.",
+    "recent_commits": "0662fcb Auto-commit: 2026-04-05 19:59:57 (Bug #62 initial fix), 0b48f16 fix: Bug #59/#60 (flock deadlock, orphan filter)",
+    "file_contents": {},
+    "dependencies": {
+      "jq": "Used for JSON snapshot manipulation",
+      "python3": "Used for JSONL parsing and JSON extraction",
+      "curl": "Used for daemon /list HTTP endpoint",
+      "systemd-run": "Used for cgroup-scoped session spawning"
+    },
+    "environment": {
+      "daemon_homes": ["/root/.happy", "/root/.happy-jade", "/root/.happy-dev", "/root/.happy-qijie"],
+      "session_file": "session_dirs.txt",
+      "snapshot_dir": "session_backup_history",
+      "peak_protect_seconds": 28800,
+      "poll_interval": 60
+    }
+  },
+  "development_approach": {
+    "strategy": "Apply all 6 fixes as a coherent redesign, not 6 separate patches. The fixes are interdependent: ISSUE #5 (qijie home assignment) affects ISSUE #1 (peak merge) and ISSUE #3/4 (per-home peak functions).",
+    "files_to_create": [],
+    "files_to_modify": [
+      "/root/bin/happy-session-recovery.sh",
+      "/root/bin/happy-daemon-post-start.sh"
+    ],
+    "fix_details": {
+      "issue_1_partial_crash": {
+        "severity": "critical",
+        "function": "update_snapshot_with_peak_protection()",
+        "current_lines": "409-432",
+        "fix": "Restore count<prev_count trigger (merge on any drop). Add daemon /list check to distinguish crash from intentional exit. Peak sessions not in current scan AND not in daemon /list = crash victims (include in merge). Peak sessions not in current scan AND in daemon /list as ended = intentional removal (exclude from merge). Daemon unreachable = include (safe default).",
+        "implementation": [
+          "1. Change line 409 from 'count -eq 0' back to 'count -lt prev_count'",
+          "2. In the merge loop, for each peak session missing from current scan:",
+          "   a. Determine its home from the peak snapshot's home_dir field",
+          "   b. Query that home's daemon /list endpoint",
+          "   c. If daemon is up and session PID is NOT in /list: intentional exit, skip",
+          "   d. If daemon is down or /list unreachable: crash scenario, include",
+          "3. This requires a new helper function: is_session_intentionally_ended(uuid, home)"
+        ]
+      },
+      "issue_2_local_outside_function": {
+        "severity": "critical",
+        "function": "main case block",
+        "current_lines": "1330",
+        "fix": "Change 'local restore_args=()' to 'restore_args=()'",
+        "implementation": [
+          "1. Remove 'local' keyword from line 1330"
+        ]
+      },
+      "issue_3_peak_first_home_only": {
+        "severity": "major",
+        "function": "find_peak_snapshot()",
+        "current_lines": "369-396",
+        "fix": "Accept optional home parameter. When SCOPE_HOME is set or home param provided, search only that home's snapshot dir. Remove 'break' on line 390.",
+        "implementation": [
+          "1. Add optional $1 parameter: local target_home=${1:-$SCOPE_HOME}",
+          "2. If target_home is set, only iterate that home's snapshot dir",
+          "3. If target_home is empty, iterate all homes (remove break on line 390)",
+          "4. Update callers: update_snapshot_with_peak_protection passes SCOPE_HOME, restore passes current home"
+        ]
+      },
+      "issue_4_count_wrong_home": {
+        "severity": "major",
+        "function": "read_snapshot_count()",
+        "current_lines": "356-365",
+        "fix": "Accept optional home parameter. When SCOPE_HOME or param provided, read only that home. Otherwise sum all homes.",
+        "implementation": [
+          "1. Add optional $1 parameter: local target_home=${1:-$SCOPE_HOME}",
+          "2. If target_home is set, read only $target_home/$SESSION_FILE",
+          "3. If target_home is empty, sum counts from all homes",
+          "4. Update callers similarly to issue_3"
+        ]
+      },
+      "issue_5_qijie_home_assignment": {
+        "severity": "major",
+        "function": "scan_running_sessions(), filter_sessions_for_home(), write_json_snapshot()",
+        "current_lines": "58-62, 186-194, 316-319",
+        "fix": "Eliminate empty-string-means-default convention. Always use explicit /root/.happy for default daemon.",
+        "implementation": [
+          "1. Line 59: change home_dir_val='' to home_dir_val='/root/.happy'",
+          "2. Line 189: change '${home_dir:-/root/.happy}' to just '$home_dir' (no default needed)",
+          "3. Lines 316-319: simplify jq filter -- just match .home_dir == $h (no empty/null special case)",
+          "4. Add backward compat: when reading old snapshots with home_dir='' or null, treat as /root/.happy",
+          "5. Verify daemon_spawn_session's systemd-run passes -E HAPPY_HOME_DIR correctly (already does at line 733)"
+        ]
+      },
+      "issue_6_watcher_exestart_race": {
+        "severity": "minor",
+        "function": "watch_sessions() auto-restore, happy-daemon-post-start.sh",
+        "current_lines": "646-649 (watcher), post-start.sh line 23",
+        "fix": "Add restore-pending marker file that ExecStartPost creates before sleeping, watcher checks before auto-restoring.",
+        "implementation": [
+          "1. In happy-daemon-post-start.sh: create /tmp/happy-restore-pending-$(echo $HAPPY_HOME | md5sum | cut -c1-8) BEFORE the sleep 8",
+          "2. In watch_sessions() auto-restore block: check for marker file, skip restore for that home if marker exists and is < 60s old",
+          "3. In restore_online_sessions(): remove marker file after restore completes",
+          "4. Alternative: encode the home path hash in the marker filename for per-home granularity"
+        ]
+      }
+    },
+    "validation_approach": "1. bash -n to verify no syntax errors. 2. Dry-run simulation: mock scan output with partial drops and verify merge behavior. 3. Verify qijie sessions appear in correct home snapshot. 4. Verify find_peak_snapshot returns correct home's peak when scoped. 5. Verify watcher skips restore when marker file present."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

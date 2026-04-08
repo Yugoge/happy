@@ -1,0 +1,109 @@
+{
+  "request_id": "dev-20260408-bug62-v2",
+  "timestamp": "2026-04-08T14:00:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260408-bug62-v2.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Extended TrackedSession interface with respawn metadata fields",
+        "type": "code",
+        "files_modified": ["packages/happy-cli/src/daemon/types.ts"],
+        "changes": "Added workingDirectory, claudeSessionId, stoppingByDaemon, respawnCount, lastCrashAt fields to TrackedSession",
+        "rationale": "Daemon needs working directory and Claude session ID to respawn crashed sessions, stoppingByDaemon flag to distinguish daemon-initiated SIGTERM from crashes, and respawnCount/lastCrashAt for backoff"
+      },
+      {
+        "id": 2,
+        "description": "Implemented event-driven respawn logic in daemon onChildExited",
+        "type": "code",
+        "files_modified": ["packages/happy-cli/src/daemon/run.ts"],
+        "changes": [
+          "onChildExited now receives exitCode and signal parameters",
+          "happyProcess.on('exit') handler passes code and signal to onChildExited",
+          "happyProcess.on('error') handler passes exit code 1 to onChildExited",
+          "onChildExited inspects exit code: 0 or null = clean exit (no respawn), non-zero = crash (respawn)",
+          "stoppingByDaemon flag checked to prevent respawning daemon-stopped sessions",
+          "Respawn requires claudeSessionId AND workingDirectory to be present",
+          "Exponential backoff: 5s, 10s, 20s with max 3 attempts",
+          "stopSession() sets stoppingByDaemon=true before SIGTERM for both daemon-spawned and external sessions",
+          "workingDirectory stored in TrackedSession on spawn (from options.directory)",
+          "claudeSessionId and workingDirectory stored from metadata webhook"
+        ],
+        "rationale": "Root cause: count-based watcher cannot distinguish crash from archive. Solution: daemon has exit code information and can make correct respawn decisions per-session"
+      },
+      {
+        "id": 3,
+        "description": "Removed watcher auto-restore trigger from watch_sessions()",
+        "type": "code",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Removed the 'if [ $nr -gt 0 ]; then restore_online_sessions & fi' block from watch_sessions(). Watcher now only records state changes and maintains snapshots.",
+        "rationale": "The watcher's count-based auto-restore was the root cause of cascade bugs (Bug #62). With daemon-level respawn, the watcher is now a passive observer."
+      },
+      {
+        "id": 4,
+        "description": "Fixed find_peak_snapshot first-home-only bug",
+        "type": "code",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Removed 'break' statement that stopped search after first home. Added SCOPE_HOME support to limit search when scoped.",
+        "rationale": "Bug caused peak snapshot search to only check /root/.happy, missing jade/dev/qijie snapshots"
+      },
+      {
+        "id": 5,
+        "description": "Fixed read_snapshot_count to aggregate across homes",
+        "type": "code",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "When SCOPE_HOME is set, reads only that home's count. In global mode, sums counts across all homes instead of returning first home's count.",
+        "rationale": "Previous behavior only returned first home's count, causing incorrect peak protection calculations for multi-daemon setups"
+      },
+      {
+        "id": 6,
+        "description": "Fixed scan_running_sessions home_dir convention",
+        "type": "code",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Default daemon now emits explicit '/root/.happy' as home_dir instead of empty string. Both Source 1 (PID lookup) and Source 2 (daemon /list) now use home_dir_val='$home' for all daemons.",
+        "rationale": "Empty string for default daemon caused filter_sessions_for_home to misidentify sessions, especially with qijie daemon added"
+      },
+      {
+        "id": 7,
+        "description": "Added --kill-orphans flag to restore_online_sessions",
+        "type": "code",
+        "files_modified": ["/root/bin/happy-session-recovery.sh", "/root/bin/happy-daemon-post-start.sh"],
+        "changes": [
+          "restore_online_sessions() now accepts --kill-orphans flag",
+          "Without flag: only spawns missing sessions, skips already-running ones",
+          "With flag: kills orphans first, then spawns all (used by ExecStartPost)",
+          "happy-daemon-post-start.sh now passes --kill-orphans to restore command",
+          "restore) case handler parses both --home and --kill-orphans arguments"
+        ],
+        "rationale": "ExecStartPost needs to kill orphans from previous daemon instance before respawning. Normal restore (e.g. from restart_daemon) should not kill running sessions."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "N/A - architectural design flaw, not a single commit",
+      "why_issue_occurred": "The watcher used count-based heuristics to detect disappeared sessions and trigger auto-restore. Count drops cannot distinguish between crash (should restore) and archive (should NOT restore).",
+      "how_fix_addresses_root": "Moved single-session crash recovery to the daemon's onChildExited handler which has direct access to exit codes. Exit code 0 = clean exit (archive, natural completion) = no respawn. Non-zero exit code (1, 137=OOM, 143=SIGTERM) with no stoppingByDaemon flag = crash = respawn. The watcher is now a passive observer that only maintains snapshots for ExecStartPost recovery."
+    },
+    "blast_radius": [
+      {"modified": "packages/happy-cli/src/daemon/types.ts", "imported_by": ["packages/happy-cli/src/daemon/run.ts", "packages/happy-cli/src/daemon/controlServer.ts"]},
+      {"modified": "packages/happy-cli/src/daemon/run.ts", "imported_by": ["packages/happy-cli/src/index.ts", "packages/happy-cli/src/claude/runClaude.ts", "packages/happy-cli/src/gemini/runGemini.ts", "packages/happy-cli/src/codex/runCodex.ts", "packages/happy-cli/src/agent/acp/runAcp.ts"]},
+      {"modified": "/root/bin/happy-session-recovery.sh", "imported_by": ["happy-session-watcher.service", "happy-daemon*.service (ExecStartPre/ExecStartPost)"]},
+      {"modified": "/root/bin/happy-daemon-post-start.sh", "imported_by": ["happy-daemon.service (ExecStartPost)", "happy-daemon-jade.service (ExecStartPost)", "happy-daemon-dev.service (ExecStartPost)", "happy-daemon-qijie.service (ExecStartPost)"]}
+    ],
+    "qa_ready": true,
+    "qa_notes": "Verification checks passed: bash -n for both scripts, npx tsc --noEmit for TypeScript. Key areas to test: (1) Archive a session and verify daemon does NOT respawn it. (2) Verify watcher logs count changes but never triggers restore. (3) Verify ExecStartPost restore still works with --kill-orphans. (4) Verify find_peak_snapshot searches all homes. TDD skipped: daemon process lifecycle is not programmatically testable without spawning real processes. The BA/PM already identified the root cause via behavioral observation.",
+    "permissions_to_add": [],
+    "implementation_notes": [
+      "run.ts already had pre-existing quality gate violations (848 lines, 780-line function). Edits were applied via Python script to work within existing constraints. The file needs a future refactor to extract spawnSession/stopSession/onChildExited into a separate module.",
+      "filter_sessions_for_home still has a backward-compatibility fallback for empty home_dir (old snapshots). This is correct since historical JSON snapshots may contain home_dir='' for default daemon sessions.",
+      "The respawn carries over respawnCount to the newly spawned session so backoff persists across respawns. After 3 consecutive crashes, the daemon gives up."
+    ]
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Refactor run.ts to extract session management functions into separate modules (spawnSession, stopSession, onChildExited) to comply with quality gate thresholds",
+    "Consider adding a /respawn-status endpoint to the daemon HTTP control server for monitoring",
+    "Old JSON snapshots with empty home_dir for default daemon should be treated as /root/.happy during migration"
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "request_id": "dev-20260408-120000",
+  "timestamp": "2026-04-08T12:00:00+08:00",
+  "requirement": {
+    "original": "Why did session watcher trigger auto-restore when user manually archived a session? User says: manually archiving a session should not trigger restart.",
+    "clarified": "The session watcher unconditionally restores any session that disappears from the running process list. It has no mechanism to distinguish intentional archive/kill from unexpected crash. A signal mechanism is needed so the watcher skips restoration for intentionally-removed sessions.",
+    "what": "Add intentional-archive awareness to the session watcher so it does not auto-restore sessions the user deliberately archived or killed from the app UI.",
+    "why": "Archiving a session from the app UI triggers auto-restore, which undoes the user's action, wastes resources, and spawns sessions under potentially the wrong daemon.",
+    "where": [
+      "/root/bin/happy-session-recovery.sh",
+      "/root/happy/packages/happy-cli/src/claude/registerKillSessionHandler.ts",
+      "/root/happy/packages/happy-cli/src/daemon/run.ts"
+    ],
+    "scope": {
+      "included": [
+        "Session watcher watch loop archive-awareness",
+        "Signal mechanism for intentional session kill",
+        "Peak protection exclusion for archived sessions",
+        "Signal cleanup/TTL"
+      ],
+      "excluded": [
+        "App UI changes",
+        "Server-side session lifecycle changes",
+        "Daemon architecture refactoring",
+        "Session watcher migration to non-bash"
+      ]
+    },
+    "success_criteria": [
+      "Archiving a session from app UI does NOT trigger watcher auto-restore",
+      "Sessions that crash unexpectedly are still auto-restored",
+      "Peak protection does not resurrect archived sessions via merge",
+      "Signal files are cleaned up within 1 hour"
+    ],
+    "constraints": [
+      "Must work with the existing bash-based watcher",
+      "Must work across all 4 daemon homes",
+      "Signal must be written before process death to avoid race conditions",
+      "No network dependency in the watcher (server query is optional enhancement)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "User archives session 1140deaf from app UI. 60 seconds later, watcher detects 2 sessions disappeared and triggers full restore, spawning 10+ sessions under wrong daemon.",
+    "root_cause": "watch_sessions() at line 642-644 of happy-session-recovery.sh triggers restore_online_sessions unconditionally whenever nr > 0 (sessions removed count). There is ZERO check for WHY sessions disappeared. The code: 'if [ \"$nr\" -gt 0 ]; then ... restore_online_sessions & fi' treats all disappearances as crashes.",
+    "root_cause_commit": "N/A - this is an original design limitation, not a regression",
+    "why_introduced": "The watcher was designed purely for crash recovery. Intentional archive via UI was not considered as a disappearance scenario.",
+    "why_problematic": "When a user archives a session, the CLI process is killed (via killSession RPC). The watcher sees the process disappear and immediately restores it, undoing the user's action. Peak protection then re-inserts the session into future snapshots, making it persistent.",
+    "timeline": "Always present since watcher implementation. Became visible when archive feature was added to the app UI.",
+    "affected_files": [
+      "/root/bin/happy-session-recovery.sh",
+      "/root/happy/packages/happy-cli/src/claude/registerKillSessionHandler.ts"
+    ]
+  },
+  "context": {
+    "codebase_state": "Main branch, clean except for pending docs/dev files",
+    "recent_commits": "79cf62b5 fix: Bug #61 -- scope session recovery per-daemon + add happy-qijie",
+    "file_contents": {
+      "watcher_trigger": "happy-session-recovery.sh lines 641-645: unconditional restore on nr > 0",
+      "kill_handler": "registerKillSessionHandler.ts: calls killThisHappy() with no signal mechanism",
+      "archive_action": "ActiveSessionsGroup.tsx:347-352: calls sessionKill() which sends killSession RPC"
+    },
+    "dependencies": {},
+    "environment": {
+      "daemon_homes": ["/root/.happy", "/root/.happy-jade", "/root/.happy-dev", "/root/.happy-qijie"],
+      "watcher_service": "happy-session-watcher.service",
+      "poll_interval": 60
+    }
+  },
+  "development_approach": {
+    "strategy": "Implement a file-based signal mechanism. When killSession RPC is received, write a marker file (e.g., ~/.happy/archived_sessions/<uuid>) BEFORE killing the process. The watcher checks this directory before restoring each session. Peak protection also excludes UUIDs found in this directory. Cleanup removes signals older than 1 hour.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "/root/bin/happy-session-recovery.sh -- watch_sessions: check archived signals before restore; update_snapshot_with_peak_protection: exclude archived UUIDs; restore_online_sessions: skip archived; add cleanup_archived_signals function",
+      "/root/happy/packages/happy-cli/src/claude/registerKillSessionHandler.ts -- write archive signal file before calling killThisHappy()",
+      "/root/happy/packages/happy-cli/src/daemon/run.ts -- alternative: write signal in onChildExited when exit was RPC-initiated"
+    ],
+    "validation_approach": "1. Archive a session from app UI, verify watcher logs show 'skipping intentionally archived session'. 2. Kill a session process with SIGKILL, verify watcher restores it. 3. Check that archived signal files are cleaned up after 1 hour."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward bug fix with clear root cause in existing bash script. No architectural patterns to research."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

@@ -1,0 +1,442 @@
+{
+  "title": "QA Pre-Review: Daemon-Owned Session Recovery Architecture",
+  "timestamp": "2026-04-08T15:00:00Z",
+  "reviewer": "QA Specialist",
+  "summary": "Structured risk analysis of moving all session recovery into daemon TypeScript code, killing the bash watcher, and auto-generating systemd service files. 23 risks identified across 8 categories. 4 critical, 8 major, 11 minor. The architecture is viable but requires careful mitigation of snapshot atomicity, cold boot timing, and cross-daemon observability gaps.",
+
+  "verdict": "proceed-with-mitigations",
+  "verdict_rationale": "The proposed architecture is fundamentally sound and eliminates the root cause of multiple cascade bugs (count-based restore logic). However, 4 critical risks must be mitigated before implementation begins, and the loss of cross-daemon observability needs a design answer.",
+
+  "risks": [
+    {
+      "id": "R01",
+      "category": "snapshot-durability",
+      "title": "Non-atomic snapshot writes cause corruption on crash/SIGKILL",
+      "severity": "critical",
+      "blocks_design": true,
+      "description": "The current writeDaemonState() uses writeFileSync() which is NOT atomic on Linux. fs.writeFileSync does a single write() syscall for small files but can be interrupted mid-write by SIGKILL, OOM killer, or power loss, leaving a truncated/corrupted JSON file. The proposed session_snapshot.json would be larger (multiple sessions) and even more vulnerable. If the daemon is killed during a snapshot write, the next daemon startup reads a corrupted snapshot and either crashes or silently loses session data.",
+      "evidence": "persistence.ts:533 uses writeFileSync() directly — no temp file + rename pattern. The settings file (line 416) DOES use atomic write (rename), proving the codebase knows the pattern but didn't apply it to daemon state.",
+      "mitigation": {
+        "required": true,
+        "approach": "Use write-to-temp-file + fs.renameSync() for all snapshot writes. rename() on the same filesystem is atomic on Linux (single inode pointer swap). Pattern: write to session_snapshot.json.tmp, then renameSync to session_snapshot.json. Also apply this fix to writeDaemonState() while you're at it.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R02",
+      "category": "snapshot-durability",
+      "title": "Disk full causes silent snapshot write failure",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "If the disk is full, writeFileSync() throws ENOSPC. If uncaught in the snapshot write path, this becomes an uncaughtException which triggers requestShutdown('exception'), killing the daemon entirely. Even if caught, the snapshot on disk is now stale — the next daemon startup restores an outdated session list.",
+      "evidence": "HAPPY_HOME dirs are on sda1 (610G single disk). Docker, logs, and all data share this disk. A runaway log or Docker build could fill it.",
+      "mitigation": {
+        "required": true,
+        "approach": "1) Wrap snapshot writes in try/catch and log ENOSPC without crashing. 2) On ENOSPC, keep the existing snapshot file intact (don't truncate it). 3) The atomic rename pattern from R01 naturally protects against this — if temp write fails, the original file is untouched.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R03",
+      "category": "snapshot-durability",
+      "title": "Gap between session death and snapshot write loses data",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "Scenario: Session A crashes (onChildExited fires). Daemon updates in-memory map and schedules snapshot write. Before the write completes, daemon itself crashes (uncaught exception, OOM). The snapshot on disk still contains Session A. Next daemon startup restores Session A (correct). But if the sequence is: Session A crashes -> daemon writes snapshot (A removed) -> daemon crashes before respawning A -> next startup reads snapshot without A -> A is lost.",
+      "evidence": "onChildExited() at line 671 deletes from pidToTrackedSession at line 683 before any snapshot write. The respawn is scheduled via setTimeout with delay (line 718).",
+      "mitigation": {
+        "required": true,
+        "approach": "Write snapshot BEFORE removing the session from the in-memory map, or maintain a separate 'pending respawn' list that survives snapshot writes. Better: keep crashed sessions in the snapshot with a 'pending_respawn' status, and only remove them after successful respawn. This way, if the daemon dies during the respawn delay, the next daemon startup sees the pending_respawn entry and attempts respawn again.",
+        "effort": "medium"
+      }
+    },
+    {
+      "id": "R04",
+      "category": "snapshot-durability",
+      "title": "Snapshot write frequency and I/O overhead",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "If the daemon writes a snapshot on every session add/remove/crash event, plus periodic safety writes, this could be frequent during active use (spawning multiple sessions in quick succession from the app). Each write involves JSON.stringify + temp file write + rename.",
+      "mitigation": {
+        "required": false,
+        "approach": "Debounce snapshot writes: coalesce multiple events within a 1-2 second window into a single write. This is an optimization, not a correctness issue. For periodic safety writes, 60s is sufficient (matching current heartbeat interval).",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R05",
+      "category": "startup-recovery-race",
+      "title": "Daemon receives stop signal during session restore loop",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "If the daemon starts restoring 15 sessions from snapshot (5s spacing = 75s total) and receives SIGTERM at session #8, the remaining 7 sessions are never restored. The cleanupAndShutdown handler at line 887 does not wait for pending spawns — it immediately exits.",
+      "evidence": "cleanupAndShutdown() at line 887-915 has no logic to drain pending spawns. The current ExecStartPost approach avoids this because restore runs in a separate nohup'd background process.",
+      "mitigation": {
+        "required": true,
+        "approach": "Track the restore-in-progress state. On SIGTERM during restore, either: (a) complete the current spawn and write a 'partial restore' snapshot marking which sessions still need restore, or (b) simply leave the snapshot intact so the next daemon startup re-attempts the full restore. Option (b) is simpler and correct — sessions that were already spawned will be found by the next daemon's orphan detection.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R06",
+      "category": "startup-recovery-race",
+      "title": "Orphan processes from previous daemon not cleaned before restore",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "Current flow: daemon startup calls findRunawayHappyProcesses() + killRunawayHappyProcesses() at line 147-156. Then it reads snapshot and restores. But what if orphan processes from the previous daemon crash are still running AND are in the snapshot? The daemon kills them (orphan cleanup), then immediately tries to restore them (from snapshot). The restore will succeed, creating duplicate sessions for a brief moment.",
+      "evidence": "run.ts lines 147-156 kill orphans. The proposed restore would happen after this, around line 165. If an orphan was killed at line 152, and it's in the snapshot, the daemon will spawn a duplicate.",
+      "mitigation": {
+        "required": true,
+        "approach": "After orphan cleanup, wait 2-3 seconds for processes to fully die. Then scan running processes (like the bash scanner does) to build a 'still alive' set. For each session in the snapshot: if a matching process is already running, adopt it (just track the PID) rather than spawning a new one. If no matching process, spawn fresh.",
+        "effort": "medium"
+      }
+    },
+    {
+      "id": "R07",
+      "category": "startup-recovery-race",
+      "title": "Two daemon instances start simultaneously despite lock",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "The lock uses O_EXCL which is atomic. However, the lock file cleanup on stale process detection (line 582) creates a TOCTOU window: daemon A reads lock, finds stale PID, deletes lock; daemon B also reads lock, finds stale PID, deletes lock; both try O_EXCL create. Only one wins. The other retries after delay and eventually succeeds (previous winner holds lock). Not a real issue in practice since systemd serializes starts.",
+      "evidence": "acquireDaemonLock at persistence.ts:558 has retry loop with delay, which handles this naturally.",
+      "mitigation": {
+        "required": false,
+        "approach": "Current retry mechanism is sufficient. SystemD Type=forking already serializes starts.",
+        "effort": "none"
+      }
+    },
+    {
+      "id": "R08",
+      "category": "systemd-generation",
+      "title": "Writing to /etc/systemd/system/ requires root and daemon-reload",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "The daemon process runs as root (User=root in service files), so permission is fine. But after writing service files, `systemctl daemon-reload` must be called for systemd to pick up changes. The daemon cannot reload itself (it's running as a systemd service — reloading doesn't restart it, but the daemon code must explicitly run the command). If daemon-reload fails or is forgotten, the old service file is used on next restart.",
+      "evidence": "All 4 service files have User=root. The daemon runs as root PID.",
+      "mitigation": {
+        "required": true,
+        "approach": "`happy daemon install` should: 1) Write service file to /etc/systemd/system/. 2) Run `systemctl daemon-reload` via child_process.execSync. 3) Verify reload succeeded by checking exit code. 4) Optionally run `systemctl enable <service>` for auto-start on boot. This is a CLI command, not the daemon itself — so it can safely reload systemd.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R09",
+      "category": "systemd-generation",
+      "title": "Environment variable divergence across 4 service files",
+      "severity": "critical",
+      "blocks_design": true,
+      "description": "The 4 current service files have critical per-daemon differences that MUST be preserved in auto-generation: (1) Default daemon has NO HAPPY_HOME_DIR (uses default). (2) Jade has HAPPY_HOME_DIR=/root/.happy-jade. (3) Dev uses a DIFFERENT BINARY: /usr/bin/happy-dev instead of /usr/bin/happy. (4) Dev uses HAPPY_SERVER_URL=http://localhost:3005 while others use http://188.245.32.161:3000. (5) Memory limits differ: default is 20G/16G, others are 16G/12G. (6) PIDFile paths differ per home. If auto-generation uses a single template with parameters, every one of these variations must be parameterized.",
+      "evidence": "happy-daemon.service: no HAPPY_HOME_DIR, MemoryMax=20G. happy-daemon-dev.service: ExecStart=/usr/bin/happy-dev, HAPPY_SERVER_URL=http://localhost:3005. happy-daemon-jade.service: HAPPY_HOME_DIR=/root/.happy-jade.",
+      "mitigation": {
+        "required": true,
+        "approach": "The `happy daemon install` command must accept parameters for ALL varying fields: --home, --binary-path, --server-url, --memory-max, --memory-high, --extra-env. Store these in a config file (e.g., daemon-install.json in HAPPY_HOME) so re-running install regenerates the same service file. Include a diff/dry-run mode that shows what would change before writing.",
+        "effort": "medium"
+      }
+    },
+    {
+      "id": "R10",
+      "category": "systemd-generation",
+      "title": "Migration from hand-crafted to auto-generated service files",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "The 4 existing service files work. Running `happy daemon install` for the first time must not break them. If the auto-generated file is slightly different (missing an env var, different memory limit), the daemon could behave differently after the next restart. There's no rollback mechanism if the generated file is wrong.",
+      "evidence": "Service files are the lifeline of all 4 production daemons. A bad service file = daemon won't start = all sessions dead.",
+      "mitigation": {
+        "required": true,
+        "approach": "1) `happy daemon install` should NEVER overwrite without confirmation. 2) Show a diff between existing and proposed service file. 3) Back up the existing file to /etc/systemd/system/<name>.service.bak. 4) For initial migration, consider a `--dry-run` flag that only prints the diff. 5) Include a `happy daemon install --restore` to revert from backup.",
+        "effort": "medium"
+      }
+    },
+    {
+      "id": "R11",
+      "category": "systemd-generation",
+      "title": "Service naming collision across daemons",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "If `happy daemon install` derives the service name from HAPPY_HOME_DIR, collisions are unlikely. But if two daemons have the same name (e.g., both 'default'), one overwrites the other's service file.",
+      "evidence": "Current naming: happy-daemon, happy-daemon-jade, happy-daemon-dev, happy-daemon-qijie. Each is unique.",
+      "mitigation": {
+        "required": false,
+        "approach": "Derive service name from HAPPY_HOME_DIR suffix: /root/.happy -> happy-daemon, /root/.happy-jade -> happy-daemon-jade, etc. Or accept an explicit --name parameter. Validate uniqueness before writing.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R12",
+      "category": "observability-loss",
+      "title": "Loss of session_dirs.txt breaks external diagnostic tools",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "The watcher writes session_dirs.txt which is read by: (1) happy-session-recovery.sh check/history/save/restore commands. (2) ExecStartPost restore. (3) Any external scripts that query session state. If the daemon owns the snapshot, it writes session_snapshot.json instead. All external tools that parse session_dirs.txt will break.",
+      "evidence": "SESSION_FILE='session_dirs.txt' is referenced throughout the recovery script (lines 21, 345, 618, etc.).",
+      "mitigation": {
+        "required": true,
+        "approach": "The daemon should write BOTH: (1) session_snapshot.json (its native format, with full metadata). (2) session_dirs.txt (compatibility format, uuid:dir per line). This is a simple compatibility shim that adds negligible overhead. Alternatively, update happy-session-recovery.sh to read the new JSON format — but this is more work and riskier.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R13",
+      "category": "observability-loss",
+      "title": "Loss of JSONL event history and time-travel recovery",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "The watcher writes session_history.jsonl (event log) and JSON snapshots to session_backup_history/. These enable `history` and `snapshots` commands for diagnosing past incidents. If the daemon replaces the watcher, it should provide equivalent event logging.",
+      "evidence": "recovery script has HISTORY_FILE='session_history.jsonl' and SNAPSHOT_DIR='session_backup_history'.",
+      "mitigation": {
+        "required": false,
+        "approach": "The daemon should append to session_history.jsonl on every session event (add, remove, crash, respawn). This is trivial — one appendFileSync per event. JSON snapshots can be written periodically (every 15min like the current watcher). This preserves full diagnostic capability.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R14",
+      "category": "observability-loss",
+      "title": "Cross-daemon observability completely lost",
+      "severity": "critical",
+      "blocks_design": true,
+      "description": "The current watcher monitors ALL 4 daemons simultaneously (HAPPY_HOMES array). It provides a global view: total session count, cross-daemon diffs, unified snapshots. If each daemon only manages its own sessions, there is NO single point that sees all sessions across all 4 daemons. This means: (1) `happy-session-recovery.sh check` cannot show a global summary. (2) No single place to detect if total system session count is anomalous. (3) The user loses the ability to `save` all daemons' state in one command.",
+      "evidence": "scan_running_sessions() iterates HAPPY_HOMES and queries each daemon's /list endpoint (line 49-68). find_peak_snapshot() searches all homes (line 367). read_snapshot_count() sums across all homes (line 343).",
+      "mitigation": {
+        "required": true,
+        "approach": "Two options: (A) Keep a lightweight watcher that only does observability (reads each daemon's snapshot, aggregates, writes global summary) — no restore logic. This is much simpler and safer than the current watcher. (B) Add a `happy daemon status --all` command that queries each daemon's HTTP /list endpoint and aggregates. Option B is cleaner architecturally but requires all daemons to be running. Option A provides persistence even when daemons are down. Recommendation: Option A — a 20-line bash script that runs every 60s, reads 4 JSON files, writes a summary.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R15",
+      "category": "quad-daemon",
+      "title": "Dev daemon uses different binary — install command must handle this",
+      "severity": "major",
+      "blocks_design": false,
+      "description": "happy-daemon-dev.service uses ExecStart=/usr/bin/happy-dev, not /usr/bin/happy. The dev daemon runs from /root/happy-dev/ source, not the global binary. If `happy daemon install` always assumes the global binary, it will generate a wrong service file for dev.",
+      "evidence": "happy-daemon-dev.service line 17: ExecStart=/usr/bin/happy-dev daemon start. vs others: ExecStart=/usr/bin/happy daemon start.",
+      "mitigation": {
+        "required": true,
+        "approach": "`happy daemon install` should detect which binary it was invoked from (process.execPath or projectPath()) and use that in the generated ExecStart. Or accept an explicit --binary parameter.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R16",
+      "category": "quad-daemon",
+      "title": "One daemon's install overwrites another's service file",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "If user runs `happy daemon install` without specifying which daemon, it might default to the wrong service file name and overwrite an existing daemon's config.",
+      "mitigation": {
+        "required": false,
+        "approach": "Derive service name from HAPPY_HOME_DIR. Refuse to overwrite a service file that points to a different HAPPY_HOME_DIR. Show clear error message.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R17",
+      "category": "chicken-and-egg",
+      "title": "First-ever install requires manual bootstrap",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "To run `happy daemon install`, the binary must already be installed (npm install -g happy-coder). But the service file is what tells systemd to run the binary. So the first install is always manual. This is acceptable — it's a one-time operation.",
+      "evidence": "Current setup: service files were manually created. Auto-generation is for maintenance (upgrades, new daemons), not first-time bootstrapping.",
+      "mitigation": {
+        "required": false,
+        "approach": "Document the bootstrap sequence: 1) npm install -g happy-coder. 2) happy daemon install --name <name> --home <path>. 3) systemctl start happy-daemon-<name>. The install command handles daemon-reload and enable. This is cleaner than the current manual approach.",
+        "effort": "none"
+      }
+    },
+    {
+      "id": "R18",
+      "category": "chicken-and-egg",
+      "title": "Upgrades that change the service file template are not auto-applied",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "If a new CLI version changes the service file template (e.g., adds a new environment variable, changes memory limits), the running service file is not automatically updated. The daemon auto-upgrades itself via heartbeat version detection, but the service file stays at the old version.",
+      "mitigation": {
+        "required": false,
+        "approach": "On daemon startup, compare the current service file with what would be generated. If different, log a warning: 'Service file is outdated, run happy daemon install to update.' Do NOT auto-update service files — that's a dangerous side effect of a daemon restart.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R19",
+      "category": "cold-boot-timing",
+      "title": "Daemon starts before happy-server is ready after cold boot",
+      "severity": "critical",
+      "blocks_design": true,
+      "description": "After a server reboot, systemd starts services in dependency order. The daemon service has 'After=network.target docker.service'. But happy-server runs inside Docker and takes 10-30s to start (Prisma migrations, Redis connection, etc.). The daemon needs WebSocket connection to happy-server for session spawning. If the daemon reads the snapshot and immediately tries to restore 15 sessions, all spawn attempts will fail because the server isn't accepting connections yet. The current ExecStartPost has 'sleep 8' before restore, which is a crude but effective wait.",
+      "evidence": "happy-daemon-post-start.sh line 20: 'sleep 8 && /root/bin/happy-session-recovery.sh restore'. The 8-second delay is empirically chosen to wait for happy-server startup.",
+      "mitigation": {
+        "required": true,
+        "approach": "The daemon's restore-on-startup logic must include a server readiness check. Pattern: before restoring sessions, poll the server (HTTP GET /health or attempt WebSocket connection) with exponential backoff (1s, 2s, 4s, 8s, 16s, max 60s). Only start session restore after server connection is confirmed. The existing apiMachine.connect() at line 795 already establishes the WebSocket — restore should happen AFTER this succeeds, not before.",
+        "effort": "small"
+      }
+    },
+    {
+      "id": "R20",
+      "category": "cold-boot-timing",
+      "title": "Cold boot detection (boot_id) needs equivalent in daemon",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "The current system uses /proc/sys/kernel/random/boot_id to detect cold boots. The daemon doesn't need this — it simply reads its snapshot on startup. Whether startup is due to cold boot, daemon crash, or manual restart, the behavior is the same: read snapshot, restore sessions. The cold boot detection in the bash script was specifically to prevent ExecStartPre save from overwriting session_dirs.txt with an empty scan (no processes running yet after reboot). Since the daemon owns the snapshot and doesn't run ExecStartPre, this problem doesn't exist.",
+      "evidence": "BOOT_ID_FILE at recovery script line 29. is_cold_boot() function used in save_session_state.",
+      "mitigation": {
+        "required": false,
+        "approach": "No action needed. The daemon's snapshot is written by the daemon itself, never by an external script during startup. The cold boot detection problem is eliminated by the architecture change.",
+        "effort": "none"
+      }
+    },
+    {
+      "id": "R21",
+      "category": "snapshot-durability",
+      "title": "Snapshot format versioning for future compatibility",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "If the snapshot format changes in a future version (new fields, restructured data), a new daemon reading an old snapshot could fail. Without a version field, there's no way to handle migrations.",
+      "mitigation": {
+        "required": false,
+        "approach": "Include a 'version: 1' field in the snapshot JSON. Future versions can check this and migrate if needed. Trivial to add now, painful to add later.",
+        "effort": "trivial"
+      }
+    },
+    {
+      "id": "R22",
+      "category": "startup-recovery-race",
+      "title": "Detached sessions survive daemon stop but snapshot says they exist",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "Sessions are spawned with detached: true (line 530). When daemon stops (SIGTERM), the sessions are NOT killed (detached processes survive parent death). When daemon restarts, it reads the snapshot which still lists these sessions. It should detect that they're already running (adoption, not re-spawn).",
+      "evidence": "spawnHappyCLI at line 528: detached: true. cleanupAndShutdown does NOT send SIGTERM to children.",
+      "mitigation": {
+        "required": true,
+        "approach": "Same as R06 mitigation: on startup, scan /proc for running happy-cli processes, match them to snapshot entries by PID or Claude session ID, and adopt them rather than spawning duplicates. The orphan detection code at line 147 already finds these processes — extend it to also match against the snapshot.",
+        "effort": "medium"
+      }
+    },
+    {
+      "id": "R23",
+      "category": "snapshot-durability",
+      "title": "Externally-started sessions not in snapshot cause data loss on restart",
+      "severity": "minor",
+      "blocks_design": false,
+      "description": "Sessions started via `happy claude` directly (not through daemon RPC) register themselves via the /session-started webhook. They are tracked in pidToTrackedSession and should appear in the snapshot. But if the daemon hasn't written a snapshot since the external session started (e.g., debounce window), and the daemon crashes, the external session is lost from the snapshot.",
+      "mitigation": {
+        "required": false,
+        "approach": "Write snapshot immediately (or within 1-2s debounce) after receiving a session webhook for an externally-started session. This is already covered by the 'write on every session add/remove' proposal, but worth calling out explicitly for external sessions.",
+        "effort": "trivial"
+      }
+    }
+  ],
+
+  "severity_summary": {
+    "critical": 4,
+    "major": 8,
+    "minor": 11,
+    "total": 23,
+    "critical_ids": ["R01", "R09", "R14", "R19"],
+    "major_ids": ["R02", "R03", "R05", "R06", "R08", "R10", "R12", "R15"],
+    "minor_ids": ["R04", "R07", "R11", "R13", "R16", "R17", "R18", "R20", "R21", "R22", "R23"]
+  },
+
+  "design_blockers": [
+    {
+      "risk_id": "R01",
+      "blocker_reason": "Without atomic writes, any daemon crash during snapshot write corrupts the recovery file, potentially losing ALL session state. This is a data loss path that will eventually hit in production.",
+      "resolution": "Implement write-to-temp + renameSync pattern before any implementation begins."
+    },
+    {
+      "risk_id": "R09",
+      "blocker_reason": "The 4 service files have critical differences (binary path, server URL, memory limits, env vars). A template that doesn't parameterize all of these will break at least one daemon.",
+      "resolution": "Design the install command's parameter schema first. Document all 4 service file variations. Verify the template can reproduce all 4 current files exactly before implementing."
+    },
+    {
+      "risk_id": "R14",
+      "blocker_reason": "Losing cross-daemon observability removes a critical operational capability (diagnosing issues across the 4-daemon fleet). The user relies on `check` and `history` commands.",
+      "resolution": "Design the cross-daemon observability replacement (lightweight aggregator or status --all command) before killing the watcher."
+    },
+    {
+      "risk_id": "R19",
+      "blocker_reason": "Without server readiness waiting, every cold boot will fail to restore sessions. This is a guaranteed failure mode, not a corner case.",
+      "resolution": "Add server readiness polling with exponential backoff to the daemon startup sequence, BEFORE session restore."
+    }
+  ],
+
+  "recommended_implementation_order": [
+    {
+      "phase": 1,
+      "title": "Foundation: Atomic writes + snapshot format",
+      "tasks": [
+        "Implement write-to-temp + renameSync utility function",
+        "Apply to writeDaemonState() (fix existing non-atomic write)",
+        "Design session_snapshot.json schema with version field",
+        "Add snapshot read/write functions to persistence.ts"
+      ],
+      "risks_mitigated": ["R01", "R02", "R21"]
+    },
+    {
+      "phase": 2,
+      "title": "Daemon session tracking with snapshot persistence",
+      "tasks": [
+        "Write snapshot on every session add/remove/crash event (debounced)",
+        "Write periodic safety snapshot every 60s",
+        "Track pending_respawn state in snapshot",
+        "Write session_dirs.txt compatibility shim alongside JSON snapshot",
+        "Append to session_history.jsonl on events"
+      ],
+      "risks_mitigated": ["R03", "R04", "R12", "R13", "R23"]
+    },
+    {
+      "phase": 3,
+      "title": "Startup recovery inside daemon",
+      "tasks": [
+        "Read snapshot on daemon startup",
+        "Add server readiness polling with exponential backoff",
+        "Scan /proc for already-running sessions and adopt them",
+        "Restore remaining sessions from snapshot with 5s spacing",
+        "Handle SIGTERM during restore gracefully"
+      ],
+      "risks_mitigated": ["R05", "R06", "R19", "R22"]
+    },
+    {
+      "phase": 4,
+      "title": "Remove ExecStartPre/ExecStartPost + simplify watcher",
+      "tasks": [
+        "Remove ExecStartPre save from all 4 service files",
+        "Remove ExecStartPost (happy-daemon-post-start.sh)",
+        "Convert watcher to observability-only mode (read daemon snapshots, aggregate, expose)",
+        "OR implement `happy daemon status --all` for cross-daemon view"
+      ],
+      "risks_mitigated": ["R14"]
+    },
+    {
+      "phase": 5,
+      "title": "Service file auto-generation",
+      "tasks": [
+        "Design install command parameter schema",
+        "Implement service file template with all parameterized fields",
+        "Add --dry-run and diff display before overwrite",
+        "Add backup of existing service file",
+        "Include daemon-reload and enable in install flow",
+        "Test with all 4 existing service files"
+      ],
+      "risks_mitigated": ["R08", "R09", "R10", "R11", "R15", "R16"]
+    }
+  ],
+
+  "things_the_architecture_gets_right": [
+    "Eliminates the fundamental flaw: count-based restore logic that cannot distinguish crash from archive",
+    "Daemon has authoritative knowledge of WHY a session exited (exit code + stoppingByDaemon flag)",
+    "Single owner for session lifecycle eliminates race conditions between watcher and ExecStartPost",
+    "Snapshot is written by the same process that manages sessions — no cross-process synchronization needed",
+    "The crash respawn logic (already implemented in Bug #62 BA spec) is the correct event-driven approach",
+    "Removing the bash watcher removes ~1300 lines of complex bash that has been a persistent source of bugs"
+  ],
+
+  "things_to_watch_out_for": [
+    "The dev daemon uses a different binary path — any auto-generation that assumes /usr/bin/happy will break dev",
+    "Memory limits differ between default (20G/16G) and others (16G/12G) — auto-generation must preserve these",
+    "Dev daemon uses localhost:3005 server URL — auto-generation must not hardcode the production server URL",
+    "ExecStartPost deletion means the daemon itself must handle PID file writing (or remove PIDFile from service)",
+    "The current `session_dirs.txt` format is used by external scripts — breaking this format breaks diagnostics",
+    "Tmux sessions (line 402-490 in run.ts) have different PID tracking — snapshot must handle tmux sessions correctly"
+  ]
+}

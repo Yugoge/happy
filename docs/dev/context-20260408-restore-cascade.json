@@ -1,0 +1,106 @@
+{
+  "request_id": "dev-20260408-restore-cascade",
+  "timestamp": "2026-04-08T10:00:00Z",
+  "requirement": {
+    "original": "Investigation: Why did the restore orphan-kill cascade NEVER happen before, but started happening NOW?",
+    "clarified": "Identify the exact commit that introduced the orphan-kill-in-restore behavior that causes a cascade when the watcher triggers restore after a natural session death",
+    "what": "Root cause investigation of session kill cascade in restore_online_sessions",
+    "why": "Sessions are being killed unnecessarily when any single session dies naturally, causing total session loss",
+    "where": ["/root/bin/happy-session-recovery.sh"],
+    "scope": {
+      "included": [
+        "Git history analysis of happy-session-recovery.sh",
+        "Identifying the exact commit that changed behavior",
+        "Documenting before/after code comparison"
+      ],
+      "excluded": [
+        "Implementing the fix",
+        "Changing the watcher trigger logic",
+        "Modifying daemon systemd services"
+      ]
+    },
+    "success_criteria": [
+      "Exact commit hash identified that introduced the cascade",
+      "Clear before/after code comparison showing what changed",
+      "Explanation of why old code was safe and new code is dangerous",
+      "Cascade chain documented step by step"
+    ],
+    "constraints": ["Must not modify production scripts during investigation"]
+  },
+  "root_cause_analysis": {
+    "symptom": "When any single session dies naturally, ALL sessions for that daemon home get killed and re-spawned, causing a cascade loop",
+    "root_cause": "Commit 78154c0 replaced the per-UUID 'already running' skip check with a blanket orphan-kill that kills ALL running sessions before re-spawning. This function is called both by daemon restart (where orphan-kill is appropriate) AND by the watcher on natural session death (where it is destructive).",
+    "root_cause_commit": "78154c0 - Update: Comprehensive changes via push script (2026-03-21 06:46:03)",
+    "why_introduced": "The orphan-kill was added to handle daemon restart scenarios where old processes are alive but not registered with the new daemon instance. The intent was correct for that use case.",
+    "why_problematic": "The same restore_online_sessions function is also called by watch_sessions when ANY session disappears (line 644: 'Sessions disappeared, triggering auto-restore'). In this case, the running sessions are NOT orphans - they are healthy sessions under the current daemon. Killing them causes the watcher to detect more disappearances, triggering another restore, creating a cascade loop.",
+    "timeline": "Introduced 2026-03-21 in commit 78154c0. The cascade could have occurred any time after this date when a single session died naturally while other sessions were running.",
+    "affected_files": ["/root/bin/happy-session-recovery.sh"],
+    "code_change_detail": {
+      "removed": {
+        "description": "Per-UUID 'already running' skip check in restore loop",
+        "code": "if [ -n \"$running_for_home\" ] && echo \"$running_for_home\" | grep -q \"$uuid\"; then\n    total_already=$((total_already + 1))\n    continue\nfi",
+        "location": "restore_online_sessions() per-session loop"
+      },
+      "added": {
+        "description": "Blanket orphan-kill block that kills ALL running sessions before respawning",
+        "code": "if [ -n \"$running_for_home\" ]; then\n    while IFS= read -r orphan_uuid; do\n        orphan_pids=$(pgrep -f -- \"--resume $orphan_uuid\" 2>/dev/null)\n        echo \"$orphan_pids\" | xargs kill 2>/dev/null\n    done <<< \"$running_for_home\"\nfi",
+        "location": "restore_online_sessions() before per-session loop"
+      }
+    }
+  },
+  "context": {
+    "codebase_state": "Script at /root/bin/happy-session-recovery.sh, last modified 2026-04-05",
+    "recent_commits": [
+      "0662fcb 2026-04-05 - Auto-commit (Bug #61 scoping fix applied)",
+      "1a7e982 2026-04-05 - checkpoint (Bug #61 scoping)",
+      "0b48f16 2026-04-03 - Bug #59/#60 flock fix, orphan filter in scan_running_sessions",
+      "8f05022 2026-03-25 - checkpoint",
+      "78154c0 2026-03-21 - INTRODUCING COMMIT: added orphan-kill, removed skip check",
+      "719f7d6 2026-03-17 - LAST SAFE VERSION: had skip check, no orphan-kill"
+    ],
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Differentiate watcher-triggered restore from daemon-restart-triggered restore. The orphan-kill should ONLY run during daemon restart, not during watcher auto-restore. Options: (1) Add a parameter to restore_online_sessions (e.g., --kill-orphans), (2) Re-add the per-UUID skip check and only orphan-kill when called from daemon-post-start or restart_daemon, (3) Have the watcher call a lighter 'restore_missing_only' function that skips the orphan-kill block.",
+    "files_to_modify": ["/root/bin/happy-session-recovery.sh"],
+    "files_to_create": [],
+    "validation_approach": "Manually kill one session while others are running, verify watcher only re-spawns the dead session without touching others"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Bug investigation with clear git history trail, no external research needed"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "cascade_chain": [
+    "1. Session A dies naturally (Claude exit, crash, timeout)",
+    "2. Watcher poll detects hash change, count dropped by 1",
+    "3. Watcher triggers: restore_online_sessions & (line 644)",
+    "4. Restore scans running sessions, finds B, C, D alive",
+    "5. Restore orphan-kill block kills B, C, D (they are NOT orphans)",
+    "6. Restore re-spawns A, B, C, D from session_dirs.txt snapshot",
+    "7. Next watcher poll detects B, C, D disappeared (killed in step 5)",
+    "8. Watcher triggers ANOTHER restore_online_sessions &",
+    "9. If new B', C', D' processes started from step 6, they get killed too",
+    "10. Loop continues until lock prevents concurrent restore or sessions stabilize"
+  ],
+  "git_history_comparison": {
+    "safe_version": {
+      "commit": "719f7d6",
+      "date": "2026-03-17",
+      "behavior": "restore_online_sessions skips already-running sessions via grep check, only spawns missing ones"
+    },
+    "broken_version": {
+      "commit": "78154c0",
+      "date": "2026-03-21",
+      "behavior": "restore_online_sessions kills ALL running sessions as orphans, then re-spawns everything from snapshot"
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "request_id": "dev-20260408-bug62-v2",
+  "timestamp": "2026-04-08T12:00:00Z",
+  "requirement": {
+    "original": "Session recovery should be event-driven, not count-based. Server reboot? Restore all. OOM? Respawn that session. Archive? Don't respawn. The watcher auto-restore is the source of all cascade bugs.",
+    "clarified": "Move single-session crash recovery to the daemon (onChildExited with exit code inspection), remove watcher auto-restore trigger, fix remaining bash bugs (#3-#5), keep ExecStartPost for daemon restart path.",
+    "what": "Event-driven session recovery: daemon respawns crashed sessions, watcher becomes passive observer",
+    "why": "Count-based watcher auto-restore cannot distinguish crash from archive, causing cascade bugs (Bug #62) where archived sessions get resurrected",
+    "where": [
+      "packages/happy-cli/src/daemon/run.ts",
+      "packages/happy-cli/src/daemon/types.ts",
+      "/root/bin/happy-session-recovery.sh"
+    ],
+    "scope": {
+      "included": [
+        "Daemon onChildExited respawn logic with exit code inspection",
+        "TrackedSession type extension (workingDirectory, claudeSessionId, stoppingByDaemon)",
+        "Remove watcher auto-restore trigger from watch_sessions()",
+        "Fix find_peak_snapshot first-home-only bug",
+        "Fix read_snapshot_count first-home-only bug",
+        "Fix qijie home_dir empty string convention",
+        "Respawn backoff and retry limits"
+      ],
+      "excluded": [
+        "ExecStartPost restore logic (keep as-is for daemon restart path)",
+        "Heartbeat and timeout system changes",
+        "Claude SDK exit behavior changes",
+        "Watcher snapshot writing mechanism (only remove the restore trigger)"
+      ]
+    },
+    "success_criteria": [
+      "OOM-killed session (exit 137) is respawned by daemon within 5 seconds",
+      "Archived session (exit 0) is NOT respawned",
+      "stopSession SIGTERM is NOT treated as crash requiring respawn",
+      "Watcher never calls restore_online_sessions on count drop",
+      "ExecStartPost still restores sessions on daemon restart",
+      "find_peak_snapshot searches all HAPPY_HOMES, not just first",
+      "read_snapshot_count aggregates across all homes or scopes to SCOPE_HOME",
+      "Default daemon uses explicit /root/.happy in session_dirs.txt, not empty string"
+    ],
+    "constraints": [
+      "Must not break ExecStartPost daemon restart recovery path",
+      "Must handle sessions that crash before webhook (no claudeSessionId yet = no respawn)",
+      "Must distinguish daemon-initiated SIGTERM (stopSession) from external SIGTERM",
+      "Respawn must use existing spawnSession() with resumeSessionId parameter",
+      "Max 3 respawn attempts with exponential backoff to prevent loops"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Archived sessions get resurrected; watcher auto-restore triggers cascading restores that interfere with daemon-managed sessions; qijie archiving all sessions triggers a zero-drop peak merge that restores everything",
+    "root_cause": "The watcher uses count-based heuristics to detect 'disappeared' sessions and triggers auto-restore, but it CANNOT distinguish between crash (should restore) and archive (should NOT restore). The exit code information exists only in the daemon's process handler, not in the watcher's process scan.",
+    "root_cause_commit": "N/A - architectural design flaw, not a single commit",
+    "why_introduced": "The watcher was designed as a safety net to detect OOM kills and crashes, but count-based detection is fundamentally unable to determine exit intent",
+    "why_problematic": "1) Archive looks identical to crash from watcher's perspective (both reduce count). 2) Peak merge on zero-drop resurrects intentionally archived sessions. 3) Watcher and ExecStartPost race to restore, causing duplicate spawns.",
+    "timeline": "Ongoing since watcher auto-restore was added; became acute with Bug #62 when qijie's sessions were repeatedly resurrected after archival",
+    "affected_files": [
+      "packages/happy-cli/src/daemon/run.ts",
+      "packages/happy-cli/src/daemon/types.ts",
+      "/root/bin/happy-session-recovery.sh"
+    ]
+  },
+  "context": {
+    "codebase_state": "Main branch, session recovery bash script has uncommitted changes from prior Bug #62 fix attempts",
+    "recent_commits": "79cf62b5 fix: Bug #61 — scope session recovery per-daemon",
+    "file_contents": {
+      "daemon_onChildExited": {
+        "file": "packages/happy-cli/src/daemon/run.ts",
+        "lines": "655-663",
+        "summary": "Currently only notifies server of session end and removes from tracking. Does NOT inspect exit code. Does NOT attempt respawn."
+      },
+      "daemon_processExitHandler": {
+        "file": "packages/happy-cli/src/daemon/run.ts",
+        "lines": "558-563",
+        "summary": "happyProcess.on('exit', (code, signal) => { ... onChildExited(pid) }). Exit code and signal are available but NOT passed to onChildExited."
+      },
+      "daemon_stopSession": {
+        "file": "packages/happy-cli/src/daemon/run.ts",
+        "lines": "616-649",
+        "summary": "Sends SIGTERM to process. Does NOT mark session as 'stopping by daemon', so SIGTERM exit would look like a crash."
+      },
+      "trackedSessionType": {
+        "file": "packages/happy-cli/src/daemon/types.ts",
+        "lines": "11-22",
+        "summary": "Has pid, childProcess, happySessionId, tmuxSessionId. Missing: workingDirectory, claudeSessionId, stoppingByDaemon flag."
+      },
+      "spawnSessionOptions": {
+        "file": "packages/happy-cli/src/modules/common/registerCommonHandlers.ts",
+        "lines": "118-127",
+        "summary": "Already has resumeSessionId field for --resume support. directory field provides working dir."
+      },
+      "watcherAutoRestore": {
+        "file": "/root/bin/happy-session-recovery.sh",
+        "lines": "643-649",
+        "summary": "if [ $nr -gt 0 ]; then restore_online_sessions & fi — THIS IS THE LINE TO REMOVE"
+      },
+      "findPeakSnapshot": {
+        "file": "/root/bin/happy-session-recovery.sh",
+        "lines": "369-396",
+        "summary": "Has 'break' on line 391 that stops after first home. Bug: only checks /root/.happy snapshots."
+      },
+      "readSnapshotCount": {
+        "file": "/root/bin/happy-session-recovery.sh",
+        "lines": "356-365",
+        "summary": "Returns count from first home's session_dirs.txt. Bug: ignores other homes."
+      },
+      "killThisHappyExitCode": {
+        "file": "packages/happy-cli/src/claude/runClaude.ts",
+        "lines": "480-484",
+        "summary": "cleanup() calls process.exit(0) on success, process.exit(1) on error. killSession RPC triggers cleanup -> exit(0)."
+      },
+      "claudeRemoteLauncherCrashHandling": {
+        "file": "packages/happy-cli/src/claude/claudeRemoteLauncher.ts",
+        "lines": "335-478",
+        "summary": "Inner while loop handles Claude SDK crashes (up to MAX_CONSECUTIVE_CRASHES=5). After 5 crashes, sets exitReason='exit' and the process exits cleanly. Daemon-level respawn handles the PROCESS dying, not Claude SDK crashes."
+      }
+    },
+    "dependencies": {},
+    "environment": {
+      "daemon_homes": ["/root/.happy", "/root/.happy-jade", "/root/.happy-dev", "/root/.happy-qijie"],
+      "systemd_units": ["happy-daemon.service", "happy-daemon-jade.service", "happy-daemon-dev.service", "happy-daemon-qijie.service", "happy-session-watcher.service"]
+    }
+  },
+  "development_approach": {
+    "strategy": "Two-pronged: (1) Add respawn logic to daemon TypeScript, (2) Simplify bash watcher by removing auto-restore trigger and fixing remaining bugs",
+    "files_to_create": [],
+    "files_to_modify": [
+      {
+        "file": "packages/happy-cli/src/daemon/types.ts",
+        "changes": [
+          "Add workingDirectory: string to TrackedSession",
+          "Add claudeSessionId?: string to TrackedSession",
+          "Add stoppingByDaemon?: boolean to TrackedSession",
+          "Add respawnCount?: number to TrackedSession",
+          "Add lastCrashAt?: number to TrackedSession"
+        ]
+      },
+      {
+        "file": "packages/happy-cli/src/daemon/run.ts",
+        "changes": [
+          "Pass exit code and signal to onChildExited: onChildExited(pid, code, signal)",
+          "In happyProcess.on('exit') handler (line 558): pass code and signal to onChildExited",
+          "In onChildExited: inspect code/signal, if non-zero AND session has claudeSessionId AND NOT stoppingByDaemon -> schedule respawn via spawnSession()",
+          "Store workingDirectory in TrackedSession when creating it in spawnSession() (from options.directory)",
+          "Store claudeSessionId in TrackedSession when metadata webhook arrives (from sessionMetadata.claudeSessionId)",
+          "In stopSession(): set session.stoppingByDaemon = true before sending SIGTERM",
+          "Add respawn backoff: 5s delay, max 3 attempts, track via respawnCount on TrackedSession",
+          "In heartbeat prune loop (line 736): also clean up respawnCount for dead sessions"
+        ]
+      },
+      {
+        "file": "/root/bin/happy-session-recovery.sh",
+        "changes": [
+          "Remove auto-restore trigger in watch_sessions() (lines 643-649): delete the if [ $nr -gt 0 ] block, keep the log line",
+          "Fix find_peak_snapshot(): remove 'break' on line 391 so all homes are searched",
+          "Fix read_snapshot_count(): aggregate across all homes (sum counts) or scope to SCOPE_HOME when set",
+          "Fix scan_running_sessions(): emit explicit /root/.happy for default daemon instead of empty string for home_dir"
+        ]
+      }
+    ],
+    "validation_approach": "1) Unit: verify onChildExited respawn logic with mocked exit codes (0 = no respawn, 137 = respawn, stoppingByDaemon = no respawn). 2) Integration: spawn a session, kill -9 it, verify daemon respawns. 3) Integration: archive a session, verify daemon does NOT respawn. 4) Bash: verify watcher logs count changes but never calls restore_online_sessions. 5) Bash: verify find_peak_snapshot searches all homes."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward architecture change with clear root cause and well-understood patterns (process exit code inspection, event-driven vs polling). No external research needed."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

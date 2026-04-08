@@ -1,0 +1,187 @@
+{
+  "request_id": "qa-round2-adversarial-20260408",
+  "timestamp": "2026-04-08T14:00:00Z",
+  "qa": {
+    "status": "warning",
+    "overall_assessment": "TypeScript compiles clean. Core logic is sound. Found 2 critical bugs, 4 major issues, and 5 minor issues across daemon recovery, systemd generation, bash scripts, and snapshot logic.",
+
+    "findings": [
+
+      {
+        "id": "BUG-01",
+        "severity": "critical",
+        "category": "logic-bug",
+        "title": "Double restore: ExecStartPost AND daemon startup both restore sessions",
+        "location": "packages/happy-cli/src/daemon/run.ts:836-876 AND /root/bin/happy-daemon-post-start.sh:20",
+        "finding": "The daemon's startDaemon() restores sessions from snapshot at line 836-876. Meanwhile the EXISTING systemd service files still have ExecStartPost=/root/bin/happy-daemon-post-start.sh which runs `happy-session-recovery.sh restore --home $HOME --kill-orphans` after an 8-second delay. This means BOTH the daemon AND the post-start script will attempt to restore sessions. The daemon restore runs immediately on startup. The bash script restore runs 8s later. The bash script's --kill-orphans flag will KILL the sessions that the daemon just restored, then spawn new ones. Result: every daemon restart kills all sessions and spawns them twice, with the 'orphan kill' destroying the daemon-spawned ones.",
+        "recommendation": "The generated service file from install.ts correctly omits ExecStartPost. But the EXISTING deployed service files still have it. Either: (1) run `happy daemon install` on all 4 daemons to regenerate service files, or (2) manually remove ExecStartPre and ExecStartPost from all 4 existing service files before deploying the new daemon code. This is a deployment sequencing issue — the new daemon code assumes ExecStartPost is gone, but it is not.",
+        "blocks_release": true
+      },
+
+      {
+        "id": "BUG-02",
+        "severity": "critical",
+        "category": "logic-bug",
+        "title": "stopSession() deletes from map BEFORE exit handler fires, so onChildExited sees nothing and stoppingByDaemon is lost",
+        "location": "packages/happy-cli/src/daemon/run.ts:662-665",
+        "finding": "stopSession() sets stoppingByDaemon=true on the session, then IMMEDIATELY calls pidToTrackedSession.delete(pid) and persistSnapshot(). When the process actually exits later and onChildExited(pid) fires, the session is already gone from the map (line 683: `if (!session) return`). This means: (1) notifySessionEnd is NEVER called for stopped sessions — server never learns the session ended. (2) The stoppingByDaemon flag is irrelevant since the session is deleted before exit. (3) The process death is silently ignored. While this doesn't cause respawn (the session is already deleted), it means the server keeps the session as 'active' until the 2-minute heartbeat timeout.",
+        "recommendation": "Do NOT delete from the map in stopSession(). Only set stoppingByDaemon=true and kill the process. Let onChildExited handle the deletion, notifySessionEnd, and persistSnapshot. This is the standard pattern.",
+        "blocks_release": true
+      },
+
+      {
+        "id": "BUG-03",
+        "severity": "major",
+        "category": "logic-bug",
+        "title": "Snapshot does not preserve agent type — non-Claude sessions restore as Claude",
+        "location": "packages/happy-cli/src/daemon/sessionSnapshot.ts:29-41, types.ts:41",
+        "finding": "SessionSnapshotEntry has an optional `agent` field, but extractSnapshotEntries() never populates it. TrackedSession has no `agent` field at all. On restore (run.ts:857), spawnSession is called without an agent option, defaulting to 'claude'. If the user had codex or gemini sessions, they will be restored as Claude sessions — completely wrong agent. The type definition added `agent` to the snapshot schema but nobody writes it.",
+        "recommendation": "Add `agent` field to TrackedSession. Populate it from SpawnSessionOptions.agent in spawnSession(). Write it in extractSnapshotEntries(). Read it back in the restore loop and pass to spawnSession({agent: entry.agent})."
+      },
+
+      {
+        "id": "BUG-04",
+        "severity": "major",
+        "category": "race-condition",
+        "title": "Respawn uses happySessionId but spawnSession passes it as resumeSessionId, which maps to --recover-session (NOT --resume)",
+        "location": "packages/happy-cli/src/daemon/run.ts:734, 531-533, 420-421",
+        "finding": "When a crashed session is respawned, line 734 passes `resumeSessionId: session.happySessionId`. This lands at line 531 as `options.resumeSessionId`, which results in `--recover-session <happySessionId>`. But CLAUDE.md explicitly states: '--recover-session does NOT work... --resume is the ONLY viable path'. The CLAUDE.md says --recover-session triggers runClaude.ts full startup which fails with 'Claude Code is not installed'. Furthermore, happySessionId is the server-side session ID, not the Claude UUID. The --resume flag needs the Claude session UUID (claudeSessionId), not happySessionId. The same bug exists on line 859 for startup restore: `resumeSessionId: entry.happySessionId` — but entry.happySessionId may be undefined (it's optional in the type), and even when present it's the wrong ID type.",
+        "recommendation": "Change respawn to use claudeSessionId and pass it as a Claude --resume UUID, not --recover-session. Need to add a new field to SpawnSessionOptions or change the semantics of resumeSessionId to accept Claude UUIDs and map to --resume."
+      },
+
+      {
+        "id": "BUG-05",
+        "severity": "major",
+        "category": "logic-bug",
+        "title": "isCleanExit treats exitCode=null+signal=null as clean — but this means 'unknown death' gets no respawn",
+        "location": "packages/happy-cli/src/daemon/run.ts:699",
+        "finding": "The expression `exitCode === null && signal === null` returns true when Node.js cannot determine how the process died (e.g., the process was never actually started, or the exit event was synthetic from the 'error' handler at line 588 which passes (1, null)). Wait — the error handler passes (1, null) which would be exitCode=1, signal=null, so that IS treated as a crash. But the null/null case can happen in edge conditions with detached processes. The comment says 'unknown but not signal' but the intent should be: if we don't know why it died, attempt respawn. Currently it silently drops it. Low impact but semantically wrong.",
+        "recommendation": "Only treat exitCode===0 as clean. All other cases (including null/null) should be crash candidates. Or log a warning when null/null occurs so it's not silently lost."
+      },
+
+      {
+        "id": "BUG-06",
+        "severity": "major",
+        "category": "systemd-mismatch",
+        "title": "Generated service file differs from existing deployed files in ways that affect runtime behavior",
+        "location": "packages/happy-cli/src/daemon/linux/install.ts:60-88 vs /etc/systemd/system/happy-daemon.service",
+        "finding": "Differences between generated and existing service files: (1) Generated file has no ExecStartPre/ExecStartPost — correct, that's the intent. (2) Existing default daemon has MemoryMax=20G, MemoryHigh=16G. Generated defaults are MemoryMax=16G, MemoryHigh=12G. Running `happy daemon install` without explicit flags will REDUCE memory limits, potentially OOM-killing sessions. (3) Existing files have HAPPY_SERVER_URL=http://188.245.32.161:3000 hardcoded. Generated file will use whatever HAPPY_SERVER_URL is in the environment at install time, or fall back to configuration.serverUrl. If install runs without HAPPY_SERVER_URL set, it gets the default (https://api.cluster-fluster.com) — completely wrong server. (4) Dev daemon uses a different binary (/usr/bin/happy-dev). Generated file detects this via detectBinaryPath() which checks existsSync('/usr/bin/happy-dev') — this works only if the binary exists at install time.",
+        "recommendation": "Document that `happy daemon install` MUST be run with explicit flags matching the existing config: --server-url, --memory-max, --memory-high. Consider reading the existing service file and preserving values as defaults."
+      },
+
+      {
+        "id": "BUG-07",
+        "severity": "minor",
+        "category": "data-integrity",
+        "title": "persistSnapshot is not atomic across onChildExited calls — concurrent exits can interleave",
+        "location": "packages/happy-cli/src/daemon/run.ts:185-188",
+        "finding": "persistSnapshot() calls extractSnapshotEntries() then writeSessionSnapshot(). If two sessions exit in the same event loop tick, both onChildExited calls execute synchronously (delete from map + persistSnapshot). Since writeFileSync is synchronous and Node.js is single-threaded, this is actually SAFE — the second delete + persist will see the map without either session. However, the writeFileSync in sessionSnapshot.ts:57 is wrapped in try/catch, so a failed write leaves the old snapshot. The real concern is: if session A exits, its onChildExited deletes A and persists. Then session B exits, its onChildExited deletes B and persists. Both persists are correct because they're sequential in the event loop. This is fine. Downgrading to minor — the only risk is disk I/O failure on the intermediate write, which is recoverable.",
+        "recommendation": "No action needed — single-threaded event loop prevents true races. The try/catch in writeSessionSnapshot handles I/O failures gracefully."
+      },
+
+      {
+        "id": "BUG-08",
+        "severity": "minor",
+        "category": "missing-cleanup",
+        "title": "SIGTERM during startup restore leaves partially-restored sessions in indeterminate state",
+        "location": "packages/happy-cli/src/daemon/run.ts:842-876, 980-1012",
+        "finding": "If daemon receives SIGTERM during the restore loop (line 842-876), the cleanupAndShutdown handler fires. It calls persistSnapshot() at line 1002, which writes the current state of pidToTrackedSession — which includes the sessions restored so far but not the ones not yet attempted. The already-spawned processes are detached (line 538: detached: true), so they survive daemon shutdown. On next daemon start, it reads the old snapshot (which has ALL sessions from before) and tries to restore them all again. Sessions already alive from the interrupted restore will create new processes alongside the surviving ones. This results in duplicate session processes.",
+        "recommendation": "On startup restore, write a fresh snapshot immediately after each successful spawnSession, not just at the end (line 876). This way if daemon dies mid-restore, next startup's snapshot reflects reality. Currently persistSnapshot IS called inside spawnSession at line 576, but only for the new PID entry — the old snapshot entries for un-restored sessions are still on disk. Consider deleting/replacing the snapshot at the START of restore."
+      },
+
+      {
+        "id": "BUG-09",
+        "severity": "minor",
+        "category": "logic-bug",
+        "title": "Respawn uses session.happySessionId which may have changed if session re-registered",
+        "location": "packages/happy-cli/src/daemon/run.ts:729-752",
+        "finding": "The respawn setTimeout captures `session` in its closure. By the time the timeout fires (5-20s later), the session object has been deleted from pidToTrackedSession (line 693). The closure still holds a reference to the old session object's properties, which is fine in JavaScript. However, after spawnSession succeeds, the code at line 738-744 searches pidToTrackedSession for the NEW session by happySessionId to carry over respawnCount. But spawnSession returns the NEW happySessionId (result.sessionId), and the new TrackedSession may not have happySessionId set yet (it's populated asynchronously by the webhook). The loop will likely find nothing, so respawnCount is never carried over. This means the 3-attempt limit is ineffective — each crash resets the counter.",
+        "recommendation": "Instead of searching by happySessionId, carry over respawnCount by PID. spawnSession returns after the webhook resolves, so the new session should be in the map. Or store respawnCount keyed by claudeSessionId in a separate map."
+      },
+
+      {
+        "id": "BUG-10",
+        "severity": "minor",
+        "category": "bash-script",
+        "title": "happy-daemon-post-start.sh still runs restore despite daemon handling it internally",
+        "location": "/root/bin/happy-daemon-post-start.sh:20",
+        "finding": "This is the deployment-side of BUG-01. The post-start script still launches `happy-session-recovery.sh restore` in the background with an 8s delay. When the new daemon code is deployed but systemd files are not regenerated, this creates the double-restore race. Even after regenerating service files, the post-start script still exists on disk and could be referenced by other tooling.",
+        "recommendation": "After regenerating service files, verify the post-start script is no longer referenced. Consider having the script detect whether the daemon does internal recovery and skip if so."
+      },
+
+      {
+        "id": "BUG-11",
+        "severity": "minor",
+        "category": "edge-case",
+        "title": "Server readiness check uses http module for what may be an https URL",
+        "location": "packages/happy-cli/src/daemon/run.ts:814-831",
+        "finding": "The server readiness check does `const http = require('http')` and uses `http.get()`. If HAPPY_SERVER_URL is an https URL (e.g., https://api.life-ai.app), the http module will fail to connect. In the current production setup, HAPPY_SERVER_URL is http://188.245.32.161:3000 (plain HTTP), so this works. But if anyone sets HAPPY_SERVER_URL to an https endpoint, the readiness check silently fails all 12 attempts and proceeds after 60s delay.",
+        "recommendation": "Use the URL protocol to choose between http and https modules, or use a library that handles both."
+      }
+    ],
+
+    "summary": {
+      "critical_issues": 2,
+      "major_issues": 4,
+      "minor_issues": 5,
+      "total_findings": 11,
+      "release_recommendation": "reject"
+    },
+
+    "release_blockers": [
+      "BUG-01: Double restore will kill and duplicate all sessions on every daemon restart until service files are regenerated",
+      "BUG-02: stopSession() deletes tracking before exit handler, so server never gets notified of session end"
+    ],
+
+    "high_priority_fixes": [
+      "BUG-04: Respawn uses --recover-session (broken) instead of --resume, and passes happySessionId instead of claudeSessionId",
+      "BUG-03: Non-Claude agent sessions (codex/gemini) silently restore as Claude",
+      "BUG-05: null/null exit treated as clean instead of unknown crash",
+      "BUG-06: Generated service file defaults differ from production — running `happy daemon install` without explicit flags will break memory limits and server URL"
+    ],
+
+    "typescript_compilation": {
+      "status": "pass",
+      "command": "npx tsc --noEmit --project packages/happy-cli/tsconfig.json",
+      "errors": 0
+    },
+
+    "systemd_comparison": {
+      "existing_services_count": 4,
+      "services": ["happy-daemon", "happy-daemon-jade", "happy-daemon-dev", "happy-daemon-qijie"],
+      "differences_from_generated": [
+        "ExecStartPre present in existing, absent in generated (intentional)",
+        "ExecStartPost present in existing, absent in generated (intentional)",
+        "MemoryMax 20G (default) vs 16G (generated default)",
+        "HAPPY_SERVER_URL hardcoded in existing, dynamic in generated",
+        "Dev daemon uses /usr/bin/happy-dev binary, generated detects via existsSync"
+      ]
+    },
+
+    "bash_script_review": {
+      "happy-session-recovery.sh": {
+        "peak_merge_removed": true,
+        "watcher_passive": true,
+        "no_auto_restore_in_watcher": true,
+        "filter_sessions_for_home_backward_compat": true,
+        "issues": [
+          "Script still has full restore/spawn functionality used by ExecStartPost — creates double-restore with new daemon code (BUG-01)"
+        ]
+      },
+      "happy-daemon-post-start.sh": {
+        "issues": [
+          "Still launches restore 8s after daemon start — conflicts with daemon internal restore (BUG-01)"
+        ]
+      }
+    },
+
+    "self_verification": {
+      "claims_total": 11,
+      "claims_with_evidence": 11,
+      "claims_superficial": 0,
+      "superficial_details": [],
+      "confidence": "high",
+      "notes": "All findings derived from direct code reading of the files under review. No browser testing needed — this is a pure code/logic review of daemon internals and bash scripts."
+    }
+  }
+}

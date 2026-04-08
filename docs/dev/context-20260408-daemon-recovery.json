@@ -1,0 +1,224 @@
+{
+  "request_id": "dev-20260408-daemon-recovery",
+  "timestamp": "2026-04-08T14:00:00Z",
+  "requirement": {
+    "original": "Move ALL session recovery responsibility into the happy daemon TypeScript codebase. Kill the bash watcher entirely. The systemd service files should also be generated/managed by happy itself (either daemon or CLI), not manually maintained. The user has '强迫症' — ownership must be clean and unambiguous.",
+    "clarified": "Implement daemon-owned session recovery: (1) Daemon persists session snapshots to disk on every lifecycle event + periodic safety writes, (2) Daemon restores sessions from snapshot on startup, (3) Daemon generates/installs its own systemd service files via 'happy daemon install', (4) Remove all external recovery infrastructure (bash watcher, ExecStartPre/ExecStartPost, post-start script).",
+    "what": "Move session recovery from bash scripts into daemon TypeScript code; add systemd service file generation to CLI",
+    "why": "Clean ownership — 5 components with tangled responsibilities caused production incidents (Bug #60, #61). User wants single source of truth for session lifecycle.",
+    "where": [
+      "packages/happy-cli/src/daemon/run.ts",
+      "packages/happy-cli/src/daemon/types.ts",
+      "packages/happy-cli/src/daemon/install.ts",
+      "packages/happy-cli/src/daemon/uninstall.ts",
+      "packages/happy-cli/src/configuration.ts"
+    ],
+    "scope": {
+      "included": [
+        "Snapshot persistence (write session_snapshot.json on add/remove/crash/shutdown/periodic)",
+        "Startup recovery (read snapshot, spawn sessions with --resume)",
+        "Periodic safety writes (piggyback on 60s heartbeat)",
+        "Shutdown snapshot (write before exit in cleanupAndShutdown)",
+        "systemd service file generation (happy daemon install/uninstall for Linux)",
+        "PID file self-management (daemon writes its own daemon.pid)",
+        "Orphan cleanup on startup (already partially exists)",
+        "Atomic file writes for snapshot (write-to-temp + rename)"
+      ],
+      "excluded": [
+        "Cross-daemon coordination or shared state",
+        "Remote restore triggers from mobile app",
+        "Session .jsonl file repair",
+        "External polling/watcher loop",
+        "Backward compatibility with bash watcher protocol",
+        "macOS LaunchDaemon changes (keep existing mac/install.ts as-is)",
+        "Server-side session recovery changes"
+      ]
+    },
+    "success_criteria": [
+      "Daemon writes session_snapshot.json on every session add/remove/crash event",
+      "Daemon writes final snapshot in cleanupAndShutdown before exit",
+      "Daemon reads snapshot on startup and restores sessions with --resume",
+      "Periodic safety writes happen every 60s via heartbeat",
+      "happy daemon install generates correct systemd service file for Linux",
+      "happy daemon uninstall removes service file and reloads systemd",
+      "Generated service files have NO ExecStartPre, NO ExecStartPost",
+      "All 4 existing daemon services can be regenerated with correct parameters",
+      "Corrupted/missing snapshot file does not crash daemon startup"
+    ],
+    "constraints": [
+      "Must use atomic writes (temp file + rename) for snapshot to prevent partial reads",
+      "Restore must stagger session spawns with 5-second delays",
+      "Each daemon scoped to its own HAPPY_HOME_DIR — no cross-daemon state",
+      "Dev daemon uses different binary path (/usr/bin/happy-dev) — service template must support this",
+      "Cannot use 'happy' global CLI binary from within daemon (CLAUDE.md rule #9)",
+      "Must not use kill PIDs directly — use existing process management patterns (CLAUDE.md rule #10)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Session recovery spread across 5 components with unclear ownership, causing cross-daemon cascade (Bug #61) and race conditions (Bug #60)",
+    "root_cause": "Recovery was designed incrementally: bash script first, then systemd hooks layered on, then daemon crash respawn added separately. No single component owned the full lifecycle.",
+    "root_cause_commit": "N/A - architectural debt accumulated over multiple commits",
+    "why_introduced": "Each piece solved an immediate need: bash script for manual recovery, systemd hooks for automatic restart, daemon respawn for crash resilience. Never unified.",
+    "why_problematic": "5 components with overlapping responsibility: (1) bash watcher snapshots vs daemon tracking, (2) ExecStartPre saving vs daemon shutdown write, (3) ExecStartPost restoring vs daemon startup restore, (4) watcher auto-restore vs daemon crash respawn. Cross-daemon cascade in Bug #61 was direct result of global restore scope.",
+    "timeline": "Accumulated over weeks of incremental additions, incidents on 2026-04-04 and 2026-04-05",
+    "affected_files": [
+      "/root/bin/happy-session-recovery.sh",
+      "/root/bin/happy-daemon-post-start.sh",
+      "/etc/systemd/system/happy-daemon.service",
+      "/etc/systemd/system/happy-daemon-jade.service",
+      "/etc/systemd/system/happy-daemon-dev.service",
+      "/etc/systemd/system/happy-daemon-qijie.service",
+      "/etc/systemd/system/happy-session-watcher.service",
+      "/root/happy/packages/happy-cli/src/daemon/run.ts"
+    ]
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward architectural consolidation — moving existing bash logic into existing TypeScript daemon. Patterns are well-established in the codebase (atomic writes in persistence.ts, spawn with --resume in run.ts, heartbeat loop for periodic tasks). No novel design patterns needed."
+  },
+  "context": {
+    "codebase_state": "Daemon already has: pidToTrackedSession tracking, onChildExited with crash respawn, spawnSession with resumeSessionId support, heartbeat loop for periodic tasks, cleanupAndShutdown for graceful exit. Missing: snapshot persistence to disk, startup restore from snapshot, systemd service generation for Linux.",
+    "recent_commits": "79cf62b5 fix: Bug #61 — scope session recovery per-daemon + add happy-qijie",
+    "file_contents": {
+      "daemon_run_ts_key_sections": {
+        "startup_flow": "lines 68-165: version check, orphan cleanup, lock acquisition",
+        "session_tracking": "line 181: pidToTrackedSession Map<number, TrackedSession>",
+        "spawn_session": "lines 241-624: full session spawn logic with resumeSessionId support",
+        "on_child_exited": "lines 671-742: crash detection + respawn with exponential backoff",
+        "heartbeat_loop": "lines 802-884: periodic health check, version mismatch, stale session prune",
+        "cleanup_and_shutdown": "lines 887-915: graceful shutdown sequence"
+      },
+      "tracked_session_interface": {
+        "key_fields_for_snapshot": ["claudeSessionId (string)", "workingDirectory (string)", "happySessionId (string)", "pid (number)", "respawnCount (number)"]
+      },
+      "existing_snapshot_format": {
+        "location": "$HAPPY_HOME/session_backup_history/*.json",
+        "fields_per_session": ["claude_id", "working_dir", "home_dir", "session_file", "session_file_exists", "session_file_size"],
+        "note": "New format should be simpler — only claudeSessionId and workingDirectory are needed for --resume"
+      },
+      "session_dirs_txt_format": "claude_uuid:working_dir per line, with # comments",
+      "systemd_service_template_fields": {
+        "variable_fields": [
+          "Description suffix (e.g., '(Jade)', '(Dev)')",
+          "ExecStart binary path (/usr/bin/happy or /usr/bin/happy-dev)",
+          "PIDFile path ($HAPPY_HOME/daemon.pid)",
+          "HAPPY_HOME_DIR environment variable",
+          "HAPPY_SERVER_URL environment variable",
+          "MemoryMax/MemoryHigh limits",
+          "NODE_OPTIONS (--max-old-space-size)"
+        ],
+        "fixed_fields": [
+          "Type=forking",
+          "User=root",
+          "WorkingDirectory=/root",
+          "Restart=on-failure",
+          "RestartSec=10",
+          "IS_SANDBOX=1",
+          "MALLOC_ARENA_MAX=2"
+        ]
+      }
+    },
+    "dependencies": {
+      "spawnHappyCLI": "Used by spawnSession for process spawning — reused for restore",
+      "configuration": "Provides happyHomeDir, daemonStateFile paths — extend with sessionSnapshotFile",
+      "persistence": "Provides readDaemonState/writeDaemonState patterns — follow same pattern for snapshots"
+    },
+    "environment": {
+      "platform": "linux",
+      "systemd": true,
+      "four_daemons": ["default (/root/.happy)", "jade (/root/.happy-jade)", "dev (/root/.happy-dev)", "qijie (/root/.happy-qijie)"],
+      "dev_daemon_binary": "/usr/bin/happy-dev (different from production /usr/bin/happy)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Implement in 4 phases: (1) Add snapshot types and persistence functions, (2) Wire snapshot writes into daemon lifecycle events, (3) Add startup restore logic, (4) Implement systemd service generation. Each phase is independently testable.",
+    "files_to_create": [
+      "packages/happy-cli/src/daemon/linux/install.ts",
+      "packages/happy-cli/src/daemon/linux/uninstall.ts"
+    ],
+    "files_to_modify": [
+      "packages/happy-cli/src/daemon/run.ts",
+      "packages/happy-cli/src/daemon/types.ts",
+      "packages/happy-cli/src/daemon/install.ts",
+      "packages/happy-cli/src/daemon/uninstall.ts",
+      "packages/happy-cli/src/configuration.ts"
+    ],
+    "implementation_details": {
+      "phase_1_types_and_persistence": {
+        "description": "Add SessionSnapshotEntry and SessionSnapshot interfaces to types.ts. Add sessionSnapshotFile path to configuration.ts.",
+        "session_snapshot_entry": {
+          "claudeSessionId": "string — Claude UUID for --resume",
+          "workingDirectory": "string — cwd for spawning",
+          "happySessionId": "string | undefined — happy server session ID",
+          "agent": "string — 'claude' | 'codex' | 'gemini' (default 'claude')"
+        },
+        "session_snapshot": {
+          "version": "1 — for future migration",
+          "timestamp": "ISO-8601 string",
+          "daemonPid": "number — PID of daemon that wrote this",
+          "sessions": "SessionSnapshotEntry[]"
+        }
+      },
+      "phase_2_snapshot_writes": {
+        "description": "Add writeSessionSnapshot() helper in run.ts. Call it from: (1) after successful session spawn, (2) in onChildExited after removing session, (3) in heartbeat loop, (4) in cleanupAndShutdown before apiMachine.shutdown()",
+        "atomic_write": "Write to session_snapshot.json.tmp, then rename to session_snapshot.json",
+        "data_source": "Extract from pidToTrackedSession.values() — only include sessions with claudeSessionId AND workingDirectory"
+      },
+      "phase_3_startup_restore": {
+        "description": "Add restoreSessionsFromSnapshot() function. Call after apiMachine.connect() and before heartbeat loop.",
+        "flow": [
+          "1. Read $HAPPY_HOME/session_snapshot.json",
+          "2. Parse and validate (skip on error with warning log)",
+          "3. For each entry: verify .jsonl file exists at expected path",
+          "4. Spawn with 5-second stagger: await spawnSession({ directory, resumeSessionId: claudeSessionId })",
+          "5. Log results: N restored, M skipped (missing .jsonl), K failed"
+        ],
+        "jsonl_path_derivation": "~/.claude/projects/<working-dir-with-dashes>/<claudeSessionId>.jsonl — same logic as bash script",
+        "error_handling": "Each session restore is independent; one failure does not abort others"
+      },
+      "phase_4_systemd_install": {
+        "description": "Create linux/install.ts with service file template. Update install.ts to dispatch on platform.",
+        "service_template_params": {
+          "name": "string — e.g., 'jade', 'dev', 'qijie' or empty for default",
+          "happyHomeDir": "string — e.g., '/root/.happy-jade'",
+          "binaryPath": "string — e.g., '/usr/bin/happy' or '/usr/bin/happy-dev'",
+          "serverUrl": "string — e.g., 'http://188.245.32.161:3000'",
+          "memoryMax": "string — e.g., '20G'",
+          "memoryHigh": "string — e.g., '16G'",
+          "nodeOptions": "string — e.g., '--max-old-space-size=8192'"
+        },
+        "cli_interface": "happy daemon install [--name jade] [--home /root/.happy-jade] [--binary /usr/bin/happy] [--server-url http://...] [--memory-max 16G]",
+        "generates_to": "/etc/systemd/system/happy-daemon-{name}.service (or happy-daemon.service for default)",
+        "post_install": "Run systemctl daemon-reload && systemctl enable <service-name>"
+      }
+    },
+    "what_gets_deleted_after_migration": {
+      "disable_immediately": [
+        "/etc/systemd/system/happy-session-watcher.service — systemctl disable --now"
+      ],
+      "remove_from_service_files": [
+        "ExecStartPre lines from all 4 daemon services",
+        "ExecStartPost lines from all 4 daemon services"
+      ],
+      "keep_as_diagnostic": [
+        "/root/bin/happy-session-recovery.sh — read-only diagnostic tool (save, check, history, snapshots commands still useful)",
+        "/root/bin/happy-daemon-post-start.sh — can be deleted after all services regenerated"
+      ]
+    },
+    "migration_plan": {
+      "step_1": "Implement and deploy new daemon with snapshot support (sessions start being tracked in new format)",
+      "step_2": "Regenerate all 4 service files with 'happy daemon install' (removes ExecStartPre/ExecStartPost)",
+      "step_3": "Disable and remove happy-session-watcher.service",
+      "step_4": "Verify: restart each daemon, confirm sessions restored from TypeScript snapshot",
+      "step_5": "Optional: keep happy-session-recovery.sh for manual debugging"
+    },
+    "validation_approach": "After implementation: (1) Build happy-cli, (2) Restart a daemon, verify snapshot written, (3) Stop daemon, verify snapshot persisted, (4) Start daemon, verify sessions restored from snapshot, (5) Generate service file, compare with expected template, (6) Run full recovery cycle with 4 daemons"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "request_id": "dev-20260408-investigation",
+  "timestamp": "2026-04-08T09:30:00Z",
+  "requirement": {
+    "original": "What ACTUALLY killed sessions in the last hour, causing watcher auto-restore?",
+    "clarified": "Determine exact cause of session deaths at 09:05 UTC and whether the cascading restore amplified the damage",
+    "what": "Root cause investigation of session deaths and cascading restore behavior",
+    "why": "User experienced disruptive auto-restore that killed all sessions when only 1 died naturally",
+    "where": ["/root/bin/happy-session-recovery.sh"],
+    "scope": {
+      "included": ["Session death cause analysis", "Restore cascade behavior analysis", "Fix direction for restore logic"],
+      "excluded": ["Preventing Claude process natural exits", "Changing watcher detection mechanism"]
+    },
+    "success_criteria": [
+      "Single session death does not trigger kill-all-and-respawn cascade",
+      "Daemon restart scenario still properly cleans orphans"
+    ],
+    "constraints": ["Must not break daemon-restart orphan cleanup"]
+  },
+  "root_cause_analysis": {
+    "symptom": "Watcher auto-restored all 14 sessions at 09:05 when user only archived/lost 1 session",
+    "root_cause": "restore_online_sessions() kills ALL running session processes as 'orphans' before re-spawning, even when only 1 session died. Lines 889-907 of happy-session-recovery.sh.",
+    "root_cause_commit": "N/A - design flaw in restore logic, not a regression",
+    "why_introduced": "Orphan kill was designed for daemon-restart scenario where ALL old processes need replacement",
+    "why_problematic": "Same logic runs on single-session-death, killing 13 healthy sessions to restore 1 dead one",
+    "timeline": "Existing behavior, but became visible with 14+ sessions where cascade impact is severe",
+    "affected_files": ["/root/bin/happy-session-recovery.sh"],
+    "evidence": {
+      "not_oom": "dmesg empty, journalctl -k empty for oom/kill/memory",
+      "not_cgroup": "MemoryCurrent=2.1GB well under MemoryMax=20GB",
+      "not_daemon_restart": "Daemon PID 4800 running continuously since 06:11:25",
+      "actual_trigger": "Daemon log at 09:05:26: 'Removing stale session with PID 289607 (process no longer exists)' -- natural Claude process exit",
+      "cascade_proof": "Recovery log shows 6 'Killed orphaned process' entries at 09:05:40-42 for sessions that were alive and healthy"
+    }
+  },
+  "context": {
+    "codebase_state": "Session recovery script at /root/bin/happy-session-recovery.sh",
+    "recent_commits": "N/A - script not in happy repo",
+    "file_contents": {
+      "orphan_kill_logic": "Lines 889-907: kills all running processes matching --resume for each home, then re-spawns all saved sessions",
+      "scan_running_sessions": "Lines 43-170: correctly identifies daemon-tracked vs orphan processes"
+    },
+    "cascade_pattern": {
+      "trigger": "1 session process exits naturally (Claude SDK exit, context limit, etc.)",
+      "step1": "Watcher detects -1 session, calls restore_online_sessions",
+      "step2": "Restore kills ALL running processes for the home as 'orphans'",
+      "step3": "Re-spawns all sessions from session_dirs.txt (13-14 sessions)",
+      "step4": "Some newly spawned sessions die during startup (resource contention)",
+      "step5": "Watcher detects MORE deaths, triggers another restore (but 'already running' prevents second)",
+      "result": "1 death -> 14 kills -> 14 respawns -> 1-2 more deaths -> another full restore"
+    }
+  },
+  "development_approach": {
+    "strategy": "Modify restore logic to only kill+respawn sessions that are actually missing, not all sessions",
+    "files_to_create": [],
+    "files_to_modify": ["/root/bin/happy-session-recovery.sh"],
+    "fix_direction": "In restore_online_sessions(), compare running sessions against saved sessions. Only kill processes for UUIDs that need re-spawning. Skip kill for sessions that are already running and healthy.",
+    "validation_approach": "Manually kill a single Claude process and verify only that session is re-spawned while others remain untouched"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Root cause investigation based on log analysis, not a design/architecture decision"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
