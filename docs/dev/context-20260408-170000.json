@@ -1,0 +1,125 @@
+{
+  "request_id": "dev-20260408-170000",
+  "timestamp": "2026-04-08T17:00:00Z",
+  "requirement": {
+    "original": "Fix Issue #6: BashView scrollbar + bottom border-radius conflict in the Happy App.",
+    "clarified": "Remove BashView's redundant overflow:hidden and borderRadius, rely on parent ToolView's borderRadius:8 + overflow:hidden for corner clipping, and enable horizontal scrollbar on the ScrollView.",
+    "what": "Fix CSS conflict between horizontal scrollbar visibility and bottom border-radius in BashView component",
+    "why": "BashView inline preview either clips the scrollbar (with overflow:hidden) or loses rounded bottom corners (without it). Two previous fix attempts failed.",
+    "where": ["packages/happy-app/sources/components/tools/views/BashView.tsx"],
+    "scope": {
+      "included": [
+        "Fix BashView scrollbar clipping",
+        "Maintain rounded bottom corners on tool card",
+        "Verify on desktop and mobile viewports"
+      ],
+      "excluded": [
+        "Modifying ToolView.tsx",
+        "Modifying CommandView.tsx",
+        "Adding vertical scrolling",
+        "Changing card border-radius values"
+      ]
+    },
+    "success_criteria": [
+      "Horizontal scrollbar is visible and functional when bash output overflows",
+      "Bottom corners of tool card appear rounded (8px from ToolView)",
+      "No scrollbar/text overlap with +N more lines indicator",
+      "Works on both desktop (1280px+) and mobile (390px) viewports"
+    ],
+    "constraints": [
+      "React Native Web (Expo web export)",
+      "Cannot modify ToolView (shared by all tool types)",
+      "Must verify with Playwright on live content"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "BashView horizontal scrollbar is clipped/hidden when borderBottomLeftRadius + overflow:hidden are set on the container. Removing them fixes scrollbar but breaks rounded corners.",
+    "root_cause": "BashView.container has overflow:hidden to enforce its own borderBottomLeftRadius:11, but this also clips the ScrollView's horizontal scrollbar. The overflow:hidden + borderRadius are redundant because the parent ToolView.container (borderRadius:8, overflow:hidden) already provides corner clipping, and BashView's negative margins align it with ToolView's edges.",
+    "root_cause_commit": "a529bf91 - current reverted state with border-radius + overflow:hidden + scrollbar disabled",
+    "why_introduced": "borderBottomLeftRadius:11 and overflow:hidden were added to BashView to give the terminal block rounded bottom corners matching the card shape",
+    "why_problematic": "overflow:hidden on BashView clips the horizontal scrollbar that the ScrollView needs to display. The border-radius was duplicating work already done by the parent ToolView.container.",
+    "timeline": "Original bug existed since BashView creation. Fix attempt 1 (79c915b2) removed radius/overflow, broke corners. Fix attempt 2 (7216dd70) reverted. Reverted to a529bf91.",
+    "affected_files": ["packages/happy-app/sources/components/tools/views/BashView.tsx"]
+  },
+  "context": {
+    "codebase_state": "Reverted to a529bf91 state. BashView has borderBottomLeftRadius:11, borderBottomRightRadius:11, overflow:hidden on container, scrollbar disabled.",
+    "recent_commits": "7216dd70 reverted failed fix, 79c915b2 was failed fix (removed radius/overflow), a529bf91 is baseline",
+    "file_contents": {
+      "BashView.tsx": {
+        "container_styles": {
+          "marginHorizontal": -12,
+          "marginTop": -9,
+          "marginBottom": -1,
+          "backgroundColor": "theme.colors.terminal.background",
+          "borderBottomLeftRadius": 11,
+          "borderBottomRightRadius": 11,
+          "overflow": "hidden"
+        },
+        "scrollview_props": {
+          "horizontal": true,
+          "showsHorizontalScrollIndicator": false
+        }
+      },
+      "ToolView.tsx": {
+        "container_styles": {
+          "backgroundColor": "theme.colors.surfaceHigh",
+          "borderRadius": 8,
+          "marginVertical": 4,
+          "overflow": "hidden"
+        },
+        "content_styles": {
+          "paddingHorizontal": 12,
+          "paddingTop": 8,
+          "overflow": "visible",
+          "borderTopWidth": 1,
+          "borderTopColor": "theme.colors.divider"
+        }
+      },
+      "CommandView.tsx": {
+        "container_styles": {
+          "backgroundColor": "theme.colors.terminal.background",
+          "borderRadius": 8,
+          "overflow": "hidden",
+          "padding": 16,
+          "alignItems": "flex-start",
+          "justifyContent": "flex-start"
+        }
+      }
+    },
+    "component_hierarchy": "ToolView.container(borderRadius:8,overflow:hidden) -> ToolView.content(padding:12/8,overflow:visible) -> BashView.container(margin:-12/-9/-1,borderBottomRadius:11,overflow:hidden) -> ScrollView(horizontal) -> CommandView.container(borderRadius:8,overflow:hidden,padding:16)",
+    "dependencies": {},
+    "environment": {
+      "platform": "React Native Web (Expo SDK 54)",
+      "styling": "react-native-unistyles"
+    }
+  },
+  "development_approach": {
+    "strategy": "Remove BashView's redundant overflow:hidden and borderRadius properties. The parent ToolView.container already has borderRadius:8 + overflow:hidden which clips all child content including BashView (whose negative margins align it with ToolView's edges). Then enable showsHorizontalScrollIndicator on the ScrollView.",
+    "files_to_create": [],
+    "files_to_modify": ["packages/happy-app/sources/components/tools/views/BashView.tsx"],
+    "specific_changes": [
+      {
+        "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+        "change": "Line 64: Change showsHorizontalScrollIndicator={false} to showsHorizontalScrollIndicator={true}",
+        "reason": "Enable the horizontal scrollbar so users can see overflowing content"
+      },
+      {
+        "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+        "change": "Lines 90-92: Remove borderBottomLeftRadius:11, borderBottomRightRadius:11, and overflow:'hidden' from styles.container",
+        "reason": "These are redundant with ToolView.container's borderRadius:8 + overflow:hidden, and overflow:hidden clips the scrollbar"
+      }
+    ],
+    "validation_approach": "Playwright E2E on dev.life-ai.app: (1) Find a bash tool call with wide output, verify scrollbar visible. (2) Find a short bash tool call, verify bottom corners rounded. (3) Test on both 1280x720 and 390x844 viewports."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward CSS/layout bug with clear root cause identified from component hierarchy analysis and two failed fix attempts providing empirical evidence."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
