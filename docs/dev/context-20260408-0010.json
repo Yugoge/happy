@@ -1,0 +1,71 @@
+{
+  "request_id": "dev-20260408-0010",
+  "timestamp": "2026-04-08T00:10:00Z",
+  "requirement": {
+    "original": "Fix 2 BashView scrollbar bugs: 1) Horizontal scrollbar appears before '+N more lines' text — hide it. 2) Bottom corners render ugly — add borderBottomLeftRadius/Right matching card border radius",
+    "clarified": "Hide horizontal scrollbar in BashView inline preview and round bottom corners to 11px to match card design",
+    "what": "Visual bugfix to BashView component",
+    "why": "Inline bash command preview has unwanted horizontal scrollbar and mismatched corner radius",
+    "where": [
+      "packages/happy-app/sources/components/session/BashView.tsx"
+    ],
+    "scope": {
+      "included": [
+        "Hide horizontal scrollbar indicator",
+        "Add borderBottomLeftRadius: 11",
+        "Add borderBottomRightRadius: 11",
+        "Apply overflow: hidden"
+      ],
+      "excluded": [
+        "Modify vertical scrollbar behavior",
+        "Change content truncation logic",
+        "Modify '+N more lines' text rendering"
+      ]
+    },
+    "success_criteria": [
+      "Horizontal scrollbar not visible in inline preview",
+      "Bottom corners rounded to 11px matching card border radius",
+      "No visual regression in other aspects of BashView"
+    ],
+    "constraints": [
+      "Must maintain existing scroll behavior for content",
+      "Border radius must match existing card design (11px)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Horizontal scrollbar visible in inline bash preview; bottom corners sharp instead of rounded",
+    "root_cause": "BashView missing showsHorizontalScrollIndicator={false} and borderBottomLeftRadius/borderBottomRightRadius styles with overflow constraint",
+    "root_cause_commit": "N/A - minor styling issue",
+    "why_introduced": "Initial BashView implementation did not include full card styling polish",
+    "why_problematic": "Visual inconsistency: scrollbar appears before text; unpolished corners break card design",
+    "timeline": "Identified during UI polish pass",
+    "affected_files": [
+      "packages/happy-app/sources/components/session/BashView.tsx"
+    ]
+  },
+  "context": {
+    "codebase_state": "happy-dev monorepo with React Native UI components",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Apply minimal style fixes to BashView component",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/session/BashView.tsx"
+    ],
+    "validation_approach": "Render inline bash preview in dev web UI, verify scrollbar hidden and corners rounded"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": false
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward styling fix with clear requirements, no architectural decisions needed"
+  }
+}
