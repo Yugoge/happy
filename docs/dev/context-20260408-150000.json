@@ -1,0 +1,69 @@
+{
+  "request_id": "dev-20260408-150000",
+  "timestamp": "2026-04-08T15:00:00Z",
+  "requirement": {
+    "original": "Revert the SidebarBashView.tsx change that broke horizontal scrollbar, then investigate why the horizontal scrollbar stopped working.",
+    "clarified": "Revert SidebarBashView.tsx to its pre-commit-5973f3ed state (outer View, not ScrollView), then investigate and fix why showsHorizontalScrollIndicator={true} does not produce a visible horizontal scrollbar on web.",
+    "what": "Revert nested ScrollView change and fix horizontal scrollbar visibility in sidebar bash view",
+    "why": "The nested ScrollView broke horizontal scrolling entirely; the original also had non-functional horizontal scrollbar",
+    "where": ["packages/happy-app/sources/components/sidebar/SidebarBashView.tsx"],
+    "scope": {
+      "included": [
+        "Revert SidebarBashView.tsx to original View-based container",
+        "Investigate why horizontal scrollbar does not appear",
+        "Fix horizontal scrollbar if root cause found"
+      ],
+      "excluded": [
+        "Changes to CommandView.tsx",
+        "Changes to BashView.tsx (inline preview)",
+        "Mobile-specific scroll behavior"
+      ]
+    },
+    "success_criteria": [
+      "SidebarBashView uses <View> as outer container, not <ScrollView>",
+      "Horizontal scrollbar is visible when bash output exceeds sidebar width",
+      "No regression for content that fits within sidebar width"
+    ],
+    "constraints": [
+      "Must not nest ScrollViews (causes layout conflicts on web)",
+      "Must follow existing patterns from BashViewFull.tsx"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Horizontal scrollbar not visible in SidebarBashView; recent change wrapping in vertical ScrollView made it worse",
+    "root_cause": "Two issues: (1) Commit 5973f3ed wrapped horizontal ScrollView in vertical ScrollView, breaking scroll entirely. (2) Original horizontal scroll never worked because CommandView's inner layout uses flexWrap:'wrap' on the command line and flex:1 on commandText, causing text to wrap instead of overflow horizontally. The horizontal ScrollView has showsHorizontalScrollIndicator={true} but the content never exceeds the container width due to flex wrapping.",
+    "root_cause_commit": "5973f3ed - Auto-commit: 2026-04-08 14:45:04 (nested ScrollView change)",
+    "why_introduced": "Attempted to add vertical scrolling for long output",
+    "why_problematic": "Nesting horizontal ScrollView inside vertical ScrollView causes layout measurement conflicts on web. The inner horizontal ScrollView cannot determine its width properly when the outer vertical ScrollView has unbounded height.",
+    "timeline": "2026-04-08 14:45:04 - breaking change introduced",
+    "affected_files": ["packages/happy-app/sources/components/sidebar/SidebarBashView.tsx"]
+  },
+  "context": {
+    "codebase_state": "Main branch, file has one bad commit to revert",
+    "recent_commits": "5973f3ed Auto-commit: 2026-04-08 14:45:04 (introduced the nested ScrollView)",
+    "file_contents": {
+      "SidebarBashView.tsx": "Currently has nested ScrollView (outer vertical + inner horizontal). Original had View + horizontal ScrollView.",
+      "BashViewFull.tsx": "Uses View > horizontal ScrollView > View > CommandView pattern (reference implementation)",
+      "CommandView.tsx": "Has flexWrap:'wrap' on line style and flex:1 on commandText - this causes text to wrap rather than overflow, preventing horizontal scroll from triggering"
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Step 1: Revert to original View-based container. Step 2: Investigate why CommandView text wraps instead of overflowing by examining the flex layout. The command line View has flexWrap:'wrap' and commandText has flex:1 -- both prevent horizontal overflow. To make horizontal scroll work, the SidebarBashView's commandWrapper may need to not constrain width, or the ScrollView content needs to allow natural sizing.",
+    "files_to_create": [],
+    "files_to_modify": ["packages/happy-app/sources/components/sidebar/SidebarBashView.tsx"],
+    "validation_approach": "Playwright verification on dev.life-ai.app: navigate to a session with a bash tool call that has wide output, verify horizontal scrollbar appears in sidebar view"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward revert + CSS/flex layout investigation with clear root cause in the code"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

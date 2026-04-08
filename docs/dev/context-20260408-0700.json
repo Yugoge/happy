@@ -1,0 +1,94 @@
+{
+  "request_id": "dev-20260408-0700",
+  "timestamp": "2026-04-08T07:00:00Z",
+  "requirement": {
+    "original": "Fix two CSS bugs in BashView inline preview (message list, not sidebar). Bug 1: Long output — horizontal scrollbar overlaps with '+N more lines' text. Bug 2: Short output — bottom rounded corners look bad.",
+    "clarified": "Fix two CSS layout bugs in BashView.tsx caused by borderBottomLeftRadius/borderBottomRightRadius/overflow:hidden being on the outer container that wraps both ScrollView and moreContainer. Move radius to the appropriate bottom-most element conditionally.",
+    "what": "Fix CSS layout bugs in BashView inline preview",
+    "why": "Visual artifacts: scrollbar overlapping text indicator on long output, and ugly bottom corners on short output",
+    "where": ["packages/happy-app/sources/components/tools/views/BashView.tsx"],
+    "scope": {
+      "included": [
+        "BashView.tsx container styles",
+        "BashView.tsx moreContainer styles",
+        "Conditional radius application based on presence of moreContainer"
+      ],
+      "excluded": [
+        "ToolView.tsx styles",
+        "CommandView component",
+        "Sidebar/full view rendering",
+        "Functional logic (truncation, line counting)"
+      ]
+    },
+    "success_criteria": [
+      "Long output: '+N more lines' text fully visible, no overlap with scrollbar",
+      "Short output: bottom corners render cleanly rounded without artifacts",
+      "Terminal background fills edge-to-edge within ToolView card"
+    ],
+    "constraints": [
+      "Must use StyleSheet.create from react-native-unistyles",
+      "Must maintain negative margin technique for edge-to-edge fill",
+      "Inner radius 11 maps to outer ToolView radius 8 accounting for padding offset"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Bug 1: scrollbar overlaps '+N more lines' text. Bug 2: bottom corners look bad on short output.",
+    "root_cause": "Commit a529bf91 added borderBottomLeftRadius/borderBottomRightRadius/overflow:hidden to the container View that wraps BOTH the ScrollView and the moreContainer. This causes: (1) overflow:hidden on container clips/interferes with ScrollView scrollbar positioning relative to moreContainer, (2) border radius on the container doesn't cleanly round the ScrollView's terminal content when it's the last child (no moreContainer).",
+    "root_cause_commit": "a529bf91 - Auto-commit: 2026-04-08 06:31:57",
+    "why_introduced": "To visually round the bottom corners of the terminal block to match ToolView card's borderRadius: 8",
+    "why_problematic": "Applying radius and overflow:hidden to a container that has two children (ScrollView + moreContainer) creates conflicts: the radius clips the wrong element's content, and the ScrollView's internal scrollbar positioning fights with the moreContainer below it.",
+    "timeline": "Introduced 2026-04-08 in commit a529bf91",
+    "affected_files": ["packages/happy-app/sources/components/tools/views/BashView.tsx"]
+  },
+  "context": {
+    "codebase_state": "Main branch, commit a529bf91",
+    "recent_commits": "a529bf91 Auto-commit (added border radius to BashView), 64d02aca fix: truncate long bash commands, 5c7a234f fix: bash inline preview clean rewrite",
+    "file_contents": {
+      "BashView.tsx": {
+        "container_styles": {
+          "marginHorizontal": -12,
+          "marginTop": -9,
+          "marginBottom": -1,
+          "backgroundColor": "theme.colors.terminal.background",
+          "borderBottomLeftRadius": 11,
+          "borderBottomRightRadius": 11,
+          "overflow": "hidden"
+        },
+        "moreContainer_styles": {
+          "paddingHorizontal": 16,
+          "paddingBottom": 10
+        }
+      },
+      "ToolView.tsx": {
+        "container_styles": {
+          "borderRadius": 8,
+          "overflow": "hidden"
+        },
+        "content_styles": {
+          "paddingHorizontal": 12,
+          "paddingTop": 8,
+          "borderTopWidth": 1
+        }
+      }
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Remove borderBottomLeftRadius, borderBottomRightRadius, and overflow:hidden from the container style. Instead, conditionally apply bottom radius: (1) When extraLines > 0 (moreContainer shown): apply borderBottomLeftRadius/borderBottomRightRadius to moreContainer. (2) When extraLines === 0 (no moreContainer): wrap ScrollView or apply radius to a wrapper View that is the last child. Keep overflow:hidden on container since ToolView parent already has it, or apply it selectively.",
+    "files_to_create": [],
+    "files_to_modify": ["packages/happy-app/sources/components/tools/views/BashView.tsx"],
+    "validation_approach": "Visual verification via Playwright on dev.life-ai.app — test both long output (with +N more lines) and short output bash tool calls on desktop and mobile viewports"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward CSS bug fix with clear root cause in a single file"
+  }
+}
