@@ -1,7 +1,7 @@
 # happy-app
 
-*Last updated: 2026-03-24T22:40:14Z*
-**Total entries**: 365
+*Last updated: 2026-04-08T10:52:17Z*
+**Total entries**: 382
 **Convention**: kebab
 
 ## Tree
@@ -55,6 +55,7 @@ happy-app/
 │   │   ├── markdown/
 │   │   ├── navigation/
 │   │   ├── qr/
+│   │   ├── sidebar/
 │   │   ├── tools/
 │   │   ├── usage/
 │   │   ├── web/
@@ -83,8 +84,6 @@ happy-app/
 │   │   ├── `EmptyMessages.tsx` - tsx file
 │   │   ├── `EmptySessionsTablet.tsx` - tsx file
 │   │   ├── `entityColor.ts` - ts file
-│   │   ├── `EnvironmentVariableCard.tsx` - tsx file
-│   │   ├── `EnvironmentVariablesList.tsx` - tsx file
 │   │   ├── `ExternalLink.tsx` - tsx file
 │   │   ├── `FAB.tsx` - tsx file
 │   │   ├── `FABWide.tsx` - tsx file
@@ -108,19 +107,22 @@ happy-app/
 │   │   ├── `modelModeOptions.ts` - ts file
 │   │   ├── `MultiTextInput.tsx` - tsx file
 │   │   ├── `MultiTextInput.web.tsx` - tsx file
-│   │   ├── `NewSessionWizard.tsx` - tsx file
 │   │   ├── `OAuthView.tsx` - tsx file
 │   │   ├── `PermissionModeSelector.tsx` - tsx file
 │   │   ├── `PlaceholderContainerView.tsx` - tsx file
 │   │   ├── `PlusPlus.tsx` - tsx file
 │   │   ├── `PlusPlus.web.tsx` - tsx file
-│   │   ├── `ProfileEditForm.tsx` - tsx file
 │   │   ├── `ProjectGitStatus.tsx` - tsx file
+│   │   ├── `RightSidebar.tsx` - tsx file
 │   │   ├── `RoundButton.tsx` - tsx file
 │   │   ├── `SearchableListSelector.tsx` - tsx file
+│   │   ├── `SessionActionsNativeMenu.android.tsx` - tsx file
+│   │   ├── `SessionActionsNativeMenu.ios.tsx` - tsx file
+│   │   ├── `SessionActionsNativeMenu.tsx` - tsx file
+│   │   ├── `SessionActionsNativeMenu.web.tsx` - tsx file
+│   │   ├── `SessionActionsPopover.tsx` - tsx file
 │   │   ├── `SessionsList.tsx` - tsx file
 │   │   ├── `SessionsListWrapper.tsx` - tsx file
-│   │   ├── `SessionTypeSelector.tsx` - tsx file
 │   │   ├── `SettingsView.tsx` - tsx file
 │   │   ├── `SettingsViewWrapper.tsx` - tsx file
 │   │   ├── `Shaker.tsx` - tsx file
@@ -164,31 +166,32 @@ happy-app/
 │   │   ├── `text.test.ts` - ts file
 │   │   └── `text.ts` - ts file
 │   ├── hooks/
-│   │   ├── `envVarUtils.ts` - ts file
 │   │   ├── `useAsyncCommand.ts` - ts file
 │   │   ├── `useAttachments.ts` - ts file
 │   │   ├── `useAutocomplete.ts` - ts file
 │   │   ├── `useAutocompleteSession.ts` - ts file
 │   │   ├── `useChangelog.ts` - ts file
 │   │   ├── `useCheckCameraPermissions.ts` - ts file
-│   │   ├── `useCLIDetection.ts` - ts file
 │   │   ├── `useConnectAccount.ts` - ts file
 │   │   ├── `useConnectTerminal.ts` - ts file
 │   │   ├── `useDemoMessages.ts` - ts file
 │   │   ├── `useDraft.ts` - ts file
 │   │   ├── `useElapsedTime.ts` - ts file
-│   │   ├── `useEnvironmentVariables.test.ts` - ts file
-│   │   ├── `useEnvironmentVariables.ts` - ts file
 │   │   ├── `useGetPath.ts` - ts file
+│   │   ├── `useGitStatusFiles.ts` - ts file
 │   │   ├── `useGlobalKeyboard.ts` - ts file
 │   │   ├── `useHappyAction.ts` - ts file
 │   │   ├── `useInboxHasContent.ts` - ts file
 │   │   ├── `useMultiClick.ts` - ts file
 │   │   ├── `useNativeUpdate.ts` - ts file
 │   │   ├── `useNavigateToSession.ts` - ts file
+│   │   ├── `useNewSessionDraft.ts` - ts file
+│   │   ├── `usePrefetchFileContents.ts` - ts file
 │   │   ├── `useSearch.ts` - ts file
+│   │   ├── `useSessionQuickActions.ts` - ts file
 │   │   ├── `useUpdates.ts` - ts file
-│   │   └── `useVisibleSessionListViewData.ts` - ts file
+│   │   ├── `useVisibleSessionListViewData.ts` - ts file
+│   │   └── `useWorktreeCleanup.ts` - ts file
 │   ├── modal/
 │   │   ├── components/
 │   │   ├── `index.ts` - ts file
@@ -208,6 +211,9 @@ happy-app/
 │   ├── scripts/
 │   │   ├── `compareTranslations.ts` - ts file
 │   │   └── `parseChangelog.ts` - ts file
+│   ├── stores/
+│   │   ├── `detailViewStore.ts` - ts file
+│   │   └── `rightSidebarStore.ts` - ts file
 │   ├── sync/
 │   │   ├── __testdata__/
 │   │   ├── encryption/
@@ -242,14 +248,14 @@ happy-app/
 │   │   ├── `ops.ts` - ts file
 │   │   ├── `persistence.ts` - ts file
 │   │   ├── `profile.ts` - ts file
-│   │   ├── `profileSync.ts` - ts file
-│   │   ├── `profileUtils.ts` - ts file
 │   │   ├── `projectManager.ts` - ts file
 │   │   ├── `purchases.ts` - ts file
+│   │   ├── `pushRegistration.ts` - ts file
 │   │   ├── `serverConfig.ts` - ts file
 │   │   ├── `settings.spec.ts` - ts file
 │   │   ├── `settings.ts` - ts file
 │   │   ├── `storage.ts` - ts file
+│   │   ├── `storageTypes.spec.ts` - ts file
 │   │   ├── `storageTypes.ts` - ts file
 │   │   ├── `suggestionCommands.ts` - ts file
 │   │   ├── `suggestionFile.ts` - ts file
@@ -268,37 +274,47 @@ happy-app/
 │   │   ├── `index.ts` - ts file
 │   │   ├── `tracking.ts` - ts file
 │   │   └── `useTrackScreens.ts` - ts file
+│   ├── trash/
+│   │   └── `test-session-view.tsx` - tsx file
 │   ├── types/
 │   │   └── `react-native-webrtc-web-shim.d.ts` - ts file
 │   ├── utils/
 │   │   ├── web/
-│   │   ├── `createWorktree.ts` - ts file
+│   │   ├── `codexUnifiedDiff.spec.ts` - ts file
+│   │   ├── `codexUnifiedDiff.ts` - ts file
+│   │   ├── `consoleLogging.ts` - ts file
+│   │   ├── `copySessionMetadataToClipboard.ts` - ts file
 │   │   ├── `debounce.test.ts` - ts file
 │   │   ├── `debounce.ts` - ts file
 │   │   ├── `deviceCalculations.test.ts` - ts file
 │   │   ├── `deviceCalculations.ts` - ts file
 │   │   ├── `errors.ts` - ts file
 │   │   ├── `formatPermissionParams.ts` - ts file
-│   │   ├── `generateWorktreeName.ts` - ts file
 │   │   ├── `loadSkia.ts` - ts file
 │   │   ├── `loadSkia.web.ts` - ts file
 │   │   ├── `lock.ts` - ts file
 │   │   ├── `machineUtils.ts` - ts file
 │   │   ├── `messageUtils.ts` - ts file
 │   │   ├── `microphonePermissions.ts` - ts file
+│   │   ├── `notificationRouting.test.ts` - ts file
+│   │   ├── `notificationRouting.ts` - ts file
 │   │   ├── `oauth.ts` - ts file
 │   │   ├── `parseToken.ts` - ts file
 │   │   ├── `pathUtils.spec.ts` - ts file
 │   │   ├── `pathUtils.ts` - ts file
 │   │   ├── `platform.ts` - ts file
-│   │   ├── `remoteLogger.ts` - ts file
 │   │   ├── `requestReview.ts` - ts file
 │   │   ├── `responsive.ts` - ts file
+│   │   ├── `resumeCommand.test.ts` - ts file
+│   │   ├── `resumeCommand.ts` - ts file
+│   │   ├── `sessionFileLinks.test.ts` - ts file
+│   │   ├── `sessionFileLinks.ts` - ts file
 │   │   ├── `sessionUtils.ts` - ts file
 │   │   ├── `stringUtils.ts` - ts file
 │   │   ├── `sync.ts` - ts file
-│   │   ├── `tempDataStore.ts` - ts file
 │   │   ├── `time.ts` - ts file
+│   │   ├── `toolCommand.test.ts` - ts file
+│   │   ├── `toolCommand.ts` - ts file
 │   │   ├── `toolComparison.test.ts` - ts file
 │   │   ├── `toolComparison.ts` - ts file
 │   │   ├── `toolErrorParser.test.ts` - ts file
@@ -307,7 +323,8 @@ happy-app/
 │   │   ├── `toSnakeCase.ts` - ts file
 │   │   ├── `trimIdent.ts` - ts file
 │   │   ├── `versionUtils.test.ts` - ts file
-│   │   └── `versionUtils.ts` - ts file
+│   │   ├── `versionUtils.ts` - ts file
+│   │   └── `worktree.ts` - ts file
 │   ├── `config.ts` - ts file
 │   ├── `log.ts` - ts file
 │   ├── `theme.css` - css file
