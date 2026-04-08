@@ -46,7 +46,7 @@ export const SidebarFileView = React.memo<SidebarFileViewProps>(({ tool }) => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             {filePath ? (
-                <Text style={styles.filePath} numberOfLines={1}>{filePath}</Text>
+                <Text style={styles.filePath}>{filePath}</Text>
             ) : null}
             {showFileContent ? (
                 <View style={styles.tabBar}>
@@ -228,15 +228,15 @@ const styles = StyleSheet.create((theme) => ({
         backgroundColor: theme.colors.surfaceHighest,
     },
     tabActive: {
-        backgroundColor: theme.colors.textLink,
+        backgroundColor: theme.colors.text,
     },
     tabText: {
         fontSize: 12,
         fontWeight: '600',
-        color: theme.colors.textSecondary,
+        color: theme.colors.text,
     },
     tabTextActive: {
-        color: '#fff',
+        color: theme.colors.background,
     },
     multiEditContainer: {
         gap: 12,
