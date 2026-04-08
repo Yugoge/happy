@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-08T17:29:08Z*
-**Total entries**: 40
+*Last updated: 2026-04-08T18:14:02Z*
+**Total entries**: 42
 **Convention**: kebab
 
 ## Tree
@@ -12,6 +12,7 @@ dev/
 ├── `ba-spec-20260405-120000.md` - BA Specification: Edit Tool Full View Missing Standard Detail Sections
 ├── `ba-spec-20260408-120000.md` - BA Specification: Session Watcher Ignores Intentional Archive
 ├── `ba-spec-20260408-161500.md` - BA Specification: find_peak_snapshot break-after-first-home is a no-op bug
+├── `ba-spec-20260408-180000.md` - BA Specification: Session Archive Cascade Root Cause Analysis (2026-04-08 Morning Incident)
 ├── `ba-spec-20260408-bug62-v2.md` - BA Specification: Event-Driven Session Recovery Architecture
 ├── `ba-spec-20260408-bug62.md` - BA Specification: Bug #62 Complete Fix -- Session Recovery Redesign
 ├── `ba-spec-20260408-daemon-recovery.md` - BA Specification: Daemon-Owned Session Recovery Architecture
@@ -26,6 +27,7 @@ dev/
 ├── `context-20260405-restore-fix.json` - json config
 ├── `context-20260408-120000.json` - json config
 ├── `context-20260408-161500.json` - json config
+├── `context-20260408-180000.json` - json config
 ├── `context-20260408-bug62-v2.json` - json config
 ├── `context-20260408-bug62.json` - json config
 ├── `context-20260408-daemon-recovery.json` - json config

@@ -1,0 +1,81 @@
+{
+  "request_id": "dev-20260408-180000",
+  "timestamp": "2026-04-08T18:00:00Z",
+  "requirement": {
+    "original": "Who killed session processes this morning when user archived?",
+    "clarified": "Forensic investigation of the 2026-04-08 09:05 UTC session cascade triggered by archiving session 1140deaf",
+    "what": "Root cause analysis of session cascade incident",
+    "why": "Understanding whether the app, daemon, or watcher caused the mass session kill",
+    "where": ["happy-app/sources/sync/ops.ts", "happy-cli/src/claude/registerKillSessionHandler.ts", "/root/bin/happy-session-recovery.sh"],
+    "scope": {
+      "included": ["Forensic timeline reconstruction", "Identification of each actor in the cascade chain"],
+      "excluded": ["Code changes", "Implementation work"]
+    },
+    "success_criteria": [
+      "Complete timeline from trigger to cascade",
+      "Identification of who killed PID 289607",
+      "Explanation of why 17:50 archive did not cascade"
+    ],
+    "constraints": []
+  },
+  "root_cause_analysis": {
+    "symptom": "Archiving one session at 09:05 UTC killed ALL sessions across all daemons",
+    "root_cause": "Three-actor chain: (1) App sent killSession RPC which correctly killed the archived session process. (2) Daemon detected dead PID and removed it from session_dirs.txt. (3) Session watcher (OLD code before Bug #61 fix) detected the session count decrease, treated it as a crash event, and executed blanket orphan-kill + mass-respawn across ALL daemons.",
+    "root_cause_commit": "N/A - the old watcher behavior was the root cause, already fixed by Bug #61",
+    "why_introduced": "The watcher was designed to recover from daemon crashes where ALL sessions die. It treated ANY session disappearance as a potential crash and did a full restore.",
+    "why_problematic": "A single intentional session kill (user archive) triggered the same full-restore path as a daemon crash. The blanket orphan-kill killed all healthy sessions, then respawned them all, causing multiple secondary cascades.",
+    "timeline": "2026-04-08 09:04:32 - 09:09:25 UTC (approximately 5 minutes of chaos)",
+    "affected_files": [
+      "packages/happy-app/sources/sync/ops.ts",
+      "packages/happy-app/sources/components/ActiveSessionsGroup.tsx",
+      "packages/happy-cli/src/claude/registerKillSessionHandler.ts",
+      "packages/happy-cli/src/daemon/run.ts",
+      "/root/bin/happy-session-recovery.sh"
+    ]
+  },
+  "context": {
+    "codebase_state": "Bug #61 fix already applied to session recovery script",
+    "recent_commits": "79cf62b5 fix: Bug #61 -- scope session recovery per-daemon",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {}
+  },
+  "forensic_timeline": {
+    "09:04:32.874": "App sends killSession RPC to session cmnpqnr9e124rt615ig4jwdw1 (PID 289607, claude session 1140deaf)",
+    "09:04:32.875": "CLI process receives killSession, calls killThisHappy(), begins cleanup",
+    "09:04:32.882": "CLI process cleanup complete, process exits",
+    "09:05:26.388": "Daemon health check detects PID 289607 no longer exists, removes from tracking",
+    "09:05:26.000": "Watcher detects session count drop (15->14), triggers auto-restore",
+    "09:05:39-42": "Watcher kills 6 healthy session processes as 'orphans' for /root/.happy",
+    "09:05:45-06:35": "Watcher respawns 10 sessions for /root/.happy",
+    "09:06:41-57": "Watcher kills 3 jade sessions as 'orphans', respawns them",
+    "09:07:02-05": "Watcher kills 1 dev session, respawns it",
+    "09:09:11": "Another session dies during respawn chaos, triggers THIRD cascade (but lock prevents concurrent restore)"
+  },
+  "key_findings": {
+    "who_killed_pid_289607": "The APP via killSession RPC. This is the INTENDED behavior for archive.",
+    "who_caused_the_cascade": "The SESSION WATCHER (old code). It treated a single session disappearance as a full crash event and did blanket kill + respawn.",
+    "why_17_50_did_not_cascade": "Bug #61 fix was applied before the 17:50 test. The new watcher does not blanket-kill on single session disappearance.",
+    "the_killSession_rpc_is_correct": true,
+    "the_archive_ui_is_correct": true,
+    "the_daemon_behavior_is_correct": true,
+    "the_old_watcher_was_the_problem": true
+  },
+  "development_approach": {
+    "strategy": "No implementation needed - this is a completed investigation. Bug #61 fix already resolved the cascade issue.",
+    "files_to_create": [],
+    "files_to_modify": [],
+    "validation_approach": "The 17:50 archive test confirmed the fix works: 39 processes before, 39 after (minus the archived one)."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Forensic investigation of specific incident using log analysis, not a design or architecture question"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
