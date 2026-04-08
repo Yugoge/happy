@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-08T06:31:27Z*
-**Total entries**: 145
+*Last updated: 2026-04-08T15:47:00Z*
+**Total entries**: 149
 **Convention**: kebab
 
 ## Tree
@@ -53,6 +53,8 @@ dev/
 ├── `ba-spec-20260407-0830.md` - BA Specification: AskUserQuestion Answer Persistence + Subagent Sidebar Data Flow
 ├── `ba-spec-20260407-sidebar-detail-coexist.md` - BA Specification: Right Sidebar Must Coexist with Tool Detail Page
 ├── `ba-spec-20260408-0010.md` - BA Specification: BashView Scrollbar and Corner Radius Fix
+├── `ba-spec-20260408-0700.md` - BA Specification: Fix BashView Inline Preview CSS Bugs
+├── `ba-spec-20260408-150000.md` - BA Specification: Revert Broken SidebarBashView Horizontal Scroll
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
 ├── `context-20260403-210447-1.json` - json config
@@ -84,6 +86,8 @@ dev/
 ├── `context-20260407-0830.json` - json config
 ├── `context-20260407-sidebar-detail-coexist.json` - json config
 ├── `context-20260408-0010.json` - json config
+├── `context-20260408-0700.json` - json config
+├── `context-20260408-150000.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config

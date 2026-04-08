@@ -61,7 +61,7 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
 
     return (
         <View style={styles.container}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView horizontal showsHorizontalScrollIndicator>
                 <CommandView
                     command={previewCommand}
                     stdout={previewStdout}
@@ -87,9 +87,6 @@ const styles = StyleSheet.create((theme) => ({
         marginTop: -9,
         marginBottom: -1,
         backgroundColor: theme.colors.terminal.background,
-        borderBottomLeftRadius: 11,
-        borderBottomRightRadius: 11,
-        overflow: 'hidden',
     },
     moreContainer: {
         paddingHorizontal: 16,
