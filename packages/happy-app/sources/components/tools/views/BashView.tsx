@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
-import { CommandView } from '@/components/CommandView';
 import { knownTools } from '@/components/tools/knownTools';
 import { Metadata } from '@/sync/storageTypes';
 
@@ -61,41 +60,83 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
 
     return (
         <View style={styles.container}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                <CommandView
-                    command={previewCommand}
-                    stdout={previewStdout}
-                    stderr={previewStderr}
-                    error={error}
-                    hideEmptyOutput
-                />
-            </ScrollView>
+            <View style={styles.commandLine}>
+                <Text style={styles.prompt}>$ </Text>
+                <Text style={styles.command} numberOfLines={2}>{previewCommand}</Text>
+            </View>
+            {previewStdout && (
+                <Text style={styles.stdout} numberOfLines={MAX_PREVIEW_LINES}>{previewStdout}</Text>
+            )}
+            {previewStderr && (
+                <Text style={styles.stderr} numberOfLines={MAX_PREVIEW_LINES}>{previewStderr}</Text>
+            )}
+            {error && (
+                <Text style={styles.errorText} numberOfLines={MAX_PREVIEW_LINES}>{error}</Text>
+            )}
             {extraLines > 0 && (
-                <View style={styles.moreContainer}>
-                    <Text style={styles.moreText}>+{extraLines} more lines</Text>
-                </View>
+                <Text style={styles.moreText}>+{extraLines} more lines</Text>
             )}
         </View>
     );
 });
 
-// Negative margins compensate for ToolView content area padding (12px horizontal, 8px top, 1px border)
-// so the terminal block fills edge-to-edge inside the tool card
+const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+
 const styles = StyleSheet.create((theme) => ({
     container: {
-        marginHorizontal: -12,
-        marginTop: -9,
-        marginBottom: -1,
-        backgroundColor: theme.colors.terminal.background,
+        paddingBottom: 4,
     },
-    moreContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 10,
+    commandLine: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+    },
+    prompt: {
+        fontFamily: MONO_FONT,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.textSecondary,
+        fontWeight: '600',
+    },
+    command: {
+        fontFamily: MONO_FONT,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.text,
+        fontWeight: '500',
+        flex: 1,
+    },
+    stdout: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textSecondary,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    stderr: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.warning,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    errorText: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textDestructive,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
     },
     moreText: {
+        fontSize: 14,
         color: theme.colors.textSecondary,
-        fontSize: 13,
         fontStyle: 'italic',
         opacity: 0.7,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
     },
 }));
