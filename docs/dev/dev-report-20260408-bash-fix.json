@@ -1,0 +1,62 @@
+{
+  "request_id": "dev-20260408-bash-fix",
+  "timestamp": "2026-04-08T12:00:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260408-bash-fix.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Bug 1: Changed orphan kill from blanket (all sessions per home) to per-session (only kill the UUID about to be respawned)",
+        "type": "bugfix",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Removed blanket kill block (old lines 889-905) that killed ALL running sessions for a home. Added per-session orphan kill inside the spawn loop: before each daemon_spawn_session call, pgrep for --resume $uuid and kill only that process.",
+        "rationale": "Blanket kill caused all healthy sessions for a home to die when only one needed respawning"
+      },
+      {
+        "id": 2,
+        "description": "Bug 2: Added consecutive-drops counter (3 cycles) before triggering auto-restore in watcher",
+        "type": "bugfix",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Added local consecutive_drops=0 before watch loop. Changed immediate restore trigger to increment counter on each drop cycle, only firing restore after 3 consecutive drops (~3 minutes). Counter resets on no-drop cycle or after restore fires.",
+        "rationale": "Single session archive/exit was triggering full restore, resurrecting sessions that were intentionally stopped"
+      },
+      {
+        "id": 3,
+        "description": "Bug 3: Changed peak merge trigger from any count drop to count==0 only",
+        "type": "bugfix",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Changed condition from 'count -lt prev_count' to 'count -eq 0' in update_snapshot_with_peak_protection(). Peak merge now only fires on total loss (daemon crash/reboot), not partial drops (10->9).",
+        "rationale": "Partial drops (single session exit) were triggering peak merge which resurrected archived sessions from the peak snapshot"
+      },
+      {
+        "id": 4,
+        "description": "Bug 4: Fixed qijie sessions getting empty home_dir and being misassigned to default daemon",
+        "type": "bugfix",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Removed if/else that set home_dir_val='' for /root/.happy in both Source 1 (line ~58) and Source 2 (line ~131). Now always sets home_dir_val=$home. Backward compat preserved via filter_sessions_for_home() defaulting empty home_dir to /root/.happy.",
+        "rationale": "Qijie sessions not tracked by any daemon got home_dir='' which matched default daemon's pattern, causing them to appear in default's snapshot"
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "Multiple behavioral bugs in session recovery script",
+      "why_issue_occurred": "Original design assumed: (1) all sessions per home need killing on restore, (2) any session disappearance means crash, (3) any count drop means data loss, (4) default daemon uses empty string identifier",
+      "how_fix_addresses_root": "Each fix targets the specific incorrect assumption without changing the overall recovery architecture"
+    },
+    "qa_ready": true,
+    "qa_notes": "Syntax check passes (bash -n). All 4 verification greps pass. No TypeScript, systemd, or daemon changes. Script is live in production via session-watcher service but changes only take effect on next watcher restart.",
+    "permissions_to_add": [],
+    "blast_radius": [
+      {
+        "modified": "/root/bin/happy-session-recovery.sh",
+        "imported_by": ["happy-session-watcher.service (ExecStart)", "happy-daemon.service (ExecStartPre/ExecStartPost)", "happy-daemon-jade.service", "happy-daemon-dev.service", "happy-daemon-qijie.service"]
+      }
+    ]
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Restart happy-session-watcher.service to pick up watcher changes (Bug 2 consecutive_drops)",
+    "Next daemon restart will pick up restore changes (Bugs 1, 3, 4) via ExecStartPost"
+  ]
+}

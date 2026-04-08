@@ -1,0 +1,181 @@
+{
+  "request_id": "qa-20260408-bash-fix",
+  "timestamp": "2026-04-08T16:45:00+08:00",
+  "qa": {
+    "status": "pass",
+    "overall_assessment": "All 4 bug fixes verified correct via code tracing and live execution. Syntax check passes. save/check/restore/--home scoping all work correctly in production. No regressions found. Two design observations noted as minor (non-blocking).",
+    "bugs_verified": [
+      {
+        "bug": "Bug 1: Blanket orphan kill removed, replaced with per-session kill before each spawn",
+        "verification_method": "Code trace of restore_online_sessions() lines 913-920. Old code killed ALL orphans for a home before iterating sessions. New code kills only the specific session's orphan (pgrep -f '--resume $uuid') right before spawning that session.",
+        "result": "pass",
+        "details": "Per-session orphan kill is more surgical. The pgrep pattern '--resume $uuid' uses the full UUID (8-4-4-4-12 hex), making false positives essentially impossible. The 1s sleep after kill before respawn is adequate for normal SIGTERM handling. The old --kill-orphans flag was cleanly removed from restore_online_sessions(), the CLI arg parser, and the post-start script.",
+        "evidence": [
+          "Lines 913-920: pgrep -f '--resume $uuid' + xargs kill + sleep 1 per session",
+          "Post-start script /root/bin/happy-daemon-post-start.sh no longer passes --kill-orphans",
+          "grep -r 'kill-orphans' across /etc/systemd, /root/bin, /root/deploy returns nothing"
+        ]
+      },
+      {
+        "bug": "Bug 2: Watcher auto-restore now requires 3 consecutive drops (not just 1)",
+        "verification_method": "Code trace of watch_sessions() lines 585-645. consecutive_drops variable declared at line 585 (outside while loop, persists across iterations). Incremented when nr>0, reset to 0 when nr==0 or when hash unchanged (continue skips the block, preserving value). Restore triggers at >=3.",
+        "result": "pass",
+        "details": "consecutive_drops is declared as a local variable in watch_sessions() BEFORE the while loop (line 585), so it persists across loop iterations correctly. When hash is unchanged (line 606 continue), the counter is neither incremented nor reset -- it preserves its value, which is correct behavior (no new information). When a change occurs with nr==0 (sessions added, not removed), it resets to 0 (line 644). After restore triggers, it resets to 0 (line 641).",
+        "evidence": [
+          "Line 585: local consecutive_drops=0 (before while loop)",
+          "Line 636: consecutive_drops=$((consecutive_drops + 1)) when nr>0",
+          "Line 638: if consecutive_drops >= 3 then restore",
+          "Line 641: consecutive_drops=0 after restore",
+          "Line 644: consecutive_drops=0 when nr==0"
+        ]
+      },
+      {
+        "bug": "Bug 3: Peak merge only on count==0 (not any drop)",
+        "verification_method": "Code trace of update_snapshot_with_peak_protection() lines 376-427. The condition is: count -eq 0 AND prev_count -gt 0. Only triggers when ALL sessions are dead, not on partial drops.",
+        "result": "pass",
+        "details": "Line 383: `if [ \"$count\" -eq 0 ] && [ \"$prev_count\" -gt 0 ]` -- this is the correct guard. Partial drops (10->9, 10->5) bypass the peak merge entirely and write the actual current state. Only full wipeout (count=0) triggers peak merge, which is the correct behavior for crash recovery without resurrecting archived sessions.",
+        "evidence": [
+          "Line 383: count -eq 0 && prev_count -gt 0 (strict zero check)",
+          "Scenario A trace: 10->9, count=9 != 0, no peak merge -- CORRECT",
+          "Scenario F trace: reboot, count=0, prev_count=10, peak merge triggers -- CORRECT"
+        ]
+      },
+      {
+        "bug": "Bug 4: home_dir_val='' changed to home_dir_val='$home' for default daemon",
+        "verification_method": "Code trace of scan_running_sessions() lines 57-58 (Source 1 PID lookup) and lines 126-127 (Source 2 daemon /list). Both now set home_dir_val='$home' unconditionally. filter_sessions_for_home() at line 181 uses effective_home='${home_dir:-/root/.happy}' for backward compat with old snapshots that have empty home_dir.",
+        "result": "pass",
+        "details": "Old code: if home=='/root/.happy' then home_dir_val='' else home_dir_val='$home'. This caused the default daemon's sessions to have empty home_dir, breaking per-home filtering. New code: always set home_dir_val='$home'. Backward compatibility preserved via filter_sessions_for_home() line 181: '${home_dir:-/root/.happy}' defaults empty home_dir to /root/.happy.",
+        "evidence": [
+          "Line 58: home_dir_val=\"$home\" (unconditional)",
+          "Line 127: home_dir_val=\"$home\" (unconditional)",
+          "Line 181: effective_home=\"${home_dir:-/root/.happy}\" (backward compat for old snapshots)",
+          "git diff 0662fcb..d2e7793 confirms the conditional was removed"
+        ]
+      }
+    ],
+    "scenario_traces": [
+      {
+        "scenario": "A: User archives 1 session (10->9)",
+        "result": "pass",
+        "trace": "Watcher detects change. count=9, nr=1. update_snapshot_with_peak_protection: count=9 != 0, so no peak merge -- writes actual state. consecutive_drops goes 0->1. Not >=3, no restore. Session_dirs.txt correctly has 9 sessions. User action respected."
+      },
+      {
+        "scenario": "B: OOM kills continuously (10->8->6->4)",
+        "result": "pass",
+        "trace": "Poll 1: nr=2, consecutive_drops=1. Poll 2: nr=2, consecutive_drops=2. Poll 3: nr=2, consecutive_drops=3 >= 3, restore triggers in background. consecutive_drops resets to 0. restore_online_sessions reads session_dirs.txt, spawns missing sessions. Correct crash recovery behavior."
+      },
+      {
+        "scenario": "C: Daemon restart (ExecStartPost -> restore)",
+        "result": "pass",
+        "trace": "ExecStartPre saves scoped snapshot. Daemon starts. ExecStartPost runs 'restore --home /root/.happy' after 8s. For each UUID: checks dir/jsonl exist, kills orphan if running (per-session), sleeps 1s, spawns via daemon_spawn_session, sleeps 5s. No blanket kill. Correct behavior."
+      },
+      {
+        "scenario": "D: Archive ALL sessions slowly (5->4->3->2)",
+        "result": "warning",
+        "trace": "After 3 consecutive drops (3 minutes), restore triggers and fights the user's archiving. This is a known design tension. The 3-minute buffer is a compromise between crash recovery speed and false positive avoidance. Documented as minor observation, not a regression (old code either had instant restore or no restore at all)."
+      },
+      {
+        "scenario": "E: Single session crash, no more crashes",
+        "result": "pass",
+        "trace": "Poll 1: nr=1, consecutive_drops=1. Poll 2+: no change, continue. consecutive_drops stays at 1 forever (never reaches 3). Session not auto-restored by watcher. By design: single crashes are handled by daemon's onChildExited handler. Watcher only handles sustained loss."
+      },
+      {
+        "scenario": "F: Server reboot (all sessions die)",
+        "result": "pass",
+        "trace": "ExecStartPre: is_cold_boot() detects new boot_id, preserves session_dirs.txt (no overwrite with 0). Watcher starts after daemon (After= in systemd unit). Initial scan: count=0, prev_count=pre-reboot-value. Peak merge triggers (count==0 && prev_count>0). Writes peak sessions to session_dirs.txt. ExecStartPost restore spawns from peak-merged data. Correct recovery chain."
+      }
+    ],
+    "specific_code_checks": [
+      {
+        "check": "consecutive_drops declared outside while loop",
+        "result": "pass",
+        "details": "Line 585: 'local consecutive_drops=0' declared before 'while true' at line 588. Persists across loop iterations as expected."
+      },
+      {
+        "check": "consecutive_drops resets after restore",
+        "result": "pass",
+        "details": "Line 641: consecutive_drops=0 immediately after triggering restore_online_sessions."
+      },
+      {
+        "check": "pgrep pattern specificity for per-session orphan kill",
+        "result": "pass",
+        "details": "Pattern is '--resume $uuid' where uuid is a full 36-char UUID (8-4-4-4-12 hex). UUID collision probability is negligible. Pattern cannot match substring of different UUID because grep matches the full string."
+      },
+      {
+        "check": "filter_sessions_for_home backward compat",
+        "result": "pass",
+        "details": "Line 181: effective_home='${home_dir:-/root/.happy}' -- empty home_dir (from old snapshots before Bug 4 fix) defaults to /root/.happy. Old snapshot data with empty home_dir field will still be correctly attributed to the default daemon."
+      },
+      {
+        "check": "bash -n syntax check",
+        "result": "pass",
+        "details": "bash -n /root/bin/happy-session-recovery.sh completed with exit code 0, no syntax errors."
+      },
+      {
+        "check": "read_snapshot_count returns per-home count vs global comparison",
+        "result": "pass",
+        "details": "read_snapshot_count returns first home's count (not global total). Used only in update_snapshot_with_peak_protection where condition is count==0. Since count==0 means ALL homes are empty, comparing against any single home's non-zero prev_count is sufficient to trigger peak merge. No bug here for the current usage."
+      }
+    ],
+    "regression_test_results": [
+      {
+        "test": "save command (global)",
+        "result": "pass",
+        "details": "bash /root/bin/happy-session-recovery.sh save: found 20 sessions, wrote snapshot successfully."
+      },
+      {
+        "test": "save command (scoped to --home /root/.happy)",
+        "result": "pass",
+        "details": "bash /root/bin/happy-session-recovery.sh save --home /root/.happy: found 16 sessions for default daemon, scoped save worked correctly."
+      },
+      {
+        "test": "check command",
+        "result": "pass",
+        "details": "bash /root/bin/happy-session-recovery.sh check: shows all 4 homes (default=16, jade=3, dev=1, qijie=0). All running sessions match saved sessions (all OK, no MISSING)."
+      },
+      {
+        "test": "--kill-orphans flag removal",
+        "result": "pass",
+        "details": "Flag completely removed from restore_online_sessions(), CLI arg parser, and all systemd service configs. No dangling references found via grep."
+      },
+      {
+        "test": "ExecStartPost integration",
+        "result": "pass",
+        "details": "/root/bin/happy-daemon-post-start.sh correctly calls 'restore --home $HAPPY_HOME' without --kill-orphans. Scoped restore via SCOPE_HOME works correctly."
+      }
+    ],
+    "all_findings": [
+      {
+        "severity": "minor",
+        "location": "/root/bin/happy-session-recovery.sh:913-919",
+        "issue": "1s sleep after orphan kill may be insufficient if process has custom SIGTERM handler that takes >1s",
+        "recommendation": "Consider adding a kill -0 check loop (max 3s) to confirm process actually died before spawning replacement. Low risk in practice since node processes typically exit within 100ms on SIGTERM.",
+        "blocks_release": false
+      },
+      {
+        "severity": "minor",
+        "location": "/root/bin/happy-session-recovery.sh:634-645",
+        "issue": "Slow deliberate archiving (1 session per minute for 3+ minutes) will trigger auto-restore, fighting the user",
+        "recommendation": "Known design tension. Could add a 'no-auto-restore' flag file that users create before bulk archiving, or increase threshold to 5. Not a regression -- previous code had either instant restore or none.",
+        "blocks_release": false
+      }
+    ],
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 2,
+      "total_findings": 2,
+      "release_recommendation": "approve"
+    },
+    "self_verification": {
+      "claims_total": 16,
+      "claims_with_evidence": 16,
+      "claims_superficial": 0,
+      "superficial_details": [],
+      "confidence": "high",
+      "notes": "All claims backed by code line references, git diffs, and live execution output. Six scenario traces done line-by-line through actual code. Save/check commands executed live on production system with 20 active sessions."
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null
+}
