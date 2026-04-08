@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Text, Platform } from 'react-native';
+import { View, Text, ScrollView, Platform } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
 import { knownTools } from '@/components/tools/knownTools';
@@ -59,24 +59,26 @@ export const BashView = React.memo((props: { tool: ToolCall, metadata: Metadata 
     const extraLines = Math.max(0, totalLines - shownLines);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.commandLine}>
-                <Text style={styles.prompt}>$ </Text>
-                <Text style={styles.command} numberOfLines={2}>{previewCommand}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.container}>
+            <View>
+                <View style={styles.commandLine}>
+                    <Text style={styles.prompt}>$ </Text>
+                    <Text style={styles.command}>{previewCommand}</Text>
+                </View>
+                {previewStdout && (
+                    <Text style={styles.stdout}>{previewStdout}</Text>
+                )}
+                {previewStderr && (
+                    <Text style={styles.stderr}>{previewStderr}</Text>
+                )}
+                {error && (
+                    <Text style={styles.errorText}>{error}</Text>
+                )}
+                {extraLines > 0 && (
+                    <Text style={styles.moreText}>+{extraLines} more lines</Text>
+                )}
             </View>
-            {previewStdout && (
-                <Text style={styles.stdout} numberOfLines={MAX_PREVIEW_LINES}>{previewStdout}</Text>
-            )}
-            {previewStderr && (
-                <Text style={styles.stderr} numberOfLines={MAX_PREVIEW_LINES}>{previewStderr}</Text>
-            )}
-            {error && (
-                <Text style={styles.errorText} numberOfLines={MAX_PREVIEW_LINES}>{error}</Text>
-            )}
-            {extraLines > 0 && (
-                <Text style={styles.moreText}>+{extraLines} more lines</Text>
-            )}
-        </View>
+        </ScrollView>
     );
 });
 
@@ -103,9 +105,8 @@ const styles = StyleSheet.create((theme) => ({
         fontFamily: MONO_FONT,
         fontSize: 14,
         lineHeight: 20,
-        color: theme.colors.text,
+        color: theme.colors.textSecondary,
         fontWeight: '500',
-        flex: 1,
     },
     stdout: {
         fontFamily: MONO_FONT,

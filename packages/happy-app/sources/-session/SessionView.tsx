@@ -146,12 +146,9 @@ function SessionHeader({ headerProps, session, anchor, setAnchor, isTablet, real
     const isLandscape = useIsLandscape();
     const deviceType = useDeviceType();
     const router = useRouter();
-    const sidebarIsOpen = useRightSidebar((s) => s.isOpen);
-    const { width } = useWindowDimensions();
-    const sidebarRight = (sidebarIsOpen && width >= 901) ? 450 : 0;
     if (isLandscape && deviceType === 'phone' && Platform.OS !== 'web') return null;
     return (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: sidebarRight, zIndex: 1000 }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }}>
             <ChatHeaderView
                 {...headerProps} onBackPress={() => router.back()}
                 avatarMenuExpanded={Platform.OS === 'web' && !!anchor} avatarMenuSession={session}
