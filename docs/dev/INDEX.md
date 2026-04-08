@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-08T17:17:52Z*
-**Total entries**: 37
+*Last updated: 2026-04-08T17:29:08Z*
+**Total entries**: 40
 **Convention**: kebab
 
 ## Tree
@@ -30,6 +30,7 @@ dev/
 ├── `context-20260408-bug62.json` - json config
 ├── `context-20260408-daemon-recovery.json` - json config
 ├── `context-20260408-duplicate-session-investigation.json` - json config
+├── `context-20260408-oom-characterization.json` - json config
 ├── `context-20260408-restore-cascade.json` - json config
 ├── `context-20260408-session-kill-investigation.json` - json config
 ├── `dev-report-20260403-investigation.json` - json config
@@ -37,13 +38,15 @@ dev/
 ├── `dev-report-20260408-bash-fix.json` - json config
 ├── `dev-report-20260408-bug62-v2.json` - json config
 ├── `dev-report-20260408-combined.json` - json config
+├── `dev-report-20260408-watcher-fastdetect.json` - json config
 ├── `dev-report-daemon-systemd.json` - json config
 ├── `qa-pre-review-daemon-recovery.json` - json config
 ├── `qa-report-20260405-120000.json` - json config
 ├── `qa-report-20260408-bash-fix.json` - json config
 ├── `qa-report-20260408-bug62-v2.json` - json config
 ├── `qa-report-20260408-final.json` - json config
-└── `qa-report-20260408-round2.json` - json config
+├── `qa-report-20260408-round2.json` - json config
+└── `qa-report-20260408-watcher-fastdetect.json` - json config
 ```
 
 ---

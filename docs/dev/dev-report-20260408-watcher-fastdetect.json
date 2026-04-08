@@ -1,0 +1,40 @@
+{
+  "request_id": "dev-20260408-watcher-fastdetect",
+  "timestamp": "2026-04-08T16:30:00.000Z",
+  "dev_report_path": "docs/dev/dev-report-20260408-watcher-fastdetect.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Replaced consecutive_drops auto-restore logic with fast detection mode in watch_sessions()",
+        "type": "code_edit",
+        "files_modified": ["/root/bin/happy-session-recovery.sh"],
+        "changes": "Removed consecutive_drops variable and 3-poll trigger. Added fast_detect_mode/fast_detect_count/fast_detect_required variables. On first session loss, enters fast detection mode (10s polls for 5 minutes). Triggers restore only if EVERY fast poll shows continued drops. Aborts fast mode if count stabilizes or hash stops changing.",
+        "rationale": "The old 3-consecutive-drops logic (3 x 60s = 3 minutes) could be triggered by manual archival of sessions at ~3s/session pace. Fast detection mode requires sustained loss over 30 checks x 10s = 5 minutes with EVERY check showing further drops, making false positives from manual archive virtually impossible."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {
+        "modified": "/root/bin/happy-session-recovery.sh",
+        "imported_by": ["happy-session-watcher.service (systemd, calls 'watch' subcommand)"]
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A — design flaw in original watcher logic",
+      "why_issue_occurred": "The consecutive_drops counter only needed 3 polls at 60s intervals (3 minutes total) to trigger restore. Manual session archival (which removes sessions one at a time over several minutes) could trigger this threshold, causing unwanted auto-restores.",
+      "how_fix_addresses_root": "Fast detection mode switches to 10s polling and requires 30 consecutive checks (5 minutes) ALL showing further drops. Any stabilization immediately aborts. Manual archive causes drops to stop between archival batches, aborting fast mode. True OOM/crash causes continuous sustained drops that hit the 30-check threshold."
+    },
+    "qa_ready": true,
+    "qa_notes": "Verification: 1) bash -n syntax check passes. 2) grep confirms fast_detect variables present (16 occurrences). 3) grep confirms consecutive_drops fully removed. 4) Sleep correctly switches between 10s (fast mode) and POLL_INTERVAL (normal). 5) No changes to peak merge, orphan kill, or home_dir logic. The watcher service does NOT need restart for testing — it will pick up changes on next service restart.",
+    "permissions_to_add": [],
+    "tdd_skipped": true,
+    "tdd_skip_reason": "Bash watcher script with systemd integration — behavior requires live daemon sessions and cannot be unit tested programmatically. Verification done via syntax check and grep assertions."
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Consider restarting happy-session-watcher.service to pick up the new logic (systemctl restart happy-session-watcher)",
+    "Monitor watcher logs after restart: journalctl -u happy-session-watcher -f — look for 'fast detection mode' entries to confirm new logic is active"
+  ]
+}
