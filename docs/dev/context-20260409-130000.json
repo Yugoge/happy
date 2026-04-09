@@ -1,0 +1,85 @@
+{
+  "request_id": "dev-20260409-130000",
+  "timestamp": "2026-04-09T13:00:00Z",
+  "requirement": {
+    "original": "Sidechain messages are not rendering in the sidebar despite all code being in place",
+    "clarified": "Agent/Task subagent child messages do not appear in the tool detail view (sidebar/full-screen). The inline chat shows the Agent tool header but no expandable children. The detail view shows only Description + Input Parameters + Output.",
+    "what": "Register TaskViewFull for Agent/Task tools in the full-view registry, and fix CUID2 orphan buffering in the tracer",
+    "why": "Users cannot see subagent execution details (tool calls, text output) when clicking on Agent tool calls in the sidebar",
+    "where": [
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts"
+    ],
+    "scope": {
+      "included": [
+        "Tool full-view registry registration for Task/Agent",
+        "CUID2 orphan buffering in tracer",
+        "Verification that inline TaskView renders children"
+      ],
+      "excluded": [
+        "CLI envelope format changes",
+        "Server-side message storage changes",
+        "Session protocol schema changes"
+      ]
+    },
+    "success_criteria": [
+      "Detail view for Agent tool shows TaskViewFull with expandable Sub Tools section containing child messages",
+      "Inline Agent tool card shows sub-tool status rows via TaskView",
+      "CUID2-keyed sidechain children are buffered as orphans when parent hasn't arrived yet"
+    ],
+    "constraints": [
+      "Must not break existing Task tool rendering",
+      "Must not break UUID-based orphan buffering for legacy messages"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Sidebar/detail view shows only Description + Input Parameters + Output for Agent tool calls -- no sidechain children visible",
+    "root_cause": "toolFullViewRegistry in _all.tsx does not include Task or Agent entries. getToolFullViewComponent('Agent') returns null, so ToolFullView.tsx renders the generic layout instead of TaskViewFull which handles children.",
+    "root_cause_commit": "N/A - missing registration, not a regression from a specific commit",
+    "why_introduced": "toolFullViewRegistry was created for specialized full-views (MultiEdit) but Task/Agent were only added to the inline toolViewRegistry, not the full-view registry",
+    "why_problematic": "Without TaskViewFull in the detail view, the children array is never rendered. The generic ToolFullView only shows tool.description, tool.input, and tool.result.",
+    "timeline": "Present since the detail/full view feature was implemented",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts"
+    ],
+    "secondary_issue": {
+      "symptom": "CUID2 parentUUID references are not buffered as orphans when parent tool-call hasn't been processed yet",
+      "root_cause": "isUuidLike() at reducerTracer.ts:288 returns false for CUID2 strings, causing them to be processed as standalone instead of buffered",
+      "risk_level": "Low in normal operation (messages arrive in order), medium during page reload/re-fetch"
+    }
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward UI registration bug with clear root cause from code trace"
+  },
+  "context": {
+    "codebase_state": "All sidechain protocol code (CLI mapper, app normalizer, tracer, schema) is in place and correct. Only the UI registration and a data-layer edge case are missing.",
+    "recent_commits": "df00291c Auto-commit: 2026-04-09 10:47:38",
+    "file_contents": {
+      "_all.tsx:52-54": "toolFullViewRegistry only has MultiEdit, missing Task/Agent",
+      "reducerTracer.ts:117-119": "isUuidLike checks UUID v1-v5 pattern, CUID2 does not match",
+      "reducerTracer.ts:288": "!isUuidLike(parentUuid) causes CUID2-keyed children to be standalone",
+      "ToolFullView.tsx:110": "getToolFullViewComponent returns null for Agent/Task",
+      "ToolFullView.tsx:119-121": "SpecializedFullView ? <render> : null -- null path taken"
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Two-part fix: (1) Add Task/Agent to toolFullViewRegistry mapping to TaskViewFull, (2) Fix isUuidLike gate in tracer to also buffer non-UUID parent references as orphans",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/sync/reducer/reducerTracer.ts"
+    ],
+    "validation_approach": "Build app, deploy to dev web, navigate to a session with Agent tool calls, verify children appear in both inline view and detail/sidebar view. Test with both desktop and mobile viewports."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}
