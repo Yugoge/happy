@@ -98,11 +98,6 @@ const sessionWrapEventSchema = z.object({
     content: z.string(),
 });
 
-const sessionSidechainEventSchema = z.object({
-    t: z.literal('sidechain'),
-    prompt: z.string(),
-});
-
 const sessionEventSchema = z.discriminatedUnion('t', [
     sessionTextEventSchema,
     sessionServiceMessageEventSchema,
@@ -114,7 +109,6 @@ const sessionEventSchema = z.discriminatedUnion('t', [
     sessionTurnEndEventSchema,
     sessionStopEventSchema,
     sessionWrapEventSchema,
-    sessionSidechainEventSchema,
 ]);
 
 const sessionEnvelopeSchema = z.object({
@@ -720,22 +714,6 @@ function normalizeSessionEnvelope(
                 parentUUID
             }],
             meta
-        } satisfies NormalizedMessage;
-    }
-
-    if (envelope.ev.t === 'sidechain') {
-        return {
-            id: messageId,
-            localId,
-            createdAt: messageCreatedAt,
-            role: 'agent',
-            isSidechain: true,
-            content: [{
-                type: 'sidechain',
-                uuid: messageId,
-                prompt: envelope.ev.prompt,
-            }],
-            meta,
         } satisfies NormalizedMessage;
     }
 
