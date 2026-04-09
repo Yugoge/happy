@@ -717,6 +717,22 @@ function normalizeSessionEnvelope(
         } satisfies NormalizedMessage;
     }
 
+    if (envelope.ev.t === 'sidechain') {
+        return {
+            id: messageId,
+            localId,
+            createdAt: messageCreatedAt,
+            role: 'agent',
+            isSidechain: true,
+            content: [{
+                type: 'sidechain',
+                uuid: messageId,
+                prompt: envelope.ev.prompt,
+            }],
+            meta,
+        } satisfies NormalizedMessage;
+    }
+
     return null;
 }
 
