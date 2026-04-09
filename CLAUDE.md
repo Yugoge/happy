@@ -334,14 +334,17 @@ Claude SDK output (stream-json JSONL)
 ```bash
 bash /root/bin/happy-session-recovery.sh save       # Save current session snapshot
 bash /root/bin/happy-session-recovery.sh check      # Check saved sessions
-bash /root/bin/happy-session-recovery.sh restore     # Restore saved sessions
+bash /root/bin/happy-session-recovery.sh restore     # Restore ALL saved sessions (bulk)
+bash /root/bin/happy-session-recovery.sh recover <uuid> [working-dir] [--home /root/.happy-jade]  # Restore SINGLE session
 bash /root/bin/happy-session-recovery.sh history 10  # Show event history
 bash /root/bin/happy-session-recovery.sh snapshots 48  # Show snapshots from last 48h
 ```
 
+**CRITICAL: To restore a single session, use `recover <uuid>`. NEVER manually edit `session_dirs.txt` — the session-watcher monitors this file and any change triggers a full restore of ALL sessions.**
+
 ### Recovery Files
 
-- `~/.happy/session_dirs.txt` -- UUID:working_dir per line
+- `~/.happy/session_dirs.txt` -- UUID:working_dir per line (**READ-ONLY for agents — never edit directly**)
 - `~/.happy/session_history.jsonl` -- add/remove event log
 - `~/.happy/session_backup_history/` -- timestamped JSON snapshots
 
