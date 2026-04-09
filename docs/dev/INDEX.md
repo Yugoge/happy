@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-08T17:42:27Z*
-**Total entries**: 155
+*Last updated: 2026-04-09T10:13:43Z*
+**Total entries**: 158
 **Convention**: kebab
 
 ## Tree
@@ -56,6 +56,7 @@ dev/
 ├── `ba-spec-20260408-0700.md` - BA Specification: Fix BashView Inline Preview CSS Bugs
 ├── `ba-spec-20260408-150000.md` - BA Specification: Revert Broken SidebarBashView Horizontal Scroll
 ├── `ba-spec-20260408-170000.md` - BA Specification: Fix BashView Scrollbar + Bottom Border-Radius Conflict
+├── `ba-spec-20260409-120000.md` - BA Specification: Subagent Sidechain Envelope Visibility
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
 ├── `context-20260403-210447-1.json` - json config
@@ -90,6 +91,7 @@ dev/
 ├── `context-20260408-0700.json` - json config
 ├── `context-20260408-150000.json` - json config
 ├── `context-20260408-170000.json` - json config
+├── `context-20260409-120000.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
@@ -117,6 +119,7 @@ dev/
 ├── `dev-report-20260407-sidebar-detail-coexist.json` - json config
 ├── `dev-report-20260408-0700.json` - json config
 ├── `dev-report-20260408-170000.json` - json config
+├── `dev-report-20260409-120000.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config

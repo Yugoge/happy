@@ -680,7 +680,7 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
             if (message.isSidechain) {
                 const turnId = ensureTurn(state, envelopes);
                 maybeEmitSubagentStart(state, turnId, subagent, envelopes);
-                envelopes.push(createEnvelope('agent', { t: 'text', text }, { turn: turnId, subagent }));
+                envelopes.push(createEnvelope('agent', { t: 'sidechain', prompt: text }, { turn: turnId, subagent }));
             } else {
                 closeTurn(state, 'completed', envelopes);
                 envelopes.push(createEnvelope('user', { t: 'text', text }));

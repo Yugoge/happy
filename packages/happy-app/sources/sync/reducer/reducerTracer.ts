@@ -206,6 +206,9 @@ export function traceMessages(state: TracerState, messages: NormalizedMessage[])
                         });
                         state.promptToTaskId.set(content.input.prompt, message.id);
                     }
+                    if (content.input && 'sessionSubagent' in content.input && typeof content.input.sessionSubagent === 'string') {
+                        state.uuidToSidechainId.set(content.input.sessionSubagent, message.id);
+                    }
                 }
             }
         }

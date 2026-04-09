@@ -86,6 +86,11 @@ export const sessionWrapEventSchema = z.object({
   content: z.string(),
 });
 
+export const sessionSidechainEventSchema = z.object({
+  t: z.literal('sidechain'),
+  prompt: z.string(),
+});
+
 export const sessionEventSchema = z.discriminatedUnion('t', [
   sessionTextEventSchema,
   sessionServiceMessageEventSchema,
@@ -97,6 +102,7 @@ export const sessionEventSchema = z.discriminatedUnion('t', [
   sessionTurnEndEventSchema,
   sessionStopEventSchema,
   sessionWrapEventSchema,
+  sessionSidechainEventSchema,
 ]);
 
 export type SessionEvent = z.infer<typeof sessionEventSchema>;
