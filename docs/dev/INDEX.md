@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-09T10:40:27Z*
-**Total entries**: 160
+*Last updated: 2026-04-09T13:23:02Z*
+**Total entries**: 161
 **Convention**: kebab
 
 ## Tree
@@ -57,6 +57,7 @@ dev/
 ├── `ba-spec-20260408-150000.md` - BA Specification: Revert Broken SidebarBashView Horizontal Scroll
 ├── `ba-spec-20260408-170000.md` - BA Specification: Fix BashView Scrollbar + Bottom Border-Radius Conflict
 ├── `ba-spec-20260409-120000.md` - BA Specification: Subagent Sidechain Envelope Visibility
+├── `ba-spec-20260409-130000.md` - BA Specification: Sidechain Messages Not Rendering in Sidebar/Detail View
 ├── `build-verification-20260409.json` - json config
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
