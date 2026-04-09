@@ -127,13 +127,13 @@ function updateSessionTracking(state: ScannerState, sessions: string[], sync: In
 }
 
 /** Build the sync function that processes all pending sessions */
-function buildSyncFn(state: ScannerState, projectDir: string, onMessage: (m: RawJSONLines) => void, sync: InvalidateSync) {
+function buildSyncFn(state: ScannerState, projectDir: string, onMessage: (m: RawJSONLines) => void, syncRef: { current: InvalidateSync | null }) {
     return async () => {
         const sessions = collectSessionIds(state);
         for (const session of sessions) {
             await processSession(state, projectDir, session, onMessage);
         }
-        updateSessionTracking(state, sessions, sync, projectDir);
+        updateSessionTracking(state, sessions, syncRef.current!, projectDir);
     };
 }
 
@@ -173,7 +173,9 @@ export async function createSessionScanner(opts: {
         await initExistingMessages(state, projectDir, opts.sessionId, opts.sendExisting ?? false, opts.onMessage);
     }
 
-    const sync = new InvalidateSync(buildSyncFn(state, projectDir, opts.onMessage, sync));
+    const syncRef: { current: InvalidateSync | null } = { current: null };
+    const sync = new InvalidateSync(buildSyncFn(state, projectDir, opts.onMessage, syncRef));
+    syncRef.current = sync;
     await sync.invalidateAndAwait();
     const intervalId = setInterval(() => { sync.invalidate(); }, 3000);
 
