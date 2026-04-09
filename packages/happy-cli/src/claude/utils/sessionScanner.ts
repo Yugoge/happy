@@ -17,33 +17,32 @@ const INTERNAL_CLAUDE_EVENT_TYPES = new Set([
     'queue-operation',
 ]);
 
-/** Returns true if the message should be forwarded even when sendExisting=false */
+/** Check if a message is only available via JSONL (not emitted by SDK live stream) */
 function isJSONLOnlyMessage(m: RawJSONLines): boolean {
-    const isMeta = (m as { isMeta?: boolean }).isMeta === true;
-    const isSidechain = (m as { isSidechain?: boolean }).isSidechain === true;
-    return isMeta || isSidechain;
+    return (m as { isMeta?: boolean }).isMeta === true
+        || (m as { isSidechain?: boolean }).isSidechain === true;
 }
 
-interface ScannerState {
+type ScannerState = {
     finishedSessions: Set<string>;
     pendingSessions: Set<string>;
     currentSessionId: string | null;
-    watchers: Map<string, (() => void)>;
+    watchers: Map<string, () => void>;
     processedMessageKeys: Set<string>;
-}
+};
 
 function createScannerState(): ScannerState {
     return {
-        finishedSessions: new Set<string>(),
-        pendingSessions: new Set<string>(),
+        finishedSessions: new Set(),
+        pendingSessions: new Set(),
         currentSessionId: null,
-        watchers: new Map<string, (() => void)>(),
-        processedMessageKeys: new Set<string>(),
+        watchers: new Map(),
+        processedMessageKeys: new Set(),
     };
 }
 
-/** Mark existing messages as processed, optionally sending them */
-async function initializeExistingMessages(
+/** Initialize by processing existing messages in the session file */
+async function initExistingMessages(
     state: ScannerState,
     projectDir: string,
     sessionId: string,
@@ -59,35 +58,23 @@ async function initializeExistingMessages(
         }
     } else {
         logger.debug(`[SESSION_SCANNER] Marking ${messages.length} existing messages as processed from session ${sessionId}`);
-        markExistingAsProcessed(state, messages, onMessage);
+        for (const m of messages) {
+            state.processedMessageKeys.add(messageKey(m));
+            // Forward isMeta and isSidechain messages even when sendExisting=false.
+            // The SDK writes skill prompts (isMeta) and subagent internal operations
+            // (isSidechain) to JSONL but never emits them via live stream — skipping
+            // them here means the file watcher will never re-deliver them either.
+            if (isJSONLOnlyMessage(m)) {
+                onMessage(m);
+            }
+        }
     }
     state.currentSessionId = sessionId;
 }
 
-/** Mark messages as processed, forwarding JSONL-only messages (isMeta, isSidechain) */
-function markExistingAsProcessed(
-    state: ScannerState,
-    messages: RawJSONLines[],
-    onMessage: (m: RawJSONLines) => void,
-) {
-    for (const m of messages) {
-        state.processedMessageKeys.add(messageKey(m));
-        // Forward isMeta and isSidechain messages even when sendExisting=false.
-        // The SDK writes skill prompts (isMeta) and subagent operations
-        // (isSidechain) to JSONL but never emits them via live stream —
-        // skipping them here means the file watcher will never re-deliver them.
-        if (isJSONLOnlyMessage(m)) {
-            onMessage(m);
-        }
-    }
-}
-
 /** Collect all session IDs that need processing */
 function collectSessionIds(state: ScannerState): string[] {
-    const sessions: string[] = [];
-    for (const p of state.pendingSessions) {
-        sessions.push(p);
-    }
+    const sessions: string[] = [...state.pendingSessions];
     if (state.currentSessionId && !state.pendingSessions.has(state.currentSessionId)) {
         sessions.push(state.currentSessionId);
     }
@@ -99,48 +86,39 @@ function collectSessionIds(state: ScannerState): string[] {
     return sessions;
 }
 
-/** Process new messages for all tracked sessions */
-async function processSessions(
+/** Process new messages from a single session file */
+async function processSession(
     state: ScannerState,
     projectDir: string,
-    sessions: string[],
+    session: string,
     onMessage: (m: RawJSONLines) => void,
 ) {
-    for (const session of sessions) {
-        const sessionMessages = await readSessionLog(projectDir, session);
-        let skipped = 0;
-        let sent = 0;
-        for (const file of sessionMessages) {
-            const key = messageKey(file);
-            if (state.processedMessageKeys.has(key)) {
-                skipped++;
-                continue;
-            }
-            state.processedMessageKeys.add(key);
-            logger.debug(`[SESSION_SCANNER] Sending new message: type=${file.type}, uuid=${file.type === 'summary' ? file.leafUuid : file.uuid}`);
-            onMessage(file);
-            sent++;
+    const sessionMessages = await readSessionLog(projectDir, session);
+    let skipped = 0;
+    let sent = 0;
+    for (const file of sessionMessages) {
+        const key = messageKey(file);
+        if (state.processedMessageKeys.has(key)) {
+            skipped++;
+            continue;
         }
-        if (sessionMessages.length > 0) {
-            logger.debug(`[SESSION_SCANNER] Session ${session}: found=${sessionMessages.length}, skipped=${skipped}, sent=${sent}`);
-        }
+        state.processedMessageKeys.add(key);
+        logger.debug(`[SESSION_SCANNER] Sending new message: type=${file.type}, uuid=${file.type === 'summary' ? file.leafUuid : file.uuid}`);
+        onMessage(file);
+        sent++;
+    }
+    if (sessionMessages.length > 0) {
+        logger.debug(`[SESSION_SCANNER] Session ${session}: found=${sessionMessages.length}, skipped=${skipped}, sent=${sent}`);
     }
 }
 
-/** Move pending sessions to finished and ensure watchers exist */
-function updateSessionTracking(
-    state: ScannerState,
-    sessions: string[],
-    projectDir: string,
-    sync: InvalidateSync,
-) {
+/** Update session lifecycle and watchers after sync */
+function updateSessionTracking(state: ScannerState, sessions: string[], sync: InvalidateSync, projectDir: string) {
     for (const p of sessions) {
         if (state.pendingSessions.has(p)) {
             state.pendingSessions.delete(p);
             state.finishedSessions.add(p);
         }
-    }
-    for (const p of sessions) {
         if (!state.watchers.has(p)) {
             logger.debug(`[SESSION_SCANNER] Starting watcher for session: ${p}`);
             state.watchers.set(p, startFileWatcher(join(projectDir, `${p}.jsonl`), () => { sync.invalidate(); }));
@@ -148,8 +126,33 @@ function updateSessionTracking(
     }
 }
 
+/** Build the sync function that processes all pending sessions */
+function buildSyncFn(state: ScannerState, projectDir: string, onMessage: (m: RawJSONLines) => void, sync: InvalidateSync) {
+    return async () => {
+        const sessions = collectSessionIds(state);
+        for (const session of sessions) {
+            await processSession(state, projectDir, session, onMessage);
+        }
+        updateSessionTracking(state, sessions, sync, projectDir);
+    };
+}
+
+/** Handle a new session ID arriving */
+function handleNewSession(state: ScannerState, sessionId: string, sync: InvalidateSync) {
+    if (state.currentSessionId === sessionId || state.finishedSessions.has(sessionId) || state.pendingSessions.has(sessionId)) {
+        logger.debug(`[SESSION_SCANNER] New session: ${sessionId} already known, skipping`);
+        return;
+    }
+    if (state.currentSessionId) {
+        state.pendingSessions.add(state.currentSessionId);
+    }
+    logger.debug(`[SESSION_SCANNER] New session: ${sessionId}`);
+    state.currentSessionId = sessionId;
+    sync.invalidate();
+}
+
 /** Clean up scanner resources */
-async function cleanupScanner(state: ScannerState, intervalId: ReturnType<typeof setInterval>, sync: InvalidateSync) {
+async function cleanupScanner(state: ScannerState, intervalId: NodeJS.Timeout, sync: InvalidateSync) {
     clearInterval(intervalId);
     for (const w of state.watchers.values()) { w(); }
     state.watchers.clear();
@@ -161,21 +164,16 @@ export async function createSessionScanner(opts: {
     sessionId: string | null,
     workingDirectory: string,
     onMessage: (message: RawJSONLines) => void,
-    /** If true, send all existing messages immediately instead of marking them as processed */
     sendExisting?: boolean,
 }) {
     const projectDir = getProjectPath(opts.workingDirectory);
     const state = createScannerState();
 
     if (opts.sessionId) {
-        await initializeExistingMessages(state, projectDir, opts.sessionId, !!opts.sendExisting, opts.onMessage);
+        await initExistingMessages(state, projectDir, opts.sessionId, opts.sendExisting ?? false, opts.onMessage);
     }
 
-    const sync = new InvalidateSync(async () => {
-        const sessions = collectSessionIds(state);
-        await processSessions(state, projectDir, sessions, opts.onMessage);
-        updateSessionTracking(state, sessions, projectDir, sync);
-    });
+    const sync = new InvalidateSync(buildSyncFn(state, projectDir, opts.onMessage, sync));
     await sync.invalidateAndAwait();
     const intervalId = setInterval(() => { sync.invalidate(); }, 3000);
 
@@ -185,76 +183,38 @@ export async function createSessionScanner(opts: {
     };
 }
 
-function handleNewSession(state: ScannerState, sessionId: string, sync: InvalidateSync) {
-    if (state.currentSessionId === sessionId) {
-        logger.debug(`[SESSION_SCANNER] New session: ${sessionId} is the same as the current session, skipping`);
-        return;
-    }
-    if (state.finishedSessions.has(sessionId)) {
-        logger.debug(`[SESSION_SCANNER] New session: ${sessionId} is already finished, skipping`);
-        return;
-    }
-    if (state.pendingSessions.has(sessionId)) {
-        logger.debug(`[SESSION_SCANNER] New session: ${sessionId} is already pending, skipping`);
-        return;
-    }
-    if (state.currentSessionId) {
-        state.pendingSessions.add(state.currentSessionId);
-    }
-    logger.debug(`[SESSION_SCANNER] New session: ${sessionId}`);
-    state.currentSessionId = sessionId;
-    sync.invalidate();
-}
-
 export type SessionScanner = ReturnType<typeof createSessionScanner>;
 
-
-//
-// Helpers
-//
-
 function messageKey(message: RawJSONLines): string {
-    if (message.type === 'user') {
-        return message.uuid;
-    } else if (message.type === 'assistant') {
-        return message.uuid;
-    } else if (message.type === 'summary') {
+    if (message.type === 'summary') {
         return 'summary: ' + message.leafUuid + ': ' + message.summary;
-    } else if (message.type === 'system') {
-        return message.uuid;
-    } else {
-        throw Error() // Impossible
     }
+    return message.uuid;
 }
 
 /** Parse a single JSONL line into a RawJSONLines message, or null if invalid */
-function parseJSONLLine(line: string): RawJSONLines | null {
+function parseLine(line: string): RawJSONLines | null {
     if (line.trim() === '') return null;
-    const message = JSON.parse(line);
-    if (message.type && INTERNAL_CLAUDE_EVENT_TYPES.has(message.type)) return null;
-    const parsed = RawJSONLinesSchema.safeParse(message);
-    return parsed.success ? parsed.data : null;
+    try {
+        const message = JSON.parse(line);
+        if (message.type && INTERNAL_CLAUDE_EVENT_TYPES.has(message.type)) return null;
+        const parsed = RawJSONLinesSchema.safeParse(message);
+        return parsed.success ? parsed.data : null;
+    } catch {
+        return null;
+    }
 }
 
 /** Read and parse session log file */
 async function readSessionLog(projectDir: string, sessionId: string): Promise<RawJSONLines[]> {
-    const expectedSessionFile = join(projectDir, `${sessionId}.jsonl`);
-    logger.debug(`[SESSION_SCANNER] Reading session file: ${expectedSessionFile}`);
+    const filePath = join(projectDir, `${sessionId}.jsonl`);
+    logger.debug(`[SESSION_SCANNER] Reading session file: ${filePath}`);
     let file: string;
     try {
-        file = await readFile(expectedSessionFile, 'utf-8');
-    } catch (error) {
-        logger.debug(`[SESSION_SCANNER] Session file not found: ${expectedSessionFile}`);
+        file = await readFile(filePath, 'utf-8');
+    } catch {
+        logger.debug(`[SESSION_SCANNER] Session file not found: ${filePath}`);
         return [];
     }
-    const messages: RawJSONLines[] = [];
-    for (const line of file.split('\n')) {
-        try {
-            const parsed = parseJSONLLine(line);
-            if (parsed) messages.push(parsed);
-        } catch (e) {
-            logger.debug(`[SESSION_SCANNER] Error processing message: ${e}`);
-        }
-    }
-    return messages;
+    return file.split('\n').map(parseLine).filter((m): m is RawJSONLines => m !== null);
 }
