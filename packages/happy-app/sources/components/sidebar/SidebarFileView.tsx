@@ -46,7 +46,7 @@ export const SidebarFileView = React.memo<SidebarFileViewProps>(({ tool }) => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             {filePath ? (
-                <Text style={styles.filePath}>{filePath}</Text>
+                <Text style={styles.filePath}>{filePath.replace(/\//g, '/\u200B')}</Text>
             ) : null}
             {showFileContent ? (
                 <View style={styles.tabBar}>
