@@ -1,3 +1,4 @@
+import { isCuid } from '@paralleldrive/cuid2';
 // ============================================================================
 // Reducer Tracer - Message Relationship Tracking for Sidechains
 // ============================================================================
@@ -285,7 +286,7 @@ export function traceMessages(state: TracerState, messages: NormalizedMessage[])
                 // For non-UUID parent references (e.g. subagent ids), treat as standalone
                 // when no parent mapping exists. CLI mapper is expected to resolve/sequence
                 // subagent ownership, so app should not permanently orphan these messages.
-                if (!isUuidLike(parentUuid)) {
+                if (!isUuidLike(parentUuid) && !isCuid(parentUuid)) {
                     state.processedIds.add(message.id);
                     const tracedMessage: TracedMessage = {
                         ...message
