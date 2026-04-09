@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-09T13:46:57Z*
-**Total entries**: 164
+*Last updated: 2026-04-09T15:47:32Z*
+**Total entries**: 166
 **Convention**: kebab
 
 ## Tree
@@ -58,6 +58,7 @@ dev/
 ├── `ba-spec-20260408-170000.md` - BA Specification: Fix BashView Scrollbar + Bottom Border-Radius Conflict
 ├── `ba-spec-20260409-120000.md` - BA Specification: Subagent Sidechain Envelope Visibility
 ├── `ba-spec-20260409-130000.md` - BA Specification: Sidechain Messages Not Rendering in Sidebar/Detail View
+├── `ba-spec-20260409-160000.md` - BA Specification: Forward Subagent Sidechain Messages from JSONL to Server
 ├── `build-verification-20260409.json` - json config
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -95,6 +96,7 @@ dev/
 ├── `context-20260408-170000.json` - json config
 ├── `context-20260409-120000.json` - json config
 ├── `context-20260409-130000.json` - json config
+├── `context-20260409-160000.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
