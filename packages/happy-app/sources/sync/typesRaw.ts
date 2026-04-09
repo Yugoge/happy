@@ -98,6 +98,11 @@ const sessionWrapEventSchema = z.object({
     content: z.string(),
 });
 
+const sessionSidechainEventSchema = z.object({
+    t: z.literal('sidechain'),
+    prompt: z.string(),
+});
+
 const sessionEventSchema = z.discriminatedUnion('t', [
     sessionTextEventSchema,
     sessionServiceMessageEventSchema,
@@ -109,6 +114,7 @@ const sessionEventSchema = z.discriminatedUnion('t', [
     sessionTurnEndEventSchema,
     sessionStopEventSchema,
     sessionWrapEventSchema,
+    sessionSidechainEventSchema,
 ]);
 
 const sessionEnvelopeSchema = z.object({
