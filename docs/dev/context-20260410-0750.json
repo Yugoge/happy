@@ -1,0 +1,102 @@
+{
+  "request_id": "dev-20260410-0750",
+  "timestamp": "2026-04-10T07:50:00Z",
+  "requirement": {
+    "original": "Investigate why sidechain forwarding changes are NOT working -- subagent internal operations do not appear in Agent tool sidebar",
+    "clarified": "Claude Code writes subagent messages to separate files in a subagents/ subdirectory, not to the main session JSONL. The session scanner only reads the main JSONL, so it never finds sidechain messages to forward.",
+    "what": "Fix session scanner to also read subagent JSONL files from the subagents/ subdirectory",
+    "why": "Subagent internal operations (text, tool calls, thinking) are invisible in the browser because they never reach the happy-server",
+    "where": ["packages/happy-cli/src/claude/utils/sessionScanner.ts"],
+    "scope": {
+      "included": [
+        "Reading subagent JSONL files from <sessionId>/subagents/ directory",
+        "Forwarding subagent messages with isSidechain: true to happy-server",
+        "Dedup between live stream and file scanner paths",
+        "Resume/recovery support for subagent history"
+      ],
+      "excluded": [
+        "Changes to Claude Code itself",
+        "Changes to happy-app rendering",
+        "Changes to the live SDK stream path (already works via sdkToLogConverter)"
+      ]
+    },
+    "success_criteria": [
+      "Subagent messages from files in subagents/ directory are forwarded to happy-server",
+      "No duplicate messages between live stream and file scanner",
+      "Resume with sendExisting includes subagent history"
+    ],
+    "constraints": [
+      "Cannot modify Claude Code's file writing behavior",
+      "Must not break existing session scanning for main JSONL",
+      "Must handle dynamic creation of new subagent files during a session"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Agent tool sidebar shows only prompt + tool calls + result, no subagent internal operations",
+    "root_cause": "Session scanner reads only <projectDir>/<sessionId>.jsonl but Claude Code writes subagent messages to <projectDir>/<sessionId>/subagents/agent-<agentId>.jsonl. The main JSONL has ZERO isSidechain:true messages.",
+    "root_cause_commit": "N/A - architectural mismatch between scanner design and Claude Code's file structure",
+    "why_introduced": "The scanner was designed to read the main session JSONL, which was the only file format at the time. Claude Code later added subagent support with a separate file structure.",
+    "why_problematic": "The fix added isSidechain forwarding logic to the scanner, but the scanner never reads the files that contain isSidechain messages",
+    "timeline": "Discovered 2026-04-10",
+    "affected_files": ["packages/happy-cli/src/claude/utils/sessionScanner.ts"]
+  },
+  "context": {
+    "codebase_state": "Session scanner reads main JSONL only. sdkToLogConverter handles live stream sidechain via parent_tool_use_id.",
+    "recent_commits": "Recent commits added isSidechain forwarding to sessionScanner.ts and dedup to claudeRemoteLauncher.ts",
+    "file_contents": {
+      "subagent_file_structure": {
+        "location": "<projectDir>/<sessionId>/subagents/",
+        "jsonl_pattern": "agent-<agentId>.jsonl",
+        "meta_pattern": "agent-<agentId>.meta.json",
+        "meta_content": "{ agentType: string, description: string }",
+        "message_fields": {
+          "isSidechain": "always true",
+          "agentId": "matches filename suffix",
+          "sessionId": "same as parent session",
+          "parent_tool_use_id": "NOT PRESENT (unlike SDK stream)",
+          "parentUuid": "chain within subagent conversation",
+          "promptId": "present on first user message"
+        }
+      },
+      "main_jsonl_structure": {
+        "location": "<projectDir>/<sessionId>.jsonl",
+        "contains_sidechain": false,
+        "contains_agent_tool_use": true,
+        "agent_result_has_agentId": "in toolUseResult field"
+      },
+      "two_data_paths": {
+        "live_stream": {
+          "source": "claude stdout via --output-format stream-json --verbose",
+          "handler": "sdkToLogConverter.convert() in buildOnMessage()",
+          "has_parent_tool_use_id": true,
+          "has_isSidechain_in_sdk": "NO - converter ADDS it based on parent_tool_use_id"
+        },
+        "file_scanner": {
+          "source": "JSONL files on disk",
+          "handler": "sessionScanner.ts",
+          "reads_subagent_files": false,
+          "needs_fix": true
+        }
+      }
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Modify sessionScanner to discover and scan subagent JSONL files in the <sessionId>/subagents/ directory. Watch the subagents directory for new files. Read each subagent JSONL and forward messages with isSidechain: true.",
+    "files_to_create": [],
+    "files_to_modify": ["packages/happy-cli/src/claude/utils/sessionScanner.ts"],
+    "validation_approach": "1. Check that subagent files are discovered and read. 2. Verify messages arrive at happy-server with isSidechain: true. 3. Check dedup between live stream and file paths. 4. Test resume with sendExisting."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Root cause investigation of existing code behavior, not a design pattern question"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

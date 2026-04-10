@@ -1,0 +1,170 @@
+{
+  "request_id": "qa-validation-issue3-subagent-jsonl",
+  "timestamp": "2026-04-10T08:15:00.000Z",
+  "qa": {
+    "status": "validation-report",
+    "overall_assessment": "The claim about subagent JSONL files is CONFIRMED. The proposed scanner fix is VALID but addresses only the RESUME/HISTORICAL path. The LIVE path already works via SDK stream. However, the scanner approach requires careful implementation due to message format differences.",
+
+    "task_1_subagent_files_exist": {
+      "verified": true,
+      "evidence": {
+        "directories_found": 20,
+        "example_path": "/root/.claude/projects/-root-happy/5b035e62-12a1-4bfb-8efa-0cf9bc290ddd/subagents/",
+        "file_naming_pattern": "agent-{agentId}.jsonl + agent-{agentId}.meta.json",
+        "example_files": [
+          "agent-a15ad96c4cf6b8ed0.jsonl (93 lines, 233KB)",
+          "agent-a1b5142f8e9f023ea.jsonl (153KB)",
+          "agent-a1dc95945fa427c87.jsonl (203KB)"
+        ],
+        "main_jsonl_sidechain_count": 0,
+        "conclusion": "Main session JSONL (sessionId.jsonl) has ZERO sidechain messages. ALL subagent messages are in separate files under sessionId/subagents/"
+      }
+    },
+
+    "task_2_message_format": {
+      "verified": true,
+      "subagent_jsonl_fields": {
+        "always_present": ["type", "isSidechain", "uuid", "timestamp", "userType", "cwd", "sessionId", "version", "gitBranch", "parentUuid", "message"],
+        "first_message_only": ["promptId", "agentId", "entrypoint", "slug"],
+        "some_messages": ["requestId", "toolUseResult", "sourceToolAssistantUUID"],
+        "NEVER_present": ["parent_tool_use_id", "parentToolUseId", "isMeta"]
+      },
+      "isSidechain_value": "true on ALL messages",
+      "message_types_found": {
+        "user": 37,
+        "assistant": 56
+      },
+      "parseable_by_RawJSONLinesSchema": true,
+      "schema_compatibility_details": "All messages have required fields: type (user|assistant), uuid, message.content. The passthrough() on the schema allows extra fields (agentId, promptId, etc.) to survive parsing.",
+      "critical_difference_from_sdk_stream": "Subagent JSONL messages have agentId (e.g., 'a15ad96c4cf6b8ed0') instead of parent_tool_use_id (e.g., 'toolu_01ESZzhKZgHAt1oQPfK2hc5F'). These are DIFFERENT ID spaces."
+    },
+
+    "task_3_sdk_live_stream": {
+      "verified": true,
+      "sdk_does_emit_subagent_messages": true,
+      "evidence": {
+        "production_log": "/root/.happy/logs/2026-04-09-22-18-21-pid-458719.log",
+        "isSidechain_true_count": 6935,
+        "unique_parent_tool_use_ids": "many (toolu_011SoVUL85BkSSv3BTSrqcBP, toolu_012jiT1YBBNBUumt3QX36o8R, etc.)",
+        "non_null_parent_tool_use_id": true
+      },
+      "flow": [
+        "SDK stream-json stdout emits messages with parent_tool_use_id field",
+        "sdkToLogConverter.convert() detects parent_tool_use_id at line 90",
+        "Sets isSidechain=true and tracks in sidechainLastUUID map",
+        "Message flows through buildOnMessage -> queueLogMessage -> server",
+        "sessionProtocolMapper handles the isSidechain=true messages correctly"
+      ],
+      "conclusion": "The LIVE path ALREADY sends subagent messages to the server. They flow via SDK stdout -> sdkToLogConverter -> server. The live path is NOT broken."
+    },
+
+    "task_4_scanner_approach_validation": {
+      "valid": true,
+      "current_scanner_behavior": {
+        "reads": "join(projectDir, sessionId + '.jsonl') ONLY",
+        "does_not_read": "join(projectDir, sessionId, 'subagents', '*.jsonl')",
+        "consequence": "On session resume (uploadResumeHistory), all subagent history is LOST because main JSONL has 0 sidechain messages"
+      },
+      "proposed_fix_addresses": [
+        "RESUME PATH: uploadResumeHistory() calls createSessionScanner with sendExisting=true. Adding subagent file scanning would send historical subagent messages.",
+        "LIVE SCANNER PATH: The scanner that runs during live sessions (buildOnSessionFound) could watch for new subagent files appearing, providing a backup to the SDK stream."
+      ],
+      "implementation_considerations": {
+        "file_discovery": "Use fs.readdir() on join(projectDir, sessionId, 'subagents') to find agent-*.jsonl files. Directory may not exist initially.",
+        "directory_watching": "Watch the subagents/ directory for new files. New subagent files appear during session execution as agents are spawned.",
+        "message_ordering": "CRITICAL: Main JSONL messages (containing Agent tool_use blocks) MUST be processed BEFORE subagent JSONL messages. The sessionProtocolMapper uses prompt-text matching (queueTaskPromptSubagent/consumeTaskPromptSubagent) to link subagent messages to their parent Agent tool call.",
+        "deduplication": "The sentSidechainUuids set in LauncherState prevents double-sending. Since live SDK stream already sends these with different UUIDs than JSONL files, dedup may not catch duplicates. Need to check if UUIDs match.",
+        "uuid_mismatch_risk": "SDK stream messages get random UUIDs from sdkToLogConverter. Subagent JSONL messages have their own UUIDs assigned by Claude Code. These are DIFFERENT UUIDs for the same content. Without dedup by content, both copies could be sent."
+      }
+    },
+
+    "task_5_alternative_approaches": {
+      "live_stream_already_works": true,
+      "conclusion": "For LIVE sessions, the SDK stream already provides subagent messages. The scanner fix is specifically needed for RESUME/HISTORICAL sessions where the only data source is disk JSONL files.",
+      "scanner_redundancy_for_live": "During live sessions, both SDK stream AND scanner could send subagent messages, causing duplicates. The sentSidechainUuids set handles this for main JSONL scanner messages, but needs verification for subagent JSONL messages since UUID spaces differ."
+    },
+
+    "task_6_critical_validation": {
+      "sdkToLogConverter_parent_tool_use_id_handling": {
+        "file": "packages/happy-cli/src/claude/utils/sdkToLogConverter.ts",
+        "lines": "85-105",
+        "behavior": "Line 90: checks sdkMessage.parent_tool_use_id. If present, sets isSidechain=true and tracks parentUuid via sidechainLastUUID map keyed by parent_tool_use_id. This correctly handles SDK stream messages.",
+        "status": "correct"
+      },
+      "claudeRemoteLauncher_sidechain_forwarding": {
+        "file": "packages/happy-cli/src/claude/claudeRemoteLauncher.ts",
+        "handleScannerMessage_lines": "206-213",
+        "behavior": "Forwards isSidechain=true messages from scanner ONLY if uuid NOT in sentSidechainUuids. Also forwards isMeta=true messages unconditionally.",
+        "status": "correct for current main-JSONL-only scanning, but needs extension for subagent files"
+      },
+      "prompt_text_matching_verified": {
+        "verified": true,
+        "evidence": "Agent tool_use prompt text matches exactly with first user message in subagent JSONL file. Example: toolu_01ESZzhKZgHAt1oQPfK2hc5F prompt matches agent-a15ad96c4cf6b8ed0 first message content.",
+        "conclusion": "The sessionProtocolMapper's prompt-text-based linking mechanism WILL work for subagent JSONL messages, provided the main JSONL Agent tool_use blocks are processed first."
+      }
+    },
+
+    "overall_findings": [
+      {
+        "severity": "critical",
+        "finding": "The proposed scanner fix is CORRECT in identifying the missing data source (subagent JSONL files) but must address UUID deduplication for live sessions where SDK stream already sends the same messages with different UUIDs",
+        "recommendation": "For live sessions: either skip subagent JSONL scanning entirely (SDK stream handles it) or dedup by content hash instead of UUID"
+      },
+      {
+        "severity": "major",
+        "finding": "Message ordering is critical: main JSONL must be processed before subagent JSONL to enable prompt-text matching in sessionProtocolMapper",
+        "recommendation": "In scanner implementation, always read main session JSONL first, then subagent files"
+      },
+      {
+        "severity": "major",
+        "finding": "Subagent JSONL messages use agentId (not parent_tool_use_id) to identify their parent. The sessionProtocolMapper does NOT use agentId - it relies on prompt-text matching. This means the agentId field is NOT usable for linking.",
+        "recommendation": "Do NOT try to map agentId to tool_use_id. Rely on the existing prompt-text matching mechanism in sessionProtocolMapper."
+      },
+      {
+        "severity": "minor",
+        "finding": "meta.json files contain description and agentType but no link to the parent tool_use_id. They are useful for debugging but not for message linking.",
+        "recommendation": "meta.json can be used to set subagent titles but is not needed for the core fix."
+      }
+    ],
+
+    "implementation_guidance": {
+      "approach": "Extend sessionScanner.ts to also scan subagent JSONL files",
+      "specific_changes": [
+        {
+          "file": "packages/happy-cli/src/claude/utils/sessionScanner.ts",
+          "change": "Add readSubagentLogs() function that discovers and reads files in join(projectDir, sessionId, 'subagents', 'agent-*.jsonl')",
+          "details": "Return array of RawJSONLines messages parsed from all subagent files. Each file contains complete subagent conversation."
+        },
+        {
+          "file": "packages/happy-cli/src/claude/utils/sessionScanner.ts",
+          "change": "In initExistingMessages(), after reading main JSONL, also read subagent JSONL files",
+          "details": "Must process main JSONL first (to queue Agent tool_use prompts), THEN subagent files (to consume queued prompts via text matching)."
+        },
+        {
+          "file": "packages/happy-cli/src/claude/utils/sessionScanner.ts",
+          "change": "In processSession() or via a separate watcher, monitor the subagents/ directory for new files",
+          "details": "During live sessions, new subagent files appear as agents are spawned. A directory watcher on join(projectDir, sessionId, 'subagents') would detect new files."
+        },
+        {
+          "file": "packages/happy-cli/src/claude/utils/sessionScanner.ts",
+          "change": "For LIVE sessions (sendExisting=false), consider NOT scanning subagent files at all since SDK stream already handles them",
+          "details": "The sentSidechainUuids dedup mechanism may not work across UUID spaces. Simplest fix: only scan subagent files when sendExisting=true (resume path)."
+        }
+      ],
+      "risk_areas": [
+        "UUID deduplication across SDK stream and JSONL files",
+        "File permissions: subagent JSONL files are mode 0600 (owner-only), ensure scanner has access",
+        "Large subagent files: some are 200KB+, need efficient incremental reading",
+        "Race conditions: subagent file may still be written to when scanner reads it"
+      ]
+    },
+
+    "summary": {
+      "claim_verified": true,
+      "proposed_fix_valid": true,
+      "proposed_fix_sufficient": "Partially - fixes RESUME path but needs careful design to avoid duplicates on LIVE path",
+      "key_insight": "The SDK live stream ALREADY sends subagent messages. The scanner fix is specifically needed for session resume/history upload where disk JSONL files are the only data source.",
+      "recommendation": "Proceed with the scanner approach but scope it to sendExisting=true (resume path) first. Add live-session subagent scanning as a follow-up if needed."
+    }
+  }
+}
