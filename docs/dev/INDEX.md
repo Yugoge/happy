@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-10T07:50:18Z*
-**Total entries**: 169
+*Last updated: 2026-04-10T09:44:39Z*
+**Total entries**: 172
 **Convention**: kebab
 
 ## Tree
@@ -60,6 +60,7 @@ dev/
 ├── `ba-spec-20260409-130000.md` - BA Specification: Sidechain Messages Not Rendering in Sidebar/Detail View
 ├── `ba-spec-20260409-160000.md` - BA Specification: Forward Subagent Sidechain Messages from JSONL to Server
 ├── `ba-spec-20260410-0750.md` - BA Specification: Sidechain Messages Not in Main JSONL -- Scanner Reads Wrong Location
+├── `ba-spec-20260410-children.md` - BA Specification: Agent/Task Tool Detail View Missing Children
 ├── `build-verification-20260409.json` - json config
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -98,6 +99,7 @@ dev/
 ├── `context-20260409-120000.json` - json config
 ├── `context-20260409-130000.json` - json config
 ├── `context-20260409-160000.json` - json config
+├── `context-20260410-0750.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
@@ -175,7 +177,8 @@ dev/
 ├── `qa-report-20260409-130000.json` - json config
 ├── `qa-report-20260409-160000.json` - json config
 ├── `qa-review-20260407-0830.json` - json config
-└── `qa-site-isolation-verification.json` - json config
+├── `qa-site-isolation-verification.json` - json config
+└── `qa-validation-20260410.json` - json config
 ```
 
 ---
