@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-09T16:25:10Z*
-**Total entries**: 168
+*Last updated: 2026-04-10T07:50:18Z*
+**Total entries**: 169
 **Convention**: kebab
 
 ## Tree
@@ -59,6 +59,7 @@ dev/
 ├── `ba-spec-20260409-120000.md` - BA Specification: Subagent Sidechain Envelope Visibility
 ├── `ba-spec-20260409-130000.md` - BA Specification: Sidechain Messages Not Rendering in Sidebar/Detail View
 ├── `ba-spec-20260409-160000.md` - BA Specification: Forward Subagent Sidechain Messages from JSONL to Server
+├── `ba-spec-20260410-0750.md` - BA Specification: Sidechain Messages Not in Main JSONL -- Scanner Reads Wrong Location
 ├── `build-verification-20260409.json` - json config
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
