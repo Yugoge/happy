@@ -2,7 +2,7 @@ import { MarkdownSpan, parseMarkdown } from './parseMarkdown';
 import * as React from 'react';
 import { Image, Pressable, ScrollView, View, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Text } from '../StyledText';
 import { Typography } from '@/constants/Typography';
 import { SimpleSyntaxHighlighter } from '../SimpleSyntaxHighlighter';
@@ -351,65 +351,116 @@ function RenderSpans(props: RenderSpanProps) {
     </>);
 }
 
-function TableColumn(props: {
-    header: MarkdownSpan[],
-    colIndex: number,
-    columnCount: number,
-    rows: MarkdownSpan[][][],
-    rowCount: number,
-    onLinkPress: (url: string) => void,
-    selectable: boolean,
-}) {
-    const isLastCol = props.colIndex === props.columnCount - 1;
+function useTableStyles() {
+    const { theme } = useUnistyles();
+    return React.useMemo(() => ({
+        table: { borderCollapse: 'collapse' as const, width: 'auto' as const, fontSize: 16, lineHeight: '24px' },
+        th: {
+            padding: '8px 12px', borderBottom: `1px solid ${theme.colors.divider}`,
+            borderRight: `1px solid ${theme.colors.divider}`, backgroundColor: theme.colors.surfaceHigh,
+            color: theme.colors.text, fontFamily: 'IBMPlexSans-Regular', fontWeight: 600 as const,
+            textAlign: 'left' as const, whiteSpace: 'nowrap' as const,
+        },
+        td: {
+            padding: '8px 12px', borderBottom: `1px solid ${theme.colors.divider}`,
+            borderRight: `1px solid ${theme.colors.divider}`, color: theme.colors.text,
+            fontFamily: 'IBMPlexSans-Regular', fontWeight: 400 as const,
+            textAlign: 'left' as const, whiteSpace: 'nowrap' as const,
+        },
+        container: {
+            marginTop: 8, marginBottom: 8, border: `1px solid ${theme.colors.divider}`,
+            borderRadius: 8, overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as const,
+            width: 'fit-content' as const, maxWidth: 'min(100%, calc(100vw - 32px))',
+        },
+    }), [theme]);
+}
+
+function WebTableRow(props: { row: string[], colCount: number, isLast: boolean, tdStyle: React.CSSProperties }) {
     return (
-        <View style={[style.tableColumn, isLastCol && style.tableColumnLast]}>
+        <tr>
+            {Array.from({ length: props.colCount }, (_, colIndex) => (
+                <td key={colIndex} style={{
+                    ...props.tdStyle,
+                    borderBottom: props.isLast ? 'none' : props.tdStyle.borderBottom,
+                    borderRight: colIndex === props.colCount - 1 ? 'none' : props.tdStyle.borderRight,
+                }}>{props.row[colIndex] ?? ''}</td>
+            ))}
+        </tr>
+    );
+}
+
+function RenderTableBlockWeb(props: {
+    headers: string[], rows: string[][], selectable: boolean,
+}) {
+    const s = useTableStyles();
+    return (
+        // @ts-ignore
+        <div style={s.container}>
+            {/* @ts-ignore */}
+            <table style={s.table}>
+                <thead>
+                    <tr>
+                        {props.headers.map((header, i) => (
+                            <th key={i} style={{ ...s.th, borderRight: i === props.headers.length - 1 ? 'none' : s.th.borderRight }}>{header}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {props.rows.map((row, i) => (
+                        <WebTableRow key={i} row={row} colCount={props.headers.length} isLast={i === props.rows.length - 1} tdStyle={s.td} />
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function NativeTableColumn(props: {
+    header: string, colIndex: number, columnCount: number,
+    rows: string[][], rowCount: number, selectable: boolean,
+}) {
+    return (
+        <View style={[style.tableColumn, props.colIndex === props.columnCount - 1 && style.tableColumnLast]}>
             <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
-                <Text style={style.tableHeaderText}><RenderSpans spans={props.header} baseStyle={style.tableHeaderText} onLinkPress={props.onLinkPress} selectable={props.selectable} /></Text>
+                <Text selectable={props.selectable} style={style.tableHeaderText}>{props.header}</Text>
             </View>
             {props.rows.map((row, rowIndex) => (
-                <View
-                    key={`cell-${rowIndex}-${props.colIndex}`}
-                    style={[style.tableCell, rowIndex === props.rowCount - 1 && style.tableCellLast]}
-                >
-                    <Text style={style.tableCellText}><RenderSpans spans={row[props.colIndex] ?? []} baseStyle={style.tableCellText} onLinkPress={props.onLinkPress} selectable={props.selectable} /></Text>
+                <View key={`cell-${rowIndex}-${props.colIndex}`}
+                    style={[style.tableCell, rowIndex === props.rowCount - 1 && style.tableCellLast]}>
+                    <Text selectable={props.selectable} style={style.tableCellText}>{row[props.colIndex] ?? ''}</Text>
                 </View>
             ))}
         </View>
     );
 }
 
-// Table rendering uses column-first layout to ensure consistent column widths.
-// Each column is rendered as a vertical container with all its cells (header + data).
-// This ensures that cells in the same column have the same width, determined by the widest content.
-function RenderTableBlock(props: {
-    headers: MarkdownSpan[][],
-    rows: MarkdownSpan[][][],
-    onLinkPress: (url: string) => void,
-    selectable: boolean,
-    first: boolean,
-    last: boolean
+function RenderTableBlockNative(props: {
+    headers: string[], rows: string[][], selectable: boolean, first: boolean, last: boolean,
 }) {
     return (
         <View style={[style.tableContainer, props.first && style.first, props.last && style.last]}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={Platform.OS === 'web'}
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}
                 nestedScrollEnabled={true} style={style.tableScrollView}>
                 <View style={style.tableContent}>
                     {props.headers.map((header, colIndex) => (
-                        <TableColumn
-                            key={`column-${colIndex}`}
-                            header={header}
-                            colIndex={colIndex}
-                            columnCount={props.headers.length}
-                            rows={props.rows}
-                            rowCount={props.rows.length}
-                            onLinkPress={props.onLinkPress}
-                            selectable={props.selectable}
-                        />
+                        <NativeTableColumn key={`column-${colIndex}`} header={header} colIndex={colIndex}
+                            columnCount={props.headers.length} rows={props.rows}
+                            rowCount={props.rows.length} selectable={props.selectable} />
                     ))}
                 </View>
             </ScrollView>
         </View>
     );
+}
+
+function RenderTableBlock(props: {
+    headers: string[], rows: string[][], onLinkPress: (url: string) => void,
+    selectable: boolean, first: boolean, last: boolean,
+}) {
+    if (Platform.OS === 'web') {
+        return <RenderTableBlockWeb {...props} />;
+    }
+    return <RenderTableBlockNative {...props} />;
 }
 
 
