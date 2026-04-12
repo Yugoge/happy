@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-10T09:45:12Z*
-**Total entries**: 173
+*Last updated: 2026-04-12T05:38:53Z*
+**Total entries**: 174
 **Convention**: kebab
 
 ## Tree
@@ -21,6 +21,7 @@ dev/
 │       ├── `triage-report-cycle1.json` - json config
 │       ├── `ui-specialist-report.json` - json config
 │       └── `user-report.json` - json config
+├── `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
 ├── `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
 ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView

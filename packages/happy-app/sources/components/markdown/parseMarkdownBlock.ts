@@ -1,12 +1,12 @@
 import type { MarkdownBlock, MarkdownSpan } from "./parseMarkdown";
 import { parseMarkdownSpans } from "./parseMarkdownSpans";
 
+function splitTableCells(line: string): string[] {
+    return line.trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+}
+
 function buildTableHeaders(headerLine: string): MarkdownSpan[][] {
-    return headerLine
-        .trim()
-        .split('|')
-        .map(cell => cell.trim())
-        .filter(cell => cell.length > 0)
+    return splitTableCells(headerLine)
         .map(cell => parseMarkdownSpans(cell, false));
 }
 
@@ -14,11 +14,8 @@ function buildTableRows(tableLines: string[]): MarkdownSpan[][][] {
     const rows: MarkdownSpan[][][] = [];
     for (let i = 2; i < tableLines.length; i++) {
         const rowLine = tableLines[i].trim();
-        if (!rowLine.startsWith('|')) continue;
-        const rowCells = rowLine
-            .split('|')
-            .map(cell => cell.trim())
-            .filter(cell => cell.length > 0)
+        if (!rowLine.includes('|')) continue;
+        const rowCells = splitTableCells(rowLine)
             .map(cell => parseMarkdownSpans(cell, false));
         if (rowCells.length > 0) rows.push(rowCells);
     }
