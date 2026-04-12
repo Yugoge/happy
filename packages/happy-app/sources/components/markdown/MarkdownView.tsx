@@ -122,7 +122,7 @@ export const MarkdownView = React.memo((props: {
     }, [props.markdown, router]);
 
     const renderContent = () => (
-        <View style={{ width: '100%' }}>
+        <View style={{ width: '100%', overflow: 'hidden' }}>
             {blocks.map((block, index) => renderBlock(block, index, blocks.length, selectable, handleLinkPress, props.onOptionPress))}
         </View>
     );
@@ -140,7 +140,7 @@ export const MarkdownView = React.memo((props: {
 
     return (
         <GestureDetector gesture={longPressGesture}>
-            <View style={{ width: '100%' }}>
+            <View style={{ width: '100%', overflow: 'hidden' }}>
                 {renderContent()}
             </View>
         </GestureDetector>
