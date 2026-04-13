@@ -110,3 +110,5 @@
 ] @ http://localhost:8097/_expo/static/js/web/index-672f677dc9bf936912b099a49b6c1dc1.js:3008
 [    4174ms] [ERROR] Access to fetch at 'https://applio.life-ai.app/api/portals' from origin 'http://localhost:8097' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8097/:0
 [    4174ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://applio.life-ai.app/api/portals:0
+[  947574ms] [WARNING] You are using the in-browser Babel transformer. Be sure to precompile your scripts for production - https://babeljs.io/docs/setup/ @ https://unpkg.com/@babel/standalone/babel.min.js:2
+[  948403ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://travel.life-ai.app/favicon.ico:0
