@@ -184,7 +184,7 @@ export function createReducer(): ReducerState {
     }
 };
 
-const ENABLE_LOGGING = false;
+const ENABLE_LOGGING = true;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -254,6 +254,30 @@ export type ReducerResult = {
     hasReadyEvent?: boolean;
 };
 
+function summarizeSidechains(state: ReducerState): Array<{
+    key: string;
+    count: number;
+    messages: Array<{
+        realID: string | null;
+        role: ReducerMessage['role'];
+        kind: 'agent-text' | 'tool-call' | 'user-text';
+        toolName: string | null;
+        textPreview: string | null;
+    }>;
+}> {
+    return [...state.sidechains.entries()].map(([key, messages]) => ({
+        key,
+        count: messages.length,
+        messages: messages.map(message => ({
+            realID: message.realID,
+            role: message.role,
+            kind: message.tool ? 'tool-call' : message.role === 'user' ? 'user-text' : 'agent-text',
+            toolName: message.tool?.name ?? null,
+            textPreview: message.text?.slice(0, 120) ?? null
+        }))
+    }));
+}
+
 export function reducer(state: ReducerState, messages: NormalizedMessage[], agentState?: AgentState | null): ReducerResult {
     if (ENABLE_LOGGING) {
         console.log(`[REDUCER] Called with ${messages.length} messages, agentState: ${agentState ? 'YES' : 'NO'}`);
@@ -275,6 +299,32 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
     // Separate sidechain and non-sidechain messages
     let nonSidechainMessages = tracedMessages.filter(msg => !msg.sidechainId);
     const sidechainMessages = tracedMessages.filter(msg => msg.sidechainId);
+
+    if (ENABLE_LOGGING) {
+        const unresolvedSidechainMessages = tracedMessages
+            .filter(msg => msg.isSidechain && !msg.sidechainId)
+            .map(msg => ({
+                id: msg.id,
+                role: msg.role,
+                parentUUID: msg.role === 'agent' && msg.content[0] && 'parentUUID' in msg.content[0]
+                    ? msg.content[0].parentUUID
+                    : null,
+                contentTypes: msg.role === 'agent' ? msg.content.map(content => content.type) : []
+            }));
+
+        console.log('[REDUCER] Sidechain trace summary', {
+            tracedCount: tracedMessages.length,
+            sidechainCount: sidechainMessages.length,
+            unresolvedSidechainCount: unresolvedSidechainMessages.length,
+            unresolvedSidechainMessages,
+            tracedSidechains: sidechainMessages.map(msg => ({
+                id: msg.id,
+                sidechainId: msg.sidechainId,
+                role: msg.role,
+                contentTypes: msg.role === 'agent' ? msg.content.map(content => content.type) : []
+            }))
+        });
+    }
 
     //
     // Phase 0.5: Message-to-Event Conversion
@@ -1082,6 +1132,19 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
 
         // Update the sidechain in state
         state.sidechains.set(msg.sidechainId, existingSidechain);
+
+        if (ENABLE_LOGGING) {
+            console.log('[REDUCER] Phase 4 stored sidechain', {
+                storedKey: msg.sidechainId,
+                ownerRealId: owner?.realID ?? null,
+                ownerToolName: owner?.tool?.name ?? null,
+                sidechainMessageCount: existingSidechain.length,
+                sidechainMessageKinds: existingSidechain.map(message =>
+                    message.tool ? 'tool-call' : message.role === 'user' ? 'user-text' : 'agent-text'
+                ),
+                sidechains: summarizeSidechains(state)
+            });
+        }
 
         // Find the Task tool message that owns this sidechain and mark it as changed
         // msg.sidechainId is the realID of the Task message
