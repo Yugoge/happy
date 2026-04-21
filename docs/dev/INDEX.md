@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-19T22:26:20Z*
-**Total entries**: 180
+*Last updated: 2026-04-12T05:38:53Z*
+**Total entries**: 174
 **Convention**: kebab
 
 ## Tree
@@ -22,11 +22,7 @@ dev/
 │       ├── `ui-specialist-report.json` - json config
 │       └── `user-report.json` - json config
 ├── `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
-├── `ba-good-bad-comparison.md` - Good vs Bad Session Comparison: Why Resumed Sessions Produce 0 Subagent Envelopes
 ├── `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
-├── `ba-mapper-lifecycle.md` - Mapper State Lifecycle Investigation
-├── `ba-missing-text.md` - Investigation: Missing Agent Text in Agent Sidebar
-├── `ba-resume-scanner-trace.md` - Resume/Scanner Mapper State Trace
 ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
 ├── `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
@@ -66,7 +62,6 @@ dev/
 ├── `ba-spec-20260409-160000.md` - BA Specification: Forward Subagent Sidechain Messages from JSONL to Server
 ├── `ba-spec-20260410-0750.md` - BA Specification: Sidechain Messages Not in Main JSONL -- Scanner Reads Wrong Location
 ├── `ba-spec-20260410-children.md` - BA Specification: Agent/Task Tool Detail View Missing Children
-├── `ba-write-path-trace.md` - Write-Path Trace: `isSidechain` for Historical Messages
 ├── `build-verification-20260409.json` - json config
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -137,7 +132,6 @@ dev/
 ├── `dev-report-20260409-120000.json` - json config
 ├── `dev-report-20260409-130000.json` - json config
 ├── `dev-report-20260409-160000.json` - json config
-├── `dev-report-20260418-taskfull-scanner.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config
