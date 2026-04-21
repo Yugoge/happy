@@ -25,545 +25,323 @@ interface PermissionsField {
     allowedTools?: string[];
 }
 
-export async function claudeRemoteLauncher(session: Session): Promise<'switch' | 'exit'> {
-    logger.debug('[claudeRemoteLauncher] Starting remote launcher');
+type LauncherState = {
+    exitReason: 'switch' | 'exit' | null;
+    abortController: AbortController | null;
+    abortFuture: Future<void> | null;
+    planModeToolCalls: Set<string>;
+    ongoingToolCalls: Map<string, { parentToolCallId: string | null }>;
+    notifiedQuestionToolCalls: Set<string>;
+    sentSidechainUuids: Set<string>;
+};
 
-    // Check if we have a TTY for UI rendering
-    const hasTTY = process.stdout.isTTY && process.stdin.isTTY;
-    logger.debug(`[claudeRemoteLauncher] TTY available: ${hasTTY}`);
+type LoopState = {
+    pending: { message: string; mode: EnhancedMode } | null;
+    previousSessionId: string | null;
+    consecutiveCrashes: number;
+    MAX_CONSECUTIVE_CRASHES: number;
+};
 
-    // Configure terminal
-    let messageBuffer = new MessageBuffer();
-    let inkInstance: any = null;
+type MetaScannerState = {
+    scanner: { cleanup: () => Promise<void>; onNewSession: (id: string) => void } | null;
+    promise: Promise<void> | null;
+};
 
-    if (hasTTY) {
-        console.clear();
-        inkInstance = render(React.createElement(RemoteModeDisplay, {
-            messageBuffer,
-            logPath: process.env.DEBUG ? session.logPath : undefined,
-            onExit: async () => {
-                // Exit the entire client
-                logger.debug('[remote]: Exiting client via Ctrl-C');
-                if (!exitReason) {
-                    exitReason = 'exit';
-                }
-                await abort();
-            },
-            onSwitchToLocal: () => {
-                // Switch to local mode
-                logger.debug('[remote]: Switching to local mode via double space');
-                doSwitch();
-            }
-        }), {
-            exitOnCtrlC: false,
-            patchConsole: false
-        });
-    }
+type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter };
 
-    if (hasTTY) {
-        process.stdin.resume();
-        if (process.stdin.isTTY) {
-            process.stdin.setRawMode(true);
-        }
-        process.stdin.setEncoding("utf8");
-    }
+function createLauncherState(): LauncherState {
+    return {
+        exitReason: null, abortController: null, abortFuture: null,
+        planModeToolCalls: new Set(), ongoingToolCalls: new Map(),
+        notifiedQuestionToolCalls: new Set(), sentSidechainUuids: new Set(),
+    };
+}
 
-    // Handle abort
-    let exitReason: 'switch' | 'exit' | null = null;
-    let abortController: AbortController | null = null;
-    let abortFuture: Future<void> | null = null;
+function setupTTY(messageBuffer: MessageBuffer, state: LauncherState, abort: () => Promise<void>, doSwitch: () => void): any {
+    if (!process.stdout.isTTY || !process.stdin.isTTY) return null;
+    console.clear();
+    const inkInstance = render(React.createElement(RemoteModeDisplay, {
+        messageBuffer, logPath: process.env.DEBUG ? undefined : undefined,
+        onExit: async () => { if (!state.exitReason) { state.exitReason = 'exit'; } await abort(); },
+        onSwitchToLocal: doSwitch,
+    }), { exitOnCtrlC: false, patchConsole: false });
+    process.stdin.resume();
+    if (process.stdin.isTTY) { process.stdin.setRawMode(true); }
+    process.stdin.setEncoding("utf8");
+    return inkInstance;
+}
 
-    async function abort() {
-        if (abortController && !abortController.signal.aborted) {
-            abortController.abort();
-        }
-        await abortFuture?.promise;
-    }
-
-    async function doAbort() {
-        logger.debug('[remote]: doAbort');
-        await abort();
-    }
-
-    async function doSwitch() {
-        logger.debug('[remote]: doSwitch');
-        if (!exitReason) {
-            exitReason = 'switch';
-        }
-        await abort();
-    }
-
-    // When to abort
-    session.client.rpcHandlerManager.registerHandler('abort', doAbort); // When abort clicked
-    session.client.rpcHandlerManager.registerHandler('switch', doSwitch); // When switch clicked
-    // Removed catch-all stdin handler - now handled by RemoteModeDisplay keyboard handlers
-
-    // Create permission handler
-    const permissionHandler = new PermissionHandler(session);
-
-    // Create outgoing message queue
-    const messageQueue = new OutgoingMessageQueue(
-        (logMessage) => session.client.sendClaudeSessionMessage(logMessage)
-    );
-
-    // Extract resume session ID from claudeArgs (if --resume <id> is present)
-    let resumeClaudeSessionId: string | null = null;
-    if (session.claudeArgs) {
-        const resumeIdx = session.claudeArgs.indexOf('--resume');
-        if (resumeIdx !== -1 && resumeIdx + 1 < session.claudeArgs.length) {
-            resumeClaudeSessionId = session.claudeArgs[resumeIdx + 1];
-            logger.debug(`[claudeRemoteLauncher] Found resume session ID: ${resumeClaudeSessionId}`);
-        }
-    }
-
-    // Recovery mode only: upload .jsonl history to server before Claude starts
-    let scanner: Awaited<ReturnType<typeof createSessionScanner>> | null = null;
-    if (resumeClaudeSessionId) {
-        scanner = await createSessionScanner({
-            sessionId: resumeClaudeSessionId,
-            sendExisting: true,
-            workingDirectory: session.path,
-            onMessage: (message) => {
-                const isMetaMessage = (message as { isMeta?: boolean }).isMeta === true;
-                if (message.type !== 'summary' && !isMetaMessage) {
-                    session.client.sendClaudeSessionMessage(message);
-                }
-            }
-        });
-        // Stop scanner after upload — onMessage handler will send new messages live
-        await scanner.cleanup();
-        scanner = null;
-        logger.debug(`[claudeRemoteLauncher] Recovery mode: history uploaded and scanner stopped`);
-    }
-
-    // Set up callback to release delayed messages when permission is requested
-    permissionHandler.setOnPermissionRequest((toolCallId: string) => {
-        messageQueue.releaseToolCall(toolCallId);
+async function uploadResumeHistory(session: Session) {
+    if (!session.claudeArgs) return;
+    const idx = session.claudeArgs.indexOf('--resume');
+    if (idx === -1 || idx + 1 >= session.claudeArgs.length) return;
+    const scanner = await createSessionScanner({
+        sessionId: session.claudeArgs[idx + 1], sendExisting: true, workingDirectory: session.path,
+        onMessage: (m) => { if (m.type !== 'summary' && !(m as any).isMeta) { session.client.sendClaudeSessionMessage(m); } }
     });
+    await scanner.cleanup();
+}
 
-    // Create SDK to Log converter (pass responses from permissions)
-    const sdkToLogConverter = new SDKToLogConverter({
-        sessionId: session.sessionId || 'unknown',
-        cwd: session.path,
-        version: process.env.npm_package_version
-    }, permissionHandler.getResponses());
+function trackAssistantContent(message: SDKAssistantMessage, state: LauncherState) {
+    if (!message.message.content || !Array.isArray(message.message.content)) return;
+    for (const c of message.message.content) {
+        if (c.type === 'tool_use' && (c.name === 'exit_plan_mode' || c.name === 'ExitPlanMode')) { state.planModeToolCalls.add(c.id! as string); }
+        if (c.type === 'tool_use') { state.ongoingToolCalls.set(c.id!, { parentToolCallId: message.parent_tool_use_id ?? null }); }
+    }
+}
 
+function trackToolResults(message: SDKUserMessage, state: LauncherState, messageQueue: OutgoingMessageQueue) {
+    if (!message.message.content || !Array.isArray(message.message.content)) return;
+    for (const c of message.message.content) {
+        if (c.type === 'tool_result' && c.tool_use_id) { state.ongoingToolCalls.delete(c.tool_use_id); messageQueue.releaseToolCall(c.tool_use_id); }
+    }
+}
 
-    // Handle messages
-    let planModeToolCalls = new Set<string>();
-    let ongoingToolCalls = new Map<string, { parentToolCallId: string | null }>();
-    let notifiedQuestionToolCalls = new Set<string>();
+function notifyQuestions(message: SDKMessage, state: LauncherState, session: Session) {
+    for (const id of getAskUserQuestionToolCallIds(message)) {
+        if (state.notifiedQuestionToolCalls.has(id)) continue;
+        state.notifiedQuestionToolCalls.add(id);
+        session.api.push().sendSessionNotification({
+            kind: 'question', metadata: session.client.getMetadata(),
+            data: { sessionId: session.client.sessionId, tool: 'AskUserQuestion', toolCallId: id, type: 'question_request', provider: 'claude' }
+        });
+    }
+}
 
-    function onMessage(message: SDKMessage) {
+function rewritePlanModeBlock(c: any, planCalls: Set<string>): any {
+    if (c.type === 'tool_result' && c.tool_use_id && planCalls.has(c.tool_use_id) && c.content === PLAN_FAKE_REJECT) {
+        return { ...c, is_error: false, content: 'Plan approved', mode: c.mode };
+    }
+    return c;
+}
 
-        // Write to message log
-        formatClaudeMessageForInk(message, messageBuffer);
+function hackPlanModeExit(message: SDKUserMessage, state: LauncherState): SDKMessage {
+    if (!message.message.content || !Array.isArray(message.message.content)) return message;
+    return { ...message, message: { ...message.message, content: message.message.content.map(c => rewritePlanModeBlock(c, state.planModeToolCalls)) } };
+}
 
-        // Write to permission handler for tool id resolving
-        permissionHandler.onMessage(message);
+function addPermissionsToToolResults(logMessage: RawJSONLines, ph: PermissionHandler) {
+    if (logMessage.type !== 'user' || !logMessage.message?.content) return;
+    const content = Array.isArray(logMessage.message.content) ? logMessage.message.content : [];
+    for (let i = 0; i < content.length; i++) {
+        const c = content[i];
+        if (c.type !== 'tool_result' || !c.tool_use_id) continue;
+        const resp = ph.getResponses().get(c.tool_use_id);
+        if (!resp) continue;
+        const p: PermissionsField = { date: resp.receivedAt || Date.now(), result: resp.approved ? 'approved' : 'denied' };
+        if (resp.mode) { p.mode = resp.mode; }
+        if (resp.allowTools?.length) { p.allowedTools = resp.allowTools; }
+        content[i] = { ...c, permissions: p };
+    }
+}
 
-        // Detect plan mode tool call
-        if (message.type === 'assistant') {
-            let umessage = message as SDKAssistantMessage;
-            if (umessage.message.content && Array.isArray(umessage.message.content)) {
-                for (let c of umessage.message.content) {
-                    if (c.type === 'tool_use' && (c.name === 'exit_plan_mode' || c.name === 'ExitPlanMode')) {
-                        logger.debug('[remote]: detected plan mode tool call ' + c.id!);
-                        planModeToolCalls.add(c.id! as string);
-                    }
-                }
-            }
-        }
+function extractToolCallIds(msg: SDKAssistantMessage): string[] {
+    const ids: string[] = [];
+    if (msg.message.content && Array.isArray(msg.message.content)) {
+        for (const b of msg.message.content) { if (b.type === 'tool_use' && b.id) { ids.push(b.id); } }
+    }
+    return ids;
+}
 
-        // Track active tool calls
-        if (message.type === 'assistant') {
-            let umessage = message as SDKAssistantMessage;
-            if (umessage.message.content && Array.isArray(umessage.message.content)) {
-                for (let c of umessage.message.content) {
-                    if (c.type === 'tool_use') {
-                        logger.debug('[remote]: detected tool use ' + c.id! + ' parent: ' + umessage.parent_tool_use_id);
-                        ongoingToolCalls.set(c.id!, { parentToolCallId: umessage.parent_tool_use_id ?? null });
-                    }
-                }
-            }
-        }
-
-        // Notify once when Claude asks the user a native clarifying question
-        for (const toolCallId of getAskUserQuestionToolCallIds(message)) {
-            if (notifiedQuestionToolCalls.has(toolCallId)) {
-                continue;
-            }
-            notifiedQuestionToolCalls.add(toolCallId);
-            session.api.push().sendSessionNotification({
-                kind: 'question',
-                metadata: session.client.getMetadata(),
-                data: {
-                    sessionId: session.client.sessionId,
-                    tool: 'AskUserQuestion',
-                    toolCallId,
-                    type: 'question_request',
-                    provider: 'claude',
-                }
-            });
-        }
-
-        if (message.type === 'user') {
-            let umessage = message as SDKUserMessage;
-            if (umessage.message.content && Array.isArray(umessage.message.content)) {
-                for (let c of umessage.message.content) {
-                    if (c.type === 'tool_result' && c.tool_use_id) {
-                        ongoingToolCalls.delete(c.tool_use_id);
-
-                        // When tool result received, release any delayed messages for this tool call
-                        messageQueue.releaseToolCall(c.tool_use_id);
-                    }
-                }
-            }
-        }
-
-        // Convert SDK message to log format and send to client
-        let msg = message;
-
-        // Hack plan mode exit
-        if (message.type === 'user') {
-            let umessage = message as SDKUserMessage;
-            if (umessage.message.content && Array.isArray(umessage.message.content)) {
-                msg = {
-                    ...umessage,
-                    message: {
-                        ...umessage.message,
-                        content: umessage.message.content.map((c) => {
-                            if (c.type === 'tool_result' && c.tool_use_id && planModeToolCalls.has(c.tool_use_id!)) {
-                                if (c.content === PLAN_FAKE_REJECT) {
-                                    logger.debug('[remote]: hack plan mode exit');
-                                    logger.debugLargeJson('[remote]: hack plan mode exit', c);
-                                    return {
-                                        ...c,
-                                        is_error: false,
-                                        content: 'Plan approved',
-                                        mode: c.mode
-                                    }
-                                } else {
-                                    return c;
-                                }
-                            }
-                            return c;
-                        })
-                    }
-                }
-            }
-        }
-
-        const logMessage = sdkToLogConverter.convert(msg);
-        if (logMessage) {
-            // Add permissions field to tool result content
-            if (logMessage.type === 'user' && logMessage.message?.content) {
-                const content = Array.isArray(logMessage.message.content)
-                    ? logMessage.message.content
-                    : [];
-
-                // Modify the content array to add permissions to each tool_result
-                for (let i = 0; i < content.length; i++) {
-                    const c = content[i];
-                    if (c.type === 'tool_result' && c.tool_use_id) {
-                        const responses = permissionHandler.getResponses();
-                        const response = responses.get(c.tool_use_id);
-
-                        if (response) {
-                            const permissions: PermissionsField = {
-                                date: response.receivedAt || Date.now(),
-                                result: response.approved ? 'approved' : 'denied'
-                            };
-
-                            // Add optional fields if they exist
-                            if (response.mode) {
-                                permissions.mode = response.mode;
-                            }
-
-                            if (response.allowTools && response.allowTools.length > 0) {
-                                permissions.allowedTools = response.allowTools;
-                            }
-
-                            // Add permissions directly to the tool_result content object
-                            content[i] = {
-                                ...c,
-                                permissions
-                            };
-                        }
-                    }
-                }
-            }
-
-            // Queue message with optional delay for tool calls
-            if (logMessage.type === 'assistant' && message.type === 'assistant') {
-                const assistantMsg = message as SDKAssistantMessage;
-                const toolCallIds: string[] = [];
-
-                if (assistantMsg.message.content && Array.isArray(assistantMsg.message.content)) {
-                    for (const block of assistantMsg.message.content) {
-                        if (block.type === 'tool_use' && block.id) {
-                            toolCallIds.push(block.id);
-                        }
-                    }
-                }
-
-                if (toolCallIds.length > 0) {
-                    // Check if this is a sidechain tool call (has parent_tool_use_id)
-                    const isSidechain = assistantMsg.parent_tool_use_id !== undefined;
-
-                    if (!isSidechain) {
-                        // Top-level tool call - queue with delay
-                        messageQueue.enqueue(logMessage, {
-                            delay: 250,
-                            toolCallIds
-                        });
-                        return; // Don't queue again below
-                    }
-                }
-            }
-
-            // Queue all other messages immediately (no delay)
-            messageQueue.enqueue(logMessage);
-        }
-
-        // Insert a fake message to start the sidechain
-        if (message.type === 'assistant') {
-            let umessage = message as SDKAssistantMessage;
-            if (umessage.message.content && Array.isArray(umessage.message.content)) {
-                for (let c of umessage.message.content) {
-                    if (c.type === 'tool_use' && c.name === 'Task' && c.input && typeof (c.input as any).prompt === 'string') {
-                        const logMessage2 = sdkToLogConverter.convertSidechainUserMessage(c.id!, (c.input as any).prompt);
-                        if (logMessage2) {
-                            messageQueue.enqueue(logMessage2);
-                        }
-                    }
-                }
-            }
+function queueLogMessage(logMessage: RawJSONLines, message: SDKMessage, mq: OutgoingMessageQueue, state: LauncherState) {
+    if (logMessage.type === 'assistant' && message.type === 'assistant') {
+        const ids = extractToolCallIds(message as SDKAssistantMessage);
+        if (ids.length > 0 && (message as SDKAssistantMessage).parent_tool_use_id === undefined) {
+            mq.enqueue(logMessage, { delay: 250, toolCallIds: ids });
+            return;
         }
     }
+    mq.enqueue(logMessage);
+    if ((logMessage as any).isSidechain === true && typeof (logMessage as any).uuid === 'string') {
+        state.sentSidechainUuids.add((logMessage as any).uuid);
+    }
+}
 
+function buildOnMessage(state: LauncherState, session: Session, buf: MessageBuffer, svc: Services) {
+    return (message: SDKMessage) => {
+        formatClaudeMessageForInk(message, buf);
+        svc.permissionHandler.onMessage(message);
+        if (message.type === 'assistant') { trackAssistantContent(message as SDKAssistantMessage, state); }
+        notifyQuestions(message, state, session);
+        if (message.type === 'user') { trackToolResults(message as SDKUserMessage, state, svc.messageQueue); }
+        const msg = message.type === 'user' ? hackPlanModeExit(message as SDKUserMessage, state) : message;
+        const log = svc.sdkToLogConverter.convert(msg);
+        if (!log) return;
+        addPermissionsToToolResults(log, svc.permissionHandler);
+        queueLogMessage(log, message, svc.messageQueue, state);
+    };
+}
+
+async function cleanupAfterLaunch(state: LauncherState, svc: Services, session: Session, meta: MetaScannerState) {
+    session.consumeOneTimeFlags();
+    for (const [id, { parentToolCallId }] of state.ongoingToolCalls) {
+        const c = svc.sdkToLogConverter.generateInterruptedToolResult(id, parentToolCallId);
+        if (c) { session.client.sendClaudeSessionMessage(c); }
+    }
+    state.ongoingToolCalls.clear();
+    await svc.messageQueue.flush();
+    svc.messageQueue.destroy();
+    state.abortController = null;
+    state.abortFuture?.resolve(undefined);
+    state.abortFuture = null;
+    svc.permissionHandler.reset();
+    state.sentSidechainUuids.clear();
+    if (meta.promise) { await meta.promise.catch(() => {}); meta.promise = null; }
+    if (meta.scanner) { await meta.scanner.cleanup(); meta.scanner = null; }
+}
+
+function buildNextMessage(session: Session, ctrl: AbortController, ph: PermissionHandler, loop: LoopState, mode: { hash: string | null; mode: EnhancedMode | null }) {
+    return async () => {
+        if (loop.pending) { const p = loop.pending; loop.pending = null; ph.handleModeChange(p.mode.permissionMode); return p; }
+        const msg = await session.queue.waitForMessagesAndGetAsString(ctrl.signal);
+        if (!msg) return null;
+        if ((mode.hash && msg.hash !== mode.hash) || msg.isolate) { loop.pending = msg; return null; }
+        mode.hash = msg.hash;
+        mode.mode = msg.mode;
+        ph.handleModeChange(mode.mode.permissionMode);
+        return { message: msg.message, mode: msg.mode };
+    };
+}
+
+function handleScannerMessage(message: RawJSONLines, session: Session, state: LauncherState) {
+    if ((message as any).isMeta === true) { session.client.sendClaudeSessionMessage(message); }
+    const uuid = (message as any).uuid;
+    if ((message as any).isSidechain === true && typeof uuid === 'string' && !state.sentSidechainUuids.has(uuid)) {
+        state.sentSidechainUuids.add(uuid);
+        session.client.sendClaudeSessionMessage(message);
+    }
+}
+
+function buildOnSessionFound(session: Session, state: LauncherState, conv: SDKToLogConverter, meta: MetaScannerState) {
+    return (sessionId: string) => {
+        conv.updateSessionId(sessionId);
+        session.onSessionFound(sessionId);
+        if (meta.scanner || meta.promise) return;
+        meta.promise = createSessionScanner({
+            sessionId, workingDirectory: session.path, sendExisting: false,
+            onMessage: (m) => handleScannerMessage(m, session, state),
+        }).then(s => { meta.scanner = s; });
+    };
+}
+
+function sendDoneNotification(session: Session) {
+    session.api.push().sendSessionNotification({
+        kind: 'done', metadata: session.client.getMetadata(),
+        data: { sessionId: session.client.sessionId, type: 'ready', provider: 'claude' }
+    });
+}
+
+function buildOnReady(session: Session, loop: LoopState) {
+    return () => {
+        session.client.closeClaudeSessionTurn('completed');
+        if (!loop.pending && session.queue.size() === 0) { sendDoneNotification(session); }
+    };
+}
+
+function initServices(session: Session): Services {
+    const permissionHandler = new PermissionHandler(session);
+    const messageQueue = new OutgoingMessageQueue((log) => session.client.sendClaudeSessionMessage(log));
+    const sdkToLogConverter = new SDKToLogConverter(
+        { sessionId: session.sessionId || 'unknown', cwd: session.path, version: process.env.npm_package_version },
+        permissionHandler.getResponses(),
+    );
+    permissionHandler.setOnPermissionRequest((id: string) => { messageQueue.releaseToolCall(id); });
+    return { permissionHandler, messageQueue, sdkToLogConverter };
+}
+
+async function invokeClaude(
+    state: LauncherState, session: Session, svc: Services, onMessage: (msg: SDKMessage) => void,
+    loop: LoopState, ctrl: AbortController, mode: { hash: string | null; mode: EnhancedMode | null }, meta: MetaScannerState,
+) {
+    await claudeRemote({
+        sessionId: session.sessionId, path: session.path, allowedTools: session.allowedTools ?? [],
+        mcpServers: session.mcpServers, hookSettingsPath: session.hookSettingsPath, jsRuntime: session.jsRuntime,
+        canCallTool: svc.permissionHandler.handleToolCall,
+        isAborted: (id: string) => svc.permissionHandler.isAborted(id),
+        nextMessage: buildNextMessage(session, ctrl, svc.permissionHandler, loop, mode),
+        onSessionFound: buildOnSessionFound(session, state, svc.sdkToLogConverter, meta),
+        onThinkingChange: session.onThinkingChange, claudeEnvVars: session.claudeEnvVars, claudeArgs: session.claudeArgs,
+        onMessage, signal: ctrl.signal,
+        onCompletionEvent: (msg: string) => { session.client.sendSessionEvent({ type: 'message', message: msg }); },
+        onSessionReset: () => { session.clearSessionId(); },
+        onReady: buildOnReady(session, loop),
+    });
+}
+
+function handleNormalExit(state: LauncherState, session: Session, buf: MessageBuffer, ctrl: AbortController) {
+    if (!state.exitReason && ctrl.signal.aborted) {
+        session.client.closeClaudeSessionTurn('cancelled');
+        session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
+    }
+    if (!state.exitReason) {
+        buf.addMessage('Claude session ended. Waiting for next command...', 'status');
+        session.client.sendSessionEvent({ type: 'message', message: 'Claude process exited, waiting for next command' });
+    }
+}
+
+async function handleCrash(state: LauncherState, session: Session, buf: MessageBuffer, loop: LoopState, e: unknown) {
+    logger.debug('[remote]: launch error', e);
+    if (state.exitReason) return;
+    loop.consecutiveCrashes++;
+    session.client.closeClaudeSessionTurn('failed');
+    if (loop.consecutiveCrashes >= loop.MAX_CONSECUTIVE_CRASHES) {
+        session.client.sendSessionEvent({ type: 'message', message: `Claude crashed ${loop.consecutiveCrashes} times consecutively, stopping session` });
+        state.exitReason = 'exit';
+    } else {
+        session.client.sendSessionEvent({ type: 'message', message: `Claude process exited unexpectedly (crash ${loop.consecutiveCrashes}/${loop.MAX_CONSECUTIVE_CRASHES}), waiting for next command` });
+        buf.addMessage(`Claude crashed (${loop.consecutiveCrashes}/${loop.MAX_CONSECUTIVE_CRASHES}). Waiting ${loop.consecutiveCrashes * 2}s before retry...`, 'status');
+        await new Promise(resolve => setTimeout(resolve, loop.consecutiveCrashes * 2000));
+    }
+}
+
+async function runSingleLaunch(state: LauncherState, session: Session, buf: MessageBuffer, svc: Services, onMessage: (msg: SDKMessage) => void, loop: LoopState) {
+    buf.addMessage('═'.repeat(40), 'status');
+    if (session.sessionId !== loop.previousSessionId) {
+        buf.addMessage('Starting new Claude session...', 'status');
+        svc.permissionHandler.reset();
+        svc.sdkToLogConverter.resetParentChain();
+    } else {
+        buf.addMessage('Continuing Claude session...', 'status');
+    }
+    loop.previousSessionId = session.sessionId;
+    const ctrl = new AbortController();
+    state.abortController = ctrl;
+    state.abortFuture = new Future<void>();
+    const mode = { hash: null as string | null, mode: null as EnhancedMode | null };
+    const meta: MetaScannerState = { scanner: null, promise: null };
     try {
-        let pending: {
-            message: string;
-            mode: EnhancedMode;
-        } | null = null;
-
-        // Track session ID to detect when it actually changes
-        // This prevents context loss when mode changes (permission mode, model, etc.)
-        // without starting a new session. Only reset parent chain when session ID
-        // actually changes (e.g., new session started or /clear command used).
-        // See: https://github.com/anthropics/happy-cli/issues/143
-        let previousSessionId: string | null = null;
-        let consecutiveCrashes = 0;
-        const MAX_CONSECUTIVE_CRASHES = 5;
-        while (!exitReason) {
-            logger.debug('[remote]: launch');
-            messageBuffer.addMessage('═'.repeat(40), 'status');
-
-            // Only reset parent chain and show "new session" message when session ID actually changes
-            const isNewSession = session.sessionId !== previousSessionId;
-            if (isNewSession) {
-                messageBuffer.addMessage('Starting new Claude session...', 'status');
-                permissionHandler.reset(); // Reset permissions before starting new session
-                sdkToLogConverter.resetParentChain(); // Reset parent chain for new conversation
-                logger.debug(`[remote]: New session detected (previous: ${previousSessionId}, current: ${session.sessionId})`);
-            } else {
-                messageBuffer.addMessage('Continuing Claude session...', 'status');
-                logger.debug(`[remote]: Continuing existing session: ${session.sessionId}`);
-            }
-
-            previousSessionId = session.sessionId;
-            const controller = new AbortController();
-            abortController = controller;
-            abortFuture = new Future<void>();
-            let modeHash: string | null = null;
-            let mode: EnhancedMode | null = null;
-            let metaMessageScanner: { cleanup: () => Promise<void>; onNewSession: (id: string) => void } | null = null;
-            let metaMessageScannerPromise: Promise<void> | null = null;
-            try {
-                const remoteResult = await claudeRemote({
-                    sessionId: session.sessionId,
-                    path: session.path,
-                    allowedTools: session.allowedTools ?? [],
-                    mcpServers: session.mcpServers,
-                    hookSettingsPath: session.hookSettingsPath,
-                    jsRuntime: session.jsRuntime,
-                    canCallTool: permissionHandler.handleToolCall,
-                    isAborted: (toolCallId: string) => {
-                        return permissionHandler.isAborted(toolCallId);
-                    },
-                    nextMessage: async () => {
-                        if (pending) {
-                            let p = pending;
-                            pending = null;
-                            permissionHandler.handleModeChange(p.mode.permissionMode);
-                            return p;
-                        }
-
-                        let msg = await session.queue.waitForMessagesAndGetAsString(controller.signal);
-
-                        // Check if mode has changed
-                        if (msg) {
-                            if ((modeHash && msg.hash !== modeHash) || msg.isolate) {
-                                logger.debug('[remote]: mode has changed, pending message');
-                                pending = msg;
-                                return null;
-                            }
-                            modeHash = msg.hash;
-                            mode = msg.mode;
-                            permissionHandler.handleModeChange(mode.permissionMode);
-                            return {
-                                message: msg.message,
-                                mode: msg.mode
-                            }
-                        }
-
-                        // Exit
-                        return null;
-                    },
-                    onSessionFound: (sessionId) => {
-                        // Update converter's session ID when new session is found
-                        sdkToLogConverter.updateSessionId(sessionId);
-                        session.onSessionFound(sessionId);
-                        // Start a JSONL meta-scanner to pick up isMeta=true skill prompts.
-                        // The SDK writes these to JSONL but does NOT emit them as live stream
-                        // events, so we must read them from the file. This is needed for BOTH
-                        // new and resume sessions — the initial history scanner is cleaned up
-                        // before this point, so new commands need a fresh meta-scanner.
-                        if (!metaMessageScanner && !metaMessageScannerPromise) {
-                            metaMessageScannerPromise = createSessionScanner({
-                                sessionId,
-                                workingDirectory: session.path,
-                                sendExisting: false,
-                                onMessage: (message) => {
-                                    if ((message as { isMeta?: boolean }).isMeta === true) {
-                                        session.client.sendClaudeSessionMessage(message);
-                                    }
-                                },
-                            }).then(s => { metaMessageScanner = s; });
-                        }
-                    },
-                    onThinkingChange: session.onThinkingChange,
-                    claudeEnvVars: session.claudeEnvVars,
-                    claudeArgs: session.claudeArgs,
-                    onMessage,
-                    onCompletionEvent: (message: string) => {
-                        logger.debug(`[remote]: Completion event: ${message}`);
-                        session.client.sendSessionEvent({ type: 'message', message });
-                    },
-                    onSessionReset: () => {
-                        logger.debug('[remote]: Session reset');
-                        session.clearSessionId();
-                    },
-                    onReady: () => {
-                        session.client.closeClaudeSessionTurn('completed');
-                        if (!pending && session.queue.size() === 0) {
-                            session.api.push().sendSessionNotification({
-                                kind: 'done',
-                                metadata: session.client.getMetadata(),
-                                data: {
-                                    sessionId: session.client.sessionId,
-                                    type: 'ready',
-                                    provider: 'claude',
-                                }
-                            });
-                        }
-                    },
-                    signal: abortController.signal,
-                });
-                
-                // Claude completed normally — reset crash counter
-                consecutiveCrashes = 0;
-
-                if (!exitReason && abortController.signal.aborted) {
-                    session.client.closeClaudeSessionTurn('cancelled');
-                    session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
-                }
-
-                // Claude exited but no exit reason — stay alive and wait for next command
-                if (!exitReason) {
-                    logger.debug('[remote]: Claude exited normally, waiting for next command');
-                    messageBuffer.addMessage('Claude session ended. Waiting for next command...', 'status');
-                    session.client.sendSessionEvent({ type: 'message', message: 'Claude process exited, waiting for next command' });
-                }
-            } catch (e) {
-                logger.debug('[remote]: launch error', e);
-                if (!exitReason) {
-                    consecutiveCrashes++;
-                    session.client.closeClaudeSessionTurn('failed');
-
-                    if (consecutiveCrashes >= MAX_CONSECUTIVE_CRASHES) {
-                        logger.debug(`[remote]: ${consecutiveCrashes} consecutive crashes, stopping`);
-                        session.client.sendSessionEvent({ type: 'message', message: `Claude crashed ${consecutiveCrashes} times consecutively, stopping session` });
-                        exitReason = 'exit';
-                    } else {
-                        session.client.sendSessionEvent({ type: 'message', message: `Claude process exited unexpectedly (crash ${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}), waiting for next command` });
-                        messageBuffer.addMessage(`Claude crashed (${consecutiveCrashes}/${MAX_CONSECUTIVE_CRASHES}). Waiting for next command...`, 'status');
-                    }
-                    continue;
-                }
-            } finally {
-                // Always consume one-time flags (--resume) after first launch attempt,
-                // whether it succeeded, errored, or was aborted
-                session.consumeOneTimeFlags();
-
-                logger.debug('[remote]: launch finally');
-
-                // Terminate all ongoing tool calls
-                for (let [toolCallId, { parentToolCallId }] of ongoingToolCalls) {
-                    const converted = sdkToLogConverter.generateInterruptedToolResult(toolCallId, parentToolCallId);
-                    if (converted) {
-                        logger.debug('[remote]: terminating tool call ' + toolCallId + ' parent: ' + parentToolCallId);
-                        session.client.sendClaudeSessionMessage(converted);
-                    }
-                }
-                ongoingToolCalls.clear();
-
-                // Flush any remaining messages in the queue
-                logger.debug('[remote]: flushing message queue');
-                await messageQueue.flush();
-                messageQueue.destroy();
-                logger.debug('[remote]: message queue flushed');
-
-                // Reset abort controller and future
-                abortController = null;
-                abortFuture?.resolve(undefined);
-                abortFuture = null;
-                logger.debug('[remote]: launch done');
-                permissionHandler.reset();
-                modeHash = null;
-                mode = null;
-                // Await pending scanner creation before cleanup to prevent leak
-                if (metaMessageScannerPromise !== null) {
-                    await (metaMessageScannerPromise as Promise<void>).catch(() => {});
-                    metaMessageScannerPromise = null;
-                }
-                if (metaMessageScanner !== null) {
-                    await (metaMessageScanner as { cleanup: () => Promise<void> }).cleanup();
-                    metaMessageScanner = null;
-                }
-            }
-        }
+        await invokeClaude(state, session, svc, onMessage, loop, ctrl, mode, meta);
+        loop.consecutiveCrashes = 0;
+        handleNormalExit(state, session, buf, ctrl);
+    } catch (e) {
+        await handleCrash(state, session, buf, loop, e);
     } finally {
-
-        // Clean up permission handler
-        permissionHandler.reset();
-
-        // Reset Terminal
-        process.stdin.off('data', abort);
-        if (process.stdin.isTTY) {
-            process.stdin.setRawMode(false);
-        }
-        if (inkInstance) {
-            inkInstance.unmount();
-        }
-        messageBuffer.clear();
-
-        // Resolve abort future
-        if (abortFuture) { // Just in case of error
-            abortFuture.resolve(undefined);
-        }
+        await cleanupAfterLaunch(state, svc, session, meta);
     }
+}
 
-    return exitReason || 'exit';
+function cleanupTTY(state: LauncherState, ink: any, buf: MessageBuffer, abort: () => Promise<void>) {
+    process.stdin.off('data', abort);
+    if (process.stdin.isTTY) { process.stdin.setRawMode(false); }
+    if (ink) { ink.unmount(); }
+    buf.clear();
+    if (state.abortFuture) { state.abortFuture.resolve(undefined); }
+}
+
+export async function claudeRemoteLauncher(session: Session): Promise<'switch' | 'exit'> {
+    const state = createLauncherState();
+    const buf = new MessageBuffer();
+    async function abort() { if (state.abortController && !state.abortController.signal.aborted) { state.abortController.abort(); } await state.abortFuture?.promise; }
+    function doSwitch() { if (!state.exitReason) { state.exitReason = 'switch'; } abort(); }
+    const ink = setupTTY(buf, state, abort, doSwitch);
+    session.client.rpcHandlerManager.registerHandler('abort', async () => { await abort(); });
+    session.client.rpcHandlerManager.registerHandler('switch', doSwitch);
+    const svc = initServices(session);
+    await uploadResumeHistory(session);
+    const onMessage = buildOnMessage(state, session, buf, svc);
+    const loop: LoopState = { pending: null, previousSessionId: null, consecutiveCrashes: 0, MAX_CONSECUTIVE_CRASHES: 5 };
+    try {
+        while (!state.exitReason) { await runSingleLaunch(state, session, buf, svc, onMessage, loop); }
+    } finally { svc.permissionHandler.reset(); cleanupTTY(state, ink, buf, abort); }
+    return state.exitReason || 'exit';
 }
