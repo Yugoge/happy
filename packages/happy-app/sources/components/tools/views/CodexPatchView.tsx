@@ -116,7 +116,7 @@ export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata 
                             <View style={styles.fileHeader}>
                                 <View style={styles.fileHeaderMain}>
                                     <Octicons name="file-diff" size={16} color={theme.colors.textSecondary} />
-                                    <Text style={styles.filePath}>{filePath}</Text>
+                                    <Text style={styles.filePath} numberOfLines={1} ellipsizeMode="middle">{filePath}</Text>
                                     {kindLabel ? <Text style={styles.kindLabel}>{kindLabel}</Text> : null}
                                 </View>
                                 {movePath ? <Text style={styles.movePath}>{movePath}</Text> : null}

@@ -1,0 +1,169 @@
+{
+  "request_id": "dev-20260424-143000-10",
+  "timestamp": "2026-04-24T14:30:00Z",
+  "requirement": {
+    "original": "\"Stop hook feedback\" blocks (e.g. \"SPEC COVERAGE ENFORCEMENT: spec-verify.py reports < 100% coverage. …\") currently render directly in the user-facing conversation view. Must be suppressed entirely — stop-hook output belongs in developer logs / internal telemetry only. Scope: all stop-hook feedback variants regardless of severity marker (✅/❌/⚠️) or script type (Python/shell/other). This is spec §5.9.",
+    "clarified": "Any user JSONL message whose string content starts with \"Stop hook feedback:\" must be silently discarded in sessionProtocolMapper.ts by adding a prefix check in getSystemInjectedServiceText(). No envelope should be emitted; the message must not reach the app.",
+    "what": "Silent suppression of all stop-hook output at the CLI mapper layer",
+    "why": "Stop-hook feedback is an internal developer tool signal (e.g. timelock enforcement, spec coverage enforcement) that should never appear in the user's conversation view.",
+    "where": [
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts"
+    ],
+    "scope": {
+      "included": [
+        "Any user message with string content starting with 'Stop hook feedback:'",
+        "All stop-hook script types: Python, shell, other",
+        "All severity markers: checkmark (✅), cross (❌), warning (⚠️)"
+      ],
+      "excluded": [
+        "happy-app render layer (no changes needed if CLI fix is correct)",
+        "Logging/telemetry of stop-hook output",
+        "Any message that does NOT start with the exact prefix"
+      ]
+    },
+    "success_criteria": [
+      "A user JSONL message with content starting with 'Stop hook feedback:' produces zero envelopes from mapClaudeLogMessageToSessionEnvelopes()",
+      "Regular user messages continue to produce exactly one user-text envelope",
+      "No existing tests break"
+    ],
+    "constraints": [
+      "Change must be confined to getSystemInjectedServiceText() in sessionProtocolMapper.ts",
+      "Must use startsWith('Stop hook feedback:') — no regex needed",
+      "Must NOT emit a service envelope — silent drop (return null, not a string label)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Stop-hook feedback text (e.g. 'Stop hook feedback: [python3 ...]: TIME-LOCK ACTIVE: ...') renders as a visible user bubble in the conversation view",
+    "root_cause": "getSystemInjectedServiceText() in sessionProtocolMapper.ts (lines 855-883) has no branch for the 'Stop hook feedback:' prefix. The function returns null (meaning: not a system-injected text), so the caller (lines 674-678) proceeds to emit a real user-text envelope containing the full hook output string.",
+    "root_cause_commit": "N/A — the 'Stop hook feedback:' prefix was never added to the suppression list; it is a missing case, not a regression.",
+    "why_introduced": "The suppression list in getSystemInjectedServiceText() was built incrementally for known internal-protocol strings. Stop-hook output was not accounted for when the function was written.",
+    "why_problematic": "Stop-hook output is developer-facing telemetry injected into the JSONL stream by the Claude Code CLI; it is not a real user utterance and should never appear in the conversation.",
+    "timeline": "Present since the function was introduced; no regression involved.",
+    "affected_files": [
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "Stop-hook JSONL record observed in /root/.claude/projects/-dev-shm-dev-workspace-happy-dev--claude-worktrees-overnight-20260424-bfbc5f54/bfbc5f54-b231-4b52-b3bc-de01aeac0ccd/subagents/agent-a6a6fe0e06c0d0891.jsonl — type: 'user', message.content (string) = 'Stop hook feedback:\\n[python3 ...]...' (observed: Python scan of live file)",
+      "getSystemInjectedServiceText() lines 855-883 read and confirmed no branch for 'Stop hook feedback:' (inferred: code read)",
+      "Reference screenshot /tmp/happy-attachments/8fb810d1-f768-4d23-9e0f-3f5e514a8874-4137.png in spec §5.9 shows two stacked 'Stop hook feedback:' cards rendered as user bubbles in the conversation (observed: user-provided screenshot)"
+    ],
+    "diagnosis_completeness": "complete (has observations)",
+    "complaint_location_keywords": [
+      "stop hook",
+      "Stop hook feedback",
+      "SPEC COVERAGE ENFORCEMENT",
+      "spec-verify.py"
+    ],
+    "localization_evidence": "Python scan of live JSONL session file confirmed stop-hook messages arrive as type:'user' with string content starting with 'Stop hook feedback:'. Code read of sessionProtocolMapper.ts confirmed getSystemInjectedServiceText() has no branch for this prefix, causing the string to pass through as a real user envelope.",
+    "located_source": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:855 (getSystemInjectedServiceText function — missing prefix branch)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": null,
+      "commit_message": null,
+      "confirmed_by": null,
+      "bisect_blocked": "Not a regression — missing case, never implemented",
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "stop hook不应该展示给用户",
+      "acceptance_criterion": "For a user JSONL message with message.content = 'Stop hook feedback:\\n...', mapClaudeLogMessageToSessionEnvelopes() returns envelopes: [] (zero envelopes)."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "all stop-hook feedback variants regardless of severity marker (✅/❌/⚠️) or script type (Python/shell/other)",
+      "acceptance_criterion": "Any user message whose string content starts with 'Stop hook feedback:' is suppressed, regardless of the hook script name, output content, or embedded markers."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+      "line_range": "855-883",
+      "role": "getSystemInjectedServiceText() — detects internal-protocol user messages and returns null to trigger silent discard. Missing branch for 'Stop hook feedback:' prefix.",
+      "imports_from": [],
+      "evidence": "Read file: lines 855-883 confirm no branch for 'Stop hook feedback:'. Caller at lines 674-678 returns early with empty envelopes when this function returns non-null, but falls through to emit a user-text envelope when it returns null.",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "viewport": "N/A — CLI-layer filter, no rendering component",
+    "theme": "N/A",
+    "locale": "zh (user reported in Chinese)",
+    "auth_state": "logged-in",
+    "data_state": "any session where a stop hook ran",
+    "browser": "N/A",
+    "url_path": "any /session/<id> view — but fix is upstream in CLI"
+  },
+  "evidence": {
+    "observed": "stop hook不应该展示给用户 — Two stacked cards reading 'Stop hook feedback: [python3 \"$HOME/.claude/hooks/stop-spec-coverage-enforce.py\"] … ERROR: No .md view files found in views directory.' visible in conversation view (reference screenshot: /tmp/happy-attachments/8fb810d1-f768-4d23-9e0f-3f5e514a8874-4137.png)",
+    "measured": {
+      "value": "JSONL record: {\"type\":\"user\", \"message\":{\"role\":\"user\", \"content\":\"Stop hook feedback:\\n[python3 \\\"$HOME/.claude/hooks/stop-overnight-timelock.py\\\"]: \\n TIME-LOCK ACTIVE: Overnight session runs until 2026-04-24 05:00.\\nTime remaining: 7h 46m\\n...\"}}",
+      "location": "/root/.claude/projects/-dev-shm-dev-workspace-happy-dev--claude-worktrees-overnight-20260424-bfbc5f54/bfbc5f54-b231-4b52-b3bc-de01aeac0ccd/subagents/agent-a6a6fe0e06c0d0891.jsonl (observed by Python scan)"
+    },
+    "expected": {
+      "value": "Zero envelopes emitted — message silently discarded by getSystemInjectedServiceText() returning null before the caller emits any envelope",
+      "source": "Spec §5.9: 'stop-hook output belongs in developer logs / internal telemetry only. It must not appear in the user's conversation view at all.'"
+    },
+    "gap": "getSystemInjectedServiceText() has 0 branches for 'Stop hook feedback:'; needs exactly 1 additional if-block."
+  },
+  "scope_expansion": {
+    "search_pattern": "Stop hook feedback",
+    "search_scope": "packages/happy-cli/src/**/*.ts, packages/happy-app/sources/**/*.ts",
+    "user_reported": [
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts"
+    ],
+    "additional_found": [],
+    "all_occurrences": [
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:855-883 (getSystemInjectedServiceText — missing branch)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Live JSONL session file confirming exact message format: type:user + string content starting with 'Stop hook feedback:\\n[<script>]: \\n<output>'",
+    "url_or_location": "/root/.claude/projects/-dev-shm-dev-workspace-happy-dev--claude-worktrees-overnight-20260424-bfbc5f54/bfbc5f54-b231-4b52-b3bc-de01aeac0ccd/subagents/agent-a6a6fe0e06c0d0891.jsonl",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "First attempt — no prior cycles."
+    }
+  },
+  "context": {
+    "codebase_state": "worktree overnight-20260424-bfbc5f54 on main branch",
+    "recent_commits": "see git log",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Add one if-branch in getSystemInjectedServiceText() for the 'Stop hook feedback:' prefix. Return null (same as other silent-drop cases) so the caller emits zero envelopes. Optionally add a unit test in sessionProtocolMapper.test.ts.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts"
+    ],
+    "validation_approach": "QA: send a stop-hook-style user JSONL message through the mapper and assert zero envelopes. Alternatively, check a live overnight session — after the fix, no 'Stop hook feedback:' cards should appear in the conversation."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward missing-case bug in an existing suppression function. Root cause located by code read + JSONL file inspection. No external research needed."
+  }
+}

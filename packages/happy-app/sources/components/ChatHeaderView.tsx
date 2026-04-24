@@ -9,8 +9,8 @@ import { SessionActionsAnchor } from '@/components/SessionActionsPopover';
 import { Typography } from '@/constants/Typography';
 import { Session } from '@/sync/storageTypes';
 import { useHeaderHeight } from '@/utils/responsive';
-import { layout } from '@/components/layout';
 import { useUnistyles } from 'react-native-unistyles';
+import { useHeaderMaxWidth } from '@/hooks/useHeaderMaxWidth';
 
 interface ChatHeaderViewProps {
     title: string;
@@ -47,6 +47,7 @@ export const ChatHeaderView: React.FC<ChatHeaderViewProps> = ({
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const headerHeight = useHeaderHeight();
+    const headerMaxWidth = useHeaderMaxWidth();
     const avatarAnchorRef = React.useRef<View | null>(null);
     const suppressAvatarPressUntilRef = React.useRef(0);
 
@@ -116,7 +117,7 @@ export const ChatHeaderView: React.FC<ChatHeaderViewProps> = ({
     return (
         <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.header.background }]}>
             <View style={styles.contentWrapper}>
-                <View style={[styles.content, { height: headerHeight }]}>
+                <View style={[styles.content, { height: headerHeight, maxWidth: headerMaxWidth }]}>
                     <Pressable onPress={handleBackPress} style={styles.backButton} hitSlop={15}>
                         <Ionicons
                             name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
@@ -218,7 +219,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: Platform.OS === 'ios' ? 8 : 16,
         width: '100%',
-        maxWidth: layout.headerMaxWidth,
     },
     backButton: {
         marginRight: 8,

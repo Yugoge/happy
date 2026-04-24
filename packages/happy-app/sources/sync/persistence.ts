@@ -205,6 +205,24 @@ export function saveSessionPermissionModes(modes: Record<string, string>) {
     mmkv.set('session-permission-modes', JSON.stringify(modes));
 }
 
+function parseModesJson(raw: string | undefined): Record<string, string> {
+    if (!raw) return {};
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        console.error('Failed to parse session model modes', e);
+        return {};
+    }
+}
+
+export function loadSessionModelModes(): Record<string, string> {
+    return parseModesJson(mmkv.getString('session-model-modes'));
+}
+
+export function saveSessionModelModes(modes: Record<string, string>) {
+    mmkv.set('session-model-modes', JSON.stringify(modes));
+}
+
 export function loadProfile(): Profile {
     const profile = mmkv.getString('profile');
     if (profile) {

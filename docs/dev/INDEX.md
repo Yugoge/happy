@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-04-12T05:38:53Z*
-**Total entries**: 174
+*Last updated: 2026-04-24T23:08:32Z*
+**Total entries**: 271
 **Convention**: kebab
 
 ## Tree
@@ -10,6 +10,11 @@ dev/
 ├── overnight/
 │   ├── 9ae57c91-b5ff-4178-b883-eba53319be14/
 │   │   └── screenshots/
+│   ├── bfbc5f54-b231-4b52-b3bc-de01aeac0ccd/
+│   │   ├── `qa-verification-plans.json` - json config
+│   │   ├── `retro-report-cycle1.json` - json config
+│   │   ├── `test-plan.json` - json config
+│   │   └── `triage-report-cycle1.json` - json config
 │   └── d6f1eea4-7769-4384-bd28-deae1ba26177/
 │       ├── screenshots/
 │       ├── `architect-report.json` - json config
@@ -21,8 +26,33 @@ dev/
 │       ├── `triage-report-cycle1.json` - json config
 │       ├── `ui-specialist-report.json` - json config
 │       └── `user-report.json` - json config
+├── specs/
+│   ├── spec-20260423-191545/
+│   │   └── views/
+│   ├── spec-20260423-202430/
+│   │   └── views/
+│   ├── spec-20260424-084848/
+│   │   └── views/
+│   ├── `spec-20260423-191545.md` - Spec: Session model persistence + status bar display
+│   ├── `spec-20260423-202430.md` - Spec: Per-Session Model Persistence + Status Bar Model Display
+│   └── `spec-20260424-084848.md` - Spec: Per-session model persistence + model indicator in status bar
 ├── `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
 ├── `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
+├── `ba-qa-report-20260424-143000-0.json` - json config
+├── `ba-qa-report-20260424-143000-1.json` - json config
+├── `ba-qa-report-20260424-143000-10.json` - json config
+├── `ba-qa-report-20260424-143000-11.json` - json config
+├── `ba-qa-report-20260424-143000-12.json` - json config
+├── `ba-qa-report-20260424-143000-13.json` - json config
+├── `ba-qa-report-20260424-143000-2.json` - json config
+├── `ba-qa-report-20260424-143000-3.json` - json config
+├── `ba-qa-report-20260424-143000-4.json` - json config
+├── `ba-qa-report-20260424-143000-5.json` - json config
+├── `ba-qa-report-20260424-143000-6.json` - json config
+├── `ba-qa-report-20260424-143000-7.json` - json config
+├── `ba-qa-report-20260424-143000-8.json` - json config
+├── `ba-qa-report-20260424-143000-9.json` - json config
+├── `ba-qa-report-20260424-202503.json` - json config
 ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
 ├── `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
@@ -62,7 +92,24 @@ dev/
 ├── `ba-spec-20260409-160000.md` - BA Specification: Forward Subagent Sidechain Messages from JSONL to Server
 ├── `ba-spec-20260410-0750.md` - BA Specification: Sidechain Messages Not in Main JSONL -- Scanner Reads Wrong Location
 ├── `ba-spec-20260410-children.md` - BA Specification: Agent/Task Tool Detail View Missing Children
+├── `ba-spec-20260424-143000-0.md` - BA Specification: Markdown Primitives — Missing Block and Span Rendering (§5.17)
+├── `ba-spec-20260424-143000-1.md` - BA Specification: Inline LaTeX $...$ not rendered (§5.16)
+├── `ba-spec-20260424-143000-10.md` - BA Specification: §5.9 Stop-Hook Feedback Suppression
+├── `ba-spec-20260424-143000-11.md` - BA Specification: Top Bar — Header Max-Width and Right-Sidebar Reserved Width Not Responsive (§5.4 + §5.5)
+├── `ba-spec-20260424-143000-12.md` - BA Specification: §5.5 — Top-Bar Non-Adaptive Layout (Second Case / Verification Scenario)
+├── `ba-spec-20260424-143000-13.md` - BA Specification: Attachment Tray — Layout Inconsistency + Silent Upload Failure (§5.12)
+├── `ba-spec-20260424-143000-2.md` - BA Specification: CronList Inline Card Simplification (§5.18)
+├── `ba-spec-20260424-143000-3.md` - BA Specification: §5.6 — Unify CodexBashView with BashView/CommandView Primitives
+├── `ba-spec-20260424-143000-4.md` - BA Specification: §5.3 Bash Popup — Command Text Overflows Popup Width
+├── `ba-spec-20260424-143000-5.md` - BA Specification: Per-session model persistence + model indicator in status bar (§5.1)
+├── `ba-spec-20260424-143000-6.md` - BA Specification: 1M-Context Claude Models — Context-Usage Display Fix
+├── `ba-spec-20260424-143000-7.md` - BA Specification: §5.8 Markdown Table Horizontal Scroll — Port from Happy Prod
+├── `ba-spec-20260424-143000-8.md` - BA Specification: Detail Panel — Long File Path Overflows Header
+├── `ba-spec-20260424-143000-9.md` - BA Specification: Codex Tool-Call Popup — Description vs Command Separation (§5.7)
+├── `ba-spec-20260424-202503.md` - BA Specification: Close CLOSE:NO Blockers — Cycle 1 Remediation
 ├── `build-verification-20260409.json` - json config
+├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
+├── `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
 ├── `context-20260403-210447-1.json` - json config
@@ -102,6 +149,21 @@ dev/
 ├── `context-20260409-160000.json` - json config
 ├── `context-20260410-0750.json` - json config
 ├── `context-20260410-children.json` - json config
+├── `context-20260424-143000-0.json` - json config
+├── `context-20260424-143000-1.json` - json config
+├── `context-20260424-143000-10.json` - json config
+├── `context-20260424-143000-11.json` - json config
+├── `context-20260424-143000-12.json` - json config
+├── `context-20260424-143000-13.json` - json config
+├── `context-20260424-143000-2.json` - json config
+├── `context-20260424-143000-3.json` - json config
+├── `context-20260424-143000-4.json` - json config
+├── `context-20260424-143000-5.json` - json config
+├── `context-20260424-143000-6.json` - json config
+├── `context-20260424-143000-7.json` - json config
+├── `context-20260424-143000-8.json` - json config
+├── `context-20260424-143000-9.json` - json config
+├── `context-20260424-202503.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
@@ -132,13 +194,31 @@ dev/
 ├── `dev-report-20260409-120000.json` - json config
 ├── `dev-report-20260409-130000.json` - json config
 ├── `dev-report-20260409-160000.json` - json config
+├── `dev-report-20260424-143000-0.json` - json config
+├── `dev-report-20260424-143000-1.json` - json config
+├── `dev-report-20260424-143000-10.json` - json config
+├── `dev-report-20260424-143000-11.json` - json config
+├── `dev-report-20260424-143000-13.json` - json config
+├── `dev-report-20260424-143000-2.json` - json config
+├── `dev-report-20260424-143000-3.json` - json config
+├── `dev-report-20260424-143000-4.json` - json config
+├── `dev-report-20260424-143000-5.json` - json config
+├── `dev-report-20260424-143000-6.json` - json config
+├── `dev-report-20260424-143000-7.json` - json config
+├── `dev-report-20260424-143000-8.json` - json config
+├── `dev-report-20260424-143000-9.json` - json config
+├── `dev-report-20260424-170900-extra.json` - json config
+├── `dev-report-20260424-172000-extra2.json` - json config
+├── `dev-report-20260424-202503.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config
 ├── `e2e-verification-ui.json` - json config
 ├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 ├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
+├── `overnight-log-20260424.md` - Overnight Log — 2026-04-24
 ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
+├── `overnight-summary-20260424.md` - Overnight Development Summary — 2026-04-24
 ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
 ├── `qa-audit-20260407.json` - json config
 ├── `qa-build-deploy-20260407.json` - json config
@@ -178,6 +258,23 @@ dev/
 ├── `qa-report-20260409-120000.json` - json config
 ├── `qa-report-20260409-130000.json` - json config
 ├── `qa-report-20260409-160000.json` - json config
+├── `qa-report-20260424-143000-0.json` - json config
+├── `qa-report-20260424-143000-1.json` - json config
+├── `qa-report-20260424-143000-10.json` - json config
+├── `qa-report-20260424-143000-11.json` - json config
+├── `qa-report-20260424-143000-12.json` - json config
+├── `qa-report-20260424-143000-13.json` - json config
+├── `qa-report-20260424-143000-2.json` - json config
+├── `qa-report-20260424-143000-3.json` - json config
+├── `qa-report-20260424-143000-4.json` - json config
+├── `qa-report-20260424-143000-5.json` - json config
+├── `qa-report-20260424-143000-6.json` - json config
+├── `qa-report-20260424-143000-7.json` - json config
+├── `qa-report-20260424-143000-8.json` - json config
+├── `qa-report-20260424-143000-9.json` - json config
+├── `qa-report-20260424-174000-extras.json` - json config
+├── `qa-report-20260424-202503-extras.json` - json config
+├── `qa-report-20260424-202503.json` - json config
 ├── `qa-review-20260407-0830.json` - json config
 ├── `qa-site-isolation-verification.json` - json config
 └── `qa-validation-20260410.json` - json config

@@ -17,6 +17,7 @@ import { OutgoingMessageQueue } from "./utils/OutgoingMessageQueue";
 import { getToolName } from "./utils/getToolName";
 import { createSessionScanner } from "./utils/sessionScanner";
 import { getAskUserQuestionToolCallIds } from "./utils/questionNotification";
+import { isStopHookFeedback } from "./utils/stopHookFilter";
 
 interface PermissionsField {
     date: number;
@@ -77,7 +78,7 @@ async function uploadResumeHistory(session: Session) {
     if (idx === -1 || idx + 1 >= session.claudeArgs.length) return;
     const scanner = await createSessionScanner({
         sessionId: session.claudeArgs[idx + 1], sendExisting: true, workingDirectory: session.path,
-        onMessage: (m) => { if (m.type !== 'summary' && !(m as any).isMeta) { session.client.sendClaudeSessionMessage(m); } }
+        onMessage: (m) => { if (m.type !== 'summary' && !(m as any).isMeta && !isStopHookFeedback(m)) { session.client.sendClaudeSessionMessage(m); } }
     });
     await scanner.cleanup();
 }
@@ -144,6 +145,8 @@ function extractToolCallIds(msg: SDKAssistantMessage): string[] {
 }
 
 function queueLogMessage(logMessage: RawJSONLines, message: SDKMessage, mq: OutgoingMessageQueue, state: LauncherState) {
+    // Silently drop stop-hook feedback records (spec §5.9) — dev telemetry, never user-facing
+    if (isStopHookFeedback(logMessage)) { return; }
     if (logMessage.type === 'assistant' && message.type === 'assistant') {
         const ids = extractToolCallIds(message as SDKAssistantMessage);
         if (ids.length > 0 && (message as SDKAssistantMessage).parent_tool_use_id === undefined) {
@@ -204,6 +207,8 @@ function buildNextMessage(session: Session, ctrl: AbortController, ph: Permissio
 }
 
 function handleScannerMessage(message: RawJSONLines, session: Session, state: LauncherState) {
+    // Silently drop stop-hook feedback records (spec §5.9) before any delivery path
+    if (isStopHookFeedback(message)) { return; }
     if ((message as any).isMeta === true) { session.client.sendClaudeSessionMessage(message); }
     const uuid = (message as any).uuid;
     if ((message as any).isSidechain === true && typeof uuid === 'string' && !state.sentSidechainUuids.has(uuid)) {

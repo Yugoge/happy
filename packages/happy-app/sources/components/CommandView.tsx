@@ -42,7 +42,6 @@ export const CommandView = React.memo<CommandViewProps>(({
         line: {
             alignItems: 'baseline',
             flexDirection: 'row',
-            flexWrap: 'wrap',
         },
         promptText: {
             fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
@@ -56,7 +55,6 @@ export const CommandView = React.memo<CommandViewProps>(({
             fontSize: 14,
             color: theme.colors.terminal.command,
             lineHeight: 20,
-            flex: 1,
         },
         stdout: {
             fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),

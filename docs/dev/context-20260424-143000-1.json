@@ -1,0 +1,249 @@
+{
+  "request_id": "dev-20260424-143000-1",
+  "timestamp": "2026-04-24T14:30:00+00:00",
+  "requirement": {
+    "original": "行内数学公式不渲染",
+    "clarified": "Inline LaTeX math delimited with single dollar signs ($...$) renders as raw source text instead of being typeset. Display math $$...$$ may share the same root cause — if so fix both. Scope: every MarkdownView surface. This is spec §5.16.",
+    "what": "Add inline $...$ LaTeX recognition and rendering to the markdown pipeline",
+    "why": "Users who ask Claude to generate math expressions see raw dollar-sign source text instead of typeset formulas, breaking the reading experience",
+    "where": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "scope": {
+      "included": [
+        "Inline $...$ LaTeX recognition in span parser",
+        "Inline KaTeX rendering with displayMode: false",
+        "LatexRenderer inline prop",
+        "All MarkdownView surfaces (conversation, detail panel, tool previews)"
+      ],
+      "excluded": [
+        "Multi-line inline LaTeX",
+        "Nested $...$ inside bold/italic",
+        "Changing $$...$$ block render path (already works)"
+      ]
+    },
+    "success_criteria": [
+      "Message containing $a^2 + b^2 = c^2$ renders with typeset KaTeX math, no raw dollar signs visible",
+      "Message containing $$E = mc^2$$ continues to render as centered display-math block",
+      "Message containing $100 (price) renders as plain text, not as LaTeX",
+      "Both desktop and mobile viewports render inline math correctly"
+    ],
+    "constraints": [
+      "Must not regress $$...$$ display math",
+      "Must not regress bold/italic/code/link span rendering",
+      "Must handle $price and $VARIABLE false-positive risk conservatively",
+      "Must run yarn typecheck after changes"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Inline $...$ math expressions appear as literal text (e.g. '$a^2 + b^2 = c^2$') instead of typeset math in MarkdownView",
+    "root_cause": "parseMarkdownSpans.ts regex (line 4) handles bold, italic, link, code but has no case for $...$. MarkdownSpan type has no 'latex' discriminant. The LaTeX infrastructure (LatexRenderer, parseMarkdownBlock $$...$$ detection) was added in commit f8b208fa but the inline span path was never implemented.",
+    "root_cause_commit": "f8b208fa — feat: F1 LaTeX/Mermaid + F2 image upload (2026-03-23): parseMarkdownSpans.ts was not changed in this commit",
+    "why_introduced": "The original F1 LaTeX implementation focused on block-level display math ($$...$$) only. Inline $...$ was not included in scope at the time.",
+    "why_problematic": "Any text containing inline math passes through the span parser as plain text and is rendered verbatim including the delimiter characters.",
+    "timeline": "Since commit f8b208fa (2026-03-23) — the LaTeX/Mermaid feature has never included inline $...$ support",
+    "affected_files": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "evidence_type": "inferred",
+    "observations": [
+      "parseMarkdownSpans.ts line 4 regex: /(**...**)|(*...*)|([link](url))|(\\`code\\`)/ — no $...$ case (inferred: Read tool)",
+      "MarkdownSpan.styles type at parseMarkdown.ts:42: 'italic' | 'bold' | 'semibold' | 'code' — no 'latex' (inferred: Read tool)",
+      "parseMarkdownBlock.ts lines 73-93: only $$...$$ (double-dollar) block detection exists (inferred: Read tool)",
+      "LatexRenderer.tsx lines 51 and 135: always displayMode: true (inferred: Read tool)",
+      "git show f8b208fa -- parseMarkdownSpans.ts returns empty diff — file was not modified in the LaTeX commit (observed: git)",
+      "User screenshot /tmp/happy-attachments/73955b72-519e-42bc-9eb9-c95ed537d921-image.png shows '$a^2 + b^2 = c^2$' verbatim in rendered message (observed: user-provided screenshot)"
+    ],
+    "diagnosis_completeness": "incomplete (inferred + screenshot evidence; no live Playwright session run to confirm rendered DOM)",
+    "complaint_location_keywords": ["行内数学公式", "inline math", "$", "LaTeX"],
+    "localization_evidence": "User screenshot directly shows the text '$a^2 + b^2 = c^2$' rendered as raw string in the conversation view. Source traced to parseMarkdownSpans.ts (no $...$ handler) via code reading.",
+    "located_source": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:4 — regex pattern omits $...$ delimiter case",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "f8b208fa",
+      "commit_message": "feat: F1 LaTeX/Mermaid + F2 image upload + fix permissionHandler capabilities type",
+      "confirmed_by": "git-log-diff",
+      "bisect_blocked": null,
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L3",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "行内数学公式不渲染",
+      "acceptance_criterion": "parseMarkdownSpans('行内:$a^2 + b^2 = c^2$', false) returns a span array where the '$a^2 + b^2 = c^2$' portion is represented as a latex span (not as plain text)"
+    },
+    {
+      "id": "R2",
+      "source_phrase": "行内数学公式不渲染",
+      "acceptance_criterion": "In the browser conversation view, a message containing '$a^2 + b^2 = c^2$' renders as typeset KaTeX math inline with surrounding text (no raw dollar signs visible), verified via Playwright snapshot"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line_range": "1-148",
+      "role": "Entry point: parses markdown string into blocks and renders each block",
+      "imports_from": [
+        "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+        "packages/happy-app/sources/components/markdown/LatexRenderer.tsx"
+      ],
+      "evidence": "Read MarkdownView.tsx lines 1-20 (imports), line 92 (parseMarkdown call), lines 63-64 (LatexRenderer usage)",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "line_range": "1-49",
+      "role": "Type definitions for MarkdownBlock and MarkdownSpan; entry point re-export of parseMarkdownBlock",
+      "imports_from": [
+        "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"
+      ],
+      "evidence": "Read parseMarkdown.ts — MarkdownSpan.styles at line 42, MarkdownBlock union type lines 3-39",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "line_range": "53-188",
+      "role": "Block-level parser: detects headers, code blocks, LaTeX blocks ($$...$$), tables, lists, etc.",
+      "imports_from": [
+        "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts"
+      ],
+      "evidence": "Read parseMarkdownBlock.ts — $$...$$ detection lines 72-93, fallback to parseMarkdownSpans for text blocks at lines 64, 158, 169",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "line_range": "1-88",
+      "role": "Inline span parser: tokenizes bold, italic, link, code within a text line. THE GAP: no $...$ handling.",
+      "imports_from": ["leaf"],
+      "evidence": "Read parseMarkdownSpans.ts lines 1-88 — regex at line 4 has no dollar-sign case; confirmed by git diff of f8b208fa showing file was not touched",
+      "verified_via": "both"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "line_range": "1-210",
+      "role": "KaTeX renderer for LaTeX content; always uses displayMode: true (block). Needs inline prop.",
+      "imports_from": ["leaf"],
+      "evidence": "Read LatexRenderer.tsx lines 50-51 (web path displayMode: true) and lines 134-135 (native path displayMode: true)",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "line": 4,
+      "type": "if",
+      "code_snippet": "const pattern = /(**...**)|(*...*)|([link](url))|(\\`code\\`)/g;",
+      "purpose": "Regex guards for known inline patterns; new $...$ pattern must be added carefully to avoid false positives on price strings",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "line": 51,
+      "type": "if",
+      "code_snippet": "displayMode: true",
+      "purpose": "Forces block-level KaTeX rendering for $$...$$ blocks — must remain true for block usage; new inline usage must pass false",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": false,
+    "items": []
+  },
+  "setup": {
+    "viewport": "both 1280x720 desktop and 390x844 mobile",
+    "theme": "both light and dark",
+    "locale": "zh-Hans",
+    "auth_state": "logged-in",
+    "data_state": "session with message containing $...$ math expressions",
+    "browser": "Chrome desktop (web build)",
+    "url_path": "any conversation route using MarkdownView"
+  },
+  "evidence": {
+    "observed": "行内数学公式不渲染 — screenshot shows '$a^2 + b^2 = c^2$' rendered verbatim with dollar signs",
+    "measured": {
+      "value": "parseMarkdownSpans regex pattern: /(\\*\\*(.*?)(?:\\*\\*|$))|(\\*(.*?)(?:\\*|$))|(\\[([^\\]]+)\\](?:\\(([^)]+)\\))?)|(`(.*?)(?:`|$))/g — no $...$ case",
+      "location": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:4"
+    },
+    "expected": {
+      "value": "Inline $...$ recognized as latex span; rendered via katex.renderToString(content, { displayMode: false })",
+      "source": "KaTeX API documentation https://katex.org/docs/api.html — displayMode: false for inline rendering"
+    },
+    "gap": "Zero $...$ handling in span regex. MarkdownSpan type has no latex discriminant. LatexRenderer has no inline mode. Three files need coordinated changes."
+  },
+  "scope_expansion": {
+    "search_pattern": "parseMarkdownSpans",
+    "search_scope": "packages/happy-app/sources/components/markdown/**",
+    "user_reported": [
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"
+    ],
+    "additional_found": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:4 — regex gap",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts:42 — MarkdownSpan type, no latex discriminant",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:329 — RenderSpanItem, must handle new latex span",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx:51,135 — displayMode always true"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_1_external",
+    "description": "KaTeX renderToString API — displayMode: false produces inline math typesetting",
+    "url_or_location": "https://katex.org/docs/api.html#server-side-rendering-or-rendering-to-a-string",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L3",
+      "differs_from_all_priors": true,
+      "rationale": "No prior attempts. This is the first implementation of inline $...$ LaTeX in this codebase. The fix targets L3 (data/parser values — the regex pattern and type discriminant), which is the level where the gap exists."
+    }
+  },
+  "context": {
+    "codebase_state": "main branch, worktree overnight-20260424-bfbc5f54",
+    "recent_commits": "f8b208fa feat: F1 LaTeX/Mermaid (2026-03-23) — introduced $$...$$ block LaTeX without inline $...$",
+    "file_contents": {},
+    "dependencies": {
+      "katex": "already imported dynamically in LatexRenderer.tsx line 41 (web path)"
+    },
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Three-file coordinated change: (1) extend MarkdownSpan type in parseMarkdown.ts with a latex discriminant, (2) add $...$ regex case to parseMarkdownSpans.ts with false-positive guards, (3) add inline prop to LatexRenderer.tsx, (4) handle new span type in MarkdownView.tsx RenderSpanItem. The $$...$$ block path is untouched.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "validation_approach": "QA: send a message containing '$a^2 + b^2 = c^2$' to an active dev session via the UI, verify rendered KaTeX in Playwright snapshot; also verify '$100 USD' renders as plain text; also verify $$...$$ block rendering unchanged. Check both desktop and mobile viewports."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward missing-feature bug with clear root cause in three specific files. KaTeX API is already used in the codebase; displayMode: false is the only new API call needed."
+  },
+  "spec_516_note": "Display math $$...$$ is confirmed WORKING (parseMarkdownBlock.ts lines 72-93 + MarkdownView.tsx line 63). It does NOT share the same root cause as inline $...$. The $$...$$ path operates at block-parser level and was implemented in f8b208fa. The inline $...$ path operates at span-parser level and was never implemented. Both use LatexRenderer but at different render levels."
+}

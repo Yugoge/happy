@@ -8,6 +8,7 @@ import { layout } from './layout';
 import { MultiTextInput, KeyPressEvent } from './MultiTextInput';
 import { Typography } from '@/constants/Typography';
 import { PermissionMode, ModelMode } from './PermissionModeSelector';
+import { getDefaultModelKey, getModelContextWindow } from './modelModeOptions';
 import { hapticsLight, hapticsError } from './haptics';
 import { Shaker, ShakeInstance } from './Shaker';
 import { StatusDot } from './StatusDot';
@@ -81,8 +82,6 @@ interface AgentInputProps {
     onRemoveAttachment?: (id: string) => void;
     onFilePaste?: (file: File) => void;
 }
-
-const MAX_CONTEXT_SIZE = 190000;
 
 const stylesheet = StyleSheet.create((theme, runtime) => ({
     container: {
@@ -289,8 +288,8 @@ const stylesheet = StyleSheet.create((theme, runtime) => ({
     },
 }));
 
-const getContextWarning = (contextSize: number, alwaysShow: boolean = false, theme: Theme) => {
-    const percentageUsed = (contextSize / MAX_CONTEXT_SIZE) * 100;
+const getContextWarning = (contextSize: number, alwaysShow: boolean = false, theme: Theme, maxContextSize: number = 200_000) => {
+    const percentageUsed = (contextSize / maxContextSize) * 100;
     const percentageRemaining = Math.max(0, Math.min(100, 100 - percentageUsed));
 
     if (percentageRemaining <= 5) {
@@ -325,6 +324,10 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         props.permissionMode ? hackMode(props.permissionMode) : null
     ), [props.permissionMode]);
     const permissionModeKey = displayPermissionMode?.key ?? 'default';
+    const modelFlavor = props.metadata?.flavor ?? props.agentType;
+    const defaultModelKey = getDefaultModelKey(modelFlavor);
+    const modelModeKey = props.modelMode?.key ?? defaultModelKey;
+    const isNonDefaultModel = !!props.modelMode && modelModeKey !== defaultModelKey && modelModeKey !== 'default';
     const availableModes = React.useMemo(() => (
         hackModes(props.availableModes ?? [])
     ), [props.availableModes]);
@@ -353,9 +356,14 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         return label;
     }, [isSandboxEnabled]);
 
-    // Calculate context warning
+    // Calculate context warning — per-model context window (§5.2 1M-context fix)
+    // Resolve model key: prefer picker key (if not 'default'), else session metadata currentModelCode
+    const resolvedModelKey = (props.modelMode?.key && props.modelMode.key !== 'default')
+        ? props.modelMode.key
+        : (props.metadata?.currentModelCode ?? null);
+    const maxContextSize = getModelContextWindow(resolvedModelKey);
     const contextWarning = props.usageData?.contextSize
-        ? getContextWarning(props.usageData.contextSize, props.alwaysShowContextSize ?? false, theme)
+        ? getContextWarning(props.usageData.contextSize, props.alwaysShowContextSize ?? false, theme, maxContextSize)
         : null;
 
     const agentInputEnterToSend = useSetting('agentInputEnterToSend');
@@ -767,8 +775,8 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                     </>
                 )}
 
-                {/* Connection status, context warning, and permission mode */}
-                {(props.connectionStatus || contextWarning || (displayPermissionMode && permissionModeKey !== 'default')) && (
+                {/* Connection status, context warning, model chip, and permission mode */}
+                {(props.connectionStatus || contextWarning || (displayPermissionMode && permissionModeKey !== 'default') || isNonDefaultModel) && (
                     <View style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -874,6 +882,22 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                 </Text>
                             )}
                         </View>
+                        {/* Model chip — only shown when a non-default model is active */}
+                        {isNonDefaultModel && props.modelMode && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 }}>
+                                <Ionicons name="cube-outline" size={11} color={theme.colors.textSecondary} />
+                                <Text
+                                    numberOfLines={1}
+                                    style={{
+                                        fontSize: 11,
+                                        color: theme.colors.textSecondary,
+                                        ...Typography.default()
+                                    }}
+                                >
+                                    {props.modelMode.name}
+                                </Text>
+                            </View>
+                        )}
                         {/* Permission badge — only shown when non-default */}
                         {displayPermissionMode && permissionModeKey !== 'default' && (() => {
                             const permColor = isSandboxedYoloMode ? '#4169E1' :

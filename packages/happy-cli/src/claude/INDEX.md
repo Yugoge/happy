@@ -1,7 +1,7 @@
 # claude
 
-*Last updated: 2026-04-09T16:36:31Z*
-**Total entries**: 55
+*Last updated: 2026-04-24T16:09:34Z*
+**Total entries**: 56
 **Convention**: kebab
 
 ## Tree
@@ -50,6 +50,7 @@ claude/
 │   ├── `sessionScanner.ts` - ts file
 │   ├── `startHappyServer.ts` - ts file
 │   ├── `startHookServer.ts` - ts file
+│   ├── `stopHookFilter.ts` - ts file
 │   └── `systemPrompt.ts` - ts file
 ├── `claude.integration.test.ts` - ts file
 ├── `claudeLocal.test.ts` - ts file

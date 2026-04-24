@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { logger } from "@/ui/logger";
 import { startFileWatcher } from "@/modules/watcher/startFileWatcher";
 import { getProjectPath } from "./path";
+import { isStopHookFeedback } from "./stopHookFilter";
 
 /**
  * Known internal Claude Code event types that should be silently skipped.
@@ -54,6 +55,7 @@ async function initExistingMessages(
         logger.debug(`[SESSION_SCANNER] Sending ${messages.length} existing messages from session ${sessionId}`);
         for (const m of messages) {
             state.processedMessageKeys.add(messageKey(m));
+            if (isStopHookFeedback(m)) { continue; }
             onMessage(m);
         }
     } else {
@@ -64,7 +66,7 @@ async function initExistingMessages(
             // The SDK writes skill prompts (isMeta) and subagent internal operations
             // (isSidechain) to JSONL but never emits them via live stream — skipping
             // them here means the file watcher will never re-deliver them either.
-            if (isJSONLOnlyMessage(m)) {
+            if (isJSONLOnlyMessage(m) && !isStopHookFeedback(m)) {
                 onMessage(m);
             }
         }
@@ -103,6 +105,11 @@ async function processSession(
             continue;
         }
         state.processedMessageKeys.add(key);
+        // Silently drop stop-hook feedback (spec §5.9) — dev telemetry, never user-facing
+        if (isStopHookFeedback(file)) {
+            skipped++;
+            continue;
+        }
         logger.debug(`[SESSION_SCANNER] Sending new message: type=${file.type}, uuid=${file.type === 'summary' ? file.leafUuid : file.uuid}`);
         onMessage(file);
         sent++;

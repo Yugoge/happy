@@ -42,6 +42,8 @@ function renderTextLikeBlock(
         return <RenderListBlock items={block.items} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
     } else if (block.type === 'numbered-list') {
         return <RenderNumberedListBlock items={block.items} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
+    } else if (block.type === 'task-list') {
+        return <RenderTaskListBlock items={block.items} key={index} first={first} last={last} selectable={selectable} onLinkPress={handleLinkPress} />;
     } else if (block.type === 'code-block') {
         return <RenderCodeBlock content={block.content} language={block.language} key={index} first={first} last={last} selectable={selectable} />;
     }
@@ -68,6 +70,8 @@ function renderComplexBlock(
         return <RenderTableBlock headers={block.headers} rows={block.rows} onLinkPress={handleLinkPress} selectable={selectable} key={index} first={first} last={last} />;
     } else if (block.type === 'image') {
         return <RenderImageBlock url={block.url} alt={block.alt} key={index} first={first} last={last} />;
+    } else if (block.type === 'blockquote') {
+        return <RenderBlockquoteBlock content={block.content} key={index} selectable={selectable} onLinkPress={handleLinkPress} onOptionPress={onOptionPress} />;
     }
     return null;
 }
@@ -164,13 +168,35 @@ function RenderHeaderBlock(props: { level: 1 | 2 | 3 | 4 | 5 | 6, spans: Markdow
     return <Text selectable={props.selectable} style={headerStyle}><RenderSpans spans={props.spans} baseStyle={headerStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>;
 }
 
-function RenderListBlock(props: { items: MarkdownSpan[][], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
+function RenderListBlock(props: { items: { depth: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
     const listStyle = [style.text, style.list];
     return (
         <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }}>
             {props.items.map((item, index) => (
-                <Text selectable={props.selectable} style={listStyle} key={index}>- <RenderSpans spans={item} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
+                <Text selectable={props.selectable} style={[listStyle, { paddingLeft: item.depth * 16 }]} key={index}>- <RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
             ))}
+        </View>
+    );
+}
+
+function RenderTaskListBlock(props: { items: { checked: boolean, depth: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
+    const listStyle = [style.text, style.list];
+    return (
+        <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }}>
+            {props.items.map((item, index) => (
+                <Text selectable={props.selectable} style={[listStyle, { paddingLeft: item.depth * 16 }]} key={index}>
+                    <Text style={style.taskCheckbox}>{item.checked ? '☑ ' : '☐ '}</Text>
+                    <RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} />
+                </Text>
+            ))}
+        </View>
+    );
+}
+
+function RenderBlockquoteBlock(props: { content: ReturnType<typeof parseMarkdown>, selectable: boolean, onLinkPress: (url: string) => void, onOptionPress?: (option: Option) => void }) {
+    return (
+        <View style={style.blockquote}>
+            {props.content.map((block, index) => renderBlock(block, index, props.content.length, props.selectable, props.onLinkPress, props.onOptionPress))}
         </View>
     );
 }
@@ -325,6 +351,9 @@ function RenderSpanItem(props: RenderSpanItemProps) {
         }
     }, [props.span.url]);
 
+    if (props.span.latex) {
+        return <LatexRenderer key={props.index} content={props.span.text} inline />;
+    }
     if (!props.span.url) {
         return <Text key={props.index} selectable={props.selectable} style={[props.baseStyle, props.span.styles.map(s => style[s])]}>{props.span.text}</Text>;
     }
@@ -487,11 +516,17 @@ const style = StyleSheet.create((theme) => ({
     semibold: {
         fontWeight: '600',
     },
-    code: {
-        ...Typography.mono(),
-        fontSize: 16,
-        lineHeight: 24,
-        color: theme.colors.text,
+    code: { ...Typography.mono(), fontSize: 16, lineHeight: 24, color: theme.colors.text },
+    strikethrough: { textDecorationLine: 'line-through' },
+    kbd: {
+        ...Typography.mono(), fontSize: 14, lineHeight: 20, color: theme.colors.text,
+        backgroundColor: theme.colors.surfaceHigh, borderWidth: 1, borderColor: theme.colors.divider,
+        borderRadius: 3, paddingHorizontal: 4,
+    },
+    taskCheckbox: { ...Typography.default(), color: theme.colors.text },
+    blockquote: {
+        borderLeftWidth: 3, borderLeftColor: theme.colors.divider, paddingLeft: 12,
+        marginVertical: 4, backgroundColor: theme.colors.surfaceHigh,
     },
     link: {
         ...Typography.default(),

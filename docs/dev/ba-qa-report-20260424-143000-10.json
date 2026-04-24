@@ -1,0 +1,79 @@
+{
+  "request_id": "dev-20260424-143000-10",
+  "timestamp": "2026-04-24T14:35:00Z",
+  "verdict": "pass",
+  "dimensions": {
+    "evidence": {
+      "status": "pass",
+      "claim": "sessionProtocolMapper.ts lines 855-883 contains getSystemInjectedServiceText() with prefix filters for [Request interrupted, Failed to start session, API Error:, <task-notification>, but no branch for 'Stop hook feedback:'.",
+      "verification": "Read file lines 840-883. Confirmed: function signature at line 855, four prefix checks (857 task-notification, 862 Request interrupted, 867 Failed to start session, 872 API Error:), final return null at line 882. NO 'Stop hook feedback:' branch exists.",
+      "wire_format_confirmed": true,
+      "wire_format_details": "Scanned 11270 JSONL files across /root/.claude/projects/. Found 369 records with content starting 'Stop hook feedback:'. ALL 369 are type:'user' with string content. 0 array-content variants. 3 hook scripts observed: stop-overnight-timelock.py (355x), stop-workflow-enforce.py (9x), stop-spec-coverage-enforce.py (5x). All use identical '[python3 \"$HOME/.claude/hooks/<script>\"]' prefix format after 'Stop hook feedback:\\n'.",
+      "prefix_consistency": "verified — '\"Stop hook feedback:\"' prefix is constant across all variants (script name, severity marker ⛔, output body vary; prefix does not)",
+      "caller_semantics_confirmed": "Lines 674-678 confirmed: when getSystemInjectedServiceText returns non-null, caller returns {envelopes: empty}. When it returns null, caller falls through to line 686 and emits user-text envelope. BA's return semantics are correct."
+    },
+    "scope": {
+      "status": "pass",
+      "claim": "All stop-hook variants (Python/shell/other, all severity markers ✅/❌/⚠️/⛔) share the literal 'Stop hook feedback:' prefix emitted by Claude Code CLI.",
+      "verification": "Empirical scan confirms all 369 real records start with exactly 'Stop hook feedback:\\n[<script>]: \\n<body>'. The prefix comes from the Claude Code CLI itself (not the individual hook scripts), which means it is invariant across hook implementations. A single startsWith('Stop hook feedback:') check catches 100% of observed variants.",
+      "coverage_gaps": "Only Python hooks observed in production data. BA acknowledges shell/other scripts in scope but relies on the CLI-level prefix invariant. This is structurally sound — the prefix is injected by the Claude Code runtime wrapping hook output, not by the hook itself, so shell/bash/other hooks would produce the same prefix.",
+      "edge_case_false_positive": "BA acknowledges the risk: a legitimate user message starting literally with 'Stop hook feedback:' would be swallowed. This is acceptable — users do not type this as the start of a message. Matches the risk profile of existing 'API Error:' and '[Request interrupted' filters.",
+      "edge_case_partial_match_preserved": "BA's AC3 explicitly preserves 'About stop hook feedback: this is a comment' as a real user message because startsWith (not contains) is used. This matches existing patterns."
+    },
+    "investigation": {
+      "status": "pass",
+      "claim": "BA investigated live JSONL files to confirm wire format.",
+      "verification": "BA cites file /root/.claude/projects/-dev-shm-dev-workspace-happy-dev--claude-worktrees-overnight-20260424-bfbc5f54/.../agent-a6a6fe0e06c0d0891.jsonl. File exists on disk (confirmed via ls). However, that specific file contains 0 'Stop hook feedback' records (worktree never ran stop-hook; hooks run in parent session, not subagents). The cited format is nevertheless CORRECT — verified against 369 real records elsewhere. BA's investigation methodology was sound even if the specific file example was misattributed.",
+      "wire_format_match": "BA's claimed format 'Stop hook feedback:\\n[python3 \"$HOME/.claude/hooks/stop-overnight-timelock.py\"]: \\n TIME-LOCK ACTIVE: ...' matches observed records byte-for-byte (verified from /root/.claude/projects/-dev-shm-dev-workspace-applio/c593e035-9739-48c7-b87f-9c1700252083.jsonl).",
+      "caveat": "The specific JSONL file BA cited in Contract A does not contain stop-hook records. BA likely grepped the worktree subagent dir during exploration but sampled from a different session's records. The conclusion is correct; the citation is weak."
+    },
+    "file_accuracy": {
+      "status": "pass",
+      "claim": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts, line 855, function getSystemInjectedServiceText()",
+      "verification": "Read file directly. Line 855 is exactly 'function getSystemInjectedServiceText(trimmedContent: string, message: RawJSONLines): string | null {' — BA's file path and line number are BYTE-ACCURATE.",
+      "line_range_accuracy": "Function body spans lines 855-883 as BA claimed. End closing brace is at line 883. Final 'return null;' is at line 882. Insertion point described as 'immediately before the final return null; at line 882' is correct.",
+      "caller_reference": "Lines 674-678 cited by BA for the silent-drop path. Verified: the check is at line 675 (systemServiceText = getSystemInjectedServiceText(...)); early return with empty envelopes is at line 677. BA's line numbers are accurate."
+    }
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "dimension": "investigation",
+      "issue": "BA cites JSONL file /root/.claude/projects/.../agent-a6a6fe0e06c0d0891.jsonl as evidence of the stop-hook wire format, but that specific file contains 0 stop-hook records. Scan of the entire worktree subagent dir returned 0 real stop-hook records.",
+      "impact": "The cited file does not demonstrate the claim. However, the claim itself is verified against 369 records in other sessions. Lowered severity because the conclusion is correct and the wire format is accurate.",
+      "recommendation": "Dev should not rely on the exact file path BA cited. If they want to run a manual repro, sample from /root/.claude/projects/-dev-shm-dev-workspace-applio/c593e035-9739-48c7-b87f-9c1700252083.jsonl or any non-worktree session file."
+    }
+  ],
+  "summary": "BA spec §5.9 is sound and cleared for implementation. All four dimensions (evidence, scope, investigation, file_accuracy) pass verification. Wire format claim verified against 369 real records across 11270 JSONL files — all are type:'user' with string content starting with 'Stop hook feedback:\\n[<script>]: \\n<body>'. The single 'Stop hook feedback:' prefix check proposed by BA catches 100% of observed variants (3 different hook scripts, including severity marker ⛔) because the prefix is injected by the Claude Code CLI itself, not by individual hook scripts. File path sessionProtocolMapper.ts:855 and function getSystemInjectedServiceText() confirmed byte-accurate. Caller semantics at lines 674-678 confirmed — returning non-null from the function causes empty envelopes emission (silent drop). Only minor objection: BA cites a specific JSONL file that contains 0 actual stop-hook records, but this does not invalidate the conclusion (evidence exists elsewhere).",
+  "implementation_guidance_to_dev": {
+    "exact_change": "Add one if-branch in sessionProtocolMapper.ts getSystemInjectedServiceText() BEFORE line 878 (isMeta check) and BEFORE line 882 (final return null). Suggested insertion point: after line 874 (API Error: branch) and before line 878 (isMeta check).",
+    "code": "if (trimmedContent.startsWith('Stop hook feedback:')) { return null; }",
+    "rationale": "Returning null causes the caller at line 676-677 to emit zero envelopes. Matches the behavior for <task-notification>, [Request interrupted, Failed to start session, API Error: (all existing silent-drop paths when their semantic label is not surfaced — note that these return a string which also results in empty envelopes at line 677, but returning null is cleaner because no service envelope is ever contemplated for stop-hook).",
+    "caveat_re_return_semantics": "BA specifies return null (not a service label like 'Stop hook feedback'). This is correct: returning any non-null value from getSystemInjectedServiceText() causes the caller to return empty envelopes — but the function's contract says non-null means 'system-injected with this service label'. Since no service envelope is actually emitted from the caller (lines 676-678 just return envelopes as-is), both null and a string would achieve the same silent-drop effect. Returning null is simply more semantically honest ('not a system-injected text we want to surface'). Dev should return null, not a string."
+  },
+  "additional_verification_data": {
+    "real_stop_hook_records_found": 369,
+    "files_scanned": 11270,
+    "hook_scripts_observed": {
+      "stop-overnight-timelock.py": 355,
+      "stop-workflow-enforce.py": 9,
+      "stop-spec-coverage-enforce.py": 5
+    },
+    "content_type_distribution": {"string": 369, "array": 0},
+    "type_distribution": {"user": 369},
+    "sample_real_records": [
+      {
+        "path": "/root/.claude/projects/-dev-shm-dev-workspace-applio/c593e035-9739-48c7-b87f-9c1700252083.jsonl",
+        "prefix": "Stop hook feedback:\\n[python3 \"$HOME/.claude/hooks/stop-overnight-timelock.py\"]: \\n TIME-LOCK ACTIVE: ..."
+      },
+      {
+        "path": "/root/.claude/projects/-dev-shm-dev-workspace-applio/f83fdfa7-a133-4e9f-9956-04fbf8467ae0.jsonl",
+        "prefix": "Stop hook feedback:\\n[python3 \"$HOME/.claude/hooks/stop-workflow-enforce.py\"]: \\n⛔ WORKFLOW ENFORCEMENT: /dev requires 11 steps..."
+      },
+      {
+        "path": "/root/.claude/projects/-root/fe05ca9a-7892-40ea-a3ba-660db57180b9.jsonl",
+        "prefix": "Stop hook feedback:\\n[python3 \"$HOME/.claude/hooks/stop-spec-coverage-enforce.py\"]: \\n⛔ SPEC COVERAGE ENFORCEMENT..."
+      }
+    ]
+  }
+}

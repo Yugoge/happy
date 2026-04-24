@@ -1,0 +1,237 @@
+{
+  "request_id": "dev-20260424-143000-2",
+  "timestamp": "2026-04-24T14:30:00Z",
+  "requirement": {
+    "original": "CronList tool inline conversation card is too verbose (full INPUT/OUTPUT blocks). Simplify inline card to Bash/subagent pattern: header+icon + one compact summary line of the input arguments only. Move the existing verbose INPUT+OUTPUT rendering to the right-side sidebar detail panel only. This establishes the general rule for all tool cards. This is spec §5.18.",
+    "clarified": "Register CronList in knownTools.tsx with minimal:true so the inline card shows only the compact header row. The sidebar already uses SidebarGenericView as its fallback for unregistered tools, which correctly renders full INPUT+OUTPUT — no sidebar changes needed.",
+    "what": "Add CronList to knownTools.tsx with minimal:true + icon + extractDescription; add i18n keys to all 9 language files",
+    "why": "CronList currently falls through to ToolView's default ToolContent renderer which renders full INPUT+OUTPUT blocks inline in the conversation, making the card too verbose. The compact-inline pattern is established by BashView/SidebarBashView.",
+    "where": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/text/translations/en.ts",
+      "packages/happy-app/sources/text/translations/ru.ts",
+      "packages/happy-app/sources/text/translations/pl.ts",
+      "packages/happy-app/sources/text/translations/es.ts",
+      "packages/happy-app/sources/text/translations/ca.ts",
+      "packages/happy-app/sources/text/translations/it.ts",
+      "packages/happy-app/sources/text/translations/pt.ts",
+      "packages/happy-app/sources/text/translations/ja.ts",
+      "packages/happy-app/sources/text/translations/zh-Hans.ts"
+    ],
+    "scope": {
+      "included": [
+        "knownTools.tsx: new CronList entry with minimal:true",
+        "i18n: new tools.names.cronList key in all 9 language files",
+        "i18n: optional tools.desc.cronListJobs for job-count summary"
+      ],
+      "excluded": [
+        "ToolView.tsx — no changes",
+        "views/_all.tsx — no changes (no new inline view component needed)",
+        "SidebarContentRenderer.tsx — no changes (existing SidebarGenericView fallback is correct)",
+        "New .tsx files — none needed",
+        "CronCreate and CronDelete registration (optional, not in §5.18 scope)"
+      ]
+    },
+    "success_criteria": [
+      "CronList inline card shows only header row (icon + label + one summary line); no INPUT/OUTPUT body below header",
+      "Tapping CronList card opens right-side sidebar showing full INPUT + OUTPUT via SidebarGenericView",
+      "yarn typecheck passes with no new type errors",
+      "No regression in Bash, Task, or any other tool's inline rendering"
+    ],
+    "constraints": [
+      "Must follow Unistyles + i18n conventions (use t() for all user-visible strings)",
+      "Must add translation to ALL 9 language files",
+      "knownTools entry must satisfy the existing satisfies Record<string, ...> TypeScript constraint",
+      "icon field is required in knownTools"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "CronList tool call card renders full INPUT + OUTPUT code blocks inline in the conversation",
+    "root_cause": "CronList is not registered in knownTools.tsx. ToolView.tsx resolves knownTool as undefined for CronList, so minimal defaults to false (via resolveFlags: isMcp=false, knownTool=undefined, minimal stays false). With minimal=false, ToolContent renders at ToolView.tsx:129 showing the default INPUT/OUTPUT layout.",
+    "root_cause_commit": "N/A — CronList was never registered; this is a missing registration, not a regression",
+    "why_introduced": "CronList is a Claude Code built-in tool that was never added to the happy-app tool registry when the registry was created",
+    "why_problematic": "Without a registry entry, CronList falls through to the generic verbose renderer which shows full JSON INPUT + OUTPUT inline, violating the compact-inline design pattern",
+    "timeline": "Pre-existing gap from when the tool registry was first established",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx"
+    ],
+    "evidence_type": "inferred",
+    "observations": [
+      "CronList absent from knownTools.tsx (inferred: grep of file returned no CronList entry)",
+      "CronList absent from toolViewRegistry in views/_all.tsx lines 33-50 (inferred: read of file)",
+      "ToolView.tsx:77 resolves knownTool as undefined for CronList (inferred: code trace)",
+      "resolveFlags at ToolView.tsx:214 sets minimal=false when isMcp=false and knownTool=undefined (inferred: code trace)",
+      "ToolContent renders at ToolView.tsx:129 when !cfg.minimal=true (inferred: code trace)",
+      "Default ToolContent path at ToolView.tsx:301-316 renders INPUT + OUTPUT sections inline (inferred: code read)"
+    ],
+    "diagnosis_completeness": "incomplete (inferred only — no live browser observation; Playwright not run for this structural registration gap since the root cause is unambiguous from source)",
+    "complaint_location_keywords": ["CronList", "cronlist", "INPUT", "OUTPUT", "主页面", "右侧侧边栏"],
+    "localization_evidence": "Source code read: CronList absent from knownTools.tsx and toolViewRegistry. ToolView.tsx default path confirmed to render INPUT/OUTPUT for any unregistered tool. No Playwright session run — root cause is a pure missing-registration structural gap with no ambiguity.",
+    "located_source": "packages/happy-app/sources/components/tools/knownTools.tsx (absent entry) + packages/happy-app/sources/components/tools/ToolView.tsx:301-316 (default renderer)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": null,
+      "commit_message": null,
+      "confirmed_by": null,
+      "bisect_blocked": "not a regression — CronList was never registered",
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "应该简化主页面的显示内容",
+      "acceptance_criterion": "CronList inline card shows only header row (icon + label + one summary line); no INPUT or OUTPUT body sections visible in conversation"
+    },
+    {
+      "id": "R2",
+      "source_phrase": "学习bash + subagent的渲染模式展示input就行",
+      "acceptance_criterion": "Inline summary line shows input arguments only (e.g., 'CronList {}' for empty args), matching the compact style of BashView"
+    },
+    {
+      "id": "R3",
+      "source_phrase": "现在的渲染模式保留但是只加入到右侧侧边栏",
+      "acceptance_criterion": "Full INPUT + OUTPUT blocks appear only in the right-side sidebar when the user opens the detail view for the CronList card"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "77-83",
+      "role": "Looks up knownTools[tool.name]; returns null → knownTool is undefined for CronList",
+      "imports_from": ["packages/happy-app/sources/components/tools/knownTools.tsx"],
+      "evidence": "Read ToolView.tsx line 77: const knownTool = knownTools[tool.name as keyof typeof knownTools] as any",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "213-226",
+      "role": "resolveFlags: when knownTool is undefined and isMcp=false, minimal stays false — triggers full ToolContent",
+      "imports_from": ["leaf"],
+      "evidence": "Read ToolView.tsx lines 213-226: resolveFlags function; knownTool?.minimal is undefined so minimal stays as isMcp value (false)",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "301-316",
+      "role": "Default ToolContent renderer: when no SpecificToolView found AND not minimal, renders INPUT + OUTPUT sections",
+      "imports_from": ["leaf"],
+      "evidence": "Read ToolView.tsx lines 301-316: default path renders ToolSectionView for input and result",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "line_range": "22-36",
+      "role": "Routes tool names to sidebar view components; CronList not in any named set, falls to SidebarGenericView default",
+      "imports_from": ["packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx"],
+      "evidence": "Read SidebarContentRenderer.tsx lines 17-36: AGENT_TOOLS, FILE_TOOLS, BASH_TOOLS, TODO_TOOLS sets do not include CronList; fallback at line 35",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+      "line_range": "13-41",
+      "role": "Renders full INPUT (hasInput) + OUTPUT (hasResult) sections in sidebar — already correct for CronList",
+      "imports_from": ["leaf"],
+      "evidence": "Read SidebarGenericView.tsx lines 13-41: renders ToolSectionView with CodeView for input and result",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line_range": "57-935",
+      "role": "Tool registry: CronList is absent — must add entry with minimal:true",
+      "imports_from": ["leaf"],
+      "evidence": "Read knownTools.tsx entire file: CronList not found in any key of the knownTools object",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [],
+  "regression_investigation_checklist": {
+    "triggered": false,
+    "items": []
+  },
+  "setup": {
+    "viewport": "all viewports — rendering logic change, not layout-specific",
+    "theme": "both",
+    "locale": "zh (user-reported), fix is locale-agnostic",
+    "auth_state": "logged-in",
+    "data_state": "session with at least one CronList tool call result",
+    "browser": "Chrome desktop primary; mobile also applies",
+    "url_path": "/session/<sessionId>"
+  },
+  "evidence": {
+    "observed": "cronlist工具调用渲染很烂。应该简化主页面的显示内容。学习bash + subagent的渲染模式展示input就行。现在的渲染模式保留但是只加入到右侧侧边栏",
+    "measured": {
+      "value": "CronList absent from knownTools.tsx; absent from toolViewRegistry; ToolView default renderer fires producing inline INPUT+OUTPUT blocks",
+      "location": "packages/happy-app/sources/components/tools/knownTools.tsx (absent) + packages/happy-app/sources/components/tools/ToolView.tsx:301-316"
+    },
+    "expected": {
+      "value": "knownTools['CronList'] = { minimal: true, icon: ICON_CLOCK, title: 'CronList', extractDescription: (compact input args) }",
+      "source": "BashView pattern (tier_2_verified): packages/happy-app/sources/components/tools/views/BashView.tsx + SidebarGenericView.tsx"
+    },
+    "gap": "Missing knownTools entry causes minimal=false, triggering full inline INPUT+OUTPUT rendering; fix is a single entry addition to knownTools.tsx"
+  },
+  "scope_expansion": {
+    "search_pattern": "CronList",
+    "search_scope": "packages/happy-app/sources/",
+    "user_reported": ["knownTools.tsx implicit (absent)"],
+    "additional_found": [],
+    "all_occurrences": ["packages/happy-app/sources/components/tools/knownTools.tsx — absent (must add)"]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "BashView.tsx compact inline pattern + SidebarGenericView.tsx verbose sidebar pattern, verified by direct file read in this session",
+    "url_or_location": "packages/happy-app/sources/components/tools/views/BashView.tsx:44-83 + packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx:13-41",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "No prior attempts — first analysis of CronList rendering"
+    }
+  },
+  "context": {
+    "codebase_state": "main branch, cycle 1 of overnight run",
+    "recent_commits": "430206f2 revert: roll back overnight dd8c665a changes, keep 4-13 cbcd616a as permanent base",
+    "file_contents": {
+      "knownTools_tools_count": "30+ tools registered; CronList absent",
+      "toolViewRegistry_entries": "Edit, Bash, CodexBash, CodexPatch, CodexDiff, Write, TodoWrite, ExitPlanMode, exit_plan_mode, MultiEdit, Task, Agent, AskUserQuestion, edit, execute",
+      "sidebar_sets": "AGENT_TOOLS={Task,Agent}, FILE_TOOLS={Edit,Write,MultiEdit,CodexPatch,edit}, BASH_TOOLS={Bash,CodexBash,execute,shell}, TODO_TOOLS={TodoWrite}"
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Add CronList (and optionally CronCreate, CronDelete) to knownTools.tsx with minimal:true + icon + extractDescription. No new components. No sidebar changes. Add i18n keys to all 9 language files.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/text/translations/en.ts",
+      "packages/happy-app/sources/text/translations/ru.ts",
+      "packages/happy-app/sources/text/translations/pl.ts",
+      "packages/happy-app/sources/text/translations/es.ts",
+      "packages/happy-app/sources/text/translations/ca.ts",
+      "packages/happy-app/sources/text/translations/it.ts",
+      "packages/happy-app/sources/text/translations/pt.ts",
+      "packages/happy-app/sources/text/translations/ja.ts",
+      "packages/happy-app/sources/text/translations/zh-Hans.ts"
+    ],
+    "validation_approach": "QA: (1) Open dev.life-ai.app in Playwright, navigate to a session with a CronList tool call, confirm inline card shows only header row with no INPUT/OUTPUT blocks. (2) Click CronList card, confirm sidebar opens showing full INPUT + OUTPUT. (3) Confirm Bash card still renders compactly (no regression). (4) yarn typecheck passes."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward missing-registration bug with a clear reference pattern (BashView) already in the codebase. No external research needed."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": false,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

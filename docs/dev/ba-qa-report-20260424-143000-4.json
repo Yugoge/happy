@@ -1,0 +1,97 @@
+{
+  "request_id": "dev-20260424-143000-4",
+  "timestamp": "2026-04-24T14:30:00Z",
+  "mode": "ba-validation",
+  "spec_section": "§5.3",
+  "verdict": "pass-with-minor-issues",
+  "summary": "BA's analysis of §5.3 is technically sound and actionable. The root-cause identification (flexWrap:'wrap' + flex:1 defeating horizontal ScrollView) is correct and was verified directly from source. File paths and line numbers for CommandView.tsx, SidebarBashView.tsx, BashView.tsx, BashViewFull.tsx, and CodexBashView.tsx are all accurate. The proposed minimal fix (remove flexWrap + remove flex:1 + add ScrollView wrapper in CodexBashView bash branch) is surgical and correct. Scope covers all viewports (desktop/narrow/tablet/mobile) per AC3. Minor findings: (1) git-blame attribution is slightly off — flexWrap was introduced in PR #408 merged at commit 86919918 (hyacz, 2026-01-22), and commit 7f178466 was a later monorepo-restructure rename with zero content changes; BA labels 7f178466 as the 'initial import' which is accurate for the current path but the behavior has existed since the file's real introduction in PR #408 via the expo-app/ path. (2) context.json line 160 cites 'BashView.tsx:91-110' as the reference source lines for the expected pattern, but those lines are style definitions — the actual correct pattern (ScrollView + View + commandLine) lives at BashView.tsx:62-82 as correctly cited in the BA markdown spec. (3) diagnosis_completeness flagged as 'incomplete (inferred only)' by BA — runtime browser DevTools measurement was not performed; this is acceptable for a deterministic flex-model bug but QA should confirm live in Playwright before release.",
+  "dimensions": {
+    "evidence": {
+      "verdict": "pass",
+      "verified": true,
+      "details": "BA correctly identified flexWrap:'wrap' at CommandView.tsx:45 and flex:1 at CommandView.tsx:59. QA confirmed: actual file has flexWrap at line 45, flex:1 at line 59. Causality explanation is technically correct — in React Native, flex:1 on Text inside a bounded flex row resolves against the parent's measured width, producing content that exactly matches container width and leaving the outer ScrollView with zero scroll extent. flexWrap:'wrap' reinforces this by permitting vertical wrap when content approaches that boundary. Reference pattern from BashView.tsx:62-82 is valid: no flexWrap on commandLine (BashView.tsx:91-96), no flex:1 on command Text (BashView.tsx:104-110). This is a solid L2 structural diagnosis.",
+      "objections": []
+    },
+    "scope": {
+      "verdict": "pass",
+      "viewport_coverage": "complete",
+      "details": "BA spec explicitly lists all supported widths in Setup section: desktop ≥1280px, narrow desktop 901–1280px, tablet 768–900px, mobile <768px. Acceptance criterion R3 pins specific verification widths (1440, 1024, 768, 390). AC1 covers desktop (1440/1024), AC3 covers mobile (390px pageSheet modal). AC4 propagates to §5.6 (CodexBashView). The fix itself (removing flex:1 + flexWrap from CommandView) is viewport-independent — it restores intrinsic text width regardless of container width. No viewport is missing.",
+      "objections": []
+    },
+    "investigation": {
+      "verdict": "pass-with-minor-issues",
+      "git_blame_performed": "partial",
+      "details": "BA cites commit 7f178466 ('fix: fix monorepo') as the introduction commit in context.json:43 and root_cause_analysis.timeline:46. QA verified via git log --diff-filter=A that 7f178466 was a monorepo restructure that RENAMED expo-app/sources/components/CommandView.tsx to packages/happy-app/sources/components/CommandView.tsx with zero content changes (git shows the file at both paths with identical blobs). The actual first introduction of CommandView.tsx with flexWrap+flex:1 was PR #408 (hyacz/fix/markdown-table-layout) merged at commit 86919918 on 2026-01-22. BA's rationale for flexWrap ('Original design intent was likely to allow the command to wrap gracefully in contexts without a ScrollView') is plausible but not verified — PR #408 title 'fix/markdown-table-layout' suggests the author was fixing a table-layout issue and may have added flexWrap to handle that context. This nuance does not change the fix (removing flexWrap is still correct for the scroll-enabled contexts), but the BA note 'present since initial commit 7f178466' is technically inaccurate — it was present since the file's original creation in PR #408, which predates the monorepo restructure.",
+      "objections": [
+        {
+          "severity": "minor",
+          "finding": "root_cause_commit labeled '7f178466 — fix: fix monorepo (initial import, CommandView introduced in this single commit)' — commit 7f178466 is a rename/restructure with zero content change. The actual original introduction was PR #408 (merge commit 86919918, 2026-01-22, author hyacz).",
+          "impact": "Minor — does not change the fix direction. But Section 3 of the overnight spec (git rationale) should reference the real origin commit if 'root cause origin' is a deliverable."
+        }
+      ]
+    },
+    "file_accuracy": {
+      "verdict": "pass",
+      "details": "All file paths verified against disk. CommandView.tsx (lines 33-90 full block, lines 44-46 line style with flexWrap, lines 58-60 commandText with flex:1) — confirmed correct. BashView.tsx:62-82 reference pattern — confirmed correct (ScrollView horizontal at line 62, View at 63, commandLine at 64-67, styles at 91-110). SidebarBashView.tsx:43-59 — confirmed correct (ScrollView horizontal at 44-47, commandWrapper at 49, CommandView at 50-56). BashViewFull.tsx:43-57 — confirmed correct (ScrollView horizontal at 43-47, commandWrapper at 48, CommandView at 49-55). CodexBashView.tsx:86-101 — confirmed correct (else branch at 86, ToolSectionView at 91, CommandView at 92-98 with no ScrollView).",
+      "objections": [
+        {
+          "severity": "trivial",
+          "finding": "context.json evidence.expected.source cites 'BashView.tsx:91-110' as the reference pattern location, but those line numbers are the styles definitions (commandLine style at 91-96, command style at 104-110). The structurally equivalent pattern is at 62-82, which is correctly cited in the BA markdown spec Contract C.",
+          "impact": "Trivial — BA markdown spec has the correct citation; the context.json reference line range is just pointing at styles instead of JSX."
+        }
+      ]
+    }
+  },
+  "additional_observations": {
+    "acceptance_criteria_completeness": "All 4 requirements (R1-R4) have corresponding acceptance criteria (AC1-AC4). R1 and R2 are both covered by AC1+AC2 since they are tightly coupled (no-overflow requires functional scroll). R3's viewport-specific verification is baked into AC1+AC3. R4's §5.6 propagation is AC4. Should-Have R5 (output scroll) is explicitly flagged as out-of-scope for the minimum Must-Have fix — this is a defensible scope decision.",
+    "fix_correctness_assessment": "The Fix A approach (remove flexWrap + flex:1 from CommandView) is the correct minimal change. It restores intrinsic-width rendering, which lets SidebarBashView's existing commandWrapper (flex:1, minWidth:100%) and ScrollView horizontal work as designed. No change required in SidebarBashView or BashViewFull callers. For CodexBashView, the additional ScrollView wrapper is needed because the branch has no existing scroll container. Alternative approaches (Fix B: moving ScrollView inside CommandView) would be larger and riskier — BA correctly chose the minimal path.",
+    "platform_universality": "Confirmed: removing flexWrap+flex:1 uses only React Native flex primitives — no web-only CSS (whiteSpace:nowrap, overflow:auto). Works on web, iOS, Android.",
+    "risks_flagged_by_ba": "BA correctly flagged three edge cases: (1) wrapper flex:1 interaction — verified safe (wrapper is View not Text, inside ScrollView contentContainerStyle, so flex:1 on wrapper doesn't defeat scroll), (2) fullWidth prop (width:100% on container) — verified safe (container is outside commandLine row), (3) overflow:hidden on container (CommandView.tsx:37) — verified safe (clips only the rounded-corner visual, does not interfere with outer ScrollView since ScrollView wraps CommandView externally). These risk callouts show BA did the flex-model analysis carefully.",
+    "output_scroll_handling": "BA correctly identifies that stdout/stderr Text blocks also lack horizontal scroll but correctly scopes this as R5 Should-Have, leaving the minimal fix to the command-line row only. This is a sound scope decision — expanding to output-scroll would require wrapping each Text in its own ScrollView or redesigning the layout."
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "investigation",
+      "finding": "root_cause_commit reference: BA cites 7f178466 as the origin, but that commit is a monorepo path rename. The actual origin is PR #408 (merge 86919918, hyacz, 2026-01-22). Dev should reference 86919918 in Section 3 git rationale if commit-origin is a deliverable.",
+      "blocks_release": false,
+      "recommendation": "Update context.json root_cause_commit and ba-spec.md Reference Source to cite 86919918 (or 'PR #408') as origin; keep 7f178466 as a secondary pointer to the rename."
+    },
+    {
+      "severity": "trivial",
+      "category": "file_accuracy",
+      "finding": "context.json evidence.expected.source cites BashView.tsx:91-110 (styles) instead of BashView.tsx:62-82 (JSX). BA markdown spec has the correct line range.",
+      "blocks_release": false,
+      "recommendation": "Update context.json evidence.expected.source to 'BashView.tsx:62-82' for consistency with the markdown spec."
+    }
+  ],
+  "final_recommendation": {
+    "proceed_to_dev": true,
+    "rationale": "The root cause is correctly identified with evidence verified directly from source. The proposed fix is minimal, surgical, and platform-universal. All four success criteria are testable and covered by acceptance criteria. Scope spans all required viewports. File paths and line numbers are accurate. The two objections are minor metadata issues (git commit attribution, line-range citation) that do not affect the correctness of the fix. Dev can proceed with confidence.",
+    "qa_verification_required_after_dev": [
+      "Open right-side popup for a Bash call with a long command at desktop 1440px — verify no horizontal overflow and scrollbar appears (AC1+AC2)",
+      "Repeat at desktop 1024px (narrow) — verify same (AC1)",
+      "Repeat at tablet 768px — verify same (R3)",
+      "Resize to mobile 390px and open a Bash popup (pageSheet modal) — verify command contained and horizontal drag-scroll works (AC3)",
+      "Open CodexBashView inline card for a bash/unknown tool call with a long command — verify card does not overflow and command is horizontally scrollable (AC4)",
+      "Confirm no vertical wrapping of command text in any of the above (R2)",
+      "Run yarn typecheck in packages/happy-app after changes"
+    ]
+  },
+  "self_verification": {
+    "claims_total": 14,
+    "claims_with_evidence": 14,
+    "claims_superficial": 0,
+    "evidence_sources": [
+      "Read CommandView.tsx (full file) — confirmed flexWrap at line 45, flex:1 at line 59",
+      "Read SidebarBashView.tsx (full file) — confirmed ScrollView + commandWrapper + CommandView at lines 42-59",
+      "Read BashView.tsx (full file) — confirmed reference pattern at lines 62-82",
+      "Read BashViewFull.tsx (full file) — confirmed ScrollView wrapper at lines 43-57",
+      "Read CodexBashView.tsx (full file) — confirmed bash branch at lines 86-101 lacks ScrollView",
+      "Read spec-20260424-084848.md — confirmed §5.3 acceptance criteria verbatim",
+      "git log --diff-filter=A — verified 7f178466 was a rename, not original creation",
+      "git log -S flexWrap — traced flexWrap introduction to PR #408 / merge 86919918"
+    ],
+    "confidence": "high"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "request_id": "dev-20260424-143000-13",
+  "timestamp": "2026-04-24T14:35:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260424-143000-13.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Unify file and image thumbnail layout in AttachmentStrip via a shared THUMB_SIZE=64 constant; align overlay at left:0 (revert f6f129a1 regression); normalize strip padding.",
+        "type": "code",
+        "files_modified": ["packages/happy-app/sources/components/AttachmentStrip.tsx"],
+        "changes": "Added THUMB_SIZE=64 + CHIP_GUTTER=8 shared constants. overlay.left:4->0. strip padding:12 -> paddingHorizontal:12, paddingVertical:8. chip.width:72 -> THUMB_SIZE (column == thumbnail). All preview/fileIcon/overlay/name entries now reference THUMB_SIZE.",
+        "rationale": "User report 顶部宽度和左右宽度仍然不统一 localized to overlay.left:4 (introduced in auto-commit f6f129a1 2026-03-25) + absence of a single-source-of-truth thumbnail constant. Shared constant guarantees pixel equality between image and file chips."
+      },
+      {
+        "id": 2,
+        "description": "Surface silent oversize-file rejections via Modal.alert at pick time; block send when any attachment has status=error.",
+        "type": "code",
+        "files_modified": [
+          "packages/happy-app/sources/hooks/useAttachments.ts",
+          "packages/happy-app/sources/-session/SessionView.tsx"
+        ],
+        "changes": "useAttachments accepts optional onRejected(reason) callback. Three silent-return callsites (pickImage, pickDocument, addFileFromPaste) now invoke rejectedRef.current?.('oversize') before returning. Exposed hasErrorAttachments memo. useComposerSend now returns early with Modal.alert when hasErrorAttachments true. SessionView wires useAttachmentRejectedHandler to useAttachments. Locale-aware ATTACHMENT_MESSAGES inline table in SessionView provides error strings for all 10 supported languages (en, zh-Hans, zh-Hant, ru, pl, es, ca, it, pt, ja).",
+        "rationale": "User report 文件太大了无法上传并且没有报错: root cause is three silent 'return' statements on size check + send path silently clearing error-state chips. BA decomposed into R2 (pick-time alert) and R3 (send-time block). Callback pattern keeps hook UI-layer-free per BA constraint."
+      },
+      {
+        "id": 3,
+        "description": "Forced refactor: split useAttachments (155 lines) into 11 smaller hooks to comply with global quality-gate (max 30 lines/function).",
+        "type": "refactor",
+        "files_modified": ["packages/happy-app/sources/hooks/useAttachments.ts"],
+        "changes": "Extracted useLoadPersistedOnMount, useDebouncedSave, useFlushOnUnmount, useFlushOnBackground, useAttachmentPersistence (composer), useAttachmentMutators, useUploadFile, usePickImage, usePickDocument, useAddFileFromPaste, useDerivedAttachmentState. Main useAttachments is now ~20 lines of composition.",
+        "rationale": "Pre-existing quality-gate violation blocked any edit to the file. Refactor was forced by tooling, not requested by BA. Runtime behavior unchanged — every extracted hook matches the original effect/callback shape."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "f6f129a1 (layout regression: overlay.left:4, padding:12 normalization) / f8b208fa (silent-return pattern present from day 1)",
+      "why_issue_occurred": "Layout: an automatic style normalization in f6f129a1 uniformized strip padding to 12 and shifted overlay.left from 0 to 4, breaking thumbnail-overlay alignment. Error surfacing: the initial attachment implementation deliberately returned silently on size-check failure — error UI was deferred but never completed.",
+      "how_fix_addresses_root": "Layout: a shared THUMB_SIZE constant replaces three identical magic-64 values (preview, fileIcon, overlay, name) so a single edit is the only place a geometry change can diverge. overlay.left:0 restores the original flush alignment. Error surfacing: each of the three silent returns now invokes rejectedRef.current?.('oversize'); the send path blocks when hasErrorAttachments is true."
+    },
+    "diff_stats": {
+      "files_changed": 4,
+      "lines_added": 211,
+      "lines_removed": 120,
+      "new_symbols_introduced": [
+        "THUMB_SIZE (const)",
+        "CHIP_GUTTER (const)",
+        "AttachmentRejectionReason (type export)",
+        "MAX_UPLOAD_BYTES (now exported; was module-private)",
+        "blobToBase64 (helper)",
+        "makeAttachmentId (helper)",
+        "useLoadPersistedOnMount (hook)",
+        "useDebouncedSave (hook)",
+        "useFlushOnUnmount (hook)",
+        "useFlushOnBackground (hook)",
+        "useAttachmentPersistence (hook)",
+        "useAttachmentMutators (hook)",
+        "useUploadFile (hook)",
+        "usePickImage (hook)",
+        "usePickDocument (hook)",
+        "useAddFileFromPaste (hook)",
+        "useDerivedAttachmentState (hook)",
+        "hasErrorAttachments (new field on useAttachments return)",
+        "useAttachmentRejectedHandler (hook in SessionView)",
+        "ATTACHMENT_MESSAGES (locale table in SessionView)",
+        "attachmentMessage (helper in SessionView)"
+      ],
+      "minimum_possible_lines_estimate": 30,
+      "justification_for_overage": "The pre-existing useAttachments hook was 155 lines (max 30) and blocked by the global quality-gate on every Edit. A full decomposition into 11 small hooks was required to land ANY change. The behavioural fix itself is ~15 lines (6 lines for overlay/constant, 3 lines for the three oversize guards, 6 lines for the send guard + callback handler). The remaining ~160 lines are forced refactor. Additional ~45 lines for the locale-aware ATTACHMENT_MESSAGES inline fallback, required because all 10 translation files exceed the 800-line cap and cannot be edited."
+    },
+    "fix_layer": "L1",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "VERIFICATION CHECKLIST: (1) Attachment tray with one image chip and one file chip: both render identical 64x64 bounding boxes; overlay sits flush at left:0 with no 4px offset; strip has 12px horizontal / 8px vertical padding. (2) Pick a file > 10 MB via the image picker, document picker, and paste: Modal.alert appears immediately with the locale-appropriate message; NO chip is added to the tray. (3) With an error-state chip (simulate by removing network mid-upload or inject a failed chip via dev tools), press Send: Modal.alert shown with 'Some files failed...'; send is BLOCKED; chip remains visible so user can remove it. (4) Happy path unchanged: successful upload + send clears attachments exactly as before. (5) Test BOTH desktop (1280x720) and mobile (390x844) viewports. (6) Test at least zh-Hans locale (user's locale) to confirm the Chinese error message appears — not the English fallback. Dev env: https://dev.life-ai.app, login with pre-configured account from CLAUDE.md.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [
+    {
+      "severity": "warn",
+      "issue": "i18n keys not added to translations/*.ts per BA spec Cluster B B3",
+      "cause": "Global quality-gate hook (~/.claude/hooks/pretool-quality-gate.py) enforces 800-line max per file. All 10 translation files + _default.ts exceed that limit (range 902-929 lines). Any Edit is rejected regardless of diff size.",
+      "mitigation": "Locale-aware ATTACHMENT_MESSAGES inline table in SessionView.tsx covers all 10 supported languages. User-facing behavior is correct — users see locale-specific error messages. The BA spec's B3 requirement (strings live in translations/*.ts) is not met structurally, but is met behaviourally.",
+      "resolution_options": [
+        "A: Split translation files into per-section modules so each module fits under 800 lines.",
+        "B: Add translations/* to pretool-quality-gate.py EXEMPT_PATHS (same resolution as §5.18's knownTools.tsx blocker).",
+        "C: Raise MAX_FILE_LINES globally — likely inappropriate given other code benefits from the cap."
+      ]
+    }
+  ],
+  "recommendations": [
+    "When the translation-file quality-gate blocker is resolved (likely via shared solution with §5.18), migrate ATTACHMENT_MESSAGES from SessionView.tsx inline table into translations/*.ts under session.attachmentTooLarge / session.attachmentUploadFailed keys. The 10 strings in the inline table are already locale-appropriate and can be pasted verbatim.",
+    "Consider adding a tap-handler on the error-state AttachmentChip (BA spec C1, Could Have) so users can see the specific upload error inline instead of only at send time.",
+    "Consider adding a text label below the error icon in the overlay (BA spec S2, Should Have) for discoverability without color-only signalling."
+  ],
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/components/AttachmentStrip.tsx",
+      "imported_by": ["packages/happy-app/sources/components/AgentInput.tsx"]
+    },
+    {
+      "modified": "packages/happy-app/sources/hooks/useAttachments.ts",
+      "imported_by": [
+        "packages/happy-app/sources/-session/SessionView.tsx",
+        "packages/happy-app/sources/components/AgentInput.tsx (type only)",
+        "packages/happy-app/sources/sync/persistence.ts (type only)"
+      ]
+    },
+    {
+      "modified": "packages/happy-app/sources/-session/SessionView.tsx",
+      "imported_by": ["via expo-router (session/[id] route)"]
+    }
+  ],
+  "implementation_notes": [
+    "The quality-gate blocker on translation files is structurally identical to the §5.18 knownTools.tsx blocker flagged in dev-report-20260424-143000-2. Resolving one should resolve the other — recommend consolidated orchestrator action.",
+    "The refactor of useAttachments was NOT requested by BA but was mechanically forced by the pre-existing 155-line function length. Runtime behavior is unchanged; the decomposition follows the hook-composition pattern already used in the codebase (see useHappyAction.ts, useDraft.ts).",
+    "No tests were added because the fix is primarily UI layout (Bug A) and Modal interaction (Bug B); both require browser-level verification per the CLAUDE.md live-browser rule."
+  ],
+  "self_verification": {
+    "build": "pass",
+    "smoke_check": "skipped (no executable acceptance criteria provided; UI verification is QA's responsibility per CLAUDE.md live-browser rule)",
+    "notes": "yarn typecheck reports zero errors in the 3 modified files (AttachmentStrip.tsx, useAttachments.ts, SessionView.tsx). 4 pre-existing errors in unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx) — not caused by this change."
+  }
+}

@@ -32,7 +32,7 @@ import { ToolFullView } from '@/components/tools/ToolFullView';
 import { ToolHeader } from '@/components/tools/ToolHeader';
 import { ToolStatusIndicator } from '@/components/tools/ToolStatusIndicator';
 import { sync } from '@/sync/sync';
-import { t } from '@/text';
+import { t, getCurrentLanguage } from '@/text';
 import { tracking, trackMessageSent } from '@/track';
 import { isRunningOnMac } from '@/utils/platform';
 import { useDeviceType, useHeaderHeight, useIsLandscape, useIsTablet } from '@/utils/responsive';
@@ -435,17 +435,56 @@ function useComposerCallbacks(sessionId: string) {
     return { upPerm, upModel };
 }
 
+// Inline attachment-error messages. The 10-language translation files all
+// exceed the global quality-gate's 800-line file cap, so new translation keys
+// cannot be added without a separate translation-splitting refactor. This
+// helper uses the current language (getCurrentLanguage) to give users at least
+// English + their locale; keys will be migrated into translations/*.ts once
+// that refactor lands. See dev-report-20260424-143000-13 for context.
+const ATTACHMENT_MESSAGES: Record<string, { oversize: string; uploadFailed: string }> = {
+    en: { oversize: 'File exceeds 10 MB limit. Please choose a smaller file.', uploadFailed: 'Some files failed to upload. Remove them before sending.' },
+    'zh-Hans': { oversize: '文件超过 10 MB 上限，请选择更小的文件。', uploadFailed: '部分文件上传失败，请先移除再发送。' },
+    'zh-Hant': { oversize: '檔案超過 10 MB 上限，請選擇更小的檔案。', uploadFailed: '部分檔案上傳失敗，請先移除再傳送。' },
+    ru: { oversize: 'Файл превышает лимит 10 МБ. Выберите файл поменьше.', uploadFailed: 'Не удалось загрузить некоторые файлы. Удалите их перед отправкой.' },
+    pl: { oversize: 'Plik przekracza limit 10 MB. Wybierz mniejszy plik.', uploadFailed: 'Nie udało się przesłać niektórych plików. Usuń je przed wysłaniem.' },
+    es: { oversize: 'El archivo supera el límite de 10 MB. Elija un archivo más pequeño.', uploadFailed: 'Algunos archivos no se pudieron subir. Elimínelos antes de enviar.' },
+    ca: { oversize: 'El fitxer supera el límit de 10 MB. Trieu un fitxer més petit.', uploadFailed: 'No s\'han pogut pujar alguns fitxers. Elimineu-los abans d\'enviar.' },
+    it: { oversize: 'Il file supera il limite di 10 MB. Scegli un file più piccolo.', uploadFailed: 'Alcuni file non sono stati caricati. Rimuovili prima di inviare.' },
+    pt: { oversize: 'O arquivo excede o limite de 10 MB. Escolha um arquivo menor.', uploadFailed: 'Alguns arquivos falharam no upload. Remova-os antes de enviar.' },
+    ja: { oversize: 'ファイルが10 MBの上限を超えています。小さいファイルを選んでください。', uploadFailed: '一部のファイルのアップロードに失敗しました。削除してから送信してください。' },
+};
+function attachmentMessage(kind: 'oversize' | 'uploadFailed'): string {
+    const lang = getCurrentLanguage();
+    const table = ATTACHMENT_MESSAGES[lang] ?? ATTACHMENT_MESSAGES.en;
+    return table[kind];
+}
+
 function useComposerSend(sessionId: string, msg: string, setMsg: (m: string) => void, clearDraft: () => void, att: ReturnType<typeof useAttachments>) {
     return React.useCallback(() => {
-        if (msg.trim() || att.hasAttachments) {
-            const toSend = att.readyAttachments.length > 0 ? att.readyAttachments : undefined;
-            setMsg('');
-            clearDraft();
-            att.clearAttachments();
-            sync.sendMessage(sessionId, msg, undefined, toSend);
-            trackMessageSent();
+        if (!(msg.trim() || att.hasAttachments)) return;
+        // Bug §5.12.3: block send when any attachment upload failed. Without this
+        // guard the failed chip is silently dropped by clearAttachments() below.
+        if (att.hasErrorAttachments) {
+            Modal.alert(t('common.error'), attachmentMessage('uploadFailed'), [{ text: 'OK', style: 'cancel' }]);
+            return;
         }
+        const toSend = att.readyAttachments.length > 0 ? att.readyAttachments : undefined;
+        setMsg('');
+        clearDraft();
+        att.clearAttachments();
+        sync.sendMessage(sessionId, msg, undefined, toSend);
+        trackMessageSent();
     }, [sessionId, msg, setMsg, clearDraft, att]);
+}
+
+// Bug §5.12.2: silent oversize-upload now surfaces via a Modal.alert.
+// Passed as `onRejected` to useAttachments so the hook stays UI-layer-free.
+function useAttachmentRejectedHandler() {
+    return React.useCallback((reason: 'oversize') => {
+        if (reason === 'oversize') {
+            Modal.alert(t('common.error'), attachmentMessage('oversize'), [{ text: 'OK', style: 'cancel' }]);
+        }
+    }, []);
 }
 
 function resolveUsageData(su: any, lu: any) {
@@ -462,7 +501,8 @@ function SessionComposer({ session, sessionId, micBtn, settings }: {
     const router = useRouter();
     const [msg, setMsg] = React.useState('');
     const { clearDraft } = useDraft(sessionId, msg, setMsg);
-    const att = useAttachments(sessionId);
+    const onAttachmentRejected = useAttachmentRejectedHandler();
+    const att = useAttachments(sessionId, onAttachmentRejected);
     const m = useModesAndModels(session);
     const cbs = useComposerCallbacks(sessionId);
     const onSend = useComposerSend(sessionId, msg, setMsg, clearDraft, att);

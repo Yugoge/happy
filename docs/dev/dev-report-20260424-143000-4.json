@@ -1,0 +1,67 @@
+{
+  "request_id": "dev-20260424-143000-4",
+  "timestamp": "2026-04-24T14:40:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260424-143000-4.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Removed flexWrap:'wrap' from CommandView.tsx styles.line to unlock horizontal scroll in all three CommandView callers",
+        "type": "style",
+        "files_modified": ["packages/happy-app/sources/components/CommandView.tsx"],
+        "changes": "CommandView.tsx:45 — removed `flexWrap: 'wrap'` from styles.line (was 3rd property in {alignItems, flexDirection, flexWrap}, now just {alignItems, flexDirection})",
+        "rationale": "flexWrap:'wrap' forced the command Text to wrap at parent row's bounded width, defeating the outer horizontal ScrollView in SidebarBashView / BashViewFull / CodexBashView bash branch. BA spec Fix A at CommandView.tsx:45."
+      },
+      {
+        "id": 2,
+        "description": "Removed flex:1 from CommandView.tsx styles.commandText to let the command render at intrinsic text width",
+        "type": "style",
+        "files_modified": ["packages/happy-app/sources/components/CommandView.tsx"],
+        "changes": "CommandView.tsx:59 — removed `flex: 1` from styles.commandText (was 5th/last property, now removed so commandText keeps only font/size/color/lineHeight)",
+        "rationale": "flex:1 on a Text inside a flex row resolves against the parent row's bounded width (popup frame), making the Text occupy exactly that width. ScrollView's contentSize == containerSize, so zero scroll extent. Removing flex:1 lets Text render at its intrinsic monospace width, which feeds the outer ScrollView's scroll extent for long commands."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "7f178466 (BA-attributed; QA-BA pass-with-minor-issues note attributes actual introduction to PR #408 86919918 2026-01-22 — metadata nit only, doesn't change fix direction)",
+      "why_issue_occurred": "Original CommandView design used flexWrap:'wrap' + flex:1 expecting to wrap gracefully inside plain View containers. When SidebarBashView / BashViewFull later wrapped CommandView in a horizontal ScrollView, flex:1 on the Text continued to resolve against the bounded parent width (ScrollView content width == visible width), giving zero horizontal-scroll extent. flexWrap:'wrap' reinforced the visual wrapping symptom.",
+      "how_fix_addresses_root": "Removes the two style properties that constrain the command Text to the parent's bounded width. Without them, Text renders at intrinsic monospace character width, which exceeds the popup frame for long commands — the outer ScrollView now measures a scroll content width larger than its visible area and horizontal scroll becomes functional. All three callers (SidebarBashView, BashViewFull, post-P3 CodexBashView) already have the correct outer ScrollView + commandWrapper minWidth:'100%' wrapping — no caller-side change needed."
+    },
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 0,
+      "lines_removed": 2,
+      "new_symbols_introduced": [],
+      "minimum_possible_lines_estimate": 2,
+      "justification_for_overage": null
+    },
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/components/CommandView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+          "packages/happy-app/sources/components/tools/views/BashViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexBashView.tsx"
+        ],
+        "impact_note": "All three importers already wrap CommandView in `<ScrollView horizontal>` + `<View style={{flex:1, minWidth:'100%'}}>`. Removing flexWrap+flex:1 from CommandView unlocks horizontal scroll for all three simultaneously with zero caller-side changes. No non-scrolling consumers of CommandView exist."
+      }
+    ],
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "QA MUST verify visually in browser at four viewport widths per BA AC1-AC4: (1) Desktop 1440px: open right sidebar on a Bash tool call with a long command (e.g. `ls /root/docs/dev/ba-spec-20260423-080000.md /root/docs/dev/context-20260423-080000.json`) — command must not overflow popup's right frame; horizontal scrollbar must be functional. (2) Desktop 1024px (narrow): same verification. (3) Mobile 390px (pageSheet modal): same verification — command contained within modal frame, horizontal drag-scroll works. (4) CodexBashView bash branch (inline card in a Codex-flavor session): long command must not overflow card's horizontal bounds (P3 §5.6 wraps CodexBashView bash branch in ScrollView, so this §5.3 fix propagates automatically). Also verify: (a) short commands still render flush-left with prompt, full-width card; (b) BashView inline card (which does NOT use CommandView) is unchanged — no regression in inline card rendering; (c) dark+light themes both work; (d) stdout/stderr output text below command still renders correctly (those sections were untouched).",
+    "self_verification": {
+      "build": "skipped (dev-overnight does not run Docker build per cycle; typecheck was used as the compile gate and passed)",
+      "smoke_check": "skipped (BA acceptance criteria are visual-only at specific viewport widths; no programmatic assertion surface for a RN flex-model change. TDD explicitly skipped per dev agent contract for 'pure CSS/styling changes'.)",
+      "notes": "yarn typecheck in packages/happy-app reports 5 pre-existing errors (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx) — all unrelated to CommandView/BashView/SidebarBashView/BashViewFull/CodexBashView. Zero errors attributable to this fix. git diff --stat confirms exactly 2 deletions, 0 insertions, 1 file changed, matching the pre-declared diff budget."
+    },
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should verify at all four required viewport widths (1440px, 1024px, 768px tablet, 390px mobile) using the injected dev auth credentials on dev.life-ai.app, then trigger a Bash tool call with a long command to exercise SidebarBashView popup + BashViewFull full-view.",
+    "After P3 (§5.6 CodexBashView rewrite) has also landed, QA should verify a Codex-flavor session's bash tool-call inline card — the §5.3 CommandView fix automatically propagates there since P3 wraps the bash branch in ScrollView horizontal.",
+    "Consider adding a Playwright regression test later (out of scope for this fix) that measures command-text ScrollView scrollWidth vs clientWidth to catch any future recurrence of this class of bug."
+  ]
+}

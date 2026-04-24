@@ -1,7 +1,7 @@
 # utils
 
-*Last updated: 2026-04-09T16:37:03Z*
-**Total entries**: 35
+*Last updated: 2026-04-24T16:10:39Z*
+**Total entries**: 36
 **Convention**: kebab
 
 ## Tree
@@ -41,6 +41,7 @@ utils/
 ├── `sessionScanner.ts` - ts file
 ├── `startHappyServer.ts` - ts file
 ├── `startHookServer.ts` - ts file
+├── `stopHookFilter.ts` - ts file
 └── `systemPrompt.ts` - ts file
 ```
 
