@@ -79,6 +79,27 @@ export function getClaudeModelModes(): ModelMode[] {
     ];
 }
 
+// Per-model context-window ceiling (in tokens) used as the denominator
+// for the status-bar "N% left" context indicator.
+//
+// Detection patterns for Anthropic 1M-context model variants (authoritative
+// list — extend here when Anthropic introduces new 1M naming schemes):
+//   - /1m$/i         matches trailing "-1m" or "-1M" suffix
+//                    (e.g., "claude-opus-4-7-20260301-1m")
+//   - '-1m-'         matches "-1m-" anywhere in the key
+//   - ':1m'          matches ":1m" variant qualifier
+//                    (e.g., "claude-3-7-sonnet-20250219:thinking:1m")
+//
+// Source: Anthropic public API model documentation
+// (https://www.anthropic.com/api) — Claude 3/4 = 200k, 1M variants = 1M.
+export function getModelContextWindow(modelKey: string | null | undefined): number {
+    if (!modelKey) return 200_000;
+    if (/1m$/i.test(modelKey) || modelKey.includes('-1m-') || modelKey.includes(':1m')) {
+        return 1_000_000;
+    }
+    return 200_000;
+}
+
 export function getCodexModelModes(): ModelMode[] {
     return [
         { key: 'default', name: 'default model', description: null },

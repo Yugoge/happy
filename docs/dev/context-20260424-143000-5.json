@@ -1,0 +1,265 @@
+{
+  "request_id": "dev-20260424-143000-5",
+  "timestamp": "2026-04-24T14:30:00+00:00",
+  "requirement": {
+    "original": "Per-session model persistence: each session must remember the model the user last selected for that session; navigating away and returning must NOT revert to the default. Model indicator in status bar: the currently selected model must be displayed on the RIGHT SIDE of the status bar, immediately to the LEFT of the yolo (permission-mode) indicator. Manual-only changes: the only event that changes a session's active model is the user manually switching in the GUI — no implicit/automatic changes on re-entry/reload/reconnect/restart. This is spec §5.1.",
+    "clarified": "Mirror the permission-mode MMKV persistence plumbing for model-mode (add loadSessionModelModes/saveSessionModelModes in persistence.ts, wire into store init and applySession in storage.ts, add MMKV write to updateSessionModelMode), and add a model-name chip to the status-bar footer immediately before the permission badge in AgentInput.tsx.",
+    "what": "Add MMKV persistence for per-session model selection and display active model in status-bar footer",
+    "why": "Model selection is lost on session re-entry because updateSessionModelMode only writes to Zustand, with no MMKV write or reload path, unlike the already-working permission-mode plumbing",
+    "where": [
+      "packages/happy-app/sources/sync/persistence.ts",
+      "packages/happy-app/sources/sync/storage.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "scope": {
+      "included": [
+        "Add loadSessionModelModes() and saveSessionModelModes() in persistence.ts",
+        "Initialize sessionModelModes in storage.ts store init block",
+        "Apply saved modelMode in applySession forEach loop with 4-priority resolution chain",
+        "Add MMKV write to updateSessionModelMode after Zustand state update",
+        "Add model chip View in AgentInput.tsx footer, immediately before permission badge View",
+        "Extend footer row visibility condition to show row when non-default model is active"
+      ],
+      "excluded": [
+        "Changing the model automatically on reconnect/reload/restart",
+        "Server-side model persistence (session.metadata.currentModelCode is server-controlled)",
+        "Changes to the model picker overlay itself",
+        "Changes to model option definitions or getDefaultModelKey",
+        "Any changes to permission-mode plumbing"
+      ]
+    },
+    "success_criteria": [
+      "After user selects a non-default model in session A and navigates away and back, session.modelMode still reflects the selected model",
+      "Status-bar footer displays a model chip immediately left of the permission badge when a non-default model is active",
+      "Model chip is absent (and footer row hidden) when both model and permission mode are default",
+      "Only onModelModeChange (user GUI action) triggers a change to the stored model key",
+      "yarn typecheck passes with no new errors"
+    ],
+    "constraints": [
+      "Use MMKV (mmkv.set / mmkv.getString) — not AsyncStorage or any other store",
+      "MMKV key must be 'session-model-modes' (plural, matching 'session-permission-modes' pattern)",
+      "Do NOT save entries with key 'default' to MMKV (same skip logic as permission-mode)",
+      "Model chip icon must use an Ionicons icon already available in the project, size 11",
+      "All user-visible strings must use t() — model name comes from props.modelMode.name (already i18n-safe)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Selecting a non-default model in a session, navigating away, and returning reverts the model to the default. No model name is shown in the status bar.",
+    "root_cause": "updateSessionModelMode (storage.ts:864-882) writes to Zustand in-memory state only. There is no saveSessionModelModes() call, no loadSessionModelModes() at store init, and no MMKV-sourced override in the applySession resolution path — unlike updateSessionPermissionMode which has all three.",
+    "root_cause_commit": "N/A — oversight when permission-mode persistence was added; model-mode updater was not given the same treatment",
+    "why_introduced": "Permission-mode persistence was added as a feature; model-mode updater was presumably added earlier or in a different pass without applying the same persistence pattern",
+    "why_problematic": "On re-entry, applySession resolves modelMode from (session.modelMode=null after re-hydration) OR (session.metadata.currentModelCode, server value) OR getDefaultModelKey(flavor), silently reverting to default every time",
+    "timeline": "Persistent throughout — no regression; model-mode was never persisted",
+    "affected_files": [
+      "packages/happy-app/sources/sync/persistence.ts",
+      "packages/happy-app/sources/sync/storage.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "evidence_type": "inferred",
+    "observations": [
+      "updateSessionModelMode at storage.ts:864-882 — no saveSessionModelModes() call (inferred from reading source)",
+      "store init at storage.ts:253-260 — loadSessionPermissionModes() present, no loadSessionModelModes() (inferred from reading source)",
+      "applySession loop at storage.ts:310-339 — permissionMode resolution present, no modelMode resolution block (inferred from reading source)",
+      "AgentInput.tsx props — props.modelMode field exists (line 40) but is unused in footer render block lines 877-902 (inferred from reading source)"
+    ],
+    "diagnosis_completeness": "incomplete (inferred only — Playwright observation not performed; source reading alone is sufficient for this mechanical plumbing gap)",
+    "complaint_location_keywords": [
+      "session",
+      "modelMode",
+      "model persistence",
+      "status bar",
+      "yolo"
+    ],
+    "localization_evidence": "Source reading: updateSessionModelMode at storage.ts:864-882 has no MMKV write; applySession at storage.ts:310-339 has no savedModelModes lookup; AgentInput.tsx footer at lines 877-902 has no model chip",
+    "located_source": "packages/happy-app/sources/sync/storage.ts:864-882 (primary gap); packages/happy-app/sources/sync/storage.ts:310-339 (secondary gap); packages/happy-app/sources/components/AgentInput.tsx:877-902 (UI gap)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "N/A",
+      "commit_message": "N/A",
+      "confirmed_by": "N/A",
+      "bisect_blocked": "not a regression — model-mode persistence was never implemented",
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "每一个session的模型持久化",
+      "acceptance_criterion": "After user selects a non-default model in session A, navigates away, and returns, session.modelMode still reflects the selected model — not null and not the default key"
+    },
+    {
+      "id": "R2",
+      "source_phrase": "切出session再切入就导致模型自动更换为默认模型",
+      "acceptance_criterion": "The model choice stored in MMKV under 'session-model-modes' is loaded at store init and applied to the session during applySession, so re-entry does not revert to default"
+    },
+    {
+      "id": "R3",
+      "source_phrase": "要求模型应该能够再状态栏右侧显示（yolo前方）",
+      "acceptance_criterion": "In the status-bar footer, a model-name chip appears immediately to the LEFT of the yolo/permission badge when a non-default model is active; absent when default"
+    },
+    {
+      "id": "R4",
+      "source_phrase": "每一次模型只会因为我手动在gui切换模型才会真的改变",
+      "acceptance_criterion": "Only updateSessionModelMode (called from onModelModeChange in the GUI) triggers a change to the stored model key; navigation, reconnect, reload, and background activity do NOT alter the stored key"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/-session/SessionView.tsx",
+      "line_range": "432-436",
+      "role": "Calls storage.getState().updateSessionModelMode on GUI change; passes props.modelMode and onModelModeChange to AgentInput",
+      "imports_from": ["packages/happy-app/sources/sync/storage.ts"],
+      "evidence": "grep: updateSessionModelMode at line 434; onModelModeChange={cbs.upModel} at line 492",
+      "verified_via": "grep"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/storage.ts",
+      "line_range": "864-882",
+      "role": "updateSessionModelMode — updates Zustand in-memory state only; MMKV write is the missing piece",
+      "imports_from": ["packages/happy-app/sources/sync/persistence.ts"],
+      "evidence": "Read lines 864-882: no saveSessionModelModes() call present",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/storage.ts",
+      "line_range": "253-260",
+      "role": "Store init — loads sessionPermissionModes from MMKV; sessionModelModes load is missing",
+      "imports_from": ["packages/happy-app/sources/sync/persistence.ts"],
+      "evidence": "Read lines 253-260: loadSessionPermissionModes() called, no loadSessionModelModes()",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/storage.ts",
+      "line_range": "310-339",
+      "role": "applySession loop — resolves permissionMode with 4-priority chain; modelMode resolution is missing",
+      "imports_from": ["packages/happy-app/sources/sync/persistence.ts"],
+      "evidence": "Read lines 310-339: savedPermissionMode lookup present, no savedModelMode lookup",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/persistence.ts",
+      "line_range": "191-206",
+      "role": "Reference: loadSessionPermissionModes / saveSessionPermissionModes — exact pattern to replicate for model-mode",
+      "imports_from": ["leaf"],
+      "evidence": "Read lines 191-206: complete load/save implementation using mmkv.getString / mmkv.set",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line_range": "877-902",
+      "role": "Permission badge render — model chip must be inserted immediately before this block",
+      "imports_from": ["leaf"],
+      "evidence": "Read lines 877-902: permission badge View; props.modelMode field at line 40 exists but unused in footer",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/sync/storage.ts",
+      "line": 850,
+      "type": "if",
+      "code_snippet": "if (sess.permissionMode && sess.permissionMode !== 'default') { allModes[id] = sess.permissionMode; }",
+      "purpose": "Skips persisting 'default' permission mode to MMKV to save space",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": false,
+    "items": []
+  },
+  "setup": {
+    "viewport": "1440x900 desktop primary; 390x844 mobile required for QA",
+    "theme": "both",
+    "locale": "zh-Hans",
+    "auth_state": "logged-in",
+    "data_state": "at least one active session with non-default model selected",
+    "browser": "Chrome",
+    "url_path": "/session/:id"
+  },
+  "evidence": {
+    "observed": "切出session再切入就导致模型自动更换为默认模型 / 要求模型应该能够再状态栏右侧显示（yolo前方）",
+    "measured": {
+      "value": "updateSessionModelMode has no saveSessionModelModes() call; applySession has no savedModelModes lookup; AgentInput footer has no model chip",
+      "location": "storage.ts:864-882, storage.ts:310-339, AgentInput.tsx:877-902"
+    },
+    "expected": {
+      "value": "MMKV load/save pair + applySession resolution + status-bar chip — all matching permission-mode pattern",
+      "source": "packages/happy-app/sources/sync/storage.ts:834-862 (updateSessionPermissionMode) and persistence.ts:191-206 (load/save functions)"
+    },
+    "gap": "4 wiring points missing vs permission-mode reference: (1) no loadSessionModelModes fn, (2) no store-init call, (3) no applySession resolution block, (4) no status-bar chip"
+  },
+  "scope_expansion": {
+    "search_pattern": "updateSessionModelMode",
+    "search_scope": "packages/happy-app/sources/**",
+    "user_reported": [
+      "packages/happy-app/sources/sync/storage.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "additional_found": [
+      "packages/happy-app/sources/sync/persistence.ts",
+      "packages/happy-app/sources/-session/SessionView.tsx"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/sync/storage.ts:864 (updateSessionModelMode definition)",
+      "packages/happy-app/sources/sync/storage.ts:259 (store init — needs addition)",
+      "packages/happy-app/sources/sync/storage.ts:310-339 (applySession — needs addition)",
+      "packages/happy-app/sources/-session/SessionView.tsx:434 (callback — no change needed)",
+      "packages/happy-app/sources/sync/persistence.ts:191-206 (reference pattern — needs new functions after line 206)",
+      "packages/happy-app/sources/components/AgentInput.tsx:877-902 (footer — needs chip before permission badge)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Permission-mode persistence pattern verified by reading source in this session: updateSessionPermissionMode (storage.ts:834-862), loadSessionPermissionModes/saveSessionPermissionModes (persistence.ts:191-206), applySession resolution block (storage.ts:310-339), permission badge footer (AgentInput.tsx:877-902)",
+    "url_or_location": "packages/happy-app/sources/sync/storage.ts:834-862 and packages/happy-app/sources/sync/persistence.ts:191-206",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "No prior attempts recorded for this issue"
+    }
+  },
+  "context": {
+    "codebase_state": "working tree — overnight worktree overnight-20260424-bfbc5f54",
+    "recent_commits": "430206f2 revert: roll back overnight dd8c665a changes, keep 4-13 cbcd616a as permanent base",
+    "file_contents": {
+      "storage.ts:864-882": "updateSessionModelMode — Zustand-only write, no MMKV",
+      "storage.ts:834-862": "updateSessionPermissionMode — Zustand write + saveSessionPermissionModes() call",
+      "storage.ts:310-339": "applySession forEach — permissionMode resolution present, modelMode missing",
+      "persistence.ts:191-206": "loadSessionPermissionModes / saveSessionPermissionModes — reference pattern",
+      "AgentInput.tsx:877-902": "permission badge View — model chip insertion point is immediately before this block",
+      "AgentInput.tsx:40": "props.modelMode?: ModelMode | null — field exists, unused in footer"
+    },
+    "dependencies": {
+      "MMKV": "react-native-mmkv — already used in persistence.ts",
+      "Ionicons": "already imported in AgentInput.tsx line 1"
+    },
+    "environment": {
+      "typecheck": "yarn typecheck (packages/happy-app)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Mechanical mirror of permission-mode plumbing: add two functions in persistence.ts, three code additions in storage.ts (init + applySession + updater), one UI addition in AgentInput.tsx (model chip before permission badge)",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/sync/persistence.ts",
+      "packages/happy-app/sources/sync/storage.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "validation_approach": "QA must: (1) select a non-default model, navigate away, return and verify model persists; (2) verify model chip appears left of yolo badge on desktop and mobile viewports; (3) verify default model produces no chip; (4) verify yarn typecheck passes"
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": false,
+    "meaningful_naming": true,
+    "git_root_cause_reference": false
+  }
+}

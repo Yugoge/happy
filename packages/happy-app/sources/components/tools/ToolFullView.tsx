@@ -19,7 +19,14 @@ interface ToolFullViewProps {
 // Extracted generic sections so ToolFullView stays under line-count limits
 
 function ToolDescriptionSection({ tool }: { tool: ToolCall }) {
-    if (!tool.description) return null;
+    // Guard: hide Description when it is empty or echoes a raw command.
+    // Codex exec_command populates tool.description from input.description,
+    // which is the raw `/bin/bash -lc "..."` string — identical to input.command.
+    // Rendering it duplicates Input Parameters; hide in that case (spec §5.7 R1).
+    const desc = typeof tool.description === 'string' ? tool.description.trim() : '';
+    if (!desc) return null;
+    const rawCommand = typeof tool.input?.command === 'string' ? tool.input.command.trim() : '';
+    if (rawCommand && desc === rawCommand) return null;
     return (
         <View style={styles.section}>
             <View style={styles.sectionHeader}>

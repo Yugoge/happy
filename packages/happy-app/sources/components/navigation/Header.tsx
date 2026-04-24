@@ -3,8 +3,8 @@ import { View, Text, Platform, StatusBar, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { layout } from '../layout';
 import { useHeaderHeight, useIsTablet } from '@/utils/responsive';
+import { useHeaderMaxWidth } from '@/hooks/useHeaderMaxWidth';
 import { Typography } from '@/constants/Typography';
 import { StyleSheet } from 'react-native-unistyles';
 
@@ -44,6 +44,7 @@ export const Header = React.memo((props: HeaderProps) => {
     const insets = useSafeAreaInsets();
     const paddingTop = safeAreaEnabled ? insets.top : 0;
     const headerHeight = useHeaderHeight();
+    const headerMaxWidth = useHeaderMaxWidth();
 
     const containerStyle = [
         styles.container,
@@ -64,7 +65,7 @@ export const Header = React.memo((props: HeaderProps) => {
     return (
         <View style={[containerStyle]}>
             <View style={styles.contentWrapper}>
-                <View style={[styles.content, { height: headerHeight }]}>
+                <View style={[styles.content, { height: headerHeight, maxWidth: headerMaxWidth }]}>
                     <View style={styles.leftContainer}>
                         {headerLeft && headerLeft()}
                     </View>
@@ -212,7 +213,6 @@ const stylesheet = StyleSheet.create((theme, runtime) => ({
         alignItems: 'center',
         paddingHorizontal: Platform.select({ ios: 8, default: 16 }),
         width: '100%',
-        maxWidth: layout.headerMaxWidth,
     },
     leftContainer: {
         flexGrow: 0,

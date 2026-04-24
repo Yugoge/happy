@@ -54,25 +54,32 @@ const AttachmentChip = React.memo(({ attachment, onRemove }: {
         </View>
     );
 });
+// Shared layout primitive: every chip renders a THUMB_SIZE x THUMB_SIZE
+// bounding box (image OR file icon), the overlay covers that box exactly,
+// and the name label spans the same width so the chip column has a
+// single authoritative width. Change here, change everywhere.
+const THUMB_SIZE = 64;
+const CHIP_GUTTER = 8;
 const styles = StyleSheet.create(theme => ({
     strip: {
-        padding: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
         flexDirection: 'row',
     },
     chip: {
-        marginRight: 8,
-        width: 72,
+        marginRight: CHIP_GUTTER,
+        width: THUMB_SIZE,
         alignItems: 'center',
     },
     preview: {
-        width: 64,
-        height: 64,
+        width: THUMB_SIZE,
+        height: THUMB_SIZE,
         borderRadius: 8,
         backgroundColor: theme.colors.surface,
     },
     fileIcon: {
-        width: 64,
-        height: 64,
+        width: THUMB_SIZE,
+        height: THUMB_SIZE,
         borderRadius: 8,
         backgroundColor: theme.colors.surface,
         alignItems: 'center',
@@ -81,9 +88,9 @@ const styles = StyleSheet.create(theme => ({
     overlay: {
         position: 'absolute',
         top: 0,
-        left: 4,
-        width: 64,
-        height: 64,
+        left: 0,
+        width: THUMB_SIZE,
+        height: THUMB_SIZE,
         borderRadius: 8,
         backgroundColor: 'rgba(0,0,0,0.45)',
         alignItems: 'center',
@@ -93,7 +100,7 @@ const styles = StyleSheet.create(theme => ({
         fontSize: 10,
         color: theme.colors.textSecondary,
         marginTop: 2,
-        width: 64,
+        width: THUMB_SIZE,
         textAlign: 'center',
     },
     removeBtn: {

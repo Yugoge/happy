@@ -18,6 +18,14 @@ const ICON_EXIT = (size: number = 24, color: string = '#000') => <Ionicons name=
 const ICON_TODO = (size: number = 24, color: string = '#000') => <Ionicons name="bulb-outline" size={size} color={color} />;
 const ICON_REASONING = (size: number = 24, color: string = '#000') => <Octicons name="light-bulb" size={size} color={color} />;
 const ICON_QUESTION = (size: number = 24, color: string = '#000') => <Ionicons name="help-circle-outline" size={size} color={color} />;
+const ICON_CLOCK = (size: number = 24, color: string = '#000') => <Ionicons name="timer-outline" size={size} color={color} />;
+const ICON_LINK = (size: number = 24, color: string = '#000') => <Ionicons name="link-outline" size={size} color={color} />;
+const ICON_WEATHER = (size: number = 24, color: string = '#000') => <Ionicons name="partly-sunny-outline" size={size} color={color} />;
+const ICON_HAND = (size: number = 24, color: string = '#000') => <Ionicons name="hand-left-outline" size={size} color={color} />;
+const ICON_IMAGE = (size: number = 24, color: string = '#000') => <Ionicons name="image-outline" size={size} color={color} />;
+const ICON_FINANCE = (size: number = 24, color: string = '#000') => <Ionicons name="trending-up-outline" size={size} color={color} />;
+const ICON_SPORTS = (size: number = 24, color: string = '#000') => <Ionicons name="football-outline" size={size} color={color} />;
+const ICON_SCAN = (size: number = 24, color: string = '#000') => <Ionicons name="scan-outline" size={size} color={color} />;
 
 function getPatchFiles(input: any): string[] {
     if (input?.changes && typeof input.changes === 'object' && !Array.isArray(input.changes)) {
@@ -926,6 +934,167 @@ export const knownTools = {
                 return t('tools.askUserQuestion.multipleQuestions', { count });
             }
             return null;
+        }
+    },
+    'CronList': {
+        title: t('tools.names.cronList'),
+        icon: ICON_CLOCK,
+        minimal: true,
+        input: z.object({}).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const keys = Object.keys(input);
+            if (keys.length === 0) {
+                return t('tools.names.cronList') + ' {}';
+            }
+            const summary = JSON.stringify(input);
+            const truncated = summary.length > 40 ? summary.substring(0, 40) + '...' : summary;
+            return t('tools.names.cronList') + ' ' + truncated;
+        }
+    },
+    'web.search_query': {
+        title: t('tools.names.webSearchQuery'),
+        icon: ICON_SEARCH,
+        minimal: true,
+        input: z.object({ query: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const q = opts.tool.input?.query;
+            if (typeof q === 'string' && q.length > 0) {
+                return t('tools.desc.webSearching', { query: q.length > 60 ? q.substring(0, 60) + '...' : q });
+            }
+            return t('tools.names.webSearchQuery');
+        }
+    },
+    'web.open': {
+        title: t('tools.names.webOpen'),
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({ url: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const url = opts.tool.input?.url;
+            if (typeof url === 'string' && url.length > 0) {
+                return t('tools.desc.webOpening', { url: url.length > 80 ? url.substring(0, 80) + '...' : url });
+            }
+            return t('tools.names.webOpen');
+        }
+    },
+    'web.find': {
+        title: t('tools.names.webFind'),
+        icon: ICON_SEARCH,
+        minimal: true,
+        input: z.object({ pattern: z.string().optional(), url: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const pattern = opts.tool.input?.pattern;
+            const url = opts.tool.input?.url;
+            if (typeof pattern === 'string' && pattern.length > 0) {
+                const p = pattern.length > 40 ? pattern.substring(0, 40) + '...' : pattern;
+                if (typeof url === 'string' && url.length > 0) {
+                    const u = url.length > 40 ? url.substring(0, 40) + '...' : url;
+                    return t('tools.desc.webFinding', { pattern: p, url: u });
+                }
+                return t('tools.desc.webFinding', { pattern: p, url: '' });
+            }
+            return t('tools.names.webFind');
+        }
+    },
+    'web.weather': {
+        title: t('tools.names.webWeather'),
+        icon: ICON_WEATHER,
+        minimal: true,
+        input: z.object({ location: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const loc = opts.tool.input?.location;
+            if (typeof loc === 'string' && loc.length > 0) {
+                return t('tools.desc.webWeather', { location: loc.length > 60 ? loc.substring(0, 60) + '...' : loc });
+            }
+            return t('tools.names.webWeather');
+        }
+    },
+    'web.time': {
+        title: t('tools.names.webTime'),
+        icon: ICON_CLOCK,
+        minimal: true,
+        input: z.object({ timezone: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const tz = opts.tool.input?.timezone;
+            if (typeof tz === 'string' && tz.length > 0) {
+                return t('tools.desc.webTime', { timezone: tz.length > 60 ? tz.substring(0, 60) + '...' : tz });
+            }
+            return t('tools.names.webTime');
+        }
+    },
+    'web.click': {
+        title: t('tools.names.webClick'),
+        icon: ICON_HAND,
+        minimal: true,
+        input: z.object({ selector: z.string().optional(), link: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const selector = opts.tool.input?.selector;
+            const link = opts.tool.input?.link;
+            if (typeof selector === 'string' && selector.length > 0) {
+                const s = selector.length > 60 ? selector.substring(0, 60) + '...' : selector;
+                return t('tools.desc.webClicking', { selector: s, link: '' });
+            }
+            if (typeof link === 'string' && link.length > 0) {
+                const l = link.length > 80 ? link.substring(0, 80) + '...' : link;
+                return t('tools.desc.webClicking', { selector: '', link: l });
+            }
+            return t('tools.names.webClick');
+        }
+    },
+    'web.image_query': {
+        title: t('tools.names.webImageQuery'),
+        icon: ICON_IMAGE,
+        minimal: true,
+        input: z.object({ query: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const q = opts.tool.input?.query;
+            if (typeof q === 'string' && q.length > 0) {
+                return t('tools.desc.webImageSearching', { query: q.length > 60 ? q.substring(0, 60) + '...' : q });
+            }
+            return t('tools.names.webImageQuery');
+        }
+    },
+    'web.finance': {
+        title: t('tools.names.webFinance'),
+        icon: ICON_FINANCE,
+        minimal: true,
+        input: z.object({ symbol: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const symbol = opts.tool.input?.symbol;
+            if (typeof symbol === 'string' && symbol.length > 0) {
+                return t('tools.desc.webFinanceLookup', { symbol: symbol.length > 40 ? symbol.substring(0, 40) + '...' : symbol });
+            }
+            return t('tools.names.webFinance');
+        }
+    },
+    'web.sports': {
+        title: t('tools.names.webSports'),
+        icon: ICON_SPORTS,
+        minimal: true,
+        input: z.object({ league: z.string().optional(), team: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const league = opts.tool.input?.league;
+            const team = opts.tool.input?.team;
+            const l = typeof league === 'string' && league.length > 0 ? (league.length > 40 ? league.substring(0, 40) + '...' : league) : '';
+            const tm = typeof team === 'string' && team.length > 0 ? (team.length > 40 ? team.substring(0, 40) + '...' : team) : '';
+            if (l || tm) {
+                return t('tools.desc.webSportsLookup', { league: l, team: tm });
+            }
+            return t('tools.names.webSports');
+        }
+    },
+    'web.screenshot': {
+        title: t('tools.names.webScreenshot'),
+        icon: ICON_SCAN,
+        minimal: true,
+        input: z.object({ target: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const target = opts.tool.input?.target;
+            if (typeof target === 'string' && target.length > 0) {
+                return t('tools.desc.webScreenshotting', { target: target.length > 80 ? target.substring(0, 80) + '...' : target });
+            }
+            return t('tools.names.webScreenshot');
         }
     },
     // Internal Claude Code tool for loading deferred tools - no user-visible output

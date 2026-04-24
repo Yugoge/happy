@@ -1,0 +1,137 @@
+{
+  "request_id": "dev-20260424-143000-9",
+  "timestamp": "2026-04-24T14:30:00Z",
+  "qa_mode": "ba-validation",
+  "verdict": "pass-with-objections",
+  "summary": "BA spec has accurate file/line identifications and correct render-layer fix target. File line numbers verified: ToolFullView.tsx:21-32 (ToolDescriptionSection), typesRaw.ts:801-802 (input.description extract), typesRaw.ts:1035 (ACP description:null), reducer.ts:788, reducer.ts:823 — ALL confirmed by code read. Scope (BOTH surfaces — Description and Input Parameters.description in the same detail panel) is addressed. Investigation of data flow is thorough across three layers (typesRaw, reducer, render). However, three non-blocking objections remain: (1) BA missed a third tool.description assignment site at reducer.ts:1030 (permissionMessage.tool.description = c.description), which the render-layer guard still catches but scope list is incomplete; (2) Root cause claim that 'input.description is the raw bash command for Codex' is marked 'inferred' without runtime JSONL evidence; (3) R6 (omit duplicate description from Input Parameters JSON) is 'Could Have' — if dev skips it and input.description literally equals the raw command, the raw string will still appear in Input Parameters JSON (though this is acceptable per user's stated rule 'raw command belongs in Input Parameters only'). The render-layer fix in ToolFullView is the correct single-file target and will resolve the user-visible duplication regardless of how tool.description got populated.",
+  "dimensions": {
+    "evidence": {
+      "status": "pass",
+      "verified_claims": [
+        {
+          "ba_claim": "ToolFullView.ToolDescriptionSection at lines 21-32 renders tool.description without guard against command-equality",
+          "verification_method": "Read packages/happy-app/sources/components/tools/ToolFullView.tsx lines 21-32",
+          "actual_state": "Line 21: function ToolDescriptionSection({ tool }: { tool: ToolCall }) {; Line 22: if (!tool.description) return null; Line 29: <Text style={styles.description}>{tool.description}</Text>; Line 32: }",
+          "confirmed": true,
+          "notes": "Current null-check exists (line 22) but there is NO check for tool.description === tool.input?.command. BA's identification is correct."
+        },
+        {
+          "ba_claim": "ToolInputSection at line 42 renders JSON.stringify(tool.input, null, 2) which includes input.description",
+          "verification_method": "Read ToolFullView.tsx line 42",
+          "actual_state": "Line 42: <CodeView code={JSON.stringify(tool.input, null, 2)} />",
+          "confirmed": true
+        }
+      ],
+      "evidence_gaps": [
+        "BA did NOT inspect a real Codex exec_command JSONL payload to confirm input.description actually contains the raw /bin/bash -lc string. BA marks evidence_type as 'inferred' and diagnosis_completeness as 'incomplete'. A runtime trace or JSONL fixture inspection would strengthen the root cause."
+      ]
+    },
+    "scope": {
+      "status": "pass",
+      "spec_requires": "Description and Input Parameters.description must never share a source (spec §5.7 point 3)",
+      "analysis": "Spec §5.7 point 3 refers to TWO sections WITHIN the same detail panel (Terminal popup): the Description section and the Input Parameters section where one of the JSON fields is 'description'. Both live in ToolFullView.tsx (detail panel). BA correctly scopes the fix to ToolFullView only and explicitly excludes the inline card (CodexBashView.tsx) as 'Won't Have'.",
+      "inline_vs_detail_panel_analysis": "CodexBashView (inline card) was inspected directly: it uses parsed_cmd, stringifyToolCommand(command), and CommandView. It does NOT echo input.description anywhere. Therefore the spec §5.7 bug does NOT manifest in the inline card — it is a detail-panel-only issue. BA's scope exclusion of CodexBashView is CORRECT.",
+      "both_surfaces_addressed": {
+        "description_section": "addressed by R1/R2 (hide when null/empty/equals-command; show when real summary)",
+        "input_parameters_section": "partially addressed by R6 (Could Have) — optional deduplication"
+      },
+      "r6_residual_risk": "If R6 is deferred, Input Parameters JSON will still show input.description field containing raw bash command. However, this is acceptable per user's own rule: 'The raw command belongs in the Input Parameters / command code block only'. The duplication is resolved because Description section is hidden — the user sees raw command in ONE place (Input Parameters), not two."
+    },
+    "investigation": {
+      "status": "pass-with-caveat",
+      "ba_data_flow_trace": [
+        "Layer 1 (normalization): typesRaw.ts:801-802 extracts description from c.input.description for session-protocol/Claude-Code messages",
+        "Layer 2 (normalization): typesRaw.ts:1035 sets description:null for ACP tool-call messages (Codex path)",
+        "Layer 3 (state): reducer.ts:788, 823 assigns c.description to message.tool.description",
+        "Layer 4 (render): ToolFullView.tsx:21-32 renders tool.description with only null-check"
+      ],
+      "chain_verified_via": "Code read of typesRaw.ts lines 780-1060, reducer.ts lines 780-830, ToolFullView.tsx full file",
+      "chain_completeness": "3-of-3 layers traced (normalization → state → render). This is a thorough trace.",
+      "caveat": "The trace shows two potential description sources in typesRaw.ts but does NOT conclusively explain how Codex ends up with tool.description = raw command. The ACP path (typesRaw.ts:1035) sets description to null explicitly. If that path is what Codex uses, then tool.description would be null — in which case the current `if (!tool.description) return null;` guard at line 22 already handles it, and the bug would not manifest. BA's assumption is that either (a) Codex flows through a different path (session-protocol at 800-807) where input.description = raw command, or (b) reducer.ts overwrites null with c.description from an envelope that contains the raw command. BA did not disambiguate which. The render-layer guard (adding equality-to-command check) is robust to BOTH scenarios, so the fix works regardless, but the root-cause narrative has a hole.",
+      "missed_site": "BA cites reducer.ts:788 and :823 as the two assignment sites. Grep shows a THIRD site at reducer.ts:1030: `permissionMessage.tool.description = c.description;`. This is not a blocking issue because the render-layer guard catches all three paths, but the scope_expansion.all_occurrences list is incomplete by one line."
+    },
+    "file_accuracy": {
+      "status": "pass",
+      "line_number_verifications": [
+        {
+          "ba_citation": "typesRaw.ts:801-802",
+          "actual": "Line 801: if (typeof c.input === 'object' && c.input !== null && 'description' in c.input && typeof c.input.description === 'string') { Line 802: description = c.input.description; }",
+          "match": true
+        },
+        {
+          "ba_citation": "typesRaw.ts:1035",
+          "actual": "Line 1035: description: null, (inside ACP tool-call NormalizedMessage content array)",
+          "match": true
+        },
+        {
+          "ba_citation": "typesRaw.ts:800-807",
+          "actual": "Lines 800-807 contain the description extraction block + push into content array for session-protocol assistant messages",
+          "match": true
+        },
+        {
+          "ba_citation": "reducer.ts:788",
+          "actual": "Line 788: message.tool.description = c.description;",
+          "match": true
+        },
+        {
+          "ba_citation": "reducer.ts:823",
+          "actual": "Line 823: description: c.description,",
+          "match": true
+        },
+        {
+          "ba_citation": "ToolFullView.tsx:21-32 (ToolDescriptionSection)",
+          "actual": "Lines 21-32 define function ToolDescriptionSection exactly as described",
+          "match": true
+        },
+        {
+          "ba_citation": "ToolFullView.tsx:42 (ToolInputSection)",
+          "actual": "Line 42: <CodeView code={JSON.stringify(tool.input, null, 2)} />",
+          "match": true
+        }
+      ],
+      "all_cited_line_numbers_accurate": true
+    }
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "missed-assignment-site",
+      "finding": "BA cites two sites where tool.description is assigned (reducer.ts:788, :823) but grep shows three. Line 1030 is `permissionMessage.tool.description = c.description;` — a permission-approval path that also writes tool.description.",
+      "impact": "None on the fix itself (render-layer guard catches all three). Only affects the documentation completeness in scope_expansion.all_occurrences.",
+      "recommendation": "Dev should be aware that the render-layer guard is the single defense point for all three write sites."
+    },
+    {
+      "severity": "minor",
+      "category": "incomplete-root-cause-narrative",
+      "finding": "BA claims 'input.description is the raw bash command for Codex' but evidence is inferred. The code path inspected (typesRaw.ts:1035) sets description:null for ACP/Codex messages. If Codex truly flows through the ACP path, tool.description would be null and the current null-guard would already hide the section — the bug should not manifest. The fact that the user reports the bug suggests EITHER (a) Codex doesn't flow through the ACP path as BA assumed, OR (b) reducer.ts overwrites the null with a raw-command string from an envelope somewhere, OR (c) input.description in the raw envelope contains the raw command and flows through the session-protocol path.",
+      "impact": "Narrative weakness only. Dev can still implement the guard and it will work regardless of which scenario is true.",
+      "recommendation": "Dev should capture a real runtime JSONL sample during QA Playwright verification to confirm which path populates tool.description with the raw command. This is a diagnostic improvement, not a fix-blocker."
+    },
+    {
+      "severity": "minor",
+      "category": "r6-deferred",
+      "finding": "R6 ('Could Have': omit description from ToolInputSection JSON when it duplicates tool.description) is optional. If dev skips R6, the raw command string will still literally appear as one field in the JSON pretty-print of tool.input in the Input Parameters section (because Codex's input.description field contains the raw command).",
+      "impact": "The user's stated requirement is that raw command 'belongs in the Input Parameters / command code block only' — so having input.description show the raw command in the JSON block is acceptable per the spec. R1/R2 hide the Description section, achieving non-duplication. R6 is a polish-level improvement, not a correctness requirement.",
+      "recommendation": "Dev may defer R6. If time permits, strip input.description from the JSON display when it equals input.command (which is the more common Codex pattern) — but this is quality-of-life only."
+    }
+  ],
+  "blocking_issues": [],
+  "non_blocking_issues": 3,
+  "fix_target_correctness": {
+    "target_file": "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+    "target_function": "ToolDescriptionSection (lines 21-32)",
+    "target_change_description": "Add equality-with-command check: `if (!tool.description || tool.description === tool.input?.command) return null;`",
+    "is_correct_target": true,
+    "is_minimal_change": true,
+    "is_render_layer_only": true,
+    "notes": "Single function modification. No data model changes. Robust to all three tool.description write sites (reducer.ts:788/823/1030) since the guard operates at render time on the final tool object."
+  },
+  "ba_deliverables_assessment": {
+    "spec_structure": "all required contracts present (A evidence, B scope, C reference, D prior-attempts)",
+    "requirements_decomposition": "3 items (R1, R2, R3) correctly map to user's 3 acceptance points",
+    "acceptance_criteria": "4 ACs (AC1-AC4) cover Description-hidden, Description-shown, synthesized-fallback, viewport-parity",
+    "technical_hints": "accurate primary-fix file, accurate line ranges, i18n key name provided, dependency list correct",
+    "scope_exclusions": "correctly excludes typesRaw.ts, reducer.ts, CodexBashView.tsx, SidebarBashView.tsx, Claude Code description path"
+  },
+  "conclusion": "BA has produced an accurate and actionable specification. All cited file paths and line numbers are verifiable. The render-layer fix target is correct. Scope covers both surfaces (Description section and Input Parameters.description) within the same detail panel. The three minor objections (missed assignment site, inferred-only root cause, R6 deferred) are documentation-level concerns that do not block implementation. Dev can proceed."
+}

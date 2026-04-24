@@ -9,10 +9,17 @@ export type MarkdownBlock = {
     content: MarkdownSpan[]
 } | {
     type: 'list',
-    items: MarkdownSpan[][]
+    items: { depth: number, spans: MarkdownSpan[] }[]
 } | {
     type: 'numbered-list',
     items: { number: number, spans: MarkdownSpan[] }[]
+} | {
+    type: 'task-list',
+    items: { checked: boolean, depth: number, spans: MarkdownSpan[] }[]
+} | {
+    type: 'blockquote',
+    depth: number,
+    content: MarkdownBlock[]
 } | {
     type: 'code-block',
     language: string | null,
@@ -39,9 +46,10 @@ export type MarkdownBlock = {
 }
 
 export type MarkdownSpan = {
-    styles: ('italic' | 'bold' | 'semibold' | 'code')[],
+    styles: ('italic' | 'bold' | 'semibold' | 'code' | 'strikethrough' | 'kbd')[],
     text: string,
-    url: string | null
+    url: string | null,
+    latex?: boolean,
 }
 
 export function parseMarkdown(markdown: string) {

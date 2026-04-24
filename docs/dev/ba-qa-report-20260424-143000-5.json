@@ -1,0 +1,175 @@
+{
+  "request_id": "dev-20260424-143000-5",
+  "timestamp": "2026-04-24T14:30:00+00:00",
+  "mode": "ba-validation",
+  "spec_section": "§5.1 — Per-session model persistence + model indicator in status bar",
+  "verdict": "pass",
+  "ba_spec_file": "docs/dev/ba-spec-20260424-143000-5.md",
+  "context_json_file": "docs/dev/context-20260424-143000-5.json",
+  "overnight_spec_file": "docs/dev/specs/spec-20260424-084848.md",
+  "view_file": "docs/dev/specs/spec-20260424-084848/views/qa.md",
+
+  "dimension_results": {
+    "D1_evidence": {
+      "status": "pass",
+      "evidence_check": {
+        "updateSessionModelMode_missing_mmkv_write_confirmed": true,
+        "exact_line_identified": true,
+        "verification": {
+          "claimed_location": "storage.ts:864-882",
+          "actual_read_lines": "864-882",
+          "content_match": "Lines 864-882 define updateSessionModelMode; body is a set() call that updates Zustand state via updatedSessions and returns new state. No call to saveSessionModelModes anywhere in that block. Compare to updateSessionPermissionMode at lines 834-862 which includes explicit allModes collection (lines 847-853) and saveSessionPermissionModes(allModes) call at line 856. The asymmetry is exactly as BA claims.",
+          "evidence_source": "Read storage.ts lines 820-920, verified byte-by-byte"
+        },
+        "applySession_missing_savedModelModes_confirmed": true,
+        "applySession_verification": {
+          "claimed_location": "storage.ts:310-339",
+          "actual_read_lines": "309-340",
+          "content_match": "Lines 310-339 contain the applySession sessions.forEach block. Line 312 loads savedPermissionModes; lines 325-332 resolve permissionMode via 4-priority chain (existingPermissionMode || savedPermissionMode || session.permissionMode || defaultPermissionMode); line 338 assigns permissionMode to mergedSessions[session.id]. No parallel savedModelModes load, no parallel modelMode resolution, no modelMode assignment. BA's gap claim is correct.",
+          "evidence_source": "Read storage.ts lines 309-340"
+        },
+        "persistence_ts_reference_pattern_confirmed": true,
+        "persistence_verification": {
+          "claimed_location": "persistence.ts:191-206",
+          "actual_read_lines": "191-206",
+          "content_match": "Lines 191-202 define loadSessionPermissionModes() using mmkv.getString('session-permission-modes') with JSON.parse and error fallback. Lines 204-206 define saveSessionPermissionModes(modes) using mmkv.set('session-permission-modes', JSON.stringify(modes)). Exact pattern BA references as the copy source.",
+          "evidence_source": "Read persistence.ts lines 185-210"
+        }
+      },
+      "ba_claims_vs_actual_source": "BA's Evidence (Contract A) section line 27 cites exact line ranges; all three citations verified against the actual file contents. No fabricated lines, no paraphrased claims, no unproven inferences. The diagnosis_completeness field in context JSON is honest ('incomplete (inferred only — Playwright observation not performed; source reading alone is sufficient for this mechanical plumbing gap)') — acceptable for a symmetric-plumbing-gap diagnosis where source-reading provides definitive proof.",
+      "objections": []
+    },
+
+    "D2_scope": {
+      "status": "pass",
+      "acceptance_points_coverage": {
+        "point_1_persistence": {
+          "spec_statement": "Each session must remember the model the user last selected; navigating away and returning must NOT revert to default",
+          "ba_coverage": "Covered by R1, R2, R4 in Requirements section. AC1 and AC4 encode it as Given/When/Then. R3 (applySession 4-priority chain) is the specific implementation mechanism.",
+          "covered": true
+        },
+        "point_2_status_bar_chip_left_of_yolo": {
+          "spec_statement": "The currently selected model must be displayed in the status bar on the right side, immediately to the LEFT of the yolo (permission-mode) indicator",
+          "ba_coverage": "Covered by R5 which specifies 'insert a model chip View immediately BEFORE the permission badge View' in AgentInput.tsx:877-902. AC2 encodes the visual requirement. Style requirements (gap: 4, flexDirection: 'row', alignItems: 'center') match the permission-badge sibling.",
+          "covered": true
+        },
+        "point_3_manual_only_changes": {
+          "spec_statement": "Only user manual GUI switch triggers model change — no implicit/automatic changes on re-entry/reload/reconnect/machine-restart/app-restart",
+          "ba_coverage": "Covered by R4 in decomposition table: 'Only updateSessionModelMode (called from onModelModeChange in the GUI) triggers a change to the stored model key. Navigation, reconnect, reload, and background activity do NOT alter the stored key.' AC4 encodes this as Given/When/Then. Won't-Have list explicitly excludes automatic model changes on reconnect/reload/machine-restart. BA also handles the default-key skip (saves don't include 'default') which prevents clutter but doesn't reintroduce defaults.",
+          "covered": true
+        }
+      },
+      "requirements_decomposition_check": {
+        "source_phrases_count": 4,
+        "all_source_phrases_are_verbatim_chinese": true,
+        "acceptance_criteria_count": 4,
+        "verbatim_text_preserved": "BA's source_phrase column quotes Chinese verbatim: '每一个session的模型持久化', '切出session再切入就导致模型自动更换为默认模型', '要求模型应该能够再状态栏右侧显示（yolo前方）', '每一次模型只会因为我手动在gui切换模型才会真的改变' — all four match user's verbatim complaint in Section 5.1 of the overnight spec."
+      },
+      "scope_shrinkage_detected": false,
+      "scope_renaming_detected": false,
+      "objections": []
+    },
+
+    "D3_investigation": {
+      "status": "pass",
+      "permission_vs_model_contract_table_present": true,
+      "contract_table_coverage": {
+        "updater_row": "Row 'Updater collect / Updater save' — permission-mode lines 848-853 + 856 vs model-mode 'new parallel'. Present.",
+        "mmkv_key_row": "Row 'MMKV key' — 'session-permission-modes' vs 'session-model-modes'. Present.",
+        "load_time_override_row": "Rows 'applySession read', 'applySession resolution', 'applySession assign' cover the load-time override path. Present.",
+        "status_bar_row": "Rows 'Status-bar badge' and 'Status-bar condition' cover the UI side. Present."
+      },
+      "contract_table_completeness": "11 rows covering: persistence.ts load fn, persistence.ts save fn, MMKV key, Store init, applySession read, applySession resolution, applySession assign, Updater collect, Updater save, Status-bar badge, Status-bar condition. All four hooks (updater, MMKV key, load-time override, status bar) are covered by at least 2 rows each. Table maps existing permission-mode artifact to the model-mode addition with line-number precision.",
+      "table_granularity_assessment": "Each row identifies (a) the hook kind, (b) the existing artifact with line number, (c) the new artifact to create. This is actionable at dev level — no ambiguity about what to add where.",
+      "objections": []
+    },
+
+    "D4_file_accuracy": {
+      "status": "pass",
+      "file_existence_verification": {
+        "persistence.ts": {
+          "claimed_path": "packages/happy-app/sources/sync/persistence.ts",
+          "exists": true,
+          "claimed_lines_191_206": true,
+          "actual_content_at_claimed_lines": "loadSessionPermissionModes (191-202) + saveSessionPermissionModes (204-206) — matches claim"
+        },
+        "storage.ts": {
+          "claimed_path": "packages/happy-app/sources/sync/storage.ts",
+          "exists": true,
+          "claimed_lines_253_260": true,
+          "claimed_lines_310_339": true,
+          "claimed_lines_834_862": true,
+          "claimed_lines_864_882": true,
+          "actual_content_at_253_260": "Store init block; line 259: 'let sessionPermissionModes = loadSessionPermissionModes();' — matches claim",
+          "actual_content_at_310_339": "applySession sessions.forEach block with savedPermissionModes resolution; no savedModelModes block — matches claim",
+          "actual_content_at_834_862": "updateSessionPermissionMode with saveSessionPermissionModes(allModes) at line 856 — matches claim",
+          "actual_content_at_864_882": "updateSessionModelMode with Zustand-only write, NO MMKV call — matches claim"
+        },
+        "AgentInput.tsx": {
+          "claimed_path": "packages/happy-app/sources/components/AgentInput.tsx",
+          "exists": true,
+          "claimed_line_40_modelMode_prop": true,
+          "claimed_lines_771_772_row_gate": true,
+          "claimed_lines_877_902_permission_badge": true,
+          "actual_content_at_40": "'modelMode?: ModelMode | null;' — matches claim",
+          "actual_content_at_771": "Row gate: '(props.connectionStatus || contextWarning || (displayPermissionMode && permissionModeKey !== \\'default\\'))' — matches claim",
+          "actual_content_at_877_902": "Permission badge View with Ionicons + Text, gap: 4, flexDirection: 'row', alignItems: 'center' — matches claim exactly, model chip insertion point is immediately before line 878"
+        },
+        "SessionView.tsx": {
+          "claimed_path": "packages/happy-app/sources/-session/SessionView.tsx",
+          "exists": true,
+          "claimed_line_434": true,
+          "actual_content_at_434": "'const upModel = React.useCallback((mode: ModelMode) => { storage.getState().updateSessionModelMode(sessionId, mode.key); }, [sessionId]);' — matches claim (GUI-driven updater, the only path that triggers updateSessionModelMode)"
+        },
+        "modelModeOptions.ts": {
+          "claimed_path": "packages/happy-app/sources/components/modelModeOptions.ts",
+          "exists": true,
+          "claimed_functions": "getHardcodedModelModes at line 124, getDefaultModelKey at line 189 — grep confirmed (lines 124, 149, 189)"
+        },
+        "storageTypes.ts": {
+          "claimed_path": "packages/happy-app/sources/sync/storageTypes.ts",
+          "exists": true,
+          "claimed_lines_77_111_session_type": true,
+          "actual_content": "Line 98: permissionMode?: string | null; Line 99: modelMode?: string | null — matches claim that both local fields exist on Session type"
+        }
+      },
+      "all_paths_valid": true,
+      "all_line_numbers_accurate": true,
+      "objections": []
+    }
+  },
+
+  "cross_cutting_checks": {
+    "verbatim_quote_preserved": {
+      "status": "pass",
+      "ba_source_phrases_match_spec": true,
+      "detail": "BA quotes all four source phrases verbatim in Chinese and maps each to a specific acceptance criterion. No paraphrasing or loss of original intent."
+    },
+    "bandaid_fix_risk_assessment": {
+      "status": "pass",
+      "detail": "BA's prescribed changes are purely additive (add load/save functions, add resolution block, add MMKV write, add chip View). No existing check is weakened, no error is swallowed, no threshold is relaxed. The 'skip default' rule mirrors an existing pattern (permission-mode) that has the same semantic."
+    },
+    "location_overlap_check": {
+      "user_complaint_location_tokens": ["session", "model", "status bar", "yolo"],
+      "ba_verification_target_tokens": ["session", "modelMode", "status-bar", "yolo", "storage.ts", "persistence.ts", "AgentInput.tsx"],
+      "overlap": ["session", "model", "status bar", "yolo"],
+      "overlap_nonempty": true
+    },
+    "specificity_of_dev_instructions": {
+      "status": "pass",
+      "detail": "R1-R7 all specify file path + line range + named function/variable + style details. R5 specifies four concrete sub-requirements (a-d) for the chip's behavior. Technical Hints provides a contract table with 11 rows. Dev receives unambiguous actionable instructions."
+    }
+  },
+
+  "objections": [],
+
+  "summary": {
+    "verdict": "pass",
+    "rationale": "BA's §5.1 spec is a high-quality, source-verified, decomposed delivery. All four QA validation dimensions pass: (D1) evidence — BA cited exact lines in storage.ts (864-882 missing MMKV write, 310-339 missing savedModelModes lookup) and persistence.ts (191-206 reference pattern), all independently verified against the actual files in this worktree. (D2) scope — all three spec §5.1 acceptance points (persistence, status-bar chip LEFT of yolo, manual-only changes) are covered by R1-R5 requirements and AC1-AC4 acceptance criteria, with no shrinkage. (D3) investigation — Technical Hints section contains a complete permission-mode-vs-model-mode contract table with 11 rows covering updater/MMKV key/load-time override/status bar hooks, each mapping the existing artifact to the new artifact with line-number precision. (D4) file accuracy — all 6 file paths (storage.ts, persistence.ts, AgentInput.tsx, SessionView.tsx, modelModeOptions.ts, storageTypes.ts) exist at the referenced paths, and every referenced line number was verified against actual source content. No fabrication, no inaccuracy.",
+    "risks_or_watchouts": [
+      "BA inferred root cause from source-reading only (no Playwright observation). This is acceptable here because the gap is a pure plumbing symmetry break (updater writes to Zustand but not MMKV; load doesn't exist; resolution doesn't include MMKV-sourced override) — source-reading gives definitive proof. Dev should still have QA verify the fix in live browser on desktop + mobile per standard §5.1 E2E requirement.",
+      "R5 technical detail (d) mandates 'share the same gap: 4, flexDirection: row, alignItems: center style as the permission badge' — dev must verify the chip placement respects RTL and small-viewport reflow (the existing permission badge is on the right edge of an alignItems: center View with flex: 1 sibling, which should accommodate a chip before it; but QA should confirm on 390x844 mobile that the chip + badge together don't overflow)."
+    ],
+    "ready_for_dev": true
+  }
+}

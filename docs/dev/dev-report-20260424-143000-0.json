@@ -1,0 +1,111 @@
+{
+  "request_id": "dev-20260424-143000-0",
+  "timestamp": "2026-04-24T14:30:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260424-143000-0.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Added strikethrough and kbd to MarkdownSpan.styles union, task-list and blockquote to MarkdownBlock union, and depth field to list items",
+        "type": "type-system",
+        "files_modified": ["packages/happy-app/sources/components/markdown/parseMarkdown.ts"],
+        "changes": "MarkdownSpan.styles now includes 'strikethrough' | 'kbd'; MarkdownBlock union adds task-list and blockquote; list items shape changed from MarkdownSpan[][] to { depth: number, spans: MarkdownSpan[] }[]",
+        "rationale": "Type-system changes must land before span parser and renderer can reference the new discriminants"
+      },
+      {
+        "id": 2,
+        "description": "Added strikethrough (~~...~~), kbd (<kbd>...</kbd>), and HTML entity decoding to the inline span parser",
+        "type": "parser-addition",
+        "files_modified": ["packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts"],
+        "changes": "Added regex capture groups 12-15 for strikethrough and kbd; added decodeEntities() helper invoked from pushTextWithAutoLinks; extracted handleLinkMatch helper to keep handleMatchedToken under 30-line quality-gate cap",
+        "rationale": "§5.16 coordinator added LaTeX at groups 10-11; my additions at 12-15 are non-conflicting. Entity decode on plain-text-only path keeps code-span content literal."
+      },
+      {
+        "id": 3,
+        "description": "Refactored parseMarkdownBlock and added blockquote, task-list, nested-list branches",
+        "type": "parser-addition",
+        "files_modified": ["packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"],
+        "changes": "Decomposed 135-line monolithic parseMarkdownBlock into ParseCtx + 9 helper functions (tryHeader, consumeLatexLines, tryLatexBlock, consumeCodeLines, tryCodeBlock, consumeOptionLines, tryOptionsBlock, tryBlockquote, tryNumberedList, tryUnorderedList, tryTable, parseSingleLine). Added parseListItemLine (measures indent depth + detects [x]/[ ] task prefix), collectListItems, buildTaskListBlock, buildListBlockFromItems, countQuoteDepth, collectBlockquote (recursive parse for nested blockquotes).",
+        "rationale": "Quality gate blocks edits to files with functions >30 lines or nesting >3. Pre-existing parseMarkdownBlock already violated the gate; the refactor was required to ship the new branches."
+      },
+      {
+        "id": 4,
+        "description": "Added RenderTaskListBlock, RenderBlockquoteBlock components, updated RenderListBlock for depth, added strikethrough/kbd/blockquote/taskCheckbox styles",
+        "type": "renderer-addition",
+        "files_modified": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"],
+        "changes": "renderTextLikeBlock now routes task-list; renderComplexBlock now routes blockquote. RenderListBlock items prop changed to { depth, spans }[] with paddingLeft: depth * 16. New RenderTaskListBlock uses ☑/☐ Unicode glyphs. New RenderBlockquoteBlock wraps children in styled View and recursively calls renderBlock (supports nested blockquotes). Stylesheet additions use theme.colors.* and Typography.* (no hardcoded colors/fonts).",
+        "rationale": "Block-union additions require matching renderer branches. Using Unicode checkbox glyphs avoids pulling in an icon lib dependency and works across React Native + Expo web + iOS/Android."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "7f178466 — fix: fix monorepo (initial creation of parseMarkdownBlock.ts). These primitives were never implemented, not a regression.",
+      "why_issue_occurred": "Initial MarkdownView implementation covered only the primitives needed at the time (headers, ordered/unordered lists, code blocks, horizontal rules, tables, options). GFM extras (strikethrough, task lists, nested lists with indent, blockquotes) and HTML normalization were never in scope.",
+      "how_fix_addresses_root": "Extended the custom parser-renderer pipeline with surgical additions for each missing primitive, preserving the existing architecture (no third-party parser introduced). Coordinated capture-group indices with §5.16 LaTeX so both features share the regex without conflict."
+    },
+    "diff_stats": {
+      "files_changed": 4,
+      "lines_added": 373,
+      "lines_removed": 206,
+      "new_symbols_introduced": [
+        "LIST_ITEM_RE",
+        "TASK_PREFIX_RE",
+        "ListItemInfo",
+        "parseListItemLine",
+        "collectListItems",
+        "buildTaskListBlock",
+        "buildListBlockFromItems",
+        "countQuoteDepth",
+        "collectBlockquote",
+        "extractTableRows",
+        "ParseCtx",
+        "tryHeader",
+        "consumeLatexLines",
+        "tryLatexBlock",
+        "consumeCodeLines",
+        "tryCodeBlock",
+        "consumeOptionLines",
+        "tryOptionsBlock",
+        "tryNumberedList",
+        "tryUnorderedList",
+        "tryBlockquote",
+        "tryTable",
+        "parseSingleLine",
+        "decodeEntities",
+        "handleLinkMatch",
+        "RenderTaskListBlock",
+        "RenderBlockquoteBlock",
+        "style.strikethrough",
+        "style.kbd",
+        "style.taskCheckbox",
+        "style.blockquote"
+      ],
+      "minimum_possible_lines_estimate": 150,
+      "justification_for_overage": "Two sources of overage: (1) BA spec required 7 missing primitives across 4 files with type-system, parser, and renderer touches for each — no smaller slice is functionally complete. (2) Quality-gate hook (pretool-quality-gate.py) forced decomposition of the pre-existing 135-line monolithic parseMarkdownBlock into ~12 helper functions before any new branch could be added; this accounts for ~180 of the 373 insertions. Net new logic: ~130 lines. Pre-existing violations are the principal reason diff exceeds 20 lines."
+    },
+    "fix_layer": "L3",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Verification requires sending a live markdown message via the dev UI. Minimum test message to paste into a session: '# H1\\n\\n## H2\\n\\n~~删除线~~ 普通 **粗体** *斜体* `代码` [link](https://example.com)\\n\\n- [x] 已完成任务\\n- [ ] 待办任务\\n- 普通项目 A\\n  - 嵌套项\\n- 普通项目 B\\n\\n1. 有序第一\\n2. 有序第二\\n\\n> 这是一段引用\\n>> 嵌套引用\\n\\n&lt;div&gt;Hello&lt;/div&gt; &amp; friends\\n\\n<kbd>Ctrl</kbd>+<kbd>C</kbd>'. Then verify on desktop AND mobile viewports (390x844). Also verify no regression by sending a separate message with bold/italic/links/tables/code-blocks/LaTeX and confirming unchanged rendering. Inline LaTeX (§5.16) uses the same pipeline — both should work in the same message.",
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "TypeScript npx tsc --noEmit reports 5 pre-existing errors in unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx) — NONE in the 4 markdown files I modified. Ran a tsx runtime smoke test with 14 primitive test cases including Chinese text; all cases produced the expected block/span tree structure. Edge cases verified: ~~~~ inside backtick-code stays literal; nested blockquotes produce correct depth-2 outer containing depth-1 inner; HTML entities decode in every plain-text context but not inside code spans. The fix lands in the worktree; webapp still needs to be rebuilt+deployed via 'docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev ${WORKTREE_PATH}' then 'docker compose up -d happy-web-dev' before a live Playwright verification by QA."
+    },
+    "blast_radius": [
+      {"modified": "packages/happy-app/sources/components/markdown/parseMarkdown.ts", "imported_by": ["packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts", "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts", "packages/happy-app/sources/components/markdown/MarkdownView.tsx"]},
+      {"modified": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts", "imported_by": ["packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"]},
+      {"modified": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts", "imported_by": ["packages/happy-app/sources/components/markdown/parseMarkdown.ts"]},
+      {"modified": "packages/happy-app/sources/components/markdown/MarkdownView.tsx", "imported_by": ["packages/happy-app/sources/app/(app)/artifacts/[id].tsx", "packages/happy-app/sources/app/(app)/changelog.tsx", "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx", "packages/happy-app/sources/components/MessageView.tsx", "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx", "packages/happy-app/sources/components/tools/views/ExitPlanToolView.tsx"]}
+    ],
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should send a comprehensive markdown test message via the dev UI covering: strikethrough, task-list (both states), nested unordered list, blockquote + nested blockquote, HTML entities, <kbd> element. Verify on BOTH desktop and mobile (390x844) viewports.",
+    "Verify no regression by sending a separate message exercising the pre-existing working primitives: bold/italic/inline-code/links/H1-H6/ordered-list/tables/code-blocks/LaTeX.",
+    "Since MarkdownView has 7 upstream consumers (conversation, detail panel, changelog, artifact viewer, sidebar agent conversation, TaskViewFull, ExitPlanToolView), spot-check at least the conversation view and one tool-call detail panel (e.g., Task view) to ensure no surprise regressions.",
+    "Consider a future extraction of MarkdownView.tsx into sub-files — the file is near the 800-line quality-gate limit and every new span/block type adds pressure. Extracting the style sheet into its own module would free ~100 lines."
+  ]
+}

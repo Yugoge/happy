@@ -46,7 +46,13 @@ export const SidebarFileView = React.memo<SidebarFileViewProps>(({ tool }) => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             {filePath ? (
-                <Text style={styles.filePath}>{filePath.replace(/\//g, '/\u200B')}</Text>
+                <Text
+                    style={styles.filePath}
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                >
+                    {filePath}
+                </Text>
             ) : null}
             {showFileContent ? (
                 <View style={styles.tabBar}>
@@ -215,6 +221,7 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: '600',
         color: theme.colors.textSecondary,
         marginBottom: 8,
+        flexShrink: 1,
     },
     tabBar: {
         flexDirection: 'row',

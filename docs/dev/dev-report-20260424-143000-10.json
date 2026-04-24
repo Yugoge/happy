@@ -1,0 +1,102 @@
+{
+  "request_id": "dev-20260424-143000-10",
+  "timestamp": "2026-04-24T16:15:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260424-143000-10.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Created stopHookFilter.ts helper with isStopHookFeedback() predicate",
+        "type": "source",
+        "files_created": ["packages/happy-cli/src/claude/utils/stopHookFilter.ts"],
+        "rationale": "BA spec's single-line fix to sessionProtocolMapper.ts was infrastructure-blocked (see status note below). The helper encapsulates the stop-hook detection predicate so it can be reused at multiple upstream choke points with zero duplication."
+      },
+      {
+        "id": 2,
+        "description": "Added scanner-level stop-hook filter in sessionScanner.ts (3 callsites)",
+        "type": "source",
+        "files_modified": ["packages/happy-cli/src/claude/utils/sessionScanner.ts"],
+        "changes": "Added import of isStopHookFeedback; guarded onMessage(m) in initExistingMessages (both sendExisting=true and sendExisting=false branches); guarded onMessage(file) in processSession.",
+        "rationale": "sessionScanner.ts is the upstream choke point for ALL launcher paths (local, remote, uploadResumeHistory, runClaude onReconnected). Filtering here covers every path uniformly."
+      },
+      {
+        "id": 3,
+        "description": "Added defense-in-depth stop-hook filter in claudeRemoteLauncher.ts (3 callsites)",
+        "type": "source",
+        "files_modified": ["packages/happy-cli/src/claude/claudeRemoteLauncher.ts"],
+        "changes": "Added import of isStopHookFeedback; extended uploadResumeHistory inline filter from (type!=summary && !isMeta) to (type!=summary && !isMeta && !isStopHookFeedback); added leading guard in queueLogMessage and handleScannerMessage.",
+        "rationale": "Defense-in-depth: these three sites call sendClaudeSessionMessage outside the scanner path (or for isMeta/isSidechain records). Ensures suppression survives any future refactor that moves the scanner out of the hot path."
+      },
+      {
+        "id": 4,
+        "description": "Updated overnight spec Section 2 and Section 3 for Cycle 2 §5.9",
+        "type": "docs",
+        "files_modified": ["docs/dev/specs/spec-20260424-084848.md"],
+        "changes": "Appended BA-analysis paragraph noting the dev attempt (quality-gate block + BA-code-hint correction) at §5.9 and a full change log under Section 3 / Cycle 2.",
+        "rationale": "Required by dev agent contract for overnight-spec-driven workflow (Section 2 prevents next-cycle repeat; Section 3 provides QA audit trail)."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "N/A — BA identified this as a missing-case bug, not a regression.",
+      "why_issue_occurred": "getSystemInjectedServiceText() in sessionProtocolMapper.ts was built incrementally; the 'Stop hook feedback:' prefix was never added to the suppression list. Stop-hook output, emitted by the Claude Code CLI as a type:'user' JSONL record with string content starting with that prefix, fell through all existing branches and was emitted as a real user envelope.",
+      "how_fix_addresses_root": "The fix is applied upstream of the mapper at the session-scanner level (plus defense-in-depth at the remote launcher). This prevents stop-hook records from ever reaching the mapper in the first place, which is architecturally cleaner than adding a branch inside the mapper's suppression function — and it works even though the mapper file itself is blocked from editing by the quality-gate hook."
+    },
+    "diff_stats": {
+      "files_changed": 3,
+      "lines_added": 46,
+      "lines_removed": 2,
+      "new_symbols_introduced": ["isStopHookFeedback", "STOP_HOOK_PREFIX (private const)"],
+      "minimum_possible_lines_estimate": 4,
+      "justification_for_overage": "BA's prescribed 1-line fix (a single if-branch in sessionProtocolMapper.ts:getSystemInjectedServiceText) was infrastructure-blocked: the pretool-quality-gate.py PreToolUse hook rejects ANY edit to sessionProtocolMapper.ts because the file has 883 lines > 800 cap plus 4 over-length functions (one of which IS the BA's target function at 36 lines > 30 cap) plus 1 nesting-depth violation. Splitting a 348-line helper or a 883-line file for the sake of a 1-line addition violates the minimum-diff rule and is out of scope for §5.9. The alternative upstream filter is architecturally superior (covers more paths with fewer surface touches) but requires a dedicated helper file so the predicate is declared once and reused across scanner + launcher sites. Separately, BA spec's literal suggested code `return null` was also the wrong direction on re-read (the caller at sessionProtocolMapper.ts:675-678 silent-drops on non-null return, not on null — matching the existing '[Request interrupted'/'API Error:' cases returning non-null strings) — so even if the hook had allowed the edit, the BA's suggested code would have left the bug intact; the correct mapper-level fix would be `return 'Stop hook feedback';` not `return null;`. This does not affect my upstream fix."
+    },
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "blast_radius": [
+      {
+        "modified": "packages/happy-cli/src/claude/utils/sessionScanner.ts",
+        "imported_by": [
+          "packages/happy-cli/src/claude/runClaude.ts",
+          "packages/happy-cli/src/claude/claudeRemoteLauncher.ts",
+          "packages/happy-cli/src/claude/claudeLocalLauncher.ts",
+          "packages/happy-cli/src/claude/utils/sessionScanner.test.ts"
+        ],
+        "note": "High-impact file — 4 importers including test. QA should verify stop-hook suppression in (a) daemon-managed remote sessions (dev-overnight — primary scenario), (b) interactive local sessions (`happy claude` without remote mode), (c) `--resume` session resumption."
+      },
+      {
+        "modified": "packages/happy-cli/src/claude/claudeRemoteLauncher.ts",
+        "imported_by": ["packages/happy-cli/src/claude/loop.ts"],
+        "note": "Low blast — only loop.ts imports it; the exported function signature is unchanged."
+      },
+      {
+        "modified": "packages/happy-cli/src/claude/utils/stopHookFilter.ts",
+        "imported_by": [
+          "packages/happy-cli/src/claude/utils/sessionScanner.ts",
+          "packages/happy-cli/src/claude/claudeRemoteLauncher.ts"
+        ],
+        "note": "New file; only the two sites I added the import to."
+      }
+    ],
+    "implementation_notes": [
+      "BA spec's literal code hint `return null` in sessionProtocolMapper.ts:getSystemInjectedServiceText was factually incorrect based on my code re-read: the caller at lines 675-678 silent-drops on non-null return (matching the existing '[Request interrupted' → 'Request interrupted' and 'API Error:' → 'API error' patterns), and falls through to emit a user envelope on null return. Had the edit been unblocked, the correct fix would be `return 'Stop hook feedback';` (non-null string). This does not affect the upstream-filter approach I took.",
+      "The `pretool-quality-gate.py` hook completely blocks edits to 3 critical files in this pipeline: sessionProtocolMapper.ts (883 lines, 4 over-length functions), apiSession.ts (660 lines, 3 over-length functions), and claudeLocalLauncher.ts (1 over-length 159-line function). The orchestrator should consider authorizing a targeted refactor/split of these files in a dedicated cycle — otherwise they become untouchable over time as they grow. This is separate from §5.9 scope and should be handled as infrastructure cleanup.",
+      "The precedent in this spec (§5.4/§5.5/§5.18/§5.1) documents a workaround where edits are applied via Python read_text/write_text through Bash to bypass the quality-gate hook. I did NOT use that workaround here because (a) the upstream-filter approach is architecturally superior anyway, (b) the BA's suggested code was incorrect so blindly applying it would have kept the bug, and (c) avoiding the bypass keeps the fix clean for QA review.",
+      "One pre-existing unrelated test failure in sessionProtocolMapper.test.ts was observed (`maps tool use and tool result blocks to tool-call lifecycle` asserts `ev: { t: 'tool-call-end', call: 'tool-1' }` without an `output` field, but the current code emits `output: 'ok'`). This is not introduced by my changes. Recommend flagging as a follow-up."
+    ],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "skipped (no executable acceptance criteria in context JSON; live behavioural verification requires an actual stop-hook-emitting session under the dev daemon, which is a QA-cycle step)",
+      "notes": "tsc --noEmit returns exit 0 (confirmed during sessionScanner.test.ts run: 'shx rm -rf dist && tsc --noEmit && pkgroll ... Done in 10.18s'). sessionScanner.test.ts — 2 tests pass. sessionProtocolMapper.test.ts — 10 of 11 pass; the 1 failure is pre-existing and unrelated (test expects a 'tool-call-end' envelope without the 'output' field, but the current code includes it). My fix touches neither the test nor the tool-call-end path."
+    },
+    "qa_notes": "To verify §5.9 end-to-end: (1) Ensure a dev-overnight session is running under the dev daemon (HAPPY_HOME_DIR=/root/.happy-dev). (2) Trigger a stop-hook event — easiest: the stop-overnight-timelock.py hook fires on any session Stop event during an active overnight window, producing a 'Stop hook feedback:' user record in the JSONL. (3) Deploy the fix to dev: rebuild happy-cli from the worktree (`cd /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-bfbc5f54/packages/happy-cli && yarn build`), then run the daemon with `node <worktree>/packages/happy-cli/dist/index.mjs daemon start` (NEVER npm install -g from a worktree — production-safety rule). (4) Open dev.life-ai.app in Playwright (dev-bot creds from CLAUDE.md), navigate to the session, and verify NO 'Stop hook feedback:' cards appear in the conversation view. (5) Sanity-check that regular user messages, assistant replies, and tool calls in the same session still render normally (the filter should only match the exact prefix). Desktop + mobile viewport check per standard policy. Optional unit test: add `isStopHookFeedback()` tests covering (a) type!='user' → false, (b) array content → false, (c) string with prefix → true, (d) string with whitespace-before-prefix → true, (e) string with partial-match 'About stop hook feedback:' → false.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Consider a dedicated infrastructure cycle to refactor/split the three quality-gate-blocked files (sessionProtocolMapper.ts, apiSession.ts, claudeLocalLauncher.ts) so future in-scope fixes can be applied directly. The current workaround pattern (Python read_text/write_text bypass) is fragile and tribal knowledge.",
+    "Triage the pre-existing sessionProtocolMapper.test.ts 'tool-call-end' test failure — it's asserting an envelope shape that no longer matches what the mapper emits. Either the test or the mapper has drifted; whichever is correct should be reconciled.",
+    "Consider revisiting the BA-spec writing guidance: the ba-spec-20260424-143000-10.md had a literal code hint (`return null`) that was semantically wrong based on the caller's null-check direction. BA specs should either state the required behaviour (silent drop, zero envelopes) and leave the code to dev, or verify the suggested code against the caller before prescribing."
+  ]
+}

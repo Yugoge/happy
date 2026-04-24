@@ -1,0 +1,139 @@
+{
+  "request_id": "dev-20260424-143000-6",
+  "ba_spec": "docs/dev/ba-spec-20260424-143000-6.md",
+  "context_json": "docs/dev/context-20260424-143000-6.json",
+  "spec_file": "docs/dev/specs/spec-20260424-084848.md",
+  "spec_section": "§5.2",
+  "verdict": "pass",
+  "verified_at": "2026-04-24T14:35:00+00:00",
+  "dimensions": {
+    "evidence": {
+      "status": "pass",
+      "verified_claims": [
+        {
+          "claim": "MAX_CONTEXT_SIZE = 190000 at AgentInput.tsx:85",
+          "verified": true,
+          "evidence": "AgentInput.tsx:85 contains 'const MAX_CONTEXT_SIZE = 190000;' — confirmed via Read tool"
+        },
+        {
+          "claim": "getContextWarning at AgentInput.tsx:292-305 uses MAX_CONTEXT_SIZE as sole denominator",
+          "verified": true,
+          "evidence": "AgentInput.tsx:293 contains 'const percentageUsed = (contextSize / MAX_CONTEXT_SIZE) * 100;' — confirmed via Read tool"
+        },
+        {
+          "claim": "Math.max(0, Math.min(100, 100 - percentageUsed)) clamps to 0 when percentageUsed > 100",
+          "verified": true,
+          "evidence": "AgentInput.tsx:294 confirmed verbatim; arithmetic: for contextSize=500000, percentageUsed = 500000/190000*100 = 263.1%, percentageRemaining = max(0, min(100, 100-263.1)) = max(0, -163.1) = 0"
+        },
+        {
+          "claim": "Call site at AgentInput.tsx:357-359 passes contextSize without model context",
+          "verified": true,
+          "evidence": "AgentInput.tsx:357-359 confirms 'getContextWarning(props.usageData.contextSize, props.alwaysShowContextSize ?? false, theme)' with no model-aware parameter"
+        },
+        {
+          "claim": "reducer.ts:1233 computes contextSize correctly (cache_creation + cache_read + input_tokens)",
+          "verified": true,
+          "evidence": "reducer.ts:1233 confirmed via grep: 'contextSize: (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0) + usage.input_tokens'"
+        }
+      ],
+      "math_trace_validated": true
+    },
+    "scope": {
+      "status": "pass_with_note",
+      "enumeration_of_1m_variants": {
+        "hardcoded_in_modelModeOptions": [],
+        "note": "getClaudeModelModes() at modelModeOptions.ts:73-80 returns ONLY 'default', 'opus', 'sonnet', 'haiku' — ZERO 1M variants are hardcoded. BA correctly identified that 1M variants arrive dynamically via metadata.models (server-provided) through getAvailableModels() at modelModeOptions.ts:137-150. The BA spec's R3 and R4 correctly address both sources: hardcoded picker keys AND server-provided currentModelCode strings.",
+        "detection_pattern_coverage": "BA's regex /1m$/i.test(modelKey) || modelKey.includes('-1m-') || modelKey.includes(':1m') covers: (a) claude-opus-4-7-20260301-1m → matches /1m$/i, (b) claude-3-7-sonnet-20250219:thinking:1m → matches :1m, (c) a hypothetical claude-foo-1m-bar → matches -1m-. Pattern is adequate for user's 'all 1M series' scope."
+      },
+      "MAX_CONTEXT_SIZE_occurrences_verified": "grep of entire packages/happy-app/sources found MAX_CONTEXT_SIZE only at AgentInput.tsx:85 (definition) and AgentInput.tsx:293 (use) — matches BA's Contract B claim of 'no other file references it'",
+      "user_complaint_scope": "全部1M系列模型 (all 1M series models) — BA's detection pattern handles this via substring match, not by enumerating individual model IDs"
+    },
+    "investigation": {
+      "status": "pass",
+      "thresholds_verified_percentage_based": true,
+      "threshold_evidence": "AgentInput.tsx:296 uses 'percentageRemaining <= 5' and :298 uses 'percentageRemaining <= 10'. Both thresholds operate on the computed percentage, NOT on absolute token counts. Once the denominator is per-model-correct, the 5%/10% thresholds trigger at correct absolute token points for each model. BA explicitly documents preservation in R5 and AC3.",
+      "explicit_ac_for_thresholds": "AC3 in BA spec: 'GIVEN any session model WHEN percentageRemaining <= 5 THEN text color is theme.colors.warningCritical; WHEN percentageRemaining <= 10 THEN theme.colors.warning' — verifies threshold preservation",
+      "non_1m_behavior_shift_disclosed": true,
+      "disclosure_location": "BA spec R5 explicitly documents the 190000 → 200000 shift for non-1M Claude models; 'Edge Cases' section line on '190 000 → 200 000 for non-1M models' flags it as 'minor improvement' and asks QA to verify warning band shifts slightly for existing sessions"
+    },
+    "file_accuracy": {
+      "status": "pass",
+      "files_checked": [
+        {
+          "path": "packages/happy-app/sources/components/AgentInput.tsx",
+          "exists": true,
+          "verified_lines": [85, 292, 293, 294, 296, 298, 357, 358, 359]
+        },
+        {
+          "path": "packages/happy-app/sources/components/modelModeOptions.ts",
+          "exists": true,
+          "verified_lines": [73, 74, 75, 76, 77, 78, 79, 80, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150]
+        },
+        {
+          "path": "packages/happy-app/sources/sync/reducer/reducer.ts",
+          "exists": true,
+          "verified_lines": [1233],
+          "note": "Only referenced as 'already correct, not modified' — confirmed contextSize computation is sound"
+        },
+        {
+          "path": "packages/happy-app/sources/sync/storageTypes.ts",
+          "exists": true,
+          "verified_lines": [13],
+          "note": "currentModelCode: z.string().optional() at line 13 confirms the metadata field BA relies on for 'default' key fallback"
+        },
+        {
+          "path": "packages/happy-app/sources/-session/SessionView.tsx",
+          "exists": true,
+          "verified_lines": [204],
+          "note": "resolveCurrentOption(models, [session.modelMode, session.metadata?.currentModelCode, getDefaultModelKey(flavor)]) confirms currentModelCode is indeed the fallback source BA cites"
+        }
+      ]
+    }
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "scope_expansion_disclosure",
+      "finding": "R5 shifts non-1M Claude models from 190000 denominator to 200000 — a behavior change outside the user's verbatim complaint (which only mentioned 1M models showing 0%). BA discloses this in R5 and 'Edge Cases' but positions it as 'minor improvement' rather than flagging it as a scope expansion requiring user confirmation.",
+      "recommendation": "Dev should implement as BA specifies (risk is low — warning thresholds are percentage-based). QA should explicitly verify non-1M sessions in Cycle 1: a haiku/sonnet/opus session at ~100000 tokens should show ~50% left post-fix (was ~47.4% with 190000 denominator).",
+      "blocking": false
+    },
+    {
+      "severity": "minor",
+      "category": "technical_hint_precision",
+      "finding": "R2 prose says 'falling back to the raw currentModelCode from session metadata if available' — this is ambiguous. The Technical Hints code block at lines 152-161 shows the precise logic: `(props.modelMode?.key && props.modelMode.key !== 'default') ? props.modelMode.key : (props.metadata?.currentModelCode ?? null)`. Fallback only fires when key is 'default' or missing.",
+      "recommendation": "Dev MUST follow the Technical Hints code pattern (line 152-161), not just the R2 prose. The logic matches AC5 exactly.",
+      "blocking": false
+    },
+    {
+      "severity": "info",
+      "category": "diagnosis_completeness_flag",
+      "finding": "Context JSON's diagnosis_completeness: 'incomplete (inferred only — runtime DevTools observation not performed; root cause is mechanically certain from the arithmetic but no live browser session was measured)'. BA acknowledges no live browser reproduction was done.",
+      "recommendation": "Acceptable because the bug is arithmetically deterministic (percentageUsed=263% always clamps to 0% left). QA MUST perform live browser verification with a 1M session post-fix to validate AC1 (500k tokens → ~50% left).",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "overall_assessment": "BA spec is thorough and accurate. All four dimensions verified against source code. Root cause is mechanically certain (division arithmetic). The fix shape (per-model lookup + thread resolved denominator through getContextWarning) is minimal and targeted. Technical Hints provide implementation-ready code. Acceptance criteria AC1-AC5 are verifiable and cover: 1M non-degenerate percentage (AC1), non-1M no regression (AC2), warning thresholds preserved (AC3), lookup coverage (AC4), 'default' key fallthrough (AC5).",
+    "dimensions_passed": 4,
+    "dimensions_failed": 0,
+    "objections_count": 3,
+    "blocking_objections": 0,
+    "ready_for_dev": true,
+    "notes_for_dev": [
+      "Follow Technical Hints code block (BA spec lines 152-174) verbatim — the prose in R2 is less precise than the code",
+      "Place getModelContextWindow in modelModeOptions.ts (co-location requirement)",
+      "Import getModelContextWindow into AgentInput.tsx via existing import path",
+      "Remove MAX_CONTEXT_SIZE constant entirely; do not leave dead code",
+      "getContextWarning signature must accept maxContextSize as new parameter (default 200_000 for transition safety)"
+    ],
+    "notes_for_qa": [
+      "AC1: test a 1M session (e.g., model key matching /1m$/i) with contextSize ≈ 500000 tokens — expect ~50% left",
+      "AC2: test a non-1M session (e.g., haiku/sonnet/opus) with contextSize ≈ 100000 tokens — expect ~50% left (was ~47.4% with old 190000 denominator)",
+      "AC3: verify warning color behavior at threshold boundaries on both model families",
+      "AC5: test a session where modelMode.key='default' and metadata.currentModelCode is a 1M ID — expect 1M denominator used",
+      "Live browser verification REQUIRED — not just code inspection",
+      "Dev build MUST be rebuilt from worktree using Dockerfile.webapp with HAPPY_SERVER_URL=https://api-dev.life-ai.app, NEVER api.life-ai.app"
+    ]
+  }
+}

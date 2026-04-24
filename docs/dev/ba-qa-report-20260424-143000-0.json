@@ -1,0 +1,93 @@
+{
+  "request_id": "dev-20260424-143000-0",
+  "spec_section": "§5.17",
+  "verdict": "pass",
+  "summary": "BA's analysis is technically accurate and evidence-backed, with two minor scope classifications worth flagging (kbd as Should-have, ordered list styling as Could-have) that do not invalidate the spec overall.",
+  "dimensions": {
+    "evidence_quality": {
+      "verdict": "pass",
+      "notes": "Every claim about missing primitives independently verified by QA via direct Read of the four source files plus Grep pattern 'blockquote|strikethrough|~~|task.list|\\[x\\]|\\[ \\]|<kbd|&lt;|&amp;|&gt;' scoped to packages/happy-app/sources/components/markdown/ which returned zero matches — confirming BA's claim of total absence.",
+      "verified_claims": [
+        "parseMarkdown.ts:42-43 — MarkdownSpan.styles union = ('italic' | 'bold' | 'semibold' | 'code')[] — confirmed exact match, 'strikethrough' absent",
+        "parseMarkdown.ts:3-39 — MarkdownBlock union includes text/header/list/numbered-list/code-block/mermaid/latex/horizontal-rule/options/table/image — confirmed NO 'blockquote' or 'task-list' member",
+        "parseMarkdownSpans.ts:4 — pattern regex = /(\\*\\*(.*?)(?:\\*\\*|$))|(\\*(.*?)(?:\\*|$))|(\\[([^\\]]+)\\](?:\\(([^)]+)\\))?)|(`(.*?)(?:`|$))/g — confirmed NO ~~ or <kbd> group",
+        "parseMarkdownBlock.ts:163-171 — list branch uses `trimmed.startsWith('- ')` and `lines[index].trim().startsWith('- ')` — confirmed trim() kills indentation info, no task-list detection, no depth tracking",
+        "parseMarkdownBlock.ts:53-188 — full function scanned — confirmed NO '>'-prefix branch, NO HTML entity decode pass",
+        "MarkdownView.tsx (760 lines) — grep for Blockquote|TaskList|strikethrough|line-through|decode|entity|kbd|checkbox (case-insensitive) returned zero matches — confirmed NO RenderBlockquoteBlock, NO RenderTaskListBlock, NO strikethrough style, NO entity decode"
+      ]
+    },
+    "scope_alignment": {
+      "verdict": "pass_with_observations",
+      "notes": "BA preserved the user's verbatim in `requirement.original` AND in `requirements_decomposition[].source_phrase`. BA's claim 'headings H1-H6 already work, user was pointing at numbered list items' is independently verified by QA reading parseMarkdownBlock.ts:62-67 (header loop) and parseMarkdownSpans.ts is used for header content — the code path DOES handle # through ###### correctly. The user's `包括一级标题二级标题等` (including H1 H2 etc) is an example list, not an exclusive list, and the reference screenshots cited in §5.17 clearly show numbered-title lines (1.1, 1.2, 1.3) being the failing content, not `# heading` syntax. BA's interpretation is defensible and is explicitly disclosed in the evidence section rather than silently re-scoped.",
+      "observations": [
+        "BA correctly keeps R6 (headings) in Must-have as 'verify no regression' — NOT dropped from scope",
+        "BA's 'user confusion with numbered list items' hypothesis is backed by the reference screenshot content and by code evidence (lines 62-67 work); it is NOT an undocumented scope shrink"
+      ]
+    },
+    "investigation_completeness": {
+      "verdict": "pass_with_observations",
+      "notes": "All 7 primitives listed in §5.17 extracted acceptance points are addressed in BA's requirements. Classification concerns exist but do not constitute missing investigation — BA identified ALL missing primitives and mapped each to an AC.",
+      "primitive_coverage_matrix": [
+        {"spec_primitive": "headings H1-H6 (§5.17 #1)", "ba_requirement": "R6 (verify no regression)", "covered": true, "severity_classification": "must-have"},
+        {"spec_primitive": "strikethrough (§5.17 #2)", "ba_requirement": "R1", "covered": true, "severity_classification": "must-have"},
+        {"spec_primitive": "task lists (§5.17 #3)", "ba_requirement": "R2", "covered": true, "severity_classification": "must-have"},
+        {"spec_primitive": "nested unordered list (§5.17 #4)", "ba_requirement": "R3", "covered": true, "severity_classification": "must-have"},
+        {"spec_primitive": "ordered list styling (§5.17 #5)", "ba_requirement": "R10", "covered": true, "severity_classification": "could-have (DOWNGRADED)"},
+        {"spec_primitive": "blockquote (§5.17 #6)", "ba_requirement": "R4 + R7 (nested)", "covered": true, "severity_classification": "must-have + should-have"},
+        {"spec_primitive": "<kbd> (§5.17 #7a)", "ba_requirement": "R8", "covered": true, "severity_classification": "should-have (POTENTIALLY DOWNGRADED)"},
+        {"spec_primitive": "HTML entities (§5.17 #7b)", "ba_requirement": "R5", "covered": true, "severity_classification": "must-have"},
+        {"spec_primitive": "inline styles don't regress (§5.17 #8)", "ba_requirement": "R6 (implicit AC8)", "covered": true, "severity_classification": "must-have"}
+      ],
+      "classification_observations": [
+        "§5.17 point 7 groups <kbd> and &lt;/&gt; entities together in the user's requirement. BA split them: entities in R5 (must-have) but <kbd> in R8 (should-have). User's verbatim treats them as the same complaint — classifying them at different priority levels is a minor risk that dev/QA should be aware of. If only R5 is implemented, the user may still complain that <kbd> renders raw. BA's AC7 acknowledges this by accepting EITHER keycap rendering OR clean literal decoded text — the latter is achieved via HTML-tag stripping, which is a reasonable fallback.",
+        "§5.17 point 5 (ordered list visual styling) was classified as R10 could-have. Parser handling of ordered lists works (verified lines 148-159), so user complaint is cosmetic. BA explicitly labels this 'L1 cosmetic gap, not L3 parser gap' in evidence — defensible but does mean dev can legitimately skip it."
+      ]
+    },
+    "affected_file_accuracy": {
+      "verdict": "pass",
+      "notes": "All four affected file paths and their stated line ranges verified accurate against actual source.",
+      "verified_files": [
+        {"path": "packages/happy-app/sources/components/markdown/parseMarkdown.ts", "exists": true, "line_count": 49, "ba_claim_valid": true},
+        {"path": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts", "exists": true, "line_count": 88, "ba_claim_valid": true, "note": "BA said 88 lines — exact match"},
+        {"path": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts", "exists": true, "line_count": 189, "ba_claim_valid": true, "note": "BA said 188 — actual is 189 (off by 1, trivial)"},
+        {"path": "packages/happy-app/sources/components/markdown/MarkdownView.tsx", "exists": true, "line_count": 760, "ba_claim_valid": true}
+      ]
+    }
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "dimension": "investigation_completeness",
+      "issue": "§5.17 point 7 groups <kbd> and HTML entities as one complaint item. BA split them into R5 (must-have, entities) and R8 (should-have, kbd). If dev skips R8, the user's verbatim is only partially met. Recommend upgrading R8 to Must-have OR ensuring AC7's 'clean literal decoded text' fallback path is implemented even in the Must-have scope.",
+      "impact": "Low — BA's AC7 explicitly accepts two alternative implementations (keycap style OR clean decoded literal), and the simpler fallback can piggyback on R5 entity-decode + HTML-tag stripping.",
+      "blocks_release": false
+    },
+    {
+      "severity": "minor",
+      "dimension": "investigation_completeness",
+      "issue": "§5.17 point 5 (ordered list visual styling) is only Could-have (R10). User complained 'ordered list should render with list-item styling (not as two plain text lines)'. BA correctly notes parser works, so this is cosmetic, but user complaint is NOT null.",
+      "impact": "Low — parser already handles ordered lists correctly; visual styling is an incremental improvement. Dev can legitimately defer.",
+      "blocks_release": false
+    },
+    {
+      "severity": "informational",
+      "dimension": "scope_alignment",
+      "issue": "BA's headings-already-work claim is based on code inspection (lines 62-67), not Playwright observation. BA disclosed this as 'inferred' in `evidence_type`. QA should verify no heading regression during implementation QA.",
+      "impact": "None — BA was transparent about inference vs observation",
+      "blocks_release": false
+    }
+  ],
+  "strengths": [
+    "BA verified each missing primitive by reading source at exact line ranges (not just grepping)",
+    "BA disclosed the 'inferred' evidence type rather than claiming observed evidence",
+    "BA preserved the user's verbatim in requirement.original AND each requirements_decomposition source_phrase",
+    "BA identified the shared-code dependency with §5.16 and flagged merge-order coordination",
+    "BA's edge-case analysis (~~ inside code span, task list before plain list, &nbsp; in RN, shared type union) is thorough",
+    "BA's affected file line ranges are accurate to within one line",
+    "BA added R10 (could-have) specifically to address the ordered-list visual styling the user complained about, rather than silently dropping it"
+  ],
+  "recommendation": "ACCEPT BA spec. Forward to dev. Dev should (1) prioritize a minimal <kbd> handling as part of R5 entity-decode path to satisfy user's verbatim, and (2) consider R10 (ordered list cosmetic styling) if cheap to include alongside R3 nested-list change since both touch RenderListBlock.",
+  "verified_against_complaint": true,
+  "verified_location_keywords": ["markdown", "parseMarkdown.ts", "parseMarkdownSpans.ts", "parseMarkdownBlock.ts", "MarkdownView.tsx", "blockquote", "strikethrough", "task-list", "kbd", "html-entities"],
+  "location_overlap": ["markdown", "~~", "[x]", "[ ]", ">", "<kbd>", "&lt;", "&gt;", "一级标题", "二级标题"]
+}
