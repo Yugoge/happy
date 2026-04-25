@@ -583,49 +583,6 @@ cd /root/deploy && docker compose up -d happy-server-dev
 | Dev DB | `docker exec happy-postgres-dev psql -U yuge -d happydb_dev -c "SELECT 1"` | success |
 | Prod DB | `docker exec happy-postgres psql -U yuge -d happydb -c "SELECT 1"` | success (DIFFERENT) |
 
-## Dev-Overnight Verification Protocol
-
-This section makes the global "Long-Running Process Verification" rule concrete for happy-dev. Three classes of cycle, each with its own verification path:
-
-### Cycle classes
-
-| Class | Targets | Restart needed? | Verification path |
-|---|---|---|---|
-| **A: happy-app (web)** | `packages/happy-app/**` | No — Expo HMR or `docker compose up -d happy-web-dev` | Playwright on `http://localhost:8097` |
-| **B: happy-server** | `packages/happy-server/**` | Yes — `docker compose up -d happy-server-dev` (container restart, daemons unaffected) | `curl http://localhost:3005/health` then UI |
-| **C: happy-cli daemon** | `packages/happy-cli/src/daemon/**`, `packages/happy-cli/src/api/apiMachine.ts`, anything loaded by the live daemon process | **YES — and MUST be PAUSE-PENDING-USER or sandbox-only for subagents** | see below |
-
-### Cycle C — daemon code changes
-
-A subagent that changes daemon code MUST pick exactly one of:
-
-1. **Sandbox daemon mode** (preferred for autonomous cycles):
-   ```bash
-   SANDBOX_HOME=$(mktemp -d /tmp/happy-sandbox-XXXX)
-   cp /root/.happy-dev/access.key $SANDBOX_HOME/   # if testing with dev account
-   HAPPY_HOME_DIR=$SANDBOX_HOME \
-   HAPPY_SERVER_URL=http://localhost:3005 \
-   IS_SANDBOX=1 \
-     node /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index.mjs daemon start
-   ```
-   Verify the change against the sandbox daemon. The live `happy-daemon-dev.service` is untouched.
-
-2. **PAUSE-PENDING-USER**: output a REQUEST naming the SOP command (`/root/bin/safe-daemon-restart.sh dev --reason "<text>"`) and stop. User runs it.
-
-**Forbidden** for subagents (in any cycle): direct `systemctl restart happy-daemon-*`, daemon HTTP `POST /stop`, `kill` against `happy-cli` PIDs, writing the restart command into a `/tmp/*.sh` to bypass the bash-safety hook.
-
-### safe-daemon-restart SOP (user-only entry point)
-
-`/root/bin/safe-daemon-restart.sh <dev|default|jade> [--reason <text>] [--no-confirm] [--prod-acknowledged]` is the only sanctioned daemon restart path. It runs pre-flight save → confirmation gate → graceful stop → start → post-flight recover + audit log. Subagents must never invoke it directly; they output a REQUEST and let the user run it from a TTY.
-
-### Hook bypass — project-specific consequences
-
-The global "Subagent Hook Discipline" rule applies. In happy-dev specifically, the bash-safety hook blocks: `npm install -g`, `/usr/bin/happy`, `systemctl restart` against non-dev units, `kill` with bare PIDs, writes to `/usr/lib/node_modules/happy*`, and exact-name matches on `happy-session-recovery.sh`. If a hook rejects an operation here, the correct action is REQUEST to user — never wrap in `nohup`/`systemd-run`/`/tmp/*.sh`.
-
-### Why hook files may contain project-specific names while skill files may not
-
-Hooks are **execution artifacts** — they are configuration that enforces rules at runtime. Project-specific service names (`happy-daemon-dev`, etc.) appearing inside a hook variable are configuration data, not a layering violation. Skill / command / agent files are **declarative artifacts** — documentation that ships across projects. A project-specific identifier in a skill file pollutes other projects that import the same skill set. Therefore: project names live freely in hooks (`~/.claude/hooks/*.sh`) and in this project's CLAUDE.md, but never in shared skill / command / agent prompts.
-
 ### Playwright Debug for Dev Web
 
 **CRITICAL**: The web app needs THREE localStorage entries to work properly:
