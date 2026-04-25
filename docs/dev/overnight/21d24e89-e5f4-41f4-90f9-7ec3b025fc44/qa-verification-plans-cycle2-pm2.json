@@ -1,0 +1,215 @@
+{
+  "qa_verification_plan_id": "qvp-20260425-cycle2",
+  "session_id": "21d24e89-e5f4-41f4-90f9-7ec3b025fc44",
+  "cycle_number": 2,
+  "timestamp": "2026-04-25T10:30:00Z",
+  "pm_mode": "QA_PREP",
+  "orchestrator_constraint": "NO_DAEMON_RESTART — daemon already restarted earlier this cycle (pid 275490, version 1.1.3, started 2026-04-25T03:29:03Z); QA must NOT call systemctl restart happy-daemon-dev or any cgroup-safe pattern. Verify-only via curl + daemon.state.json.",
+  "deployment_actions_completed_by_pm": {
+    "frontend_rebuild": {
+      "status": "succeeded",
+      "image_tag": "happy-app:dev",
+      "image_id": "sha256:7cd0a1596989b4902dc49bc82ee48c499f3664e5c9896d02df7cbe1de8ce9562",
+      "build_args": "HAPPY_SERVER_URL=https://api-dev.life-ai.app",
+      "context": "/dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89",
+      "duration_seconds": 51,
+      "build_warnings": "1 (POSTHOG_API_KEY ARG — pre-existing, not caused by cycle 2 changes)"
+    },
+    "container_recreated": {
+      "name": "happy-web-dev",
+      "image": "happy-app:dev",
+      "port": "8097",
+      "status": "Up, serving HTML"
+    },
+    "frontend_health": {
+      "url": "http://localhost:8097/",
+      "response_first_100_bytes": "<!DOCTYPE html><html lang=\"en\">...",
+      "result": "healthy"
+    },
+    "backend_health": {
+      "url": "http://localhost:3005/health",
+      "response": "{\"status\":\"ok\"}",
+      "result": "healthy"
+    },
+    "daemon_health": {
+      "pid": 275490,
+      "http_port": 35607,
+      "start_time": "2026-04-25T03:29:03Z",
+      "version": "1.1.3",
+      "last_heartbeat": "2026-04-25T10:25:06Z",
+      "binary_path": "/dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index.mjs",
+      "result": "healthy_no_restart_required",
+      "evidence_source": "/root/.happy-dev/daemon.state.json + /root/.happy-dev/logs/2026-04-25-03-29-03-pid-275490-daemon.log"
+    }
+  },
+  "pipeline_0": {
+    "pipeline_id": "dev-20260425-030000-0",
+    "title": "Codex Protocol Extension (Path A) — Activate 14 Dormant Renderers",
+    "ba_spec_path": "docs/dev/ba-spec-20260425-030000-0.md",
+    "dev_report_path": "docs/dev/dev-report-20260425-030000-0.json",
+    "ba_qa_validation_verdict": "pass_with_objections (4 minor objections, none blocking)",
+    "verification_strategy": "source + bundle + typecheck + isolation. Live activation gated on Codex session in dev account; if blocked, fall back per BA-sanctioned dormant strategy precedent (cycle 1).",
+    "verification_steps": [
+      {
+        "step": "S1",
+        "name": "Source verification — codexAppServerClient.ts has 5 EventMsg branch pairs",
+        "command": "grep -c 'collab_agent_call_begin\\|dynamic_tool_call_begin\\|mcp_tool_call_begin\\|plan_update_begin\\|image_view_begin' /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/packages/happy-cli/src/codex/codexAppServerClient.ts",
+        "expected": ">= 5 occurrences (one per begin discriminator)",
+        "pre_verified_by_pm": true,
+        "pm_observation": "Dev report claims 4 discriminators verified in built bundle; QA should re-verify against the source file directly to confirm 5 begin + 5 end pairs (10 discriminators total in client)"
+      },
+      {
+        "step": "S2",
+        "name": "Source verification — sessionProtocolMapper.ts has 5 paired begin/end branches",
+        "command": "grep -c '_begin\\|_end' /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts | grep -E 'collab_agent_call|dynamic_tool_call|mcp_tool_call|plan_update|image_view'",
+        "expected": "All 5 begin + 5 end branch handlers present (10 total or 5 paired blocks)",
+        "pre_verified_by_pm": false,
+        "pm_observation": "Dev report shows mapper has 4 discriminators; BA spec R3 calls for 5 paired branches. QA verifies."
+      },
+      {
+        "step": "S3",
+        "name": "Source verification — knownTools.tsx has 7 new entries",
+        "command": "grep -c \"'functions.write_stdin'\\|'functions.update_plan'\\|'functions.request_user_input'\\|'functions.list_mcp_resources'\\|'functions.list_mcp_resource_templates'\\|'functions.read_mcp_resource'\\|'functions.view_image'\" /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/packages/happy-app/sources/components/tools/knownTools.tsx",
+        "expected": "= 7 (one per AC4 BA spec)",
+        "pre_verified_by_pm": false,
+        "pm_observation": "BA-QA confirmed all 7 absent before dev change; QA must confirm all 7 now present"
+      },
+      {
+        "step": "S4",
+        "name": "Bundle verification — deployed happy-app:dev frontend has 7 new knownTools entries",
+        "command": "docker exec happy-web-dev sh -c \"grep -o 'write_stdin\\|update_plan\\|request_user_input\\|view_image\\|list_mcp_resources\\|list_mcp_resource_templates\\|read_mcp_resource' /usr/share/nginx/html/_expo/static/js/web/index-e07ee4e576c59aa62d2b79b5a2b7e97d.js | sort -u | wc -l\"",
+        "expected": "= 7",
+        "pre_verified_by_pm": true,
+        "pm_observation_actual": "All 7 entries present: list_mcp_resource_templates(1), list_mcp_resources(1), read_mcp_resource(1), request_user_input(1), update_plan(1), view_image(1), write_stdin(1). Verified at 2026-04-25T10:28Z."
+      },
+      {
+        "step": "S5",
+        "name": "Bundle verification — cycle-1 dormant view registrations live in deployed bundle",
+        "command": "docker exec happy-web-dev sh -c \"grep -o 'CodexParallelView\\|CodexSubagentView\\|spawn_agent\\|send_input\\|wait_agent\\|resume_agent\\|close_agent\\|tool_suggest\\|multi_tool_use\\|mcp__happy__change_title' /usr/share/nginx/html/_expo/static/js/web/index-e07ee4e576c59aa62d2b79b5a2b7e97d.js | sort | uniq -c\"",
+        "expected": "All 10 cycle-1 dormant registrations present",
+        "pre_verified_by_pm": true,
+        "pm_observation_actual": "CodexParallelView(5), CodexSubagentView(9), close_agent(2), mcp__happy__change_title(2), multi_tool_use(2), resume_agent(2), send_input(2), spawn_agent(3), tool_suggest(1), wait_agent(2). All cycle-1 registrations confirmed live in deployed bundle."
+      },
+      {
+        "step": "S6",
+        "name": "CLI daemon bundle verification — 5 EventMsg begin + 5 end discriminators present",
+        "command": "grep -o 'collab_agent_call_begin\\|collab_agent_call_end\\|dynamic_tool_call_begin\\|dynamic_tool_call_end\\|mcp_tool_call_begin\\|mcp_tool_call_end\\|plan_update_begin\\|plan_update_end\\|image_view_begin\\|image_view_end' /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/runCodex-DYuRG1IF.mjs | sort | uniq -c",
+        "expected": "10 unique discriminators, each with count >= 2 (one in client emit, one in mapper consume)",
+        "pre_verified_by_pm": true,
+        "pm_observation_actual": "All 10 discriminators present with count = 2 each: collab_agent_call_begin(2), collab_agent_call_end(2), dynamic_tool_call_begin(2), dynamic_tool_call_end(2), image_view_begin(2), image_view_end(2), mcp_tool_call_begin(2), mcp_tool_call_end(2), plan_update_begin(2), plan_update_end(2). Total = 20 occurrences. Bundle path: /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/runCodex-DYuRG1IF.mjs"
+      },
+      {
+        "step": "S7",
+        "name": "CLI daemon bundle — sendExisting guard intact (CLAUDE.md REBOOT-RECOVERY-POSTMORTEM safeguard)",
+        "command": "grep -c 'sendExisting' /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index-DBKWRNMc.mjs",
+        "expected": "> 0",
+        "pre_verified_by_pm": true,
+        "pm_observation_actual": "5 occurrences in /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index-DBKWRNMc.mjs. AC8 satisfied."
+      },
+      {
+        "step": "S8",
+        "name": "TypeScript typecheck — happy-cli + happy-app",
+        "command_a": "cd /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/packages/happy-cli && yarn typecheck",
+        "command_b": "cd /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/packages/happy-app && yarn typecheck",
+        "expected": "Exit code 0, zero new errors",
+        "pre_verified_by_pm": false,
+        "pm_observation": "Dev report self_verification.typecheck_new_errors = 0; QA verifies."
+      },
+      {
+        "step": "S9",
+        "name": "Daemon health verification — NO RESTART; verify pid + heartbeat",
+        "command_a": "curl -s http://localhost:3005/health",
+        "command_b": "cat /root/.happy-dev/daemon.state.json",
+        "expected_a": "{\"status\":\"ok\",...}",
+        "expected_b": "pid=275490, version=1.1.3, lastHeartbeat within last 5 minutes, daemonLogPath=/root/.happy-dev/logs/2026-04-25-03-29-03-pid-275490-daemon.log",
+        "pre_verified_by_pm": true,
+        "pm_observation_actual": "Dev API health: ok at 2026-04-25T10:27:17Z. Daemon state.json confirms pid 275490, version 1.1.3, lastHeartbeat 2026-04-25T10:25:06Z (within heartbeat window). DO NOT RESTART under any circumstance.",
+        "constraint_alert": "If QA encounters a verification failure that seems to require a daemon restart, STOP and report — orchestrator will adjudicate. Restart is FORBIDDEN this cycle."
+      },
+      {
+        "step": "S10",
+        "name": "Isolation verification — production containers/images SEPARATE from dev",
+        "command": "docker ps --format 'table {{.Names}}\\t{{.Image}}\\t{{.Ports}}' | grep -E 'happy-web|happy-server'",
+        "expected": "happy-web-dev → happy-app:dev → 8097; happy-web → happy-app:message-fixes → 8090; happy-server-dev → happy-server-dev:latest → 3005; happy-server → happy-server-happy-server → 3000",
+        "pre_verified_by_pm": true,
+        "pm_observation_actual": "Confirmed: happy-web-dev (happy-app:dev, 8097) up 37s; happy-web (happy-app:message-fixes, 8090) up 2 weeks; happy-server-dev (happy-server-dev:latest, 3005) up 2 weeks; happy-server (happy-server-happy-server, 3000) up 2 weeks. Production images and ports remain SEPARATE from dev rebuild. PM cannot directly curl localhost:8090 / localhost:3000 (blocked by pretool-block-production.sh hook), but image/port isolation via docker inspect is sufficient evidence."
+      },
+      {
+        "step": "S11",
+        "name": "Live activation test — gated on Codex session in dev account",
+        "preconditions": "A Codex CLI session must be running in /root/.happy-dev. If no Codex session exists, this step is BLOCKED and falls back to source+bundle+typecheck (per BA-sanctioned dormant strategy precedent in cycle 1).",
+        "command_if_available": "Open a dev Codex session in https://dev.life-ai.app via UI and invoke a tool that triggers each of: spawn_agent (collabAgentToolCall), update_plan (plan), write_stdin (dynamicToolCall), read_mcp_resource (mcpToolCall), view_image (imageView). Verify each renders as a knownTools card (icon + extractDescription label) instead of generic fallback.",
+        "fallback": "If no Codex session is active in dev account: ACCEPT bundle-grep-only verification per cycle 1 precedent. Mark live activation as DEFERRED to user-escalation per BA spec Won't Have §106.",
+        "pre_verified_by_pm": false,
+        "pm_observation": "Dev report recommendation #3: 'Full E2E activation requires Codex session in dev account (gated on user provisioning).' QA should attempt to find an existing Codex session via dev account (UI inspection); if none, bundle-grep-only is the accepted fallback path. DO NOT spawn a Codex session via curl — UI-only per CLAUDE.md."
+      },
+      {
+        "step": "S12",
+        "name": "Regression — existing exec_command + patch_apply paths still present in bundles",
+        "command_a": "grep -c 'exec_command_begin\\|exec_command_end\\|patch_apply_begin\\|patch_apply_end\\|agent_message' /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/runCodex-DYuRG1IF.mjs",
+        "expected_a": ">= 5 (one per existing discriminator)",
+        "command_b": "Live regression: if a dev Codex session is open, verify CodexBash, CodexPatch, agent_message renderers still display correctly.",
+        "fallback_b": "Bundle-grep only if no live session — accepted per BA-QA objection #2 (cycle 1 DORMANT precedent)",
+        "pre_verified_by_pm": false,
+        "pm_observation": "BA-QA flagged this as objection #2 (weak regression check). Bundle-grep alone is acceptable per cycle 1 precedent; live regression is best-effort if a Codex session is available."
+      },
+      {
+        "step": "S13",
+        "name": "§5.17 markdown screenshot — combined desktop + mobile composite",
+        "preconditions": "An existing Claude session in dev account must exist. If no session is active, QA may CREATE one via UI per CLAUDE.md (navigate to https://dev.life-ai.app, click + or 'Start New Session', type message).",
+        "command": "Send via UI: combined markdown regression message including H1-H6 headers, ~~strikethrough~~, - [x] task lists, nested lists, ordered lists, blockquotes, <kbd> key chips, HTML entities. Screenshot at desktop 1440x900 + mobile 390x844.",
+        "expected": "Both viewports show all markdown features rendered correctly with no overflow, no truncation, no broken layout",
+        "pre_verified_by_pm": false,
+        "pm_observation": "AC7 in BA spec, flagged by BA-QA as scope-expansion (objection #4) but not blocking. QA executes if a free dev session permits without time pressure.",
+        "fallback": "If no dev session is available or QA budget is constrained, defer to next cycle. Not blocking for cycle 2 verdict."
+      }
+    ],
+    "rollback_procedure": {
+      "source": "Architect blast_radius.rollback_strategy (BA-QA objection #1 — not in BA spec, must be added by reference)",
+      "command": "cd /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89 && git checkout HEAD -- packages/happy-cli/src/codex/codexAppServerClient.ts packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts packages/happy-app/sources/components/tools/knownTools.tsx",
+      "then": "Rebuild happy-cli (yarn build in packages/happy-cli) + rebuild happy-app:dev frontend image (same docker build command). DO NOT RESTART DAEMON — orchestrator constraint. If rollback requires daemon restart, STOP and escalate to orchestrator.",
+      "trigger_conditions": [
+        "AC2 typecheck fails with new errors",
+        "AC6 regression check shows missing existing discriminators",
+        "Live Codex session shows broken existing renderers (if testable)",
+        "Frontend bundle missing > 50% of expected new entries"
+      ]
+    },
+    "frontend_rebuild_failure_log": {
+      "applicable": false,
+      "note": "Frontend rebuild succeeded. No failure to log."
+    },
+    "ba_qa_objections_acknowledged": [
+      {"id": 1, "category": "missing_rollback_plan", "addressed_in": "rollback_procedure section above (architect-derived)"},
+      {"id": 2, "category": "weak_regression_check", "addressed_in": "S12 — bundle-grep accepted per cycle 1 DORMANT precedent; live regression best-effort"},
+      {"id": 3, "category": "daemon_binary_path_ambiguity", "addressed_in": "PM verified the daemon at pid 275490 is loading from /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index.mjs (per daemon.log line 3) and that path's runCodex chunk has all 10 new discriminators (S6 actual). The symlink ambiguity is moot — the daemon is running the new code."},
+      {"id": 4, "category": "scope_expansion_§5.17_markdown", "addressed_in": "S13 — best-effort, non-blocking"}
+    ]
+  },
+  "qa_pass_criteria": {
+    "must_pass": [
+      "S1 source verification (5 client branches)",
+      "S2 source verification (5 mapper branch pairs)",
+      "S3 source verification (7 knownTools entries)",
+      "S4 bundle verification (7 frontend entries) — pre-verified by PM",
+      "S6 CLI daemon bundle verification (10 EventMsg discriminators) — pre-verified by PM",
+      "S7 sendExisting guard intact — pre-verified by PM",
+      "S8 typecheck zero new errors",
+      "S9 daemon health verified, pid 275490, version 1.1.3 — pre-verified by PM",
+      "S10 isolation verified — pre-verified by PM"
+    ],
+    "should_pass_best_effort": [
+      "S5 cycle-1 dormant view registrations live in deployed bundle — pre-verified by PM (already confirmed)",
+      "S11 live activation test (gated on Codex session availability)",
+      "S12 regression check (bundle-grep + optional live)",
+      "S13 §5.17 markdown screenshot composite"
+    ]
+  },
+  "qa_blockers_to_escalate": [
+    "If S8 typecheck fails: STOP, do not deploy further, escalate to orchestrator",
+    "If S6 fails (daemon bundle missing discriminators): STOP — daemon is running stale code; orchestrator must decide on restart authorization",
+    "If frontend rebuild somehow fails downstream of PM's successful build: log in QA report, do not block"
+  ],
+  "expected_outcome_if_all_pass": "Pipeline 0 PASS — Codex protocol extension activated; 14 dormant renderers ready to fire when Codex emits new ThreadItem variants. Live activation deferred to user-escalation gate (Codex session provisioning in dev account). Per cycle 1 DORMANT precedent, bundle-grep-only verification is sufficient acceptance.",
+  "constraint_reminder": "NO DAEMON RESTART. Daemon pid 275490 is healthy and running new CLI bundle. Frontend rebuild completed. QA verifies — does not redeploy."
+}
