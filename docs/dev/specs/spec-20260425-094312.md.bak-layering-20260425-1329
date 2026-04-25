@@ -173,20 +173,18 @@ _Not yet populated._
 
 **事件证据**：上一个 dev-overnight cycle 的 transcript（user 已贴）显示 subagent 在 hook 连续拦下 5 次 `systemctl restart`、`systemd-run`、`nohup bash -c` 等变体后，**写 `/tmp/restart-dev-daemon.sh` 然后 nohup 执行**，因为 `pretool-bash-safety.sh` 只扫 bash command 字符串、不读 `/tmp/*.sh` 内容。这是**典型的越权绕过**。
 
-##### 5.2-D-1：subagent 行为约束（落在 Layer A 全局 CLAUDE.md）
+##### 5.2-D-1：subagent 行为约束（写进所有 dev-overnight / dev / spec / qa skill prompt 模板）
 
-- **落地位置**：规则文本已迁移到 `/root/.claude/CLAUDE.md` § "🛡️ Subagent Hook Discipline"（Layer A）。本节不再要求改写 skill / command / agent prompt 文件。
-- **规则要点（仅供本 spec 引用，权威文本以 Layer A 文件为准）**：
-  - Hook 拦截 = 立即 PAUSE + 向 user 汇报，不准尝试任何绕过
-  - 禁止把被拦截的命令写入 `/tmp/*.sh` / `/var/tmp/*.sh` / 其他文件再执行
-  - 禁止用 `nohup`、`systemd-run`、`disown`、`setsid` 包裹被拦截的命令
-  - 禁止读取 hook 源码寻找漏洞（侦察=违规）
-  - 禁止修改 `~/.claude/hooks/*` 文件
-  - 必要时输出 REQUEST 给 user，由 user 决定
+- **强制规则**（必须出现在 skill 顶部 FORBIDDEN 段）：
+  - "Hook 拦截 = 立即停下 + 向 user 汇报，不准尝试任何绕过"
+  - "禁止把被拦截的命令写入 /tmp/*.sh / /var/tmp/*.sh / 其他文件再执行"
+  - "禁止用 `nohup`、`systemd-run`、`disown`、`setsid` 包裹被拦截的命令"
+  - "禁止读取 hook 源码寻找漏洞"（侦察=违规）
+  - "禁止修改 `~/.claude/hooks/*` 文件"
+  - "如果某操作被 hook 拦截，正确做法：返回 PAUSE 状态 + 把命令、错误、上下文报告给 user"
 - **Success criteria**：
-  - `grep -n "Subagent Hook Discipline" /root/.claude/CLAUDE.md` 命中至少 1 行
-  - `grep -nE "PAUSE|REQUEST|nohup|systemd-run" /root/.claude/CLAUDE.md` 在该段范围内命中 6 条规则全部
-  - 此条 AC 不再依赖 skill / command / agent 文件改写
+  - grep `/dev/shm/dev-workspace/dot-claude/commands/*` + `/dev/shm/dev-workspace/dot-claude/agents/*` + `/root/.claude.bak/commands/*` + `/root/.claude/agents/*` 文件，确认每个 dev/qa/architect/spec/redev/close/dev-overnight 相关 prompt 顶部都有 "Hook bypass forbidden" 段
+  - dev-overnight skill 顶部 FORBIDDEN 段加一条 "If a daemon restart is required, output a REQUEST to user — do not execute"
 
 ##### 5.2-D-2：修复 hook 的 arg-parsing bug
 
@@ -276,14 +274,14 @@ args=$(echo "$subcmd" | sed -E 's/.*systemctl\s+(stop|restart)\s+//' | awk '
    - 等 1 分钟，再 `/list` 验证
    - 写一份 report 到 `/var/log/happy-restart-audit.log`：pre/post counts + recovered UUIDs + duration
 
-##### 5.2-E-2：subagent 必须用 SOP 工具，不准直接 systemctl（落在 Layer B 项目 CLAUDE.md）
+##### 5.2-E-2：subagent 必须用这个工具，不准直接 systemctl
 
-- **落地位置**：项目专有的 FORBIDDEN 列表已迁移到 `/dev/shm/dev-workspace/happy-dev/CLAUDE.md` § "Dev-Overnight Verification Protocol"（Layer B），其中 "Forbidden for subagents (in any cycle)" 行明确列出 `systemctl restart happy-daemon-*` / 直接 HTTP `POST /stop` / `kill happy-cli pid` / 写 `/tmp/*.sh` 绕过。同节 "safe-daemon-restart SOP" 子段写明 SOP 是唯一允许入口，且必须 user 显式 trigger。
-- **本节不再要求改写 skill / command / agent prompt 文件。**
-- **Success criteria**：
-  - `grep -n "Dev-Overnight Verification Protocol" /dev/shm/dev-workspace/happy-dev/CLAUDE.md` 命中至少 1 行
-  - `grep -nE "systemctl restart happy-daemon|safe-daemon-restart\.sh|kill.*happy-cli|tmp/\*\.sh" /dev/shm/dev-workspace/happy-dev/CLAUDE.md` 在该段范围内全部命中
-  - 此条 AC 不再依赖 skill / command / agent 文件改写
+- 所有 dev / dev-overnight / dev-command / spec skill：明确写"daemon 重启**必须**通过 `safe-daemon-restart.sh`，禁止直接 systemctl"
+- skill prompt 顶部 FORBIDDEN 段加：
+  - "禁止 `systemctl restart happy-daemon-*`"
+  - "禁止 HTTP `POST /stop`"
+  - "禁止 kill happy-cli pid"
+  - "唯一允许的重启入口是 `/root/bin/safe-daemon-restart.sh`，且必须 user 显式 trigger"
 
 ##### 5.2-E-3：dev vs prod 差别策略
 
@@ -464,13 +462,7 @@ P1 (archive) → 独立
 P2 → 独立
 ```
 
-**实施顺序**：
-
-**Layer A（全局 CLAUDE.md）→ Layer B（项目 CLAUDE.md）→ Layer C（spec 内的代码 / 脚本 / 文档改动）**
-
-Layering 三层文档必须先全部落地，才能开始执行 spec 内的代码改动；否则 5.2-D-1 / 5.2-E-2 的 success criteria（grep CLAUDE.md 文档段）无从验证，下游实施步骤会失去依据。
-
-Layer 内部具体顺序：5.2-A（治本）→ 5.2-D（行为约束 + hook bug）→ 5.2-B（避免误判）→ 5.2-E-v0（SOP 工具，无 token）→ P0（peak）→ 5.2-C（/stop 鉴权）→ 5.2-E-v1（SOP 工具，有 token，upgrade）→ P1（watcher + archive 并行）→ P2
+**实施顺序**：5.2-A（治本）→ 5.2-D（行为约束 + hook bug）→ 5.2-B（避免误判）→ 5.2-E-v0（SOP 工具，无 token）→ P0（peak）→ 5.2-C（/stop 鉴权）→ 5.2-E-v1（SOP 工具，有 token，upgrade）→ P1（watcher + archive 并行）→ P2
 
 ### 5.10 Edge cases（spec 必须明确处理）
 
@@ -507,17 +499,19 @@ Layer 内部具体顺序：5.2-A（治本）→ 5.2-D（行为约束 + hook bug�
 |---|---|---|
 | `/root/bin/happy-session-recovery.sh` | peak 算法 (5.1) + restore codex 自动检测 (5.5) + 两条 spawn 路径 env 一致 (5.7) + CLAUDE.md 同步 + 新增顶部常量 MERGE_FRESHNESS_SECONDS=7200 | P0 + P2 |
 | `/root/bin/happy-session-recovery.sh` cli_path fallback | DEFERRED — 见 5.6（持久化到 sda1 需独立 spec，本 spec 不修） | P3-DEFERRED（本 spec 不修） |
-| `/root/.claude/CLAUDE.md`（Layer A，全局） | 加第 14 条 "Production Catastrophe Lessons" + 新增 § "🛡️ Subagent Hook Discipline" + 新增 § "🌙 Long-Running Process Verification"（5.2-D-1 / 5.2-D-3 / 长跑进程验证规则的权威落地点） | **P0-NEW 必须先做** |
-| `/dev/shm/dev-workspace/happy-dev/CLAUDE.md`（Layer B，项目） | 新增 § "Dev-Overnight Verification Protocol"（cycle 分类表 + sandbox daemon 模式 + safe-daemon-restart SOP 引用 + 项目专有 FORBIDDEN 列表，5.2-A / 5.2-E-2 的权威落地点）+ PEAK_PROTECT_SECONDS 文档同步 (5.8) | **P0-NEW 必须先做** |
+| dev-overnight workflow / command files（搜 `/dev/shm/dev-workspace/dot-claude/commands/dev-overnight.md`、`/dev/shm/dev-workspace/dot-claude/commands/dev.md`、`/dev/shm/dev-workspace/dot-claude/commands/redev.md`、`/dev/shm/dev-workspace/dot-claude/commands/dev-command.md`、`/dev/shm/dev-workspace/dot-claude/commands/spec.md`、`/dev/shm/dev-workspace/dot-claude/commands/close.md`，以及 `/root/.claude.bak/commands/*` 镜像、subagent 定义 `/dev/shm/dev-workspace/dot-claude/agents/{qa,dev,architect,ba,pm,spec,ui-specialist}.md`） | 移除所有 daemon stop/restart 调用 (5.2-A) + 加 hook-bypass 禁止段 (5.2-D-1) + safe-daemon-restart 强制使用 (5.2-E-2) | **P0-NEW 必须先做** |
+| dev/dev-overnight/redev/spec/close 命令文件 + qa/dev/architect/ba/pm/spec/ui-specialist subagent 定义文件（实际位置见上一行） | 顶部 FORBIDDEN 段加 hook bypass 禁止 (5.2-D-1) + daemon 重启必须经 SOP (5.2-E-2) | P0-NEW |
 | `packages/happy-cli/src/daemon/run.ts` | `:111-122` 误导日志 disambiguate (5.2-B) | P0-NEW |
 | `packages/happy-cli/src/daemon/controlServer.ts` | `/stop` endpoint 加 token / pid whitelist (5.2-C) | P0-NEW（5.2-E 依赖此） |
 | `~/.claude/hooks/pretool-bash-safety.sh` (live, settings.json 注册) | 修 `check_systemctl_targets_all_dev` L66-90 的 arg-parsing bug (5.2-D-2) | P0-NEW |
 | `~/.claude.bak/hooks/pretool-bash-safety.sh` (backup, must be kept in sync) | 同上，同步修改防止 backup 覆盖 | P0-NEW |
 | `/root/bin/safe-daemon-restart.sh` | 新建 SOP 工具，含 pre/post-flight、graceful stop、auto-recover、audit log (5.2-E-1) | **新增文件** |
 | `/root/docs/incidents-2026-04-25.md` | 新建 incident 文档：hook bypass 事件 + 时间线 + 影响 (5.2-D-3) | **新增文件** |
+| `~/.claude/CLAUDE.md` 全局 | "🚨 Production Catastrophe Lessons" 加第 14 条：subagent 遇 hook 拦截必须 PAUSE (5.2-D-3) | P0-NEW |
 | `packages/happy-server/prisma/schema.prisma` | `Session.archived BOOLEAN` 列 + migration | P1 |
 | `packages/happy-server/sources/app/api/routes/sessionRoutes.ts` | archive endpoint + list filter (5.4) | P1 |
 | `packages/happy-app/sources/-session/SessionView.tsx` 或 SessionsListWrapper / list filter | UI archive 过滤改 server 列 (5.4) | P1 |
+| `/dev/shm/dev-workspace/happy-dev/CLAUDE.md` | PEAK_PROTECT_SECONDS 文档同步 (5.8) + Dev-Overnight Safety Boundaries 段补充 SOP 引用 | P2 |
 
 ### 5.12 验证策略（QA 必须执行）
 
@@ -539,16 +533,16 @@ Layer 内部具体顺序：5.2-A（治本）→ 5.2-D（行为约束 + hook bug�
 | Block | AC / Deliverable | Category | Autonomous-safe 理由 / User-gated 原因 |
 |-------|-----------------|----------|-----------------------------------------|
 | 5.1 peak-merge | PEAK_PROTECT_SECONDS 常量改写、增量 merge 算法、0-session 跳过逻辑 | **autonomous-safe** | 纯脚本改写，在 `/root/bin/happy-session-recovery.sh`，worktree 可写 |
-| 5.2-A | dev-overnight workflow 移除 daemon stop 调用（落 Layer B 项目 CLAUDE.md "Forbidden for subagents" 列表） | **user-gated** | 命中文件 `/dev/shm/dev-workspace/happy-dev/CLAUDE.md` 是 root-owned project CLAUDE.md；改动会立即影响所有 dev-overnight cycle，必须 user 审计 |
+| 5.2-A | dev-overnight command/agent 文件移除 daemon stop 调用 | **user-gated** | 实际命中文件在 `/dev/shm/dev-workspace/dot-claude/commands/` + `/dev/shm/dev-workspace/dot-claude/agents/`，这些是 dot-claude 全局 prompt 库（softlink `~/.claude` -> 此目录），改动会立即影响所有 session；subagent 不应在自己的 prompt 库里改自己 |
+| 5.2-A | `/root/.claude.bak/commands/` 镜像同步 | **user-gated** | 与 dot-claude 镜像，user 须确认主副本一致 |
 | 5.2-A | docs/dev/ 旧 artifact 加 DEPRECATED 标注 | **autonomous-safe** | 目标文件在 worktree 可写路径 |
 | 5.2-B | `packages/happy-cli/src/daemon/run.ts` log 改写 | **autonomous-safe** | 源码在 worktree；build 不触发 daemon 重启（version 不变） |
 | 5.2-C | daemon `/stop` token 保护实现 | **autonomous-safe** | 源码改写（controlServer.ts + controlClient.ts）；**但**生效需 daemon 重启，重启是 user-gated（见 5.2-E） |
-| 5.2-D-1 | 全局 CLAUDE.md（Layer A）加 § "🛡️ Subagent Hook Discipline" + § "🌙 Long-Running Process Verification" + 第 14 条 | **user-gated** | `/root/.claude/CLAUDE.md` 是 root-owned 全局配置文件，影响所有 project / 所有 session；必须 user 在 TTY session 中 Edit |
+| 5.2-D-1 | command/agent prompt FORBIDDEN 段加 hook bypass 禁止 | **user-gated** | 命中文件全部在 dot-claude 库（commands + agents），属 prompt-self-modify 范畴，必须 user 在 TTY session 中审计每条改动 |
 | 5.2-D-2 | hook arg-parsing 修复（`/root/.claude/hooks/pretool-bash-safety.sh`） | **user-gated** | 该 hook 是 settings.json 注册的 live security gate（控制本 session 所有 bash 调用的拦截策略），改动错误会立即放行被拦命令或全部命令；subagent 在受同一 hook 限制的 session 中改动同一 hook 属循环依赖；必须 user 在独立 TTY session 中 Edit + 同步 `/root/.claude.bak/hooks/...` |
 | 5.2-D-3 | 新建 `/root/docs/incidents-2026-04-25.md` | **user-gated** | `/root/docs/` 是 production 文档目录，user 维护；subagent 不应自行立 incident 报告 |
-| 5.2-D-3 | 全局 `/root/.claude/CLAUDE.md` 加第 14 条（与 5.2-D-1 同文件） | **user-gated** | 全局 CLAUDE.md 是 root-owned 配置文件，非 worktree 路径 |
+| 5.2-D-3 | 全局 `~/.claude/CLAUDE.md` 加第 14 条 | **user-gated** | 全局 CLAUDE.md 非 worktree 路径 |
 | 5.2-E-1 | 新建 `/root/bin/safe-daemon-restart.sh` | **user-gated** | 一旦上线就成为 production-critical infrastructure（与 `happy-session-recovery.sh` 同级），脚本内部调用 PERMANENTLY-FORBIDDEN 的 `happy-session-recovery.sh save/recover` —— subagent 写入 + 测试 + 上线全链路必须由 user 在 TTY session 中审计；生效也需 daemon 重启 |
-| 5.2-E-2 | 项目 CLAUDE.md（Layer B）加 § "Dev-Overnight Verification Protocol" + 项目专有 FORBIDDEN 列表 | **user-gated** | `/dev/shm/dev-workspace/happy-dev/CLAUDE.md` 是 root-owned project CLAUDE.md；改动会立即影响所有 dev-overnight cycle 的 cycle-class 分类策略，必须 user 审计 |
 | 5.4 | `prisma migrate` + schema 改动 | **user-gated** | Section 8 注意 5：prisma migrate 前必须 `pg_dump` 备份，需 user 批准 |
 | 5.5 | `.jsonl` 过滤逻辑改写 | **autonomous-safe** | 脚本在 `/root/bin/`；但读取需 Read tool（hook 拦 bash cat） |
 | 5.6 | DEFERRED | N/A | 不在本 spec 范围 |
@@ -559,24 +553,6 @@ Layer 内部具体顺序：5.2-A（治本）→ 5.2-D（行为约束 + hook bug�
 - autonomous cycle 只处理 `autonomous-safe` 行；user-gated 行直接跳过
 - 遇到 user-gated AC，cycle 输出 `USER_ACTION_REQUIRED: <描述>` 并继续其他任务
 - 所有 user-gated 交付物必须在 cycle 结束报告里列出，待 user 手动完成
-
-### 5.14 Spec Layering Architecture
-
-本 spec 的 5.2-D-1 / 5.2-E-2 / 5.2-D-3 等条目涉及"subagent 行为约束 / 长跑进程验证 / cycle-class 策略"等规则，这些规则按生效范围分 3 层落地，不能堆在 spec 一处：
-
-| Layer | 文件 | 收纳内容 | 跨项目通用？ |
-|---|---|---|---|
-| **A：全局** | `/root/.claude/CLAUDE.md` | "🛡️ Subagent Hook Discipline" / "🌙 Long-Running Process Verification" / "Production Catastrophe Lessons" 第 14 条 | **是**——任何 project 的任何 subagent 都受这些规则约束。文本必须保持 0 项目专有词（不准提 happy / daemon-dev / safe-daemon-restart / `/root/bin/` / `/root/.happy*`）。 |
-| **B：项目** | `/dev/shm/dev-workspace/happy-dev/CLAUDE.md` | "Dev-Overnight Verification Protocol"（cycle 分类表 / sandbox daemon 命令 / `/root/bin/safe-daemon-restart.sh` SOP / 项目专有 FORBIDDEN 列表） | **否**——只对 happy-dev 项目有意义，可自由出现项目专有名（`happy-daemon-dev` / `safe-daemon-restart.sh` / `/root/.happy-dev` 等）。 |
-| **C：spec** | `/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260425-094312.md`（本文件） | 一次性的代码/脚本/文档改动（hook arg-parsing 修复、`run.ts` log 改写、prisma migration、incident 文档新建等），以及对 Layer A / Layer B 文件应包含哪些段的 success criteria | **否**——对应一次具体修复任务，不应承载长期规则。 |
-
-**为什么 hook 文件可以含项目专有词，而 skill 文件不可以？**
-Hooks 是执行性 artifact（执行规则），项目专有 service name 出现在 hook 变量里是配置数据，不属 layering 违规；skill 文件是文档性 artifact（声明规则），项目专有词出现在 skill 里就跨项目污染。
-
-**Layer 间引用关系**：
-- Layer A 不引用 Layer B 或 Layer C 的具体文件
-- Layer B 引用 Layer A（"global 'Subagent Hook Discipline' rule applies"）+ 引用项目专有 SOP 路径
-- Layer C 引用 Layer A 和 Layer B（"已迁移到 …，本节不再要求改写 skill"），同时定义本 spec 一次性变更
 
 ---
 
