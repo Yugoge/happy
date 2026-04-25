@@ -1,13 +1,28 @@
 # dev
 
-*Last updated: 2026-04-24T23:08:32Z*
-**Total entries**: 271
+*Last updated: 2026-04-25T11:49:06Z*
+**Total entries**: 317
 **Convention**: kebab
 
 ## Tree
 ```
 dev/
+├── _recovery-pipe2-collision/
+│   ├── `ba-spec-20260425-000300-2.md.was-pipe1-iter2` - was-pipe1-iter2 file
+│   └── `context-20260425-000300-2.json.was-pipe1-iter2` - was-pipe1-iter2 file
 ├── overnight/
+│   ├── 21d24e89-e5f4-41f4-90f9-7ec3b025fc44/
+│   │   ├── screenshots/
+│   │   ├── `architect-report-cycle2.json` - json config
+│   │   ├── `qa-verification-plans-cycle2.json` - json config
+│   │   ├── `qa-verification-plans.json` - json config
+│   │   ├── `retro-report-cycle1.json` - json config
+│   │   ├── `retro-report-cycle2.json` - json config
+│   │   ├── `test-plan-cycle2.json` - json config
+│   │   ├── `test-plan.json` - json config
+│   │   ├── `triage-report-cycle1.json` - json config
+│   │   ├── `triage-report-cycle2.json` - json config
+│   │   └── `ui-specialist-report.json` - json config
 │   ├── 9ae57c91-b5ff-4178-b883-eba53319be14/
 │   │   └── screenshots/
 │   ├── bfbc5f54-b231-4b52-b3bc-de01aeac0ccd/
@@ -53,6 +68,13 @@ dev/
 ├── `ba-qa-report-20260424-143000-8.json` - json config
 ├── `ba-qa-report-20260424-143000-9.json` - json config
 ├── `ba-qa-report-20260424-202503.json` - json config
+├── `ba-qa-report-20260425-000300-0-iter2.json` - json config
+├── `ba-qa-report-20260425-000300-0.json` - json config
+├── `ba-qa-report-20260425-000300-1-iter2.json` - json config
+├── `ba-qa-report-20260425-000300-1.json` - json config
+├── `ba-qa-report-20260425-000300-2.json` - json config
+├── `ba-qa-report-20260425-000300-9.json` - json config
+├── `ba-qa-report-20260425-030000-0.json` - json config
 ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
 ├── `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
@@ -107,8 +129,15 @@ dev/
 ├── `ba-spec-20260424-143000-8.md` - BA Specification: Detail Panel — Long File Path Overflows Header
 ├── `ba-spec-20260424-143000-9.md` - BA Specification: Codex Tool-Call Popup — Description vs Command Separation (§5.7)
 ├── `ba-spec-20260424-202503.md` - BA Specification: Close CLOSE:NO Blockers — Cycle 1 Remediation
+├── `ba-spec-20260425-000300-0.md` - BA Specification: §5.15 Phase B — Codex Tool Renderers (2 actionable: apply_patch + mcp__happy__change_title alias)
+├── `ba-spec-20260425-000300-1.md` - BA Specification: §5.15 Phase C — Codex Subagent Delegation Tool Renderers (Rev 2)
+├── `ba-spec-20260425-000300-2.md` - BA Specification: §5.15 Phase D — Codex Tool-suggest / Parallel Renderers
+├── `ba-spec-20260425-000300-9.md` - BA Specification: §5.4 Cleanup — Remove dead `headerMaxWidth` export and `getMaxWidth()` helper
+├── `ba-spec-20260425-030000-0.md` - BA Specification: Codex Protocol Extension (Path A) — Activate 14 Dormant Renderers
 ├── `build-verification-20260409.json` - json config
 ├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
+├── `close-report-20260425-105500.md` - Close Debate Report
+├── `close-report-20260425-110000.md` - Close Debate Report
 ├── `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -164,6 +193,11 @@ dev/
 ├── `context-20260424-143000-8.json` - json config
 ├── `context-20260424-143000-9.json` - json config
 ├── `context-20260424-202503.json` - json config
+├── `context-20260425-000300-0.json` - json config
+├── `context-20260425-000300-1.json` - json config
+├── `context-20260425-000300-2.json` - json config
+├── `context-20260425-000300-9.json` - json config
+├── `context-20260425-030000-0.json` - json config
 ├── `dev-report-20260403-210447-0.json` - json config
 ├── `dev-report-20260403-210447-1.json` - json config
 ├── `dev-report-20260403-210447-10.json` - json config
@@ -210,6 +244,11 @@ dev/
 ├── `dev-report-20260424-170900-extra.json` - json config
 ├── `dev-report-20260424-172000-extra2.json` - json config
 ├── `dev-report-20260424-202503.json` - json config
+├── `dev-report-20260425-000300-0.json` - json config
+├── `dev-report-20260425-000300-1.json` - json config
+├── `dev-report-20260425-000300-2.json` - json config
+├── `dev-report-20260425-000300-9.json` - json config
+├── `dev-report-20260425-030000-0.json` - json config
 ├── `dev-report-tools2-filter-fix.json` - json config
 ├── `e2e-verification-rendering.json` - json config
 ├── `e2e-verification-title.json` - json config
@@ -217,8 +256,10 @@ dev/
 ├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 ├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
 ├── `overnight-log-20260424.md` - Overnight Log — 2026-04-24
+├── `overnight-log-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - No description
 ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
 ├── `overnight-summary-20260424.md` - Overnight Development Summary — 2026-04-24
+├── `overnight-summary-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - Overnight Development Summary — Session 21d24e89
 ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
 ├── `qa-audit-20260407.json` - json config
 ├── `qa-build-deploy-20260407.json` - json config
@@ -275,6 +316,11 @@ dev/
 ├── `qa-report-20260424-174000-extras.json` - json config
 ├── `qa-report-20260424-202503-extras.json` - json config
 ├── `qa-report-20260424-202503.json` - json config
+├── `qa-report-20260425-000300-0.json` - json config
+├── `qa-report-20260425-000300-1.json` - json config
+├── `qa-report-20260425-000300-2.json` - json config
+├── `qa-report-20260425-000300-9.json` - json config
+├── `qa-report-20260425-030000-0.json` - json config
 ├── `qa-review-20260407-0830.json` - json config
 ├── `qa-site-isolation-verification.json` - json config
 └── `qa-validation-20260410.json` - json config

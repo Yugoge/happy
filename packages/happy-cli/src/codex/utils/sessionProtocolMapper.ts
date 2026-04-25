@@ -378,6 +378,252 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         };
     }
 
+    // §5.15 Phase E — Codex protocol-extension activation (cycle 2).
+    // Translates Option-2 EventMsg discriminators emitted by codexAppServerClient.ts
+    // (collabAgentToolCall, dynamicToolCall, mcpToolCall, plan, imageView) into
+    // tool-call-start / tool-call-end envelopes that drive the cycle 1 dormant
+    // renderers in happy-app/sources/components/tools/_all.tsx.
+    // Source of truth: codex app-server generate-ts /tmp/codex-ts/v2/ThreadItem.ts (Codex 0.125.0)
+
+    // CollabAgentTool enum -> happy-app knownTools verb keys
+    const COLLAB_VERB_MAP: Record<string, string> = {
+        spawnAgent: 'spawn_agent',
+        sendInput: 'send_input',
+        resumeAgent: 'resume_agent',
+        wait: 'wait_agent',
+        closeAgent: 'close_agent',
+    };
+
+    if (type === 'collab_agent_call_begin') {
+        const call = pickCallId(message);
+        const tool = typeof message.tool === 'string' ? message.tool : '';
+        const verb = COLLAB_VERB_MAP[tool] ?? tool;
+        const name = `functions.${verb}`;
+        const prompt = typeof message.prompt === 'string' ? message.prompt : '';
+        const description = prompt.length > 0
+            ? (prompt.length > 80 ? `${prompt.slice(0, 77)}...` : prompt)
+            : `${verb || 'subagent'} call`;
+        const title = verb ? `Subagent: ${verb}` : 'Subagent call';
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name,
+                title,
+                description,
+                args: {
+                    tool,
+                    prompt: message.prompt ?? null,
+                    model: message.model ?? null,
+                    senderThreadId: message.senderThreadId ?? null,
+                    receiverThreadIds: message.receiverThreadIds ?? [],
+                    agentsStates: message.agentsStates ?? {},
+                },
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'collab_agent_call_end') {
+        const call = pickCallId(message);
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'dynamic_tool_call_begin') {
+        const call = pickCallId(message);
+        const tool = typeof message.tool === 'string' ? message.tool : '';
+        const namespace = typeof message.namespace === 'string' && message.namespace.length > 0
+            ? message.namespace
+            : 'functions';
+        const name = `${namespace}.${tool}`;
+        const args = (message.arguments && typeof message.arguments === 'object')
+            ? (message.arguments as Record<string, unknown>)
+            : {};
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name,
+                title: tool || 'Dynamic tool',
+                description: tool || 'Dynamic tool call',
+                args,
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'dynamic_tool_call_end') {
+        const call = pickCallId(message);
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'mcp_tool_call_begin') {
+        const call = pickCallId(message);
+        const server = typeof message.server === 'string' ? message.server : '';
+        const tool = typeof message.tool === 'string' ? message.tool : '';
+        const name = server.length > 0
+            ? `mcp__${server}__${tool}`
+            : `functions.${tool}`;
+        const args = (message.arguments && typeof message.arguments === 'object')
+            ? (message.arguments as Record<string, unknown>)
+            : {};
+        const title = server.length > 0 ? `MCP: ${server}.${tool}` : `MCP: ${tool}`;
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name,
+                title,
+                description: tool || 'MCP tool call',
+                args,
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'mcp_tool_call_end') {
+        const call = pickCallId(message);
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'plan_update_begin') {
+        const call = pickCallId(message);
+        const text = typeof message.text === 'string' ? message.text : '';
+        const description = text.length > 0
+            ? (text.length > 80 ? `${text.slice(0, 77)}...` : text)
+            : 'Update plan';
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name: 'functions.update_plan',
+                title: 'Update plan',
+                description,
+                args: { plan: text, text },
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'plan_update_end') {
+        const call = pickCallId(message);
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'image_view_begin') {
+        const call = pickCallId(message);
+        const path = typeof message.path === 'string' ? message.path : '';
+        const description = path.length > 0
+            ? (path.length > 80 ? `View: ${path.slice(0, 74)}...` : `View: ${path}`)
+            : 'View image';
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name: 'functions.view_image',
+                title: 'View image',
+                description,
+                args: { path },
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
+    if (type === 'image_view_end') {
+        const call = pickCallId(message);
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes,
+        };
+    }
+
     return {
         currentTurnId: state.currentTurnId,
         startedSubagents,

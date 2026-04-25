@@ -292,3 +292,98 @@ From the two reference screenshots, the following markdown primitives render as 
 5. Success condition: the CronList inline card in the conversation has a single header + single summary line, and the current `INPUT {}  OUTPUT No scheduled jobs.` content appears only when the right-side sidebar is opened for that tool call.
 
 **Reference screenshot**: `/tmp/happy-attachments/19b9ee44-3da5-47f8-9313-96880a0015e8-image.png` (CronList card with wrench icon in header, then `INPUT` label, `{}`, `OUTPUT` label, `No scheduled jobs.` — all rendered inline; this whole block should become a single summary line inline, with this full detail reserved for the sidebar).
+
+---
+
+## §5.13 + §5.14 + §5.15 Phase E — Codex Protocol Extension (Cycle 2 PRIMARY)
+
+**BA spec**: `docs/dev/ba-spec-20260425-030000-0.md`
+**Context JSON**: `docs/dev/context-20260425-030000-0.json`
+**Cycle**: 2 | **Priority**: Tier 1 (RICE 6.75) | **Layer**: L5 (protocol) + L4 (mapper)
+
+### Summary
+
+Extends `codexAppServerClient.ts` with 5 item.type branches + `sessionProtocolMapper.ts` with 5 paired begin/end branches + adds 7 missing `knownTools.tsx` entries. Together these activate all 14 dormant renderers from cycle 1.
+
+### EventMsg Contract (Option 2 — adopted)
+
+| EventMsg discriminator | Item type | Derived knownTools key |
+|------------------------|-----------|------------------------|
+| `collab_agent_call_begin/end` | `collabAgentToolCall` | `functions.<verbMap[item.tool]>` |
+| `dynamic_tool_call_begin/end` | `dynamicToolCall` | `(namespace ?? 'functions').tool` |
+| `mcp_tool_call_begin/end` | `mcpToolCall` | `mcp__<server>__<tool>` or `functions.<tool>` |
+| `plan_update_begin/end` | `plan` | `functions.update_plan` |
+| `image_view` | `imageView` | `functions.view_image` |
+
+### 7 New knownTools Entries (Phase E)
+
+| Key | Icon | minimal | Description field |
+|-----|------|---------|-------------------|
+| `functions.write_stdin` | ICON_TERMINAL | true | `text` or `input` |
+| `functions.update_plan` | ICON_TODO | true | `plan` or `text` |
+| `functions.request_user_input` | ICON_QUESTION | true | `prompt` or `question` |
+| `functions.list_mcp_resources` | ICON_LINK | true | `server` or `serverName` |
+| `functions.list_mcp_resource_templates` | ICON_LINK | true | `server` or `serverName` |
+| `functions.read_mcp_resource` | ICON_READ | true | `uri` or `resourceUri` |
+| `functions.view_image` | ICON_IMAGE | true | `path` or `image_path` |
+
+### Daemon Rebuild Procedure (cgroup-safe)
+
+```bash
+# 1. Build from worktree
+cd /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/packages/happy-cli
+yarn build
+
+# 2. Verify new EventMsg strings in bundle
+grep -c "collab_agent_call_begin\|dynamic_tool_call_begin\|mcp_tool_call_begin\|plan_update_begin" \
+  /root/happy-dev/packages/happy-cli/dist/index.mjs  # must be > 0
+
+# 3. Verify sendExisting guard
+grep -c "sendExisting" /root/happy-dev/packages/happy-cli/dist/index.mjs  # must be > 0
+
+# 4. Cgroup-safe restart (choose one)
+systemd-run --scope -- systemctl restart happy-daemon-dev.service
+# OR
+nohup bash -c 'sleep 2 && systemctl restart happy-daemon-dev.service' < /dev/null > /dev/null 2>&1 &
+
+# 5. Verify
+journalctl -u happy-daemon-dev -n 30 --no-pager  # must show clean startup
+```
+
+---
+
+## §5.13 + §5.15 Phase C — Codex Subagent Delegation Tool Renderers (Cycle 2)
+
+**BA spec**: `docs/dev/ba-spec-20260425-000300-1.md`
+**Context JSON**: `docs/dev/context-20260425-000300-1.json`
+
+### User requirement §5.13 (verbatim)
+
+> codex subagent任务不显示
+
+**Extracted acceptance points:**
+
+1. In the Codex flavor, subagent tasks do not appear in the UI at all.
+2. Expected: Codex subagent tasks must render with the same visibility treatment as Claude Code's subagent tasks (header showing subagent name/description, status indicator, result block on completion).
+3. Scope: applies both to the in-conversation inline card AND the right-side detail panel.
+
+### User requirement §5.15-C (verbatim, from §5.15 group C table)
+
+> C. 代理/委派工具 这些用于开子代理并行工作。
+> functions.spawn_agent 创建子代理
+> functions.send_input 给子代理发消息
+> functions.wait_agent 等待子代理完成
+> functions.resume_agent 恢复旧代理
+> functions.close_agent 关闭代理
+
+**Phase C acceptance criteria (per ui-specialist design spec):**
+
+1. `functions.spawn_agent`: inline card shows ICON_TASK (rocket) + `'Spawn: <agent_name>'`; detail panel shows full TaskView treatment (TaskStatusRow with child tool calls). Status indicator follows tool state.
+2. `functions.send_input`: inline card shows ICON_TASK + `'Send to <agent_name>: <input-truncated-60>'`; sidebar shows Description/Input/Output (no TaskStatusRow).
+3. `functions.wait_agent`: inline card shows ICON_TASK + `'Wait for <agent_name> (<timeout>s)'`; sidebar shows Description/Input/Output.
+4. `functions.resume_agent`: inline card shows ICON_TASK + `'Resume: <agent_name>'`; sidebar shows Description/Input/Output.
+5. `functions.close_agent`: inline card shows ICON_TASK + `'Close: <agent_name>'`; sidebar shows Description/Input/Output.
+6. Description in all five sidebars: model's natural-language text, NEVER raw `input.agent_name` / `input.prompt` blob (§5.7 alignment).
+7. All five inline cards follow §5.18 compact pattern: one row only (icon + name + extractDescription), no inline INPUT/OUTPUT block.
+8. `sessionProtocolMapper.ts` emits `tool-call-start`/`tool-call-end` for all five verb event types.
+9. Verified on desktop (1440x900) and mobile (390x844).

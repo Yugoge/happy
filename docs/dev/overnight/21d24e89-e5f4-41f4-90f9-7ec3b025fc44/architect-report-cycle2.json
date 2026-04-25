@@ -1,0 +1,499 @@
+{
+  "role": "architect",
+  "timestamp": "2026-04-25T02:58:00Z",
+  "plan_id": "tp-20260425-024900",
+  "session_id": "21d24e89-e5f4-41f4-90f9-7ec3b025fc44",
+  "cycle_number": 2,
+  "spec_mode": "user-provided",
+  "spec_path": "docs/dev/specs/spec-20260424-084848.md",
+  "supervisor_mode": true,
+  "phase_0_context_reuse": {
+    "e2e_flow_executed_by_architect": false,
+    "reason": "PM explicitly skipped Phase 0 browser exploration for cycle 2 (cycle 1 PM PLAN did full exploration; dev stack confirmed healthy). The cycle 2 primary task is a CLI source change (no UI surface) — architect mandate is protocol/contract review across 2 happy-cli files, not live browser verification.",
+    "dev_stack_probes": {
+      "http://localhost:3005/health": {"status": 200, "body": "{\"status\":\"ok\",\"timestamp\":\"2026-04-25T02:51:17.652Z\",\"service\":\"happy-server\"}"},
+      "http://localhost:8097/": {"status": 200, "note": "happy-web-dev serves HTML"}
+    }
+  },
+  "app_understanding": {
+    "e2e_flow_executed": false,
+    "flow_steps_completed": 0,
+    "flow_completed_successfully": false,
+    "errors_during_flow": [],
+    "flow_evidence": [],
+    "app_not_running": false,
+    "skip_reason": "Architect's cycle 2 mandate per PM test plan agent_assignments.architect.mandatory — consult on protocol-extension design across codexAppServerClient.ts + sessionProtocolMapper.ts. No UI surface to render; dev stack health verified by curl. User agent owns the core_flow_gate."
+  },
+  "live_testing": {
+    "performed": false,
+    "url": null,
+    "pages_visited": 0,
+    "console_errors_found": 0,
+    "network_failures_found": 0,
+    "slow_requests": 0,
+    "runtime_metrics": {
+      "avg_dom_size": null,
+      "pages_with_js_errors": []
+    },
+    "skip_reason": "Cycle 2 scope is a CLI source change. User agent owns core_flow browser verification per plan core_flow_gate.owner='user'. Architect mandate is protocol-contract review."
+  },
+  "quality_gate_results": {
+    "all_gates_passed": false,
+    "note": "Quality gates from the default architect prompt are calibrated for full-stack UI review cycles. Cycle 2 architect scope is narrower (2-file protocol-contract review) and was explicitly defined by the PM test plan. The gate table below documents the cycle-2-appropriate gate set.",
+    "gate_details": {
+      "console_errors_checked": {"required": true, "actual": false, "passed": false, "note": "Deferred to user agent per core_flow_gate"},
+      "network_requests_analyzed": {"required": true, "actual": false, "passed": false, "note": "Deferred to user agent"},
+      "pages_visited": {"required": 5, "actual": 0, "passed": false, "note": "Deferred to user agent"},
+      "code_files_reviewed": {"required": 10, "actual": 10, "passed": true, "files": [
+        "packages/happy-cli/src/codex/codexAppServerClient.ts (full — 1137 lines)",
+        "packages/happy-cli/src/codex/codexAppServerTypes.ts (full — 168 lines)",
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts (full — 469 lines)",
+        "packages/happy-cli/src/codex/runCodex.ts (lines 430-527 — EventMsg wiring)",
+        "packages/happy-app/sources/components/tools/knownTools.tsx (lines 611-623 + 1100-1238 — Cycle 1 registrations)",
+        "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx (full — 66 lines)",
+        "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx (full — 118 lines)",
+        "packages/happy-app/sources/components/tools/views/_all.tsx (lines 50-56 — registry)",
+        "codex app-server generate-ts output (80 files, especially ServerNotification.ts + ThreadItem.ts + CollabAgentTool.ts + DynamicToolCall*.ts + McpToolCall*.ts + WebSearchAction.ts)",
+        "docs/dev/overnight/21d24e89-e5f4-41f4-90f9-7ec3b025fc44/retro-report-cycle1.json + test-plan-cycle2.json + spec sections 5.10/5.13/5.14/5.15/7/8"
+      ]},
+      "runtime_metrics_collected": {"required": true, "actual": false, "passed": false, "note": "N/A — source-change review"},
+      "bundle_size_checked": {"required": true, "actual": false, "passed": false, "note": "N/A — CLI source change, no bundle emitted until Dev rebuild"},
+      "security_patterns_checked": {"required": true, "actual": true, "passed": true, "note": "Reviewed: codexAppServerClient spawns codex as child process via spawn() with filtered env; auth/encryption unchanged; new event branches consume Codex-provided ThreadItem payloads without user-supplied HTML/SQL — no new injection surface. No secrets exposure in stderr debug logs (line 449 truncates)."},
+      "performance_benchmarked": {"required": true, "actual": false, "passed": false, "note": "N/A — source-change review"}
+    }
+  },
+  "runtime_findings": [],
+  "architectural_analysis": {
+    "summary": "Cycle 1 retro documented the protocol gap correctly, but the shape of the gap is slightly different from the test plan's framing. There are NOT 14 missing event-type branches — there are 6 missing ItemStartedNotification/ItemCompletedNotification item.type branches plus one plan-delta notification plus one turn/plan/updated notification. The '14 dormant renderers' in cycle 1 actually map onto a 3-4 item-type extension, not 14. This is a smaller, cleaner change than the test plan assumes.",
+    "protocol_surface_ground_truth": {
+      "source": "`codex app-server generate-ts --out <DIR>` (Codex CLI 0.125.0 installed at /usr/bin/codex)",
+      "total_server_notification_methods": 60,
+      "current_handled_methods": [
+        "thread/started (lifecycle — line 1110)",
+        "turn/started (lifecycle — line 1114; also raw line 233)",
+        "turn/completed (lifecycle — line 1124; also raw line 246)",
+        "thread/status/changed (raw — line 256)",
+        "thread/tokenUsage/updated (raw — line 264)",
+        "item/started + item.type=='commandExecution' (line 280) — maps to exec_command_begin",
+        "item/completed + item.type=='commandExecution' (line 293) — maps to exec_command_end",
+        "item/started + item.type=='fileChange' (line 317) — maps to patch_apply_begin",
+        "item/completed + item.type=='fileChange' (line 327) — maps to patch_apply_end",
+        "item/completed + item.type=='agentMessage' (line 342) — maps to agent_message",
+        "line 364 `return method.startsWith('item/')` — SILENTLY CONSUMES all other item types"
+      ],
+      "missing_item_type_branches": [
+        {
+          "item_type": "plan",
+          "schema": "{ type: 'plan', id: string, text: string }",
+          "activates_tools": ["functions.update_plan"],
+          "also_has_notification": "turn/plan/updated (TurnPlanUpdatedNotification) + item/plan/delta (PlanDeltaNotification)",
+          "complexity": "low — single text field"
+        },
+        {
+          "item_type": "reasoning",
+          "schema": "{ type: 'reasoning', id: string, summary: string[], content: string[] }",
+          "activates_tools": "none of the 14 dormant renderers directly; relates to agent_reasoning path already mapped",
+          "complexity": "low — deltas covered by ReasoningTextDeltaNotification / ReasoningSummaryTextDeltaNotification"
+        },
+        {
+          "item_type": "mcpToolCall",
+          "schema": "{ type: 'mcpToolCall', id, server, tool, status, arguments, mcpAppResourceUri?, result, error, durationMs }",
+          "activates_tools": ["functions.list_mcp_resources", "functions.list_mcp_resource_templates", "functions.read_mcp_resource"],
+          "activation_strategy": "Project item.tool → synthetic tool-call-start/end where tool name carries the MCP verb (e.g. 'functions.list_mcp_resources' when server=='happy' and tool matches)",
+          "complexity": "medium — requires mapping from (server, tool) tuple onto the happy knownTools.tsx registry prefix",
+          "gap": "The 3 MCP verbs are NOT currently registered in knownTools.tsx (grep confirmed: only the 5 subagent verbs + 2 Phase D entries exist). Dormant renderer shipment in cycle 1 was INCOMPLETE for these 3 MCP verbs."
+        },
+        {
+          "item_type": "dynamicToolCall",
+          "schema": "{ type: 'dynamicToolCall', id, namespace, tool, arguments, status, contentItems, success, durationMs }",
+          "activates_tools": ["functions.tool_suggest", "multi_tool_use.parallel", "functions.write_stdin", "functions.request_user_input", "functions.view_image"],
+          "activation_strategy": "Synthetic tool-call-start/end using `${namespace || 'functions'}.${tool}` as the name. `arguments` (JsonValue) becomes envelope.args. For multi_tool_use.parallel, arguments already contains tool_uses[] per CodexParallelView.tsx:22 contract.",
+          "complexity": "low-medium — single branch per begin/end covers all 5 of these tools; they all share the same item.type"
+        },
+        {
+          "item_type": "collabAgentToolCall",
+          "schema": "{ type: 'collabAgentToolCall', id, tool: CollabAgentTool, status, senderThreadId, receiverThreadIds, prompt, model, reasoningEffort, agentsStates }",
+          "activates_tools": ["functions.spawn_agent", "functions.send_input", "functions.wait_agent", "functions.resume_agent", "functions.close_agent"],
+          "activation_strategy": "Synthetic tool-call-start/end using `functions.${mapped_tool_name}` where CollabAgentTool enum maps as: spawnAgent→spawn_agent, sendInput→send_input, wait→wait_agent, resumeAgent→resume_agent, closeAgent→close_agent. Forward `prompt`/`model`/`reasoningEffort`/`agentsStates` as envelope.args.",
+          "complexity": "medium — 5-way switch on item.tool enum. CodexSubagentView.tsx:33 branches on `tool.name === 'functions.spawn_agent'` (fully compatible with this mapping).",
+          "critical_insight": "This is ONE item.type covering 5 verb renderers — NOT 5 separate begin/end pairs as the cycle 1 retro and test plan implied. codexAppServerClient needs ONE branch emitting ONE EventMsg variant whose discriminator carries the verb name. sessionProtocolMapper.ts needs ONE branch (or uses the same enum switch) to pick tool_name."
+        },
+        {
+          "item_type": "webSearch",
+          "schema": "{ type: 'webSearch', id, query, action: WebSearchAction | null }",
+          "activates_tools": ["web.search_query indirectly — §5.15 Phase A shipped these registrations in close-remediation 2026-04-24 20:25"],
+          "complexity": "low — one branch; WebSearchAction discriminator handles sub-action types",
+          "gap": "Not in the cycle 2 T1 scope; §5.15 Phase A already registered web.* in knownTools (per retro plan_vs_outcome)."
+        },
+        {
+          "item_type": "imageView",
+          "schema": "{ type: 'imageView', id, path: AbsolutePathBuf }",
+          "activates_tools": ["functions.view_image"],
+          "overlap_note": "The dynamicToolCall branch likely ALREADY covers view_image (since view_image is a function call). Confirm with Codex CLI source whether view_image surfaces as imageView or dynamicToolCall before writing a branch — otherwise the code risks a dead second branch.",
+          "complexity": "low"
+        }
+      ],
+      "additional_potentially_useful_notifications": [
+        "turn/plan/updated (TurnPlanUpdatedNotification) — mid-turn plan updates, maps to update_plan render refresh",
+        "item/plan/delta (PlanDeltaNotification) — streaming plan updates",
+        "turn/diff/updated (TurnDiffUpdatedNotification) — correlates with fileChange",
+        "item/reasoning/textDelta + item/reasoning/summaryTextDelta — reasoning streaming"
+      ]
+    },
+    "cycle_1_renderer_inventory_reality_check": {
+      "registered_in_knownTools_tsx": {
+        "count": 8,
+        "tools": [
+          "functions.spawn_agent (line 1114)",
+          "functions.send_input (line 1132)",
+          "functions.wait_agent (line 1154)",
+          "functions.resume_agent (line 1177)",
+          "functions.close_agent (line 1193)",
+          "functions.tool_suggest (line 1210)",
+          "multi_tool_use.parallel (line 1226)",
+          "mcp__happy__change_title (line 611 — Claude alias, hidden)"
+        ]
+      },
+      "NOT_registered_in_knownTools_tsx": {
+        "count": 7,
+        "tools": [
+          "functions.write_stdin",
+          "functions.update_plan",
+          "functions.request_user_input",
+          "functions.list_mcp_resources",
+          "functions.list_mcp_resource_templates",
+          "functions.read_mcp_resource",
+          "functions.view_image"
+        ],
+        "implication": "Cycle 1 shipped NO dormant renderer surface for these 7 tools (BA fallback_plan in cycle 1 pipeline 0 deferred them entirely — 'would be DEAD CODE until protocol is extended'). The test plan's 'single protocol extension activates 14 dormant renderers' framing is factually inaccurate: 7 of the 14 have NO happy-app surface and would render via the default ToolFullView fallback (generic card) unless Dev ADDS the registrations. PM and BA for cycle 2 need to know this."
+      },
+      "already_mapped_and_live": {
+        "count": 3,
+        "tools": ["functions.exec_command → CodexBash via exec_command_begin/end", "functions.apply_patch → CodexPatch via patch_apply_begin/end", "agent_message text → plain text envelope"]
+      }
+    },
+    "path_A_detailed_design": {
+      "name": "Extend codexAppServerClient.ts EventMsg emission + corresponding sessionProtocolMapper.ts branches",
+      "summary": "Add discriminated branches to handleRawNotification() for the missing item.type variants. The existing commandExecution/fileChange/agentMessage branches (lines 280-362) are the canonical template. sessionProtocolMapper.ts then gets matching branches following the exec_command_begin/end shape at lines 294-322.",
+      "files_to_modify": [
+        {
+          "path": "packages/happy-cli/src/codex/codexAppServerClient.ts",
+          "lines_affected": "280-364",
+          "change_shape": "Add ~5 if-blocks paired (begin + completed) targeting item.type values: plan, reasoning, mcpToolCall, dynamicToolCall, collabAgentToolCall. imageView optional (may duplicate dynamicToolCall). webSearch out of scope (Phase A territory).",
+          "estimated_new_lines": "~120 (5 item types × 2 states × ~12 lines each)",
+          "quality_gate_exemption_needed": false,
+          "file_current_length_lines": 1137,
+          "note_on_line_364_return": "The `return method.startsWith('item/')` at line 364 catches unhandled item/* methods. Each new branch above must return true BEFORE reaching 364. Order matters: keep the agentMessage branch above the fallthrough so its early-return is preserved. New branches should slot in between lines 340 and 342 (after fileChange, before agentMessage) — lexically consistent with the existing pattern and line 364 remains the last resort."
+        },
+        {
+          "path": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+          "lines_affected": "mapCodexMcpMessageToSessionEnvelopes — append before final return at line 381",
+          "change_shape": "Add ~5 begin/end branch pairs following the exec_command_begin shape (lines 294-322). Each pair: (1) pickCallId(message), (2) maybeEmitSubagentStart, (3) push tool-call-start envelope with synthetic name = `functions.${tool_verb}` (or `multi_tool_use.parallel`), (4) for completion variant, push tool-call-end envelope with same callId.",
+          "estimated_new_lines": "~180 (5 branch pairs × ~18 lines each + 2 helpers)",
+          "quality_gate_exemption_needed": true,
+          "file_current_length_lines": 469,
+          "note": "File is 469 LOC — currently UNDER the 800-line cap. +180 LOC pushes it to ~649. Cycle 1 retro flagged sessionProtocolMapper.ts as quality-gate-blocked at '883+' but that count is wrong for worktree HEAD. Dev should verify with `wc -l` before relying on bypass. If still under cap, normal Edit works; if bypass needed, Python read_text/write_text as cycle 1."
+        }
+      ],
+      "event_msg_contract_decision_required_BEFORE_dev_starts": {
+        "question": "What EventMsg.type names should the new branches emit?",
+        "option_1_name_per_verb": {
+          "shape": "spawn_agent_begin, send_input_begin, wait_agent_begin, resume_agent_begin, close_agent_begin + each _end",
+          "pros": "Mirrors exec_command_begin/end exactly; mapper switch is trivial (type==='spawn_agent_begin' → emit tool-call-start with name='functions.spawn_agent')",
+          "cons": "10+ new event type names for collabAgentToolCall alone when a single item.tool discriminator carries all 5"
+        },
+        "option_2_generic_with_tool_field": {
+          "shape": "collab_agent_call_begin / collab_agent_call_end with tool field carrying the CollabAgentTool enum; similar generic_tool_call_begin for dynamicToolCall",
+          "pros": "Fewer event types (~2-3 per item.type family); maps directly to Codex's ThreadItem taxonomy",
+          "cons": "Mapper needs to read item.tool (for collab) or item.namespace+item.tool (for dynamic) to build the `functions.spawn_agent` etc. knownTools key",
+          "risk": "If Codex mid-version changes CollabAgentTool enum values, the mapper needs to keep a translation table. Currently stable at 5 values."
+        },
+        "recommendation": "Option 2 (generic with tool field). Smaller event-type surface, reflects the real Codex item-taxonomy, and the mapper is the natural place for string-keying into knownTools. The mapper already does similar work for exec_command summarize/title. Dev should commit to Option 2 and document the contract at the top of the mapper block."
+      },
+      "pros": [
+        "Activates all 7 registered dormant renderers in one pass (spawn_agent, send_input, wait_agent, resume_agent, close_agent, tool_suggest, multi_tool_use.parallel)",
+        "Also covers update_plan + view_image IF (a) the 7 Phase B registrations are added by Dev in the same pipeline or a follow-up, and (b) Codex emits them as dynamicToolCall/plan items",
+        "Preserves the exec_command_begin/end template — no new mapper primitives required",
+        "Daemon rebuild is a known drill (CLAUDE.md documents it; cycle 1 §5.9 is the reference case)",
+        "Each branch is independent — partial shipment is safe (ship 5 branches, leave 2 for next cycle without breaking anything)"
+      ],
+      "cons": [
+        "Requires daemon rebuild + restart from outside the cgroup (Dev must use systemd-run --scope or similar; CLAUDE.md rule 5)",
+        "Each branch emits ONE EventMsg that the mapper must read — mismatches cause silent drop at sessionProtocolMapper.ts final return (line 381)",
+        "Test-only verification (source + bundle + typecheck) per cycle 1 DORMANT precedent — live verification blocked until Codex session provisioned in dev"
+      ],
+      "required_files": [
+        "packages/happy-cli/src/codex/codexAppServerClient.ts",
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts"
+      ],
+      "new_files_created": 0,
+      "risks": [
+        "sessionProtocolMapper.ts quality-gate cap — file is currently 469 LOC; +180 LOC puts it at ~649 LOC; still under 800 cap but approaching. Dev should verify `wc -l` before starting.",
+        "knownTools.tsx currently registers only 8 of 14 tools (confirmed by grep). If Phase B's 7 tools (write_stdin, update_plan, request_user_input, list_mcp_resources, list_mcp_resource_templates, read_mcp_resource, view_image) are expected to render with custom cards, Dev must ADD those knownTools entries too — which means the pipeline is LARGER than pure protocol extension. PM test plan did NOT capture this delta.",
+        "Daemon restart from inside the orchestrator's own daemon-managed session triggers cgroup kill. Dev MUST use `systemd-run --scope` or run `systemctl restart happy-daemon-dev.service` from a non-daemon shell. This is documented but recurring.",
+        "Mapper's maybeEmitSubagentStart() relies on pickProviderSubagent() which reads `message.subagent || message.parent_call_id || message.parentCallId`. For collabAgentToolCall items, the `senderThreadId` is the natural provider-subagent key — Dev must decide whether to forward senderThreadId as `subagent` or `parent_call_id` in the new mapper branch, or the subagent lifecycle emit will be silently skipped.",
+        "Codex CLI version drift: currently 0.125.0 (dev). The `ThreadItem` union and `CollabAgentTool` enum are stable in 0.125.0 but can change. Pin the contract by including a comment referencing Codex version + `codex app-server generate-ts` as the canonical protocol source."
+      ]
+    },
+    "path_B_detailed_analysis": {
+      "name": "Mapper-only — synthesize tool-call envelopes from existing agentMessage payloads",
+      "hypothesis": "Maybe `agentMessage.input.tool_uses[]` or similar nested fields already carry the tool-call data, so sessionProtocolMapper.ts can synthesize envelopes without touching codexAppServerClient.ts.",
+      "verdict": "NOT VIABLE",
+      "why_not_viable": [
+        "ThreadItem schema (verified via `codex app-server generate-ts`) defines agentMessage as {type:'agentMessage', id, text, phase, memoryCitation} — plain text only. No nested tool_uses, no input.tool_uses[], no hidden payload.",
+        "agentMessage phases are: initial/final_answer/... — it is the model's spoken reply, NOT a tool-call carrier.",
+        "The 5 subagent verbs surface as a SEPARATE ThreadItem variant (`collabAgentToolCall`). The parallel/tool_suggest verbs surface as `dynamicToolCall`. The MCP verbs surface as `mcpToolCall`. Each is a top-level item.type emitted by Codex — there is no way to reach them via agentMessage.",
+        "codexAppServerClient.ts handleRawNotification() at line 364 explicitly returns true (consumed) for ANY method starting with 'item/' — so item/started/collabAgentToolCall events are DROPPED SILENTLY today. No amount of mapper cleverness can recover them; the event handler never even sees the item.",
+        "Even the hypothetical 'hooked into the EventMsg eventHandler output' doesn't work: the eventHandler is INVOKED FROM handleRawNotification. If the branch for a given item.type is missing, the handler never fires. Path B conflates 'mapper receives events' with 'mapper-receives-all-events' — it does not."
+      ],
+      "pros": [
+        "Would avoid daemon rebuild + restart IF it worked — but it cannot work as described"
+      ],
+      "cons": [
+        "Fundamentally blocked by codexAppServerClient.ts:364 silently consuming unhandled item/* methods before they ever reach the event handler"
+      ],
+      "required_files": [],
+      "risks": [
+        "If Dev attempts Path B without realizing line 364 eats the events, they will ship code that has zero runtime effect. The test plan's Path B framing is a trap — it needs to be corrected before Dev writes spec."
+      ]
+    },
+    "recommendation": {
+      "chosen_path": "A (with corrections)",
+      "rationale": "Path B is not viable. Path A is the only path. But the test plan's Path A framing (14 new event-type branches) overcounts by 3x — the real work is ~5 item.type branches in codexAppServerClient.ts plus ~5 paired begin/end branches in sessionProtocolMapper.ts. That is smaller and cleaner than the cycle 1 retro suggested.",
+      "corrected_scope_for_BA_and_Dev": {
+        "codexAppServerClient_branches": "~5 item.type discriminated branches (plan, mcpToolCall, dynamicToolCall, collabAgentToolCall, optional imageView) with both item/started and item/completed handlers each",
+        "sessionProtocolMapper_branches": "~5-6 branch pairs — each emitting tool-call-start + tool-call-end envelopes with synthetic names",
+        "knownTools_additions_needed": "Possibly 7 (write_stdin, update_plan, request_user_input, list_mcp_resources, list_mcp_resource_templates, read_mcp_resource, view_image) if live-verification coverage is desired. Without these, the 7 verbs fall through to the default ToolFullView card (still functional, just generic).",
+        "i18n_additions": "Only if new knownTools entries reference new i18n keys. Existing 4 Phase D keys are reused.",
+        "total_estimated_new_lines": "300-400 across 3 files (codexAppServerClient, sessionProtocolMapper, knownTools) if full coverage desired; 180-250 if mapper+client only"
+      },
+      "blast_radius": {
+        "existing_live_codex_sessions_impact": "MINIMAL. New branches are ADDITIVE — they add emissions for previously-silent events. Existing exec_command / apply_patch / agentMessage paths are untouched. Zero risk of regression on the 3 currently-rendering tools.",
+        "daemon_rebuild_required": true,
+        "daemon_rebuild_scope": "happy-daemon-dev.service ONLY (production daemons default + jade are untouched — they run from /root/happy, not the worktree).",
+        "cgroup_kill_risk": "If Dev restarts the daemon from inside its own Claude session (the orchestrator's session), cgroup kill will terminate the session. Use `systemd-run --scope` or restart from outside the cgroup. CLAUDE.md rule 5.",
+        "rollback_strategy": "git checkout of the 2-3 modified files + daemon rebuild restores prior behavior. No DB migrations, no state file changes."
+      }
+    }
+  },
+  "architectural_paths": {
+    "path_A_extend_codexAppServerClient_plus_mapper": {
+      "verdict": "VIABLE — RECOMMENDED (only viable path)",
+      "changes": {
+        "codexAppServerClient.ts": {
+          "add_item_type_branches": ["plan", "mcpToolCall", "dynamicToolCall", "collabAgentToolCall", "imageView (optional)"],
+          "branch_template_source": "lines 280-306 (exec_command_begin/end for commandExecution) and lines 309-339 (patch_apply_begin/end for fileChange)",
+          "approximate_added_lines": 120,
+          "insertion_point": "Between existing fileChange branch (ends ~line 340) and agentMessage branch (starts line 342), or more cleanly: a switch/dispatch wrapper that routes by item.type at the top of the `item/*` handler block. Dev and architect to agree on style during BA review."
+        },
+        "sessionProtocolMapper.ts": {
+          "add_event_type_branches": ["plan_update_begin/end (or turn_plan_updated)", "mcp_tool_call_begin/end", "dynamic_tool_call_begin/end", "collab_agent_call_begin/end", "image_view (optional)"],
+          "branch_template_source": "exec_command_begin lines 294-322 and exec_command_end lines 324-336",
+          "approximate_added_lines": 180,
+          "note": "Each branch emits the standard envelope triple: (1) optional maybeEmitSubagentStart, (2) tool-call-start with synthetic name/title/description/args, (3) for completion variant, tool-call-end with same callId"
+        }
+      },
+      "pros": [
+        "Only viable path — Path B is blocked by line 364 silent-consume",
+        "Matches cycle 1 retro recommendation and spec Section 7 Cycle 2 prescription exactly",
+        "Additive — zero regression risk on the 3 currently-live tools",
+        "Dormant renderers from cycle 1 activate automatically once events flow",
+        "Daemon rebuild is a well-documented drill (cycle 1 §5.9 is the reference failure mode)"
+      ],
+      "cons": [
+        "Daemon rebuild + restart mandatory (Dev must restart from outside cgroup)",
+        "sessionProtocolMapper.ts grows to ~649 LOC (still under 800 cap but approaching)",
+        "7 knownTools.tsx registrations are MISSING from cycle 1 — if Dev wants full coverage they need to add these too, increasing scope",
+        "Live verification blocked until Codex session provisioned in dev (user escalation pending)"
+      ],
+      "required_files": [
+        "packages/happy-cli/src/codex/codexAppServerClient.ts",
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+        "(OPTIONAL) packages/happy-app/sources/components/tools/knownTools.tsx — for 7 missing Phase B registrations"
+      ],
+      "risks": [
+        "Event-name contract drift: Dev must commit to ONE naming scheme (per-verb begin/end vs generic with tool field) before writing code. Rework cost if mapper and client disagree is high (~2 Dev iterations).",
+        "Quality-gate bypass needed for sessionProtocolMapper.ts if the file crosses 800 LOC during the pipeline. Current 469 LOC + 180 added = 649, still under. But nesting-depth ≤3 rule may bite per cycle 1's CodexParallelView experience.",
+        "Daemon cgroup kill if Dev restarts from inside its own session. Explicit guard in pipeline spec required."
+      ]
+    },
+    "path_B_mapper_only_synthesize_from_agentMessage": {
+      "verdict": "NOT VIABLE — test plan framing is incorrect",
+      "changes": {
+        "sessionProtocolMapper.ts": "Hypothetical — look inside agentMessage payloads for nested tool_uses[] and synthesize tool-call envelopes"
+      },
+      "pros": ["None — the hypothesis does not hold"],
+      "cons": [
+        "agentMessage ThreadItem schema is {id, text, phase, memoryCitation} — NO nested tool_uses",
+        "codexAppServerClient.ts:364 silently consumes all non-handled item/* methods BEFORE the event handler fires — mapper cannot see events the client never emits",
+        "The 5 subagent verbs, 4 Phase B verbs, and 2 Phase D tools surface as SEPARATE ThreadItem variants (collabAgentToolCall, mcpToolCall, dynamicToolCall) — NOT as nested payloads inside agentMessage"
+      ],
+      "required_files": [],
+      "risks": [
+        "If Dev is told to attempt Path B based on the test plan's framing, they will write code that has zero runtime effect. PM should correct the framing before BA writes spec."
+      ]
+    }
+  },
+  "issues": [
+    {
+      "id": "arch-1",
+      "title": "Cycle 1 retro's '14 dormant renderers / 14 missing event-type branches' framing overcounts the work by ~3x",
+      "description": "The cycle 1 retro (plan_vs_outcome + protocol_blocked_summary) and the cycle 2 test plan state that extending codexAppServerClient.ts to emit 14 new event types will activate 14 dormant renderers. Ground truth from `codex app-server generate-ts`: the 14 tool types collapse onto ~5 `ThreadItem` variants (plan, mcpToolCall, dynamicToolCall, collabAgentToolCall, optional imageView). One item-type branch (collabAgentToolCall) covers all 5 subagent verbs via the CollabAgentTool enum. One item-type branch (dynamicToolCall) covers tool_suggest + multi_tool_use.parallel + write_stdin + request_user_input + view_image. So the real codexAppServerClient.ts delta is ~5 branches, not 14. The real sessionProtocolMapper.ts delta is ~5-6 paired begin/end branches, not 14 pairs. This is SMALLER and CLEANER than the test plan assumes — but requires correcting the framing for BA and Dev.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/codexAppServerClient.ts:280-364 vs spec-20260424-084848.md §5.15 protocol-extension prescriptive fix step 2 (line 1932)",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": null,
+      "observation_notes": "Ran `codex app-server generate-ts --out /tmp/...`. ServerNotification.ts enumerates 60 methods; ThreadItem.ts enumerates 14 discriminated type variants; CollabAgentTool.ts enumerates 5 enum values wrapped inside ONE collabAgentToolCall variant; DynamicToolCallStatus.ts + McpToolCallStatus.ts confirm single item.type per family. Line 364 of codexAppServerClient.ts silently returns true for all unhandled item/* methods — confirmed by direct read. The 14-tools-via-14-branches model is a category mistake.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-2",
+      "title": "7 of 14 'dormant renderers' have NO knownTools.tsx registration — framework gap",
+      "description": "Cycle 1 test plan and retro both claim 'Cycle 1 shipped 14 dormant renderers'. Grep of knownTools.tsx (lines 611-623 + 1100-1238) shows ONLY 8 registered: mcp__happy__change_title (alias, hidden) + spawn_agent + send_input + wait_agent + resume_agent + close_agent + tool_suggest + multi_tool_use.parallel. The 7 Phase B tools (write_stdin, update_plan, request_user_input, list_mcp_resources, list_mcp_resource_templates, read_mcp_resource, view_image) have NO entries in knownTools.tsx. When cycle 3's protocol extension lands, those 7 tools will render via the generic ToolFullView fallback — not with custom cards. If 'full dormant renderer activation' is the cycle 2 goal, Dev must ADD these 7 registrations to knownTools.tsx inside the same pipeline, which expands scope significantly.",
+      "severity": "major",
+      "location": "packages/happy-app/sources/components/tools/knownTools.tsx (missing entries for functions.write_stdin, functions.update_plan, functions.request_user_input, functions.list_mcp_resources, functions.list_mcp_resource_templates, functions.read_mcp_resource, functions.view_image)",
+      "category": "config-issue",
+      "estimated_effort": "medium",
+      "runtime_evidence": null,
+      "observation_notes": "Grep output in Grep tool result: only 8 tool IDs from the dormant set are present. Cycle 1 retro plan_vs_outcome pipeline 0 explicitly states 'ship DORMANT ... for 7 tools write_stdin/update_plan/request_user_input/list_mcp_resources/list_mcp_resource_templates/read_mcp_resource/view_image would be DEAD CODE until Codex protocol is extended' — meaning cycle 1 knowingly skipped them. Cycle 2 test plan carries the '14 dormant renderers' count forward without noting this gap.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-3",
+      "title": "Path B (mapper-only synthesis from agentMessage) is factually not viable — line 364 silent-consume blocks it",
+      "description": "The orchestrator's question D asks whether sessionProtocolMapper.ts can synthesize the missing tool-call envelopes from existing `agentMessage` payloads (e.g., if the Codex agentMessage carries `input.tool_uses[]`). Examining ThreadItem.agentMessage schema: {type:'agentMessage', id:string, text:string, phase:MessagePhase|null, memoryCitation:MemoryCitation|null}. agentMessage is plain text only — no nested tool_uses, no input blob. Furthermore, codexAppServerClient.ts:364 `return method.startsWith('item/')` silently returns true for ALL unhandled item/* methods BEFORE the event handler fires. So the 5 subagent verbs (collabAgentToolCall), 4 Phase B verbs (dynamicToolCall), 3 MCP verbs (mcpToolCall) never reach the mapper today regardless of what logic the mapper contains. Path B is structurally unreachable — Dev must NOT pursue it. The test plan's architectural question D should be retracted.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/codexAppServerClient.ts:342-364 (item.type matching block) + ThreadItem.ts agentMessage variant",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": null,
+      "observation_notes": "Direct read of codexAppServerClient.ts:280-364 + ThreadItem.ts (generated via `codex app-server generate-ts`) confirms both findings. The line 364 early return precedes the mapper entirely — no mapper extension can recover events the client drops.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-4",
+      "title": "EventMsg discriminator naming contract must be decided BEFORE Dev starts — rework cost is high",
+      "description": "The current 3 branches use per-verb discriminator names (exec_command_begin, exec_command_end, patch_apply_begin, patch_apply_end, agent_message). Two options for the 5 new item.type branches: (Option 1) One EventMsg discriminator per verb — e.g. spawn_agent_begin/end, send_input_begin/end, wait_agent_begin/end × 5 + dynamic tools × 5 + MCP verbs × 3 — bloats to ~26 event-type strings. (Option 2) One EventMsg discriminator per item.type family — collab_agent_call_begin/end carries item.tool CollabAgentTool enum; dynamic_tool_call_begin/end carries item.namespace+item.tool; mcp_tool_call_begin/end carries item.server+item.tool — total ~8-10 new event types. Mapper must decode the tool name accordingly. If codexAppServerClient and sessionProtocolMapper disagree on this contract, Dev will rewrite twice. Architect RECOMMENDS Option 2 — the mapper already does this kind of string synthesis (see commandToTitle at line 132 of sessionProtocolMapper.ts).",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/codexAppServerClient.ts:280-364 + packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:180-388",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": null,
+      "observation_notes": "Read both files fully. exec_command_begin/end pattern is the existing template — mapper's pickCallId() + commandToTitle() + args-splatting at lines 295-314 shows the shape. For Option 2, mapper branch for collabAgentToolCall does: `const verbMap = {spawnAgent:'spawn_agent', sendInput:'send_input', wait:'wait_agent', resumeAgent:'resume_agent', closeAgent:'close_agent'}; const name = 'functions.' + verbMap[item.tool];` — trivial.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-5",
+      "title": "Daemon restart cgroup-kill risk — explicit procedure MUST be in pipeline spec",
+      "description": "CLAUDE.md rule 5: 'NEVER restart daemon from within a daemon-managed Claude session (cgroup kill)'. Cycle 2 primary task requires daemon rebuild + restart after source change. If Dev (running inside the orchestrator's daemon-managed session) runs `systemctl restart happy-daemon-dev` directly, the cgroup kill terminates the orchestrator session. Must use: `systemd-run --scope -- systemctl restart happy-daemon-dev.service` OR `nohup bash -c 'sleep 2 && systemctl restart happy-daemon-dev.service' < /dev/null > /dev/null 2>&1 &` to detach. BA must write this into the pipeline spec step explicitly — cycle 1's §5.9 hit this trap in close-remediation.",
+      "severity": "major",
+      "location": "CLAUDE.md rule 5; cycle 1 retro §5.9 close-remediation notes; test-plan-cycle2.json strategic_notes(b)",
+      "category": "runtime-error",
+      "estimated_effort": "small",
+      "runtime_evidence": null,
+      "observation_notes": "Test plan already flags this in strategic_notes (b): 'Daemon restart from inside a daemon-managed session triggers cgroup kill (CLAUDE.md rule 5) — Dev MUST use systemd-run --scope or restart from outside the session.' Confirming and elevating to a tier-1 issue because it is a critical operational hazard.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-6",
+      "title": "sessionProtocolMapper.ts line-count discrepancy — cycle 1 retro says 883+, actual is 469",
+      "description": "Cycle 1 retro defect_hotspots flags sessionProtocolMapper.ts as 'quality-gate-size-blocker' with '883+' LOC. Actual `wc -l` on worktree HEAD: 469 lines. Either (a) the retro counted a different file version, (b) cycle 1 close-remediation removed unrelated code, or (c) the retro is wrong. Either way, Dev should verify line count BEFORE assuming bypass is needed. Path A adds ~180 LOC → ~649 total, still under the 800 cap. No Python bypass needed. This simplifies cycle 2 pipeline planning.",
+      "severity": "minor",
+      "location": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "category": "technical-debt",
+      "estimated_effort": "small",
+      "runtime_evidence": null,
+      "observation_notes": "Ran `wc -l packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts`: 469. Cycle 1 retro defect_hotspots[2].note says 'sessionProtocolMapper.ts (883+)'. The gap is unexplained. Dev should re-verify before invoking Python bypass.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-7",
+      "title": "§5.10 transport-layer cycle 3 handoff — multi-package surface inventory",
+      "description": "Secondary note per test plan agent_assignments.architect.mandatory (and orchestrator §5.10 deferred-to-cycle-3 note). Transport-layer §5.10 (Long background-task disconnect → out-of-order delivery) touches 3 packages: (1) happy-app/sources/sync/messageQueue.ts — needs client-side reorder buffer keyed by a monotonic sequence number; (2) happy-cli/src/api/apiSession.ts — needs proactive reconnect when 2 heartbeat intervals miss (currently reactive — only reconnects on next user message); (3) happy-server/sources/app/api/routes/sessionRoutes.ts — needs per-session monotonic sequence assignment on each stored message. Architect RECOMMENDS: BA commits a reproducible test harness FIRST before any code change (chrome devtools network-offline toggle + long sleep background task is deterministic enough). Order-ordering is nearly impossible to verify without deterministic repro.",
+      "severity": "major",
+      "location": "packages/happy-app/sources/sync/messageQueue.ts + packages/happy-cli/src/api/apiSession.ts + packages/happy-server/sources/app/api/routes/sessionRoutes.ts",
+      "category": "dependency-issue",
+      "estimated_effort": "large",
+      "runtime_evidence": null,
+      "observation_notes": "Cycle 2 test plan tier_2_major[0] defers §5.10 with explicit reason 'Time budget (~4h 11m remaining) is insufficient for both the primary Codex-protocol-extension pipeline AND the multi-package transport-layer fix plus its repro harness'. Spec line 1949 says '§5.10 alone (~4-6h budget)'. Architect concurs — §5.10 is NOT a cycle 2 scope item; this issue is a cycle 3 handoff.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-8",
+      "title": "Dev daemon binary architecture — Dev MUST rebuild from worktree, NOT from /root/happy",
+      "description": "Per CLAUDE.md 'Three Daemon Binary Architecture' table + 'Dev-Overnight Worktree Build & Deploy (MANDATORY for QA)': dev daemon runs from /root/happy-dev (symlink to /dev/shm/dev-workspace/happy-dev or the worktree). Cycle 2 source change lives in the worktree — Dev MUST run `cd ${WORKTREE_PATH}/packages/happy-cli && yarn build` (not from /root/happy) and then restart `happy-daemon-dev.service`. Invoking daemon from /root/happy would load OLD (cycle 1) code. This is documented but recurring — the 2026-03-26 postmortem (REBOOT-RECOVERY-POSTMORTEM.md) hit this exact trap.",
+      "severity": "major",
+      "location": "CLAUDE.md 'ABSOLUTE ISOLATION' section + 'Dev-Overnight Worktree Build & Deploy' section",
+      "category": "config-issue",
+      "estimated_effort": "small",
+      "runtime_evidence": null,
+      "observation_notes": "Dev daemon service file references /root/happy-dev/packages/happy-cli/dist/index.mjs. Worktree is at /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89/ — if /root/happy-dev is a symlink to the worktree, `cd ${WORKTREE_PATH}/packages/happy-cli && yarn build` writes to the expected dist/. If the symlink points elsewhere, Dev must verify. `ls -la /root/happy-dev` before build.",
+      "pm_tier": 2
+    }
+  ],
+  "architecture_proposals": [
+    {
+      "id": "arch-prop-1",
+      "title": "Introduce a single `emitToolCallItem()` helper in codexAppServerClient to dispatch item.type branches",
+      "current_state": "codexAppServerClient.ts:280-362 has 3 parallel if-blocks (commandExecution, fileChange, agentMessage), each hand-rolling the `item.id → callId` extraction and EventMsg construction. Each new item.type branch would duplicate this pattern. With 5+ new branches, duplication grows linearly.",
+      "proposed_state": "Extract a private `emitItemEvent(method: string, item: ThreadItem, beginType: string, endType: string, extraFields: (item) => Record<string, unknown>)` helper. Each existing and new branch becomes a one-liner dispatch. This is a REFACTOR of lines 280-362 done in the SAME pipeline as the extension — keeps the file consistent and cuts the ~120 new LOC roughly in half.",
+      "measurable_benefit": "Reduces codexAppServerClient.ts added LOC from ~120 to ~60 (50% reduction); eliminates 3 instances of duplicated 'const callId = typeof item.id === string ? item.id : ...' boilerplate; makes adding future item.type branches (e.g. webSearch, imageGeneration when §5.15 Phase A expands) trivial.",
+      "risk_if_ignored": "Each future Codex tool family extension adds 20-30 LOC of duplicated dispatch plumbing. Over 5+ cycles this compounds into hundreds of duplicated lines, each a potential refactor-drift bug.",
+      "affected_files": ["packages/happy-cli/src/codex/codexAppServerClient.ts"],
+      "estimated_effort": "small",
+      "breaking_changes": false,
+      "migration_strategy": "Internal refactor — no external API change. Dev can write the helper, then rewrite the 3 existing branches to use it + the 5 new branches. Tests in codexAppServerClient.test.ts verify behavior unchanged."
+    },
+    {
+      "id": "arch-prop-2",
+      "title": "Tighten the EventMsg type to a discriminated union instead of `{type: string} & Record<string, unknown>`",
+      "current_state": "codexAppServerTypes.ts:152 defines EventMsg as `{ type: string } & Record<string, unknown>` — a loose Record that accepts any string as type discriminator and any extra fields. Consumers (runCodex.ts:434-527, sessionProtocolMapper.ts:179-388) must cast `msg as any` to read fields, losing type safety.",
+      "proposed_state": "Replace with a discriminated union enumerating the known event types: `type EventMsg = {type:'task_started', turn_id?:string} | {type:'task_complete', ...} | {type:'agent_message', message:string, item_id?, phase?} | {type:'exec_command_begin', call_id, callId, command, cwd, description} | ... | {type:'collab_agent_call_begin', ...} | ...`. Add an `unknown` fallback variant for future extensibility: `| {type:string, [key:string]:unknown}` as last element of the union.",
+      "measurable_benefit": "Enables TypeScript exhaustiveness checks in sessionProtocolMapper.ts. Eliminates ~10 `as any` casts in runCodex.ts:438-508. Catches field-name typos at compile time — currently `msg.turn_id` vs `msg.turnId` mismatches pass typecheck silently.",
+      "risk_if_ignored": "Each new event type added to codexAppServerClient must be manually reflected in every consumer; drift accumulates. Cycle 2 adds 5+ event types; cycle 3's §5.10 and future Codex phases add more.",
+      "affected_files": ["packages/happy-cli/src/codex/codexAppServerTypes.ts"],
+      "estimated_effort": "medium",
+      "breaking_changes": false,
+      "migration_strategy": "Additive — the new union is compatible with existing `{type:string} & Record<string,unknown>` usage because the fallback variant preserves the loose shape. Dev can land this in a separate follow-up pipeline after cycle 2's primary fix."
+    }
+  ],
+  "summary": {
+    "files_examined": 10,
+    "issues_found": 8,
+    "runtime_health": "healthy",
+    "clean_areas": [
+      "Dev stack (happy-server-dev @ 3005, happy-web-dev @ 8097) both responsive",
+      "codexAppServerClient.ts lifecycle handling (connect/disconnect/reconnect/thread/turn) is sound — no refactor needed for cycle 2",
+      "sessionProtocolMapper.ts subagent lifecycle primitives (maybeEmitSubagentStart / emitSubagentStops / buildEnvelopeOptions) are well-factored and reusable for new branches",
+      "CodexSubagentView + CodexParallelView are correctly set up to consume the envelopes that the mapper would produce once the client emits events — no app-side changes required for those 7 dormant-renderer-with-knownTools entries"
+    ]
+  },
+  "final_architect_consultation": {
+    "for_pm_and_ba": [
+      "CORRECT the '14 event-type branches' framing — the real work is ~5 item.type branches in codexAppServerClient.ts + ~5 branch pairs in sessionProtocolMapper.ts. Use the `codex app-server generate-ts` output as the canonical protocol source (not inference).",
+      "Decide Option 1 (per-verb EventMsg discriminator) vs Option 2 (per-item-type-family EventMsg discriminator) BEFORE writing BA spec. Architect recommends Option 2.",
+      "Decide scope: 'activate currently-registered 7 dormant renderers' (simpler, ~250 LOC, 2 files) vs 'activate 14 renderers with full custom-card coverage' (requires adding 7 knownTools.tsx entries + i18n, ~400 LOC, 3+ files). Retract overstated '14 dormant renderers' framing accordingly.",
+      "Retract architectural question D (Path B mapper-only from agentMessage) — it is not viable per line 364 silent-consume; Dev must not attempt it.",
+      "Include explicit cgroup-kill guard in pipeline spec: daemon restart MUST be via `systemd-run --scope` or `nohup && &` from within the orchestrator's session.",
+      "Verify `wc -l sessionProtocolMapper.ts` (currently 469 — under 800 cap). Path A puts it at ~649. No Python bypass needed despite cycle 1 retro's '883+' claim. Saves Dev time."
+    ],
+    "for_dev": [
+      "Source of truth for Codex protocol: `codex app-server generate-ts --out /tmp/codex-ts` (Codex 0.125.0). Read `ServerNotification.ts`, `ThreadItem.ts`, `CollabAgentTool.ts`, `DynamicToolCallStatus.ts`, `McpToolCallStatus.ts`, `WebSearchAction.ts`.",
+      "Extension point in codexAppServerClient.ts: after the existing `item.type === 'fileChange'` block (ends ~line 340), before `item.type === 'agentMessage'` (starts line 342). Add ~5 item.type discriminated branches. Preserve line 364 as the final return.",
+      "Extension point in sessionProtocolMapper.ts: before the final `return { ..., envelopes: [] }` block at line 381. Add branch pairs (begin/end) mirroring exec_command_begin (lines 294-322) and exec_command_end (lines 324-336).",
+      "For collabAgentToolCall: map `item.tool` enum (CollabAgentTool: spawnAgent|sendInput|wait|resumeAgent|closeAgent) to knownTools keys (functions.spawn_agent|send_input|wait_agent|resume_agent|close_agent) via a 5-entry table.",
+      "For dynamicToolCall: synthesize name as `${item.namespace ?? 'functions'}.${item.tool}`. For `multi_tool_use.parallel`, the envelope.args must include `tool_uses` (read from item.arguments per CodexParallelView contract).",
+      "For mcpToolCall: synthesize name as `functions.${item.tool}` or similar — verify happy knownTools registry key conventions with BA.",
+      "Daemon rebuild: `cd ${WORKTREE_PATH}/packages/happy-cli && yarn build` — verify `sendExisting` is present in dist/*.mjs (grep -c per CLAUDE.md). Then `systemd-run --scope -- systemctl restart happy-daemon-dev.service` — NEVER raw systemctl restart from inside the orchestrator session.",
+      "Post-restart: verify `curl http://localhost:3005/health` returns ok + `docker logs happy-server-dev --tail 20` shows no errors + `journalctl -u happy-daemon-dev -n 20` shows restart complete.",
+      "Live verification: blocked until Codex session provisioned in dev (user escalation). Source + bundle + typecheck is the BA-sanctioned acceptance path per cycle 1 DORMANT precedent."
+    ],
+    "for_qa": [
+      "Primary verification path (BA-sanctioned fallback): TypeScript typecheck (`yarn typecheck` in happy-cli) with 0 new errors. Bundle grep for new EventMsg discriminator strings (grep `collab_agent_call_begin\\|dynamic_tool_call_begin\\|mcp_tool_call_begin\\|plan_update_begin` dist/index-*.mjs). Both must PASS.",
+      "Secondary verification: journalctl -u happy-daemon-dev -n 100 — scan for errors after restart. No `[CodexAppServer] Error` lines within 5 minutes of restart.",
+      "If Codex session in dev IS provisioned: send a test message that triggers each of the 5 item.type families (ls -la for commandExecution, a multi-file edit for fileChange, a shell session with stdin for dynamicToolCall, a spawn_agent test for collabAgentToolCall, an mcp resource list for mcpToolCall). Capture desktop 1280x720 + mobile 390x844 screenshots for each tool card.",
+      "Regression guard: confirm that existing commandExecution + fileChange + agentMessage paths still work (open any pre-existing Codex session in dev, verify the 3 original cards render as before — no layout shift, no console errors)."
+    ]
+  }
+}

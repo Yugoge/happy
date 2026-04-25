@@ -522,6 +522,8 @@ export const pl: TranslationStructure = {
             webFinance: 'Finanse',
             webSports: 'Sport',
             webScreenshot: 'Zrzut ekranu',
+            toolSuggest: 'Sugeruj narzędzie',
+            parallelTool: 'Równolegle',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Terminal(cmd: ${cmd})`,
@@ -541,6 +543,8 @@ export const pl: TranslationStructure = {
             webFinanceLookup: ({ symbol }: { symbol: string }) => `Finanse(${symbol})`,
             webSportsLookup: ({ league, team }: { league: string; team: string }) => `Sport(${team || league})`,
             webScreenshotting: ({ target }: { target: string }) => `Zrzut ekranu(${target})`,
+            toolSuggesting: ({ name }: { name: string }) => `Sugestia: ${name}`,
+            parallelToolCount: ({ count }: { count: number }) => `Równolegle: ${count} ${count === 1 ? 'narzędzie' : 'narzędzi'}`,
             grepPattern: ({ pattern }: { pattern: string }) => `grep(wzorzec: ${pattern})`,
             multiEditEdits: ({ path, count }: { path: string; count: number }) => `${path} (${count} ${plural({ count, one: 'edycja', few: 'edycje', many: 'edycji' })})`,
             readingFile: ({ file }: { file: string }) => `Odczytywanie ${file}`,

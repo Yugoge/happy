@@ -521,6 +521,8 @@ export const ru: TranslationStructure = {
             webFinance: 'Финансы',
             webSports: 'Спорт',
             webScreenshot: 'Скриншот',
+            toolSuggest: 'Предложить инструмент',
+            parallelTool: 'Параллельно',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Терминал(команда: ${cmd})`,
@@ -540,6 +542,8 @@ export const ru: TranslationStructure = {
             webFinanceLookup: ({ symbol }: { symbol: string }) => `Финансы(${symbol})`,
             webSportsLookup: ({ league, team }: { league: string; team: string }) => `Спорт(${team || league})`,
             webScreenshotting: ({ target }: { target: string }) => `Скриншот(${target})`,
+            toolSuggesting: ({ name }: { name: string }) => `Предложение: ${name}`,
+            parallelToolCount: ({ count }: { count: number }) => `Параллельно: ${count} ${count === 1 ? 'инструмент' : 'инструментов'}`,
             grepPattern: ({ pattern }: { pattern: string }) => `grep(шаблон: ${pattern})`,
             multiEditEdits: ({ path, count }: { path: string; count: number }) => `${path} (${count} ${plural({ count, one: 'правка', few: 'правки', many: 'правок' })})`,
             readingFile: ({ file }: { file: string }) => `Чтение ${file}`,

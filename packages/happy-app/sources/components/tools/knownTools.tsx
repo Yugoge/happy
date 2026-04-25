@@ -608,6 +608,19 @@ export const knownTools = {
         }).partial().passthrough(),
         result: z.object({}).partial().passthrough()
     },
+    // Claude wire name alias for happy MCP change_title (Codex/Gemini wire name 'change_title' above).
+    // §5.15 Phase B: hidden alias prevents raw fallback card in Claude sessions.
+    'mcp__happy__change_title': {
+        title: 'Change Title',
+        icon: ICON_EDIT,
+        hidden: true,
+        minimal: true,
+        noStatus: true,
+        input: z.object({
+            title: z.string().optional().describe('New session title')
+        }).partial().passthrough(),
+        result: z.object({}).partial().passthrough()
+    },
     // Gemini internal tools - should be hidden (minimal)
     'search': {
         title: t('tools.names.search'),
@@ -712,7 +725,7 @@ export const knownTools = {
     'CodexPatch': {
         title: t('tools.names.applyChanges'),
         icon: ICON_EDIT,
-        minimal: false,
+        minimal: true,
         hideDefaultError: true,
         input: z.object({
             auto_approved: z.boolean().optional().describe('Whether changes were auto-approved'),
@@ -1095,6 +1108,255 @@ export const knownTools = {
                 return t('tools.desc.webScreenshotting', { target: target.length > 80 ? target.substring(0, 80) + '...' : target });
             }
             return t('tools.names.webScreenshot');
+        }
+    },
+    // §5.15 Phase C — Codex subagent lifecycle verbs (DORMANT until protocol emits events; closes §5.13)
+    'functions.spawn_agent': {
+        title: 'Spawn Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        isMutable: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            prompt: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Spawn: ${name}`;
+        }
+    },
+    'functions.send_input': {
+        title: 'Send Input',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            input: z.string().optional(),
+            message: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            const text = (typeof input.input === 'string' && input.input)
+                || (typeof input.message === 'string' && input.message)
+                || '';
+            const truncated = text.length > 60 ? text.substring(0, 60) + '...' : text;
+            return truncated ? `Send to ${name}: ${truncated}` : `Send to ${name}`;
+        }
+    },
+    'functions.wait_agent': {
+        title: 'Wait for Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            timeout: z.number().optional(),
+            timeout_seconds: z.number().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            const timeoutVal = (typeof input.timeout === 'number' && input.timeout)
+                || (typeof input.timeout_seconds === 'number' && input.timeout_seconds)
+                || null;
+            return timeoutVal !== null
+                ? `Wait for ${name} (${timeoutVal}s)`
+                : `Wait for ${name}`;
+        }
+    },
+    'functions.resume_agent': {
+        title: 'Resume Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Resume: ${name}`;
+        }
+    },
+    'functions.close_agent': {
+        title: 'Close Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Close: ${name}`;
+        }
+    },
+    // §5.15 Phase D — Codex tool-suggest / parallel renderers (DORMANT until protocol emits events)
+    'functions.tool_suggest': {
+        title: t('tools.names.toolSuggest'),
+        icon: ICON_REASONING,
+        noStatus: true,
+        input: z.object({
+            tool_name: z.string().optional(),
+            description: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            if (typeof input.tool_name === 'string' && input.tool_name) {
+                return t('tools.desc.toolSuggesting', { name: input.tool_name });
+            }
+            return t('tools.names.toolSuggest');
+        }
+    },
+    'multi_tool_use.parallel': {
+        title: t('tools.names.parallelTool'),
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            tool_uses: z.array(z.any()).optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const uses = Array.isArray(input.tool_uses) ? input.tool_uses : [];
+            return t('tools.desc.parallelToolCount', { count: uses.length });
+        }
+    },
+    // §5.15 Phase E — Codex protocol-extension activation (cycle 2, dormant until now)
+    'functions.write_stdin': {
+        title: 'Write stdin',
+        icon: ICON_TERMINAL,
+        minimal: true,
+        input: z.object({
+            text: z.string().optional(),
+            input: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const text = (typeof input.text === 'string' && input.text)
+                || (typeof input.input === 'string' && input.input)
+                || '';
+            return text
+                ? `Write: ${text.length > 60 ? text.substring(0, 60) + '...' : text}`
+                : 'Write to stdin';
+        }
+    },
+    'functions.update_plan': {
+        title: 'Update plan',
+        icon: ICON_TODO,
+        minimal: true,
+        input: z.object({
+            plan: z.string().optional(),
+            text: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const plan = (typeof input.plan === 'string' && input.plan)
+                || (typeof input.text === 'string' && input.text)
+                || '';
+            return plan
+                ? `Update plan: ${plan.length > 60 ? plan.substring(0, 60) + '...' : plan}`
+                : 'Update plan';
+        }
+    },
+    'functions.request_user_input': {
+        title: 'Request user input',
+        icon: ICON_QUESTION,
+        minimal: true,
+        input: z.object({
+            prompt: z.string().optional(),
+            question: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const prompt = (typeof input.prompt === 'string' && input.prompt)
+                || (typeof input.question === 'string' && input.question)
+                || '';
+            return prompt
+                ? `Ask: ${prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt}`
+                : 'Request user input';
+        }
+    },
+    'functions.list_mcp_resources': {
+        title: 'List MCP resources',
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({
+            server: z.string().optional(),
+            serverName: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const server = (typeof input.server === 'string' && input.server)
+                || (typeof input.serverName === 'string' && input.serverName)
+                || '';
+            return server ? `List MCP resources: ${server}` : 'List MCP resources';
+        }
+    },
+    'functions.list_mcp_resource_templates': {
+        title: 'List MCP resource templates',
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({
+            server: z.string().optional(),
+            serverName: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const server = (typeof input.server === 'string' && input.server)
+                || (typeof input.serverName === 'string' && input.serverName)
+                || '';
+            return server ? `List MCP templates: ${server}` : 'List MCP resource templates';
+        }
+    },
+    'functions.read_mcp_resource': {
+        title: 'Read MCP resource',
+        icon: ICON_READ,
+        minimal: true,
+        input: z.object({
+            uri: z.string().optional(),
+            resourceUri: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const uri = (typeof input.uri === 'string' && input.uri)
+                || (typeof input.resourceUri === 'string' && input.resourceUri)
+                || '';
+            return uri
+                ? `Read: ${uri.length > 80 ? uri.substring(0, 80) + '...' : uri}`
+                : 'Read MCP resource';
+        }
+    },
+    'functions.view_image': {
+        title: 'View image',
+        icon: ICON_IMAGE,
+        minimal: true,
+        input: z.object({
+            path: z.string().optional(),
+            image_path: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const p = (typeof input.path === 'string' && input.path)
+                || (typeof input.image_path === 'string' && input.image_path)
+                || '';
+            return p
+                ? `View: ${p.length > 80 ? p.substring(0, 80) + '...' : p}`
+                : 'View image';
         }
     },
     // Internal Claude Code tool for loading deferred tools - no user-visible output
