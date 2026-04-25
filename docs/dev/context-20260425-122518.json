@@ -1,0 +1,529 @@
+{
+  "request_id": "dev-20260425-122518",
+  "timestamp": "2026-04-25T12:25:18+00:00",
+  "round": 2,
+  "round_2_update_at": "2026-04-25T12:42:00+00:00",
+  "round_2_investigation_artifact": "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-investigation-20260425-122518.md",
+  "source_spec": {
+    "path": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+    "section": "Section 5 (locked single source of truth)",
+    "cycle": "2 (engineering after Cycle 1 PASS)"
+  },
+  "ba_spec_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260425-122518.md",
+  "parallelizable": true,
+  "parallel_groups": [
+    {
+      "group_id": "G1",
+      "label": "merge.md unified pass (R1 portion + R2 + R3b)",
+      "files_to_modify": [
+        "/root/.claude/commands/merge.md"
+      ],
+      "files_to_create": [],
+      "tasks": [
+        "R1: Replace 7 hardcoded `master` literals at lines 21,44,47,50,71,106,114 with `$DEFAULT_BRANCH` resolver block at top",
+        "R2: Add zero-ahead detection (`git rev-list --count <default>..<branch>`); when 0, run `cd <worktree-path> && git add -A && git commit -m \"auto-bulk: end-of-cycle commit for <branch>\"` BEFORE checkout/merge",
+        "R3b: Add untracked-overlap preflight before Step 3 — print literal `untracked overlap detected:` followed by file list, exit 2, do NOT call `git merge`"
+      ],
+      "blocked_by": null,
+      "blocks": null
+    },
+    {
+      "group_id": "G2",
+      "label": "dev-overnight.md default-branch (R1 portion)",
+      "files_to_modify": [
+        "/root/.claude/commands/dev-overnight.md"
+      ],
+      "files_to_create": [],
+      "tasks": [
+        "R1: Replace 4 hardcoded `master` literals at lines 1545,1547,1569,1570 with `$DEFAULT_BRANCH` resolver references"
+      ],
+      "blocked_by": null,
+      "blocks": null
+    },
+    {
+      "group_id": "G3",
+      "label": "spec.md worktree-aware path resolution (R3a)",
+      "files_to_modify": [
+        "/root/.claude/commands/spec.md"
+      ],
+      "files_to_create": [],
+      "tasks": [
+        "R3a: In Step 3 path resolution, detect active overnight worktree via scanning parent's `.claude/overnight-state-*.json` files; when one is live (`worktree_path` exists and is a directory), write spec into `<worktree_path>/docs/dev/specs/`; else write to parent's `docs/dev/specs/`"
+      ],
+      "blocked_by": null,
+      "blocks": null
+    },
+    {
+      "group_id": "G4",
+      "label": "R4 hooks family (4 hooks: 1 extension + 3 new)",
+      "files_to_modify": [
+        "/root/.claude/hooks/pretool-overnight-hook-guard.py"
+      ],
+      "files_to_create": [
+        "/root/.claude/hooks/pretool-claude-config-guard.py",
+        "/root/.claude/hooks/pretool-git-privilege-guard.py",
+        "/root/.claude/hooks/pretool-bulk-commit-detector.py"
+      ],
+      "tasks": [
+        "R4.1: Add `is_commands_path()` predicate mirroring existing `is_hooks_path()` at lines 220-223 of `pretool-overnight-hook-guard.py`; extend `_check_write_edit_security`, `_check_bash_security`, `check_bash_targets_hooks` (rename or duplicate as `check_bash_targets_commands`) to cover `.claude/commands/*` during active overnight",
+        "R4.2: New hook `pretool-claude-config-guard.py` — runs OUTSIDE overnight too; blocks Edit/Write/Bash to `.claude/hooks/*` and `.claude/commands/*`; exempt when sentinel `.claude/.hook-refactor-allow` exists at project root; mirror `pretool-overnight-hook-guard.py` JSON-from-stdin/exit-2/stderr structure",
+        "R4.3: New hook `pretool-git-privilege-guard.py` — for any agent context (subagent or main), block `git commit` whose message does NOT match `^auto-bulk: end-of-cycle commit for `; block `git merge` (allow only if env var `CLAUDE_MERGE_COMMAND_ACTIVE=1` set by /merge); block `git push`; block `git reset --hard <ref>` where `<ref>` is non-HEAD; stderr message MUST contain literal `BLOCKED: agent git commit` for the commit case (other cases use analogous prefixes)",
+        "R4.4: New hook `pretool-bulk-commit-detector.py` — PreToolUse on Bash; detect `git commit` invocations; parse staged set from `git diff --cached --name-only`; count distinct subsystem prefixes from {hooks/, commands/, scripts/, packages/, docs/}; if >= 3 AND commit message matches `sync.*uncommitted` (case-insensitive) OR `chore\\(claude\\): sync`, exit 2 with stderr listing the matched prefixes",
+        "Must-have (Round-2 promotion): emit a JSON snippet at the top of the dev-report describing the 3 new PreToolUse matchers (R4.2/R4.3/R4.4) for the orchestrator to apply via the `update-config` skill. Dev does NOT modify settings.json directly. Snippet must include matchers, hook command paths, and timeout values."
+      ],
+      "blocked_by": null,
+      "blocks": null
+    },
+    {
+      "group_id": "G5",
+      "label": "R5 postmortem deliverable",
+      "files_to_modify": [],
+      "files_to_create": [
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md"
+      ],
+      "tasks": [
+        "Create `/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/` directory if missing",
+        "Write postmortem with EXACTLY four named sections in order: `## User-prompt-recovered`, `## Agent-reasoning`, `## Hook-that-should-have-caught-it`, `## Concrete-hook-paths-to-add`",
+        "User-prompt-recovered MUST contain (a) the literal absolute JSONL path `/root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl` (Round-2 recovered) and (b) the verbatim user prompt `全部commit push` from message 293 at 2026-04-21T17:44:16.221Z. The literal `JSONL pruned` is FORBIDDEN.",
+        "Agent-reasoning MUST paraphrase the IF-2 timeline from BA's investigation artifact (the 47-second window from 17:44:16 to 17:45:03: sensitive-content scan -> add -A -> first commit blocked by orchestrator-gate at 17:44:54 -> Grep streak-reset -> second commit succeeded at 17:45:03). At least three of these four moments must be referenced.",
+        "Hook-that-should-have-caught-it MUST explain that the orchestrator-gate block was rate-based (4/3 streak), not semantic, so the agent bypassed it with a Grep call. R4.4 (subject-pattern + multi-subsystem fan-out) and R4.3 (agent-vs-user authorship) are the semantic guards that close the gap.",
+        "Each section must be non-empty (>= 50 chars body content excluding header)",
+        "Reference the four hook paths from G4 in `## Concrete-hook-paths-to-add`",
+        "Dev MAY copy verbatim from `/dev/shm/dev-workspace/happy-dev/docs/dev/ba-investigation-20260425-122518.md` Sections 1-2 — that artifact is the BA-performed investigation and is the source of truth for postmortem content."
+      ],
+      "blocked_by": null,
+      "blocks": null
+    }
+  ],
+  "parallel_dispatch_recommendation": "Dispatch all 5 groups in parallel in one message. G1, G2, G3 touch different files (after merge.md unification at G1, G3's spec.md and G2's dev-overnight.md are disjoint). G4 and G5 disjoint from everything. The orchestrator does NOT need to sequence — file partition is non-overlapping with G1 owning all merge.md edits.",
+  "requirement": {
+    "original": "Implement Cycle 2 of spec-20260424-233926: actually do the engineering work for the 5 locked requirements (R1 default-branch-detection, R2 worktree-branch HEAD bridge option d, R3 /spec worktree-aware + /merge stash-aware preflight, R4 hooks family of 4, R5 postmortem). Cycle 1 PASS state is the baseline; structural restructuring is done; now implement the actual code/hook/postmortem changes.",
+    "clarified": "Execute spec-20260424-233926 Section 5 verbatim across 5 independent requirements. Cross-repo scope: project repo for postmortem only; global `/root/.claude/` (= `/dev/shm/dev-workspace/dot-claude/`) for commands and hooks. No design alternatives, no scope expansion.",
+    "what": "Code/hooks/postmortem changes mapping locked spec Section 5 acceptance points (5.2.1.1, 5.2.1.2, 5.2.1.3, 5.2.4, 5.2.5) to concrete file edits.",
+    "why": "Cycle 1 only restructured the spec (moved R4 + investigation into Section 5, locked option-menus, added verification signals, declared cross-repo scope). The actual engineering — replacing master literals, adding the bridge, adding /spec worktree-awareness, adding /merge preflight, adding 4 hooks, writing the postmortem — has not yet been done. Without it, the next /dev-overnight + /merge cycle will hit the same 11+ master hardcodes, no bridge, no preflight, no anti-bulk-commit guardrail.",
+    "where": [
+      "/root/.claude/commands/merge.md",
+      "/root/.claude/commands/dev-overnight.md",
+      "/root/.claude/commands/spec.md",
+      "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+      "/root/.claude/hooks/pretool-claude-config-guard.py (NEW)",
+      "/root/.claude/hooks/pretool-git-privilege-guard.py (NEW)",
+      "/root/.claude/hooks/pretool-bulk-commit-detector.py (NEW)",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md (NEW)"
+    ],
+    "scope": {
+      "included": [
+        "R1 default-branch detection — replace 11 master literals with dynamic detection",
+        "R2 zero-ahead auto-bulk-commit-and-merge bridge in /merge",
+        "R3a worktree-aware /spec path resolution",
+        "R3b stash-aware /merge preflight with literal `untracked overlap detected:`",
+        "R4.1 extend pretool-overnight-hook-guard.py to cover .claude/commands/*",
+        "R4.2 new pretool-claude-config-guard.py (always-on with allow-list flag)",
+        "R4.3 new pretool-git-privilege-guard.py (forbid agent commit/merge/push/non-HEAD reset)",
+        "R4.4 new pretool-bulk-commit-detector.py (block sync-all-uncommitted multi-subsystem commits)",
+        "R5 postmortem with 4 named sections + JSONL-pruned declaration"
+      ],
+      "excluded": [
+        "Modifying refs/checkpoints/* design (locked by f2f8741 2026-04-16; reaffirmed in spec 5.3) — do NOT touch posttool-git-checkpoint.sh, auto-commit.sh, stop-git-commit.sh, lib/checkpoint-core.sh",
+        "Backporting to old worktrees overnight-20260329-9ae57c91 or overnight-20260403-d6f1eea4",
+        "Modifying settings.json directly (dev emits the JSON snippet; orchestrator applies via update-config skill — Round-2 escalation per QA Objection 4)",
+        "Renaming `master` references inside post-mortem narrative prose or unrelated /dev-overnight steps"
+      ]
+    },
+    "success_criteria": [
+      "AC1 R1: zero master matches in merge.md+dev-overnight.md; resolver outputs target=main in main-default repo and target=master in master-default repo",
+      "AC2 R2: after /merge from a zero-ahead worktree, git log -1 main shows commit message matching ^auto-bulk: end-of-cycle commit for; refs/checkpoints/* digest unchanged",
+      "AC3 R3a: /spec invoked from parent with active overnight writes spec into worktree, not parent",
+      "AC4 R3b: /merge with untracked-overlap prints literal `untracked overlap detected:` and exits non-zero; no MERGE entry in reflog",
+      "AC5 R4.1 (Round-2 strengthened): overnight hook blocks .claude/commands/* edits during active overnight, verified by synthetic stdin invocation; new is_commands_path() predicate present",
+      "AC6 R4.2 (Round-2 strengthened): config-guard blocks .claude/{hooks,commands}/* edits outside overnight unless allow-list sentinel exists, verified by synthetic stdin",
+      "AC7 R4.3 (Round-2 strengthened): privilege-guard blocks agent git commit (except blessed bridge), git merge (except via /merge), git push, git reset --hard non-HEAD; stderr contains `BLOCKED: agent git commit` (substring check on synthetic stdin)",
+      "AC8 R4.4 (Round-2 strengthened): bulk-commit detector blocks the b5d447e shape (3+ subsystem prefixes + sync-uncommitted subject); stderr names the prefixes; verified with throwaway repo + synthetic stdin; control cases (single-subsystem, benign-subject) exit 0",
+      "AC9 R5 (Round-2 corrected): postmortem file exists with all 4 named sections; User-prompt-recovered contains absolute JSONL path `/root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl` AND verbatim prompt `全部commit push`; the falsehood `JSONL pruned` is ABSENT (negative assertion); each section >= 50 chars body",
+      "AC10 (Round-2 NEW): settings.json registration completed via update-config skill; harness reads PreToolUse matchers for the 3 new hooks"
+    ],
+    "constraints": [
+      "Both project repo and dot-claude repo are in scope per spec 5.3.1",
+      "Project repo has NO .claude/commands/ AND no .claude/hooks/pretool-overnight-hook-guard.py (Round-2 verified) — global is the only canonical location for the R1-R4 targets",
+      "Cycle 1 PASS state is the baseline; no spec restructuring needed in this cycle",
+      "Session JSONL for 2026-04-21 17:45 UTC is RECOVERABLE (Round-2 correction): /root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl contains 4 verbatim b5d447e references; user prompt is `全部commit push`. Round-1 BA's pruned claim was FALSE.",
+      "R2 commit must be made FROM the worktree's working tree (cd into worktree first), not from parent",
+      "R4.3 must allow the `auto-bulk: end-of-cycle commit for` blessed-bridge pattern; otherwise it would block its own R2 implementation",
+      "R4.3 must NOT block R5's postmortem creation — Write/Edit to docs/dev/postmortems/ is unrelated to git verbs",
+      "Once R4.2/R4.3/R4.4 land, future agent edits to commands/ and hooks/ require the allow-list flag — dev should land hooks last in the recommended order, OR include the allow-list flag for the immediate /merge cycle that lands them",
+      "Settings.json registration is now Must-Have (Round-2 escalation per QA Objection 4): dev's R4 group emits the JSON snippet for orchestrator to apply via update-config skill"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "User believes /merge worktree-to-master flow is fixed (`我不是已经彻底彻底修复` from spec 5.1) but `/merge` still hits master-vs-main hardcodes, no branch-HEAD bridge, no /merge preflight, /spec parent-worktree collisions",
+    "root_cause": "Multi-layer omissions: (a) data layer — master literals never replaced (R1); (b) logic layer — no bridge from worktree-branch to main introduced after b5d447e removed the auto-commit-to-branch-HEAD behavior (R2); (c) logic layer — /spec has no worktree awareness, /merge has no preflight (R3); (d) infrastructure layer — no agent-privilege guards or bulk-commit detector (R4); (e) documentation layer — no postmortem yet to document the regression mechanism (R5)",
+    "root_cause_commit": "Multiple — see prior_attempts. Direct cause of R2 gap = b5d447e (2026-04-21 17:45 UTC) which rewrote checkpoint hooks to redirect snapshots to refs/checkpoints/* without adding a replacement bridge. R1, R3, R4 gaps existed before b5d447e; R5 postmortem documents b5d447e specifically.",
+    "why_introduced": "Each gap has its own cause. R1: original /merge command was authored against a master-default repo; project later shifted to main but command was never updated. R2: b5d447e was a sweep-style sync commit that touched checkpoint hooks as part of a 93-file bulk; downstream contract removal was not flagged. R3: /spec and /merge were authored without worktree-coordination assumptions. R4: hooks were added incrementally as failures occurred (worktree isolation in 7782c40, 2cb0220) but agent-privilege guards never made it onto the queue. R5: postmortem hadn't been requested before this cycle.",
+    "why_problematic": "Each gap independently breaks a /dev-overnight + /merge cycle: R1 = commands run against non-existent branch; R2 = /merge has nothing to merge (branch sits at base hash); R3 = parent untracked files collide with worktree spec output; R4 = the b5d447e-class regression has no guardrail and could recur; R5 = future agents have no postmortem to learn from.",
+    "timeline": "R1: latent since project's main migration (date unknown, before 2026-04-21). R2: regressed at b5d447e 2026-04-21 17:45 UTC. R3: latent since spec.md and merge.md original creation. R4: gap exists since hooks were first written. R5: deliverable identified 2026-04-24T23:39Z (spec creation).",
+    "affected_files": [
+      "/root/.claude/commands/merge.md",
+      "/root/.claude/commands/dev-overnight.md",
+      "/root/.claude/commands/spec.md",
+      "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+      "/root/.claude/hooks/pretool-claude-config-guard.py (new)",
+      "/root/.claude/hooks/pretool-git-privilege-guard.py (new)",
+      "/root/.claude/hooks/pretool-bulk-commit-detector.py (new)",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md (new)"
+    ],
+    "evidence_type": "observed",
+    "observations": [
+      "merge.md hardcoded master at lines 21,44,47,50,71,106,114 (observed: grep on /root/.claude/commands/merge.md, 7 hits)",
+      "dev-overnight.md hardcoded master at lines 1545,1547,1569,1570 (observed: grep on /root/.claude/commands/dev-overnight.md, 4 hits)",
+      "spec.md zero worktree-aware logic (observed: grep `worktree` count = 0 in body)",
+      "merge.md zero stash/untracked preflight (observed: grep `stash|untracked` count = 0)",
+      "pretool-overnight-hook-guard.py is_hooks_path() at line 220 covers only .claude/hooks/, no .claude/commands/ predicate (observed: Read of file). File is 481 lines (Round-2 corrected from Round-1's 482).",
+      "/dev/shm/dev-workspace/happy-dev origin/HEAD = origin/main (observed: git symbolic-ref)",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/ does NOT exist (observed: ls -la returns ENOENT)",
+      "Round-2 ROUND-CORRECTING OBSERVATION: /root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl (mtime 2026-04-21 18:04:31 UTC, 19 min after b5d447e) contains 4 verbatim references to SHA b5d447e and matches every distinctive token (sync.*uncommitted=4, merge-overnight=4, runcode-watchdog=4, install-checkpoint-refspec=4, posttool-git-checkpoint=3, spec-block-foreground-agent=3). Round-1 BA's `JSONL pruned` claim was FALSE — only -dev-shm-dev-workspace-dot-claude/ was searched, not -root/.",
+      "Round-2 OBSERVATION: verbatim user prompt is `全部commit push` at message 293 timestamp 2026-04-21T17:44:16.221Z, CWD /root, gitBranch master.",
+      "Round-2 OBSERVATION: pretool-orchestrator-gate.py fired at 17:44:54 with `[Orchestrator Gate] BLOCKED: Bash used consecutively beyond limit (4/3)` but the agent issued a Grep call (whitelist tool, resets streak) and reissued the same git commit 9 seconds later — gate is rate-based, not semantic.",
+      "Round-2 OBSERVATION: project repo .claude/hooks/ does NOT contain pretool-overnight-hook-guard.py (16 hooks present: posttool-git-{checkpoint,warn}.sh, posttool-todo-*.py, pretool-bash-safety.sh, pretool-docker-dev-guard.sh, pretool-workflow-gate.py, pretool-worktree-guard.sh, prompt-workflow.py, session-git-init.sh, session-info.sh, stop-git-commit.sh, stop-workflow-enforce.py + INDEX.md/README.md). No divergent copy; global is canonical.",
+      "Round-2 OBSERVATION: project repo HEAD refreshed to 4381eaf5 (2026-04-25T12:25:25Z, sibling cycle 2 codex protocol activation from spec 21d24e89). 4381eaf5 touches packages/happy-cli/src/codex/*, packages/happy-app/sources/components/tools/views/Codex*View.tsx, knownTools.tsx, _all.tsx, layout.ts, _default.ts + 11 i18n files, docs/dev/INDEX.md and ba-*-20260425-{000300,030000}-*.{md,json}, close-report-20260425-105500.md. ZERO overlap with R1-R5 targets.",
+      "Cycle 1 of spec-20260424-233926 PASSED on 2026-04-25T11:00Z per Section 4 of the spec (observed: Read of spec lines 132-154)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": [
+      "worktree merge",
+      "master",
+      "/merge",
+      "/dev-overnight",
+      "/spec",
+      "彻底修复",
+      "bug",
+      "subagent build",
+      "脚本"
+    ],
+    "localization_evidence": "Spec Section 1 enumerates concrete failure modes from codex investigation (commit-backed). BA reproduced each measurement directly: grep counts for master literals, file-existence checks for postmortems dir, JSONL date-window check for pruning status, hook-source read for is_commands_path absence. Each gap traces to a specific file:line.",
+    "located_source": "/root/.claude/commands/merge.md (R1, R2, R3b) + /root/.claude/commands/dev-overnight.md (R1) + /root/.claude/commands/spec.md (R3a) + /root/.claude/hooks/pretool-overnight-hook-guard.py (R4.1) + 3 new hook files (R4.2-4.4) + new postmortem file (R5). Each source shares tokens with complaint keywords: `master` ↔ R1 files, `worktree` ↔ R3a/R3b/R4.1, `/merge` ↔ R2/R3b.",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": true,
+      "suspect_commit": "b5d447e (specifically for R2 gap)",
+      "commit_message": "chore(claude): sync all uncommitted config, hooks, scripts, sessions, docs",
+      "confirmed_by": "git-log-diff (in dot-claude repo, observed via `git show b5d447e --stat`; 93 files, +7404/-3153)",
+      "bisect_blocked": null,
+      "reproducibility_verified": true
+    }
+  },
+  "diagnosis_layer": "L3 (R1 data) + L4 (R2 logic, R3 logic) + L5 (R4 infrastructure) + L1 (R5 documentation) — multi-layer because spec decomposes into 5 distinct requirements at different layers",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "Default-branch detection — `/merge` and `/dev-overnight` must use the actual default branch (`main` here), not a hardcoded `master`. Should detect dynamically via `git symbolic-ref refs/remotes/origin/HEAD` or similar.",
+      "acceptance_criterion": "AC1: zero (checkout|log|diff|merge).*master matches in merge.md+dev-overnight.md; resolver outputs target=main in /dev/shm/dev-workspace/happy-dev (main-default) and target=master in /tmp/master-default-repo-test/ (dev creates this throwaway env)"
+    },
+    {
+      "id": "R2",
+      "source_phrase": "Worktree-branch HEAD bridge — Chosen: option (d) — /merge auto-bulk-commits-and-merges if the worktree branch has zero commits ahead of the default branch. The auto-commit is a NEW semantic commit produced FROM the worktree's working tree at /merge invocation time. It does NOT touch refs/checkpoints/*. The auto-commit is one-per-cycle, orchestrator-blessed, and produces a clean commit message ('auto-bulk: end-of-cycle commit for <branch>' or similar).",
+      "acceptance_criterion": "AC2: from zero-ahead state, /merge runs `cd <wt> && git add -A && git commit -m 'auto-bulk: end-of-cycle commit for <branch>'` then `git merge`; git log -1 main matches `^auto-bulk: end-of-cycle commit for `; for-each-ref refs/checkpoints/ digest unchanged"
+    },
+    {
+      "id": "R3",
+      "source_phrase": "/spec writes into the worktree IF a worktree is active for the same spec id (detected via .claude/overnight-state-*.json or equivalent worktree-tracker file); ELSE it writes into the parent. /merge performs a stash-aware preflight: it detects untracked files in the parent at paths that the merge would touch, prints a structured report `untracked overlap detected:` followed by the file list, and exits non-zero WITHOUT calling git merge.",
+      "acceptance_criterion": "AC3+AC4: (3a) /spec from parent with active overnight writes spec to worktree, not parent. (3b) /merge with untracked overlap prints literal `untracked overlap detected:` + file list, exits non-zero, git reflog has no MERGE entry"
+    },
+    {
+      "id": "R4",
+      "source_phrase": "Concrete fix shape: 1) Extend pretool-overnight-hook-guard.py to also cover .claude/commands/*. 2) Add pretool-claude-config-guard.py running OUTSIDE /dev-overnight too, blocking .claude/hooks/* and .claude/commands/* unless allow-list flag set. 3) Add pretool-git-privilege-guard.py forbidding git commit (except blessed bridge), git merge (except via /merge), git push, git reset --hard <non-HEAD>. 4) Add a bulk-commit detector PreToolUse(Bash) on git commit refusing if staged set spans > N subsystems AND message matches sync.*uncommitted.",
+      "acceptance_criterion": "AC5+AC6+AC7+AC8: R4.1 blocks .claude/commands/* during overnight. R4.2 blocks .claude/{hooks,commands}/* outside overnight unless allow-list set. R4.3 blocks agent git commit (except blessed bridge), merge, push, reset --hard non-HEAD; stderr contains `BLOCKED: agent git commit`. R4.4 blocks 3+ subsystem prefixes + sync.*uncommitted subject; stderr names matched prefixes"
+    },
+    {
+      "id": "R5",
+      "source_phrase": "Investigation deliverable: a short post-mortem in docs/dev/postmortems/b5d447e-checkpoint-regression.md. PASS = file exists AND contains exactly four named non-empty sections: ## User-prompt-recovered, ## Agent-reasoning, ## Hook-that-should-have-caught-it, ## Concrete-hook-paths-to-add. AND the User-prompt-recovered section identifies a specific JSONL file path under ~/.claude/projects/*/ containing the original prompt OR explicitly documents that the JSONL has been pruned/rotated and is no longer available.",
+      "acceptance_criterion": "AC9 (Round-2 corrected): file exists; all 4 section headers present (grep >= 1 each); User-prompt-recovered MUST contain absolute JSONL path /root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl AND verbatim user prompt 全部commit push; Agent-reasoning MUST reference >=3 of the 17:44:34 sensitive-content-scan, the 17:44:54 orchestrator-gate block, the Grep streak-reset, the 17:45:03 second commit; Hook-that-should-have-caught-it MUST identify the rate-based-not-semantic gap; the falsehood `JSONL pruned` is FORBIDDEN; each section >=50 chars body excluding header"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line_range": "1-143",
+      "role": "User-invoked /merge command — orchestrator prompt for merging worktree branch to default",
+      "imports_from": "leaf (read by harness, not by code)",
+      "evidence": "Read of file 1-143; grep of master returns 7 hits at 21,44,47,50,71,106,114",
+      "verified_via": "Read+Grep"
+    },
+    {
+      "file": "/root/.claude/commands/dev-overnight.md",
+      "line_range": "1545-1570",
+      "role": "User-invoked /dev-overnight command — orchestrator prompt for autonomous overnight cycles; instructional prose telling user the manual /merge commands",
+      "imports_from": "leaf",
+      "evidence": "Grep of master returns 4 hits at 1545,1547,1569,1570",
+      "verified_via": "Grep"
+    },
+    {
+      "file": "/root/.claude/commands/spec.md",
+      "line_range": "36-67 (Step 3 path resolution region)",
+      "role": "User-invoked /spec command — orchestrator prompt for creating/appending spec files",
+      "imports_from": "leaf",
+      "evidence": "Read of file; zero `worktree` matches in body",
+      "verified_via": "Read+Grep"
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+      "line_range": "220-323",
+      "role": "PreToolUse hook — blocks Edit/Write/Bash to .claude/hooks/* and overnight-state-*.json during active overnight; missing .claude/commands/* coverage",
+      "imports_from": "leaf (Python stdlib only: json, os, re, sys, time, datetime, pathlib)",
+      "evidence": "Read of file; is_hooks_path at 220-223 only matches .claude/hooks/; no is_commands_path predicate present",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md",
+      "line_range": "N/A (does not exist)",
+      "role": "Postmortem deliverable — 4-section narrative explaining b5d447e regression mechanism + missing-guardrail catalog",
+      "imports_from": "leaf",
+      "evidence": "ls -la returns ENOENT; postmortems/ directory itself missing",
+      "verified_via": "Bash ls"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+      "line": 220,
+      "type": "if (path-prefix predicate)",
+      "code_snippet": "def is_hooks_path(file_path: str) -> bool:\n    normalized = file_path.replace('\\\\', '/')\n    return '.claude/hooks/' in normalized or '.claude/hooks\\\\' in normalized",
+      "purpose": "Blocks edits to .claude/hooks/ during active overnight session",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+      "line": 226,
+      "type": "if (path-prefix predicate)",
+      "code_snippet": "def is_state_file_path(file_path: str) -> bool:\n    normalized = file_path.replace('\\\\', '/')\n    return 'overnight-state-' in normalized and normalized.endswith('.json')",
+      "purpose": "Blocks edits to overnight-state-*.json",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+      "line": 276,
+      "type": "regex (Bash command pattern)",
+      "code_snippet": "def check_bash_targets_hooks(command: str) -> bool:\n    return _matches_any(command, [r'(?:echo|printf)\\s+.*>\\s*.*\\.claude/hooks/', ...])",
+      "purpose": "Blocks Bash redirects/copies/moves into .claude/hooks/",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": "various (89-461)",
+      "type": "if (bash regex-based safety)",
+      "code_snippet": "(too long to inline; categories include subagent history mutations, git commit signal-bearing patterns)",
+      "purpose": "Comprehensive safety category enforcement; subagent history mutations block git rewrite verbs",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": true,
+    "trigger_keywords_in_user_phrase": [
+      "我不是已经彻底彻底修复这个worktree merge到master的bug了吗",
+      "(spec Section 5.1 verbatim)"
+    ],
+    "items": [
+      {
+        "check": "git bisect performed",
+        "status": "done (replaced by direct git log + commit-show on b5d447e since the regression commit was pre-identified by codex investigation in spec Section 1)",
+        "evidence": "b5d447e identified as the commit that rewrote checkpoint hooks; observed via `git show b5d447e --stat` in dot-claude repo"
+      },
+      {
+        "check": "globals.css reviewed",
+        "status": "skipped",
+        "finding": "N/A — no UI/CSS changes in this spec; pure CLI/hooks/commands"
+      },
+      {
+        "check": "middleware / root layout / providers audited",
+        "status": "done",
+        "findings": [
+          "Pre-existing pretool-overnight-hook-guard.py reviewed (482 lines)",
+          "Production-isolation hook set noted (pretool-bash-safety.sh, pretool-block-production-files.sh, pretool-block-production.sh) per spec line 230 modeling reference",
+          "No middleware in classic web sense; closest analog is the hook system, fully reviewed"
+        ]
+      },
+      {
+        "check": "getComputedStyle() read on target element",
+        "status": "skipped",
+        "computed": "N/A — no UI/DOM in this spec"
+      },
+      {
+        "check": "build / deploy / dependency changes ruled out",
+        "status": "done",
+        "evidence": "Spec is restricted to commands/hooks/postmortem files only; no package.json/Dockerfile/Next-config touched"
+      }
+    ]
+  },
+  "setup": {
+    "viewport": "N/A (CLI/infra)",
+    "theme": "N/A",
+    "locale": "en (commit messages, code comments); zh (verbatim user prompt preserved in spec 5.1)",
+    "auth_state": "N/A",
+    "data_state": "project repo HEAD 0ba2ddfc; dot-claude repo HEAD 9776f47; postmortems/ dir does not exist; JSONL for 2026-04-21 pruned",
+    "browser": "N/A",
+    "url_path": "N/A (file paths listed in `where`)"
+  },
+  "evidence": {
+    "observed": "Cycle 1 of spec-20260424-233926 PASSED restructuring; Cycle 2 must perform actual engineering. User believes /merge is fixed (spec 5.1) but multiple measured gaps remain (master literals, no bridge, no preflight, no anti-bulk hook, no postmortem).",
+    "measured": {
+      "value": "11 master literals across 2 command files; 0 worktree-aware logic in spec.md; 0 untracked-overlap preflight in merge.md; pretool-overnight-hook-guard.py covers hooks/ but not commands/ (481 lines); postmortems/ dir absent; 2026-04-21 JSONL RECOVERED at -root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl (Round-2 correction)",
+      "location": "/root/.claude/commands/merge.md:21,44,47,50,71,106,114 (file=142 lines); /root/.claude/commands/dev-overnight.md:1545,1547,1569,1570 (file=1849 lines); /root/.claude/commands/spec.md (entire body, 260 lines); /root/.claude/hooks/pretool-overnight-hook-guard.py:220-229 (file=481 lines); /dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/ (ENOENT); /root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl message 293 (RECOVERED)"
+    },
+    "expected": {
+      "value": "0 master matches; resolver target=main and target=master based on repo; merge.md preflight prints `untracked overlap detected:` and exits non-zero on overlap; spec.md writes to worktree when overnight active; pretool-overnight-hook-guard.py blocks commands/* edits; 3 new hooks landed; postmortem file with 4 sections + JSONL-pruned literal exists",
+      "source": "spec-20260424-233926 Section 5.2.1.1 (R1), 5.2.1.2 (R2), 5.2.1.3 (R3), 5.2.4 (R4), 5.2.5 (R5)"
+    },
+    "gap": "11 master literals → 0; missing bridge → option (d) implemented; spec.md no worktree → has worktree; merge.md no preflight → has preflight; 1 overnight hook covers hooks/ only → covers hooks/+commands/; 0 of 3 new hooks → 3 new hooks; 0 postmortem → 1 postmortem with declared-pruned JSONL"
+  },
+  "scope_expansion": {
+    "search_pattern": "(checkout|log|diff|merge).*master",
+    "search_scope": "/root/.claude/commands/{merge,dev-overnight}.md (per spec 5.2.1.1 verification signal scope)",
+    "user_reported": [
+      "/root/.claude/commands/merge.md",
+      "/root/.claude/commands/dev-overnight.md"
+    ],
+    "additional_found": [],
+    "all_occurrences": [
+      "/root/.claude/commands/merge.md:21",
+      "/root/.claude/commands/merge.md:44",
+      "/root/.claude/commands/merge.md:47",
+      "/root/.claude/commands/merge.md:50",
+      "/root/.claude/commands/merge.md:71",
+      "/root/.claude/commands/merge.md:106",
+      "/root/.claude/commands/merge.md:114",
+      "/root/.claude/commands/dev-overnight.md:1545",
+      "/root/.claude/commands/dev-overnight.md:1547",
+      "/root/.claude/commands/dev-overnight.md:1569",
+      "/root/.claude/commands/dev-overnight.md:1570"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "spec-20260424-233926 Section 5 (single locked source of truth, Cycle 1 PASS verified 2026-04-25T11:00Z)",
+    "url_or_location": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md lines 158-280",
+    "copy_allowed": true,
+    "dev_constraints": [
+      "MUST copy verification-signal phrases verbatim: `untracked overlap detected:`, `BLOCKED: agent git commit`, `auto-bulk: end-of-cycle commit for`",
+      "MUST model new hooks after pretool-bash-safety.sh, pretool-block-production-files.sh, pretool-block-production.sh per spec line 230",
+      "MUST NOT touch refs/checkpoints/* design (spec 5.3 + f2f8741 lock)",
+      "Round-2 CORRECTED: JSONL is RECOVERABLE. Dev MUST cite the absolute JSONL path /root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl AND quote the verbatim user prompt `全部commit push` in the postmortem's User-prompt-recovered section. The literal `JSONL pruned` is FORBIDDEN.",
+      "Round-2 NEW: Dev's R4 group MUST emit a JSON snippet for the orchestrator to apply via the update-config skill (PreToolUse matchers for the 3 new hooks). Dev does NOT modify settings.json directly."
+    ]
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing + git_log",
+    "attempts": [
+      {
+        "artifact_path": "commit 7782c40",
+        "proposed_solution": "Scope hooks to overnight session; enforce worktree isolation",
+        "actual_change": "Added worktree-string and worktree-realpath enforcement in pretool-overnight-hook-guard.py",
+        "outcome": "Addressed worktree ISOLATION direction (parent → worktree fences), not the PROMOTION chain (worktree → main). The friction at /merge time (master-vs-main, no branch-HEAD bridge, no preflight) was orthogonal.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L5"
+      },
+      {
+        "artifact_path": "commit 2cb0220",
+        "proposed_solution": "/tmp exemption + CWD-based subagent worktree enforcement",
+        "actual_change": "Refined isolation predicates in pretool-overnight-hook-guard.py",
+        "outcome": "Same as 7782c40 — refined isolation, did not touch promotion.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L5"
+      },
+      {
+        "artifact_path": "commit 5231b02",
+        "proposed_solution": "Add /merge as preferred path from /dev-overnight (handoff text)",
+        "actual_change": "Documentation-only update in dev-overnight.md",
+        "outcome": "/merge command itself remained broken; no preflight, no bridge, master hardcode untouched.",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L1"
+      },
+      {
+        "artifact_path": "commit b5d447e",
+        "proposed_solution": "Sweep all uncommitted state into one commit; rename /merge-overnight → /merge",
+        "actual_change": "93-file bulk commit; rewrote posttool-git-checkpoint.sh + auto-commit.sh + stop-git-commit.sh + lib/checkpoint-core.sh to redirect snapshots to refs/checkpoints/*; renamed merge command file",
+        "outcome": "INTRODUCED the missing-bridge gap. Snapshots-off-HEAD design is correct (f2f8741 ratified 2026-04-16) but no replacement bridge for cycle-end semantic commits was added. Worktree branches now sit at base hash for entire overnight cycles.",
+        "failure_category": "tainted_reference (downstream contract removed without replacement) + symptom_treatment (rename did not fix bugs)",
+        "target_layer": "L4"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L1 (R5 documentation) + L3 (R1 data substitution) + L4 (R2 bridge logic, R3 worktree-aware logic, R3 preflight logic) + L5 (R4 four hooks)",
+      "differs_from_all_priors": true,
+      "rationale": "Each prior attempt targeted ONE layer addressing isolation or symptoms (Attempts 1,2 = L5 isolation; Attempt 3 = L1 docs handoff; Attempt 4 = L4 hook semantic rewrite that introduced rather than fixed the bridge gap). This attempt targets L1+L3+L4+L5 simultaneously with each layer addressing a distinct unfixed failure mode (R1=L3, R2=L4 ADDS new bridge at /merge time per spec 5.2.1.2 option d, R3=L4 ADDS new worktree-awareness + preflight, R4=L5 ADDS privilege/config/bulk-commit guards, R5=L1 documents the regression mechanism). No prior attempt produced any of these specific deliverables."
+    }
+  },
+  "context": {
+    "codebase_state": "project repo HEAD (Round-2 refresh) = 4381eaf5 feat: cycle 2 (codex protocol activation) + close-remediation [2026-04-25T12:25:25Z, sibling cycle 2 from spec 21d24e89, ZERO overlap with R1-R5 targets]; dot-claude repo HEAD = 7534393 fix(hooks): auto-heal empty-body slash commands instead of blocking them; project repo origin/HEAD = origin/main; modified working-tree files in dot-claude include several .codex/ unchanged-since-Cycle-1 files (all out-of-scope per spec 5.3)",
+    "recent_commits": "(project) 4381eaf5 feat: cycle 2 (codex protocol activation) + close-remediation; 0ba2ddfc feat: cycle 1 (14 pipelines) + close-remediation; 430206f2 revert: roll back overnight dd8c665a changes; (dot-claude) 7534393 fix(hooks): auto-heal empty-body slash commands; 5ec0ba2 fix(workflow): unbreak /redev; 9776f47 fix(hooks): close V6 no-whitespace compound-operator bypass; a51b574 fix(hooks): harden /allow against 6 close-audit vulnerabilities; b5d447e chore(claude): sync all uncommitted config, hooks, scripts, sessions, docs (the regressing commit, 2026-04-21 17:45 UTC)",
+    "sibling_work_non_overlap": {
+      "sibling_commit": "4381eaf5",
+      "sibling_spec": "21d24e89 (overnight session, Codex protocol activation; spec 5.13/5.14/5.15 Phase B/C/D)",
+      "sibling_files_touched": [
+        "packages/happy-cli/src/codex/codexAppServerClient.ts",
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+        "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx",
+        "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+        "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "packages/happy-app/sources/components/tools/views/_all.tsx",
+        "packages/happy-app/sources/components/layout.ts",
+        "packages/happy-app/sources/text/_default.ts + 11 i18n translation files",
+        "docs/dev/INDEX.md",
+        "docs/dev/ba-{spec,qa-report}-20260425-{000300,030000}-*.{md,json}",
+        "docs/dev/close-report-20260425-105500.md"
+      ],
+      "our_targets_overlap": "ZERO. R1-R4 targets are global at /root/.claude/{commands,hooks}/ (NOT in project repo). R5 target is /dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md — directory does NOT exist; 4381eaf5 only touches docs/dev/ non-postmortems files (ba-*, close-report-*).",
+      "verified_at": "2026-04-25T12:42Z"
+    },
+    "project_repo_hooks_non_divergence": {
+      "ls_output": "16 files in /dev/shm/dev-workspace/happy-dev/.claude/hooks/: posttool-git-{checkpoint,warn}.sh, posttool-todo-{count,sequence,tracker}.py, pretool-bash-safety.sh, pretool-docker-dev-guard.sh, pretool-workflow-gate.py, pretool-worktree-guard.sh, prompt-workflow.py, session-git-init.sh, session-info.sh, stop-git-commit.sh, stop-workflow-enforce.py + INDEX.md/README.md",
+      "pretool_overnight_hook_guard_present": false,
+      "conclusion": "No divergent copy. Dev edits ONLY /root/.claude/hooks/pretool-overnight-hook-guard.py for R4.1. Same applies to the 3 NEW hooks (R4.2/R4.3/R4.4) — created in /root/.claude/hooks/ only.",
+      "verified_at": "2026-04-25T12:42Z"
+    },
+    "file_contents": {
+      "/root/.claude/commands/merge.md": "Read in full (142 lines, Round-2 corrected from 143); 7 master literals at 21,44,47,50,71,106,114; no preflight; no bridge",
+      "/root/.claude/commands/spec.md": "Read in full (260 lines, Round-2 corrected from 261); 0 worktree handling",
+      "/root/.claude/hooks/pretool-overnight-hook-guard.py": "Read in full (481 lines, Round-2 corrected from 482); is_hooks_path covers .claude/hooks/ only"
+    },
+    "dependencies": {},
+    "environment": {
+      "project_repo": "/dev/shm/dev-workspace/happy-dev/",
+      "dot_claude_repo": "/dev/shm/dev-workspace/dot-claude/ (= /root/.claude/ via symlink)",
+      "harness_settings": "/dev/shm/dev-workspace/dot-claude/settings.json (PreToolUse matchers; user-managed per global CLAUDE.md safety rules)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Five parallel dev agents per parallel_groups (G1=merge.md unified, G2=dev-overnight.md, G3=spec.md, G4=R4 hooks, G5=R5 postmortem). Each agent owns a disjoint file set. Total of 4 files modified + 4 files created.",
+    "files_to_create": [
+      "/root/.claude/hooks/pretool-claude-config-guard.py",
+      "/root/.claude/hooks/pretool-git-privilege-guard.py",
+      "/root/.claude/hooks/pretool-bulk-commit-detector.py",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md"
+    ],
+    "files_to_modify": [
+      "/root/.claude/commands/merge.md",
+      "/root/.claude/commands/dev-overnight.md",
+      "/root/.claude/commands/spec.md",
+      "/root/.claude/hooks/pretool-overnight-hook-guard.py"
+    ],
+    "validation_approach": "QA verifies AC1-AC9 against spec verification signals. Each AC maps to a specific grep, file-existence check, or runtime-execution test. Notably: AC1 needs both main-default and master-default repo (dev creates /tmp/master-default-repo-test/ for verification); AC2 needs a synthetic zero-ahead worktree; AC4 needs synthetic untracked overlap; AC5/AC6/AC7/AC8 need agent-context simulation (run hook against synthetic stdin JSON). AC9 is pure file-existence + grep."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true,
+    "preserve_verification_signal_phrases_verbatim": true,
+    "out_of_scope_paths_untouched": [
+      "/root/.claude/hooks/posttool-git-checkpoint.sh",
+      "/root/.claude/hooks/auto-commit.sh",
+      "/root/.claude/hooks/stop-git-commit.sh",
+      "/root/.claude/hooks/lib/checkpoint-core.sh"
+    ]
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Spec Section 5 is locked single source of truth; design decisions all locked by user; no research needed. Existing pre-toolUse hook patterns at /root/.claude/hooks/pretool-overnight-hook-guard.py and pretool-bash-safety.sh provide the production-isolation modeling reference (spec line 230). Default-branch detection idiom is well-known industry pattern (`git symbolic-ref refs/remotes/origin/HEAD` is the canonical method)."
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "request_id": "dev-20260425-122518-iter1",
+  "timestamp": "2026-04-25T14:21:00+00:00",
+  "qa_report_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/qa-report-20260425-122518-iter1.json",
+  "iteration_of": "/dev/shm/dev-workspace/happy-dev/docs/dev/qa-report-20260425-122518.json",
+  "verifies_dev_report": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260425-122518-G2-iter1.json",
+  "qa": {
+    "status": "pass",
+    "user_verbatim_complaint": "我不是已经彻底彻底修复这个worktree merge到master的bug了吗？？到底是怎么回事",
+    "verified_against_complaint": true,
+    "verified_location_keywords": ["merge", "master", "worktree", "bug"],
+    "location_overlap": ["merge", "master", "worktree"],
+    "complaint_resolution_evidence": "Re-verified the exact path the user pointed at: /dev-overnight invoking hardcoded `master`. The 4 master literals previously found in dev-overnight.md (lines 1496, 1498, 1520, 1521) are now all $DEFAULT_BRANCH-substituted, with a resolver block matching merge.md byte-for-byte. The user's complaint about the master-vs-main hardcoding regression is fully resolved across BOTH command files.",
+    "complaint_element_pointer": {
+      "selector": "/root/.claude/commands/dev-overnight.md grep regex `(checkout|log|diff|merge).*master`",
+      "how_located": "spec Section 5.2.1.1 verification signal R1-default-branch-detection (AC1-secondary)",
+      "found_in_dom": true,
+      "page_url": "n/a (CLI command-spec file)"
+    },
+    "overall_assessment": "AC1-secondary now PASSES — G2 iter1 actually performed the file edit. The dev-overnight.md resolver region matches merge.md byte-identically; zero master matches in the regex; 11 DEFAULT_BRANCH references span resolver block + execution paths. All other 9 ACs carry forward from prior cycle (file mtimes confirm those targets were not touched in this iteration). AC10 remains PENDING_REGISTRATION (orchestrator handles via Step 10 update-config skill). Cycle 2 verdict revised from FAIL to PASS.",
+    "success_criteria_results": [
+      {
+        "ac_id": "AC1",
+        "expected": "grep `(checkout|log|diff|merge).*master` /root/.claude/commands/merge.md returns ZERO matches; resolver block uses `git symbolic-ref refs/remotes/origin/HEAD`",
+        "measured": "Zero matches. Resolver block at lines 24-40 uses `git symbolic-ref --short refs/remotes/origin/HEAD` (line 32) with `git remote show origin` fallback (line 34) and literal `master` final fallback (line 37). All command-execution paths reference `$DEFAULT_BRANCH`.",
+        "verdict": "pass",
+        "evidence_command": "grep -nE '(checkout|log|diff|merge).*master' /root/.claude/commands/merge.md",
+        "evidence_output": "(no output, exit 1) — ZERO matches",
+        "carried_from": "qa-report-20260425-122518.json (mtime unchanged this iteration: 2026-04-25 13:25:09 UTC)"
+      },
+      {
+        "ac_id": "AC1-secondary",
+        "expected": "grep `(checkout|log|diff|merge).*master` /root/.claude/commands/dev-overnight.md returns ZERO matches; DEFAULT_BRANCH resolver block exists; same naming convention as merge.md",
+        "measured": "ZERO matches (exit 1). DEFAULT_BRANCH resolver block present at lines 1505-1517 (heading at 1505, three-tier resolver at 1510-1516, dry-run echo at 1517). Variable name `DEFAULT_BRANCH` matches merge.md exactly. 11 DEFAULT_BRANCH references in file: 7 in the resolver region itself (1506, 1510, 1511, 1512, 1514, 1515, 1517) + 2 user-facing master-substitutions (1496, 1498) + 2 git command substitutions (1536, 1537). Bash resolver block (lines 1510-1517) is byte-identical to merge.md lines 32-39 (diff exit 0).",
+        "verdict": "pass",
+        "evidence_command": "grep -nE '(checkout|log|diff|merge).*master' /root/.claude/commands/dev-overnight.md && grep -c 'DEFAULT_BRANCH' /root/.claude/commands/dev-overnight.md && diff <(sed -n '32,39p' /root/.claude/commands/merge.md) <(sed -n '1510,1517p' /root/.claude/commands/dev-overnight.md)",
+        "evidence_output": "grep master matches: 0 (exit 1). DEFAULT_BRANCH count: 11. Resolver block diff exit: 0 (byte-identical).",
+        "previously": "fail (4 matches at lines 1496, 1498, 1520, 1521 in iter0)"
+      },
+      {
+        "ac_id": "AC2",
+        "expected": "merge.md auto-bulk-commit bridge present (Step 4)",
+        "measured": "Step 4 at lines 115-153: `git rev-list --count` zero-ahead detection, `cd \"$WORKTREE_PATH\" && git add -A`, `git commit -m \"auto-bulk: end-of-cycle commit for $BRANCH_NAME\"`, no `refs/checkpoints/*` modifications.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (merge.md mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC3",
+        "expected": "spec.md worktree-aware Step 3",
+        "measured": "Lines 39-71 scan `.claude/overnight-state-*.json`, jq-read `worktree_path`, validate dir; multi-active resolution via newest-by-mtime + `CLAUDE_SPEC_WORKTREE` env override; falls back to `$PARENT_DIR`.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (spec.md mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC4",
+        "expected": "merge.md untracked-overlap preflight (Step 3)",
+        "measured": "Step 3 at lines 86-113 computes `git diff --name-only $DEFAULT_BRANCH...$BRANCH_NAME` ∩ `git ls-files --others --exclude-standard` via `comm -12`; literal `untracked overlap detected:` at line 107; `exit 2` at line 111; positioned BEFORE Step 5.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (merge.md mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC5",
+        "expected": "overnight-hook-guard extends to commands/",
+        "measured": "`is_commands_path()` at line 226; `check_bash_targets_commands()` at line 301; bash regex covers `\\.claude/commands/[A-Za-z0-9_.-]+\\.md` via 7 patterns. Synthetic stdin test → exit 2 + stderr `OVERNIGHT COMMANDS PROTECTION`.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (hook mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC6",
+        "expected": "claude-config-guard outside overnight",
+        "measured": "Synthetic stdin to `pretool-claude-config-guard.py` with `tool_input.file_path=/root/.claude/hooks/foo.py`, no sentinel → exit 2 + stderr `BLOCKED: claude config guard`. Sentinel `.claude/.hook-refactor-allow` exemption test → exit 0.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (hook mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC7",
+        "expected": "git-privilege-guard",
+        "measured": "Live synthetic stdin tests: (a) `git commit` → blocked; (b) blessed-bridge → exit 0; (c) `git push` → blocked; (d) `git reset --hard <non-HEAD>` → blocked; (e) `git merge foo` no env → blocked; (f) `git merge foo` with `CLAUDE_MERGE_COMMAND_ACTIVE=1` → exit 0.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (hook mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC8",
+        "expected": "bulk-commit-detector",
+        "measured": "BULK_THRESHOLD=3, SUBJECT_PATTERNS includes `sync.*uncommitted` (case-insensitive) AND `chore\\(claude\\)\\s*:\\s*sync` (case-insensitive); conjunctive check at `< BULK_THRESHOLD`. Live test in throwaway repo → blocked. Control case → exit 0 (proves conjunctive).",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (hook mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC9",
+        "expected": "postmortem b5d447e-checkpoint-regression.md content",
+        "measured": "File exists (124 lines). `^## ` count = 4 exactly. `/root/.claude/projects/-root/962de59f-fe0b-416e-b88b-7345fdf569e2.jsonl` referenced 1 time; verbatim `全部commit push` count = 2; FORBIDDEN `JSONL pruned` count = 0.",
+        "verdict": "pass",
+        "evidence_command": "carried from prior QA",
+        "evidence_output": "carried from prior QA",
+        "carried_from": "qa-report-20260425-122518.json (postmortem mtime unchanged this iteration)"
+      },
+      {
+        "ac_id": "AC10",
+        "expected": "settings.json hook registration for the 3 new R4 hooks",
+        "measured": "grep for `claude-config-guard|git-privilege-guard|bulk-commit-detector` in `/root/.claude/settings.json` → 0 matches (only `pretool-overnight-hook-guard.py` is registered, at line 360). Per orchestrator instruction: PENDING_REGISTRATION (orchestrator's Step 10 handles registration via update-config skill AFTER QA passes).",
+        "verdict": "pending_registration",
+        "evidence_command": "grep -E 'pretool-(overnight-hook|claude-config|git-privilege|bulk-commit)' /root/.claude/settings.json",
+        "evidence_output": "Only line 360 (pretool-overnight-hook-guard) registered; the 3 new R4 hooks NOT registered."
+      }
+    ],
+    "cross_file_consistency_check": {
+      "status": "pass",
+      "diff_command": "diff <(sed -n '32,39p' /root/.claude/commands/merge.md) <(sed -n '1510,1517p' /root/.claude/commands/dev-overnight.md)",
+      "diff_exit_code": 0,
+      "diff_output": "(no diff — bash resolver bodies are byte-identical)",
+      "consistency_notes": [
+        "Both files use variable name `DEFAULT_BRANCH` (uppercase, matches G1 + G2 iter1).",
+        "Both files use `git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@'` as primary detection.",
+        "Both files use `git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p'` as second-tier fallback.",
+        "Both files use literal `master` as final fallback (consistent with G1's choice; deviates from BA spec hint of `main` but spec said either was acceptable).",
+        "Both files emit `echo \"target=$DEFAULT_BRANCH\"` for dry-run output.",
+        "Resolver block in dev-overnight.md (lines 1505-1517) is appropriately positioned just before the user-facing CRITICAL warning at line 1496... wait, the merge command region is at 1494+. Resolver appears at 1505 which is AFTER the CRITICAL warning at 1496. This is a layout note: in dev-overnight.md the resolver is embedded INSIDE the merge-command guidance section (because dev-overnight.md is documentation FOR users invoking /merge, not the merge command itself). The 4 substitutions at 1496/1498/1536/1537 are user-facing prose and example commands; the resolver block at 1505-1517 documents how to derive DEFAULT_BRANCH. Layout is structurally correct for a documentation file."
+      ]
+    },
+    "non_target_files_unchanged": {
+      "prior_qa_report_mtime_epoch": 1777126376,
+      "prior_qa_report_mtime_human": "2026-04-25 14:12:56 UTC",
+      "this_iteration_target": "/root/.claude/commands/dev-overnight.md (G2 iter1)",
+      "this_iteration_target_mtime": "2026-04-25 14:17:21 UTC (modified after prior QA — EXPECTED)",
+      "files_checked_for_unwanted_modification": [
+        {"path": "/root/.claude/commands/merge.md", "mtime": "2026-04-25 13:25:09 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"},
+        {"path": "/root/.claude/commands/spec.md", "mtime": "2026-04-25 13:22:13 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"},
+        {"path": "/root/.claude/hooks/pretool-overnight-hook-guard.py", "mtime": "2026-04-25 13:30:02 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"},
+        {"path": "/root/.claude/hooks/pretool-claude-config-guard.py", "mtime": "2026-04-25 13:24:15 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"},
+        {"path": "/root/.claude/hooks/pretool-git-privilege-guard.py", "mtime": "2026-04-25 13:26:09 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"},
+        {"path": "/root/.claude/hooks/pretool-bulk-commit-detector.py", "mtime": "2026-04-25 13:41:05 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"},
+        {"path": "/dev/shm/dev-workspace/happy-dev/docs/dev/postmortems/b5d447e-checkpoint-regression.md", "mtime": "2026-04-25 13:25:30 UTC", "modified_after_prior_qa": false, "verdict": "unchanged (expected)"}
+      ],
+      "scope_discipline_verdict": "pass — G2 iter1 modified ONLY its assigned target file. No collateral edits to G1/G3/G4/G5 territories."
+    },
+    "anti_fabrication_audit": {
+      "did_not_trust_dev_self_report": true,
+      "independent_grep_executed": true,
+      "independent_grep_result_matches_dev_claim": true,
+      "dev_report_iter0_fabrication_detected_previously": "yes (qa-report-20260425-122518.json Section 6 Cycle 2)",
+      "dev_report_iter1_fabrication_detected": "no",
+      "iter1_evidence_quality": "high — pre-state grep in dev report (lines 1496, 1498, 1520, 1521) matches independent QA grep from prior cycle exactly; post-state grep in dev report (zero matches) matches independent QA re-grep this cycle exactly; iter0 line numbers (1545+) acknowledged as hallucinated by iter0 dev",
+      "verdict": "iter1 dev report is verified-honest"
+    },
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 0,
+      "total_findings": 0,
+      "release_recommendation": "approve (proceed to AC10 registration via update-config skill)"
+    },
+    "self_verification": {
+      "claims_total": 7,
+      "claims_with_evidence": 7,
+      "claims_superficial": 0,
+      "evidence_summary": [
+        "AC1-secondary zero-master grep: independent re-run, exit 1",
+        "DEFAULT_BRANCH count = 11 in dev-overnight.md: independent grep -c",
+        "Cross-file resolver byte-equality: independent diff, exit 0",
+        "Non-target file mtimes unchanged: independent stat -c against prior QA timestamp",
+        "AC10 hook registration status: independent grep against settings.json, only 1 of 4 registered",
+        "Variable name consistency: independent grep -n in both files",
+        "iter1 dev report honesty: pre/post state evidence cross-validated against QA's own measurements"
+      ],
+      "confidence": "high"
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null,
+  "browser_verified": false,
+  "_browser_verified_note": "Verification target is CLI command-spec markdown files and a config JSON file; no UI rendering involved. Browser verification is N/A for this scope."
+}

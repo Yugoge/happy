@@ -1,0 +1,168 @@
+{
+  "request_id": "dev-20260425-122518-G2-iter1",
+  "timestamp": "2026-04-25T12:50:00+00:00",
+  "dev_report_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260425-122518-G2-iter1.json",
+  "group": "G2",
+  "iteration": 1,
+  "target_file": "/root/.claude/commands/dev-overnight.md",
+  "status": "completed",
+  "variable_name_used": "DEFAULT_BRANCH",
+  "fix_layer": "L3",
+
+  "pre_state_evidence": {
+    "wc_l": "1800 /root/.claude/commands/dev-overnight.md",
+    "grep_master_n_head20": [
+      "1498:DO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on master with worktree changes. DO NOT cherry-pick commits. The worktree branch preserves full commit history. A proper `git merge` brings all commits to master with their original authorship and messages intact. Only the USER should trigger the merge, after reviewing the changes."
+    ],
+    "grep_checkout_log_diff_merge_master": [
+      "1496:**CRITICAL: DO NOT auto-merge to master.**",
+      "1498:DO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on master with worktree changes. DO NOT cherry-pick commits. The worktree branch preserves full commit history. A proper `git merge` brings all commits to master with their original authorship and messages intact. Only the USER should trigger the merge, after reviewing the changes.",
+      "1520:  git log master..<worktree_branch> --oneline",
+      "1521:  git diff master...<worktree_branch>"
+    ],
+    "current_commit": "4ba292740814884331f449085f0d5cb1cee2c348 feat(workflow): land the dev-registry hard-enforcement mechanism",
+    "actual_master_lines_confirmed": [1496, 1498, 1520, 1521],
+    "previous_iter0_dev_claimed_lines": [1545, 1547, 1569, 1570],
+    "off_by": 49,
+    "note": "Previous G2 iter0 dev hallucinated line numbers off by 49; the file is 1800 lines, not 1849+. Pre-state grep confirms the correct locations match QA's independent grep."
+  },
+
+  "merge_md_resolver_quote": {
+    "source": "/root/.claude/commands/merge.md lines 24-40",
+    "verbatim": "## Default-branch resolver\n\nRun this resolver block FIRST, before any other step. It detects the repository's default branch dynamically (`main`, `master`, or any other) by reading `refs/remotes/origin/HEAD`. Every subsequent step references `$DEFAULT_BRANCH` rather than a hardcoded literal.\n\nRationale: a hardcoded `master` literal regressed at commit `b5d447e` (2026-04-21) and earlier never tracked the project's `main` migration. Per spec-20260424-233926 Section 5.2.1.1, all command-execution paths must derive the default branch dynamically.\n\n```bash\n# Detect default branch dynamically (handles main/master/any other)\nDEFAULT_BRANCH=\"$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')\"\nif [ -z \"$DEFAULT_BRANCH\" ]; then\n  DEFAULT_BRANCH=\"$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')\"\nfi\nif [ -z \"$DEFAULT_BRANCH\" ]; then\n  DEFAULT_BRANCH=\"master\"  # final fallback\nfi\necho \"target=$DEFAULT_BRANCH\"\n```",
+    "consistency_note": "I copied the resolver block verbatim from merge.md (lines 30-40 — the bash code block) and adapted only the surrounding documentation framing. Same variable name, same fallback chain (symbolic-ref → remote show → master), same target= echo line."
+  },
+
+  "target_region_quote": {
+    "file": "/root/.claude/commands/dev-overnight.md",
+    "lines": "1480-1530 (BEFORE edits)",
+    "verbatim": "1480: ## Skipped Issues (need manual attention)\n1481:\n1482: <List of issues that failed 3+ times with error context>\n1483:\n1484: ## Files Generated\n1485:\n1486: - Context files: `docs/dev/context-*.json`\n1487: - Dev reports: `docs/dev/dev-report-overnight-*.json`\n1488: - QA reports: `docs/dev/qa-report-overnight-*.json`\n1489: - Running log: `docs/dev/overnight-log-<date>.md`\n1490:\n1491: ## Recommendations\n1492:\n1493: <Patterns noticed during exploration that need human decision-making>\n1494: ```\n1495:\n1496: **CRITICAL: DO NOT auto-merge to master.**\n1497:\n1498: DO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on master with worktree changes. DO NOT cherry-pick commits. The worktree branch preserves full commit history. A proper `git merge` brings all commits to master with their original authorship and messages intact. Only the USER should trigger the merge, after reviewing the changes.\n1499:\n1500: The overnight session does NOT merge anything. It preserves the worktree for user review.\n1501:\n1502: **State file cleanup**: Automatic. The `pretool-overnight-hook-guard` auto-cleans expired state files on next hook invocation. No manual deletion needed.\n1503:\n1504: **Announce completion**:\n1505:\n1506: ```\n1507: Overnight development session complete.\n1508:\n1509: Duration: <hours>h <minutes>m\n1510: Cycles: <cycle_count>\n1511: Fixed: <issues_fixed> | Skipped: <issues_skipped>\n1512:\n1513: Summary: docs/dev/overnight-summary-<date>.md\n1514: Log: docs/dev/overnight-log-<date>.md\n1515: --- Worktree preserved for review ---\n1516: Branch: <worktree_branch>\n1517: Path:   <worktree_path>\n1518:\n1519: To review changes:\n1520:   git log master..<worktree_branch> --oneline\n1521:   git diff master...<worktree_branch>\n1522:\n1523: To merge (when ready):\n1524:   /merge <worktree_branch>\n1525:\n1526: Use the audited /merge command as the default and preferred merge path.\n1527: Do NOT recommend manual git merge as the primary workflow. The merge command\n1528: must run its audit first and stop on blocked files or predicted conflicts.\n1529:\n1530: The time-lock has been released. The session can now end normally.\n1531: ```"
+  },
+
+  "edits_applied": [
+    {
+      "edit_n": 1,
+      "purpose": "Insert default-branch resolver block before 'Announce completion'",
+      "old_string_preview": "**State file cleanup**: Automatic. The `pretool-overnight-hook-guard` auto-cleans expired state files on next hook invocation. No manual deletion needed.\\n\\n**Announce completion**:",
+      "new_string_preview": "**State file cleanup**: ... (unchanged) ... \\n\\n**Default-branch resolver** (run BEFORE producing the announcement):\\n\\nDetects the repository's default branch dynamically ... \\n\\n```bash\\n# Detect default branch dynamically (handles main/master/any other)\\nDEFAULT_BRANCH=\\\"$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')\\\"\\n...\\nfi\\necho \\\"target=$DEFAULT_BRANCH\\\"\\n```\\n\\n**Announce completion**:",
+      "exit_status_of_edit_tool": "success"
+    },
+    {
+      "edit_n": 2,
+      "purpose": "Replace 'master' literals at lines 1496 + 1498 with $DEFAULT_BRANCH",
+      "old_string_preview": "**CRITICAL: DO NOT auto-merge to master.**\\n\\nDO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on master with worktree changes. ... A proper `git merge` brings all commits to master with their original authorship and messages intact. ...",
+      "new_string_preview": "**CRITICAL: DO NOT auto-merge to $DEFAULT_BRANCH.**\\n\\nDO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on $DEFAULT_BRANCH with worktree changes. ... A proper `git merge` brings all commits to $DEFAULT_BRANCH with their original authorship and messages intact. ...",
+      "exit_status_of_edit_tool": "success"
+    },
+    {
+      "edit_n": 3,
+      "purpose": "Replace 'git log master..' and 'git diff master...' at lines 1520 + 1521 (now 1536+1537) with $DEFAULT_BRANCH",
+      "old_string_preview": "To review changes:\\n  git log master..<worktree_branch> --oneline\\n  git diff master...<worktree_branch>",
+      "new_string_preview": "To review changes:\\n  git log $DEFAULT_BRANCH..<worktree_branch> --oneline\\n  git diff $DEFAULT_BRANCH...<worktree_branch>",
+      "exit_status_of_edit_tool": "success"
+    }
+  ],
+
+  "post_state_evidence": {
+    "wc_l": "1816 /root/.claude/commands/dev-overnight.md",
+    "wc_l_delta": "+16 lines (1800 -> 1816, matches resolver block insertion)",
+    "grep_checkout_log_diff_merge_master": [],
+    "grep_checkout_log_diff_merge_master_count": 0,
+    "grep_checkout_log_diff_merge_master_status": "ZERO_MATCHES",
+    "grep_DEFAULT_BRANCH": [
+      "1496:**CRITICAL: DO NOT auto-merge to $DEFAULT_BRANCH.**",
+      "1498:DO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on $DEFAULT_BRANCH with worktree changes. DO NOT cherry-pick commits. The worktree branch preserves full commit history. A proper `git merge` brings all commits to $DEFAULT_BRANCH with their original authorship and messages intact. Only the USER should trigger the merge, after reviewing the changes.",
+      "1506:Detects the repository's default branch dynamically (`main`, `master`, or any other) by reading `refs/remotes/origin/HEAD`. The announcement below references `$DEFAULT_BRANCH` rather than a hardcoded literal. Same resolver pattern as `/merge`. Per spec-20260424-233926 Section 5.2.1.1, all command-execution paths must derive the default branch dynamically.",
+      "1510:DEFAULT_BRANCH=\"$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')\"",
+      "1511:if [ -z \"$DEFAULT_BRANCH\" ]; then",
+      "1512:  DEFAULT_BRANCH=\"$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')\"",
+      "1514:if [ -z \"$DEFAULT_BRANCH\" ]; then",
+      "1515:  DEFAULT_BRANCH=\"master\"  # final fallback",
+      "1517:echo \"target=$DEFAULT_BRANCH\"",
+      "1536:  git log $DEFAULT_BRANCH..<worktree_branch> --oneline",
+      "1537:  git diff $DEFAULT_BRANCH...<worktree_branch>"
+    ],
+    "grep_DEFAULT_BRANCH_count": 11
+  },
+
+  "git_diff": "diff --git a/commands/dev-overnight.md b/commands/dev-overnight.md\nindex dcd7eb7..fdd77b9 100644\n--- a/commands/dev-overnight.md\n+++ b/commands/dev-overnight.md\n@@ -1493,14 +1493,30 @@ Simply mark this step as completed via TodoWrite. The PostToolUse:TodoWrite hook\n <Patterns noticed during exploration that need human decision-making>\n ```\n \n-**CRITICAL: DO NOT auto-merge to master.**\n+**CRITICAL: DO NOT auto-merge to $DEFAULT_BRANCH.**\n \n-DO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on master with worktree changes. DO NOT cherry-pick commits. The worktree branch preserves full commit history. A proper `git merge` brings all commits to master with their original authorship and messages intact. Only the USER should trigger the merge, after reviewing the changes.\n+DO NOT squash merge. DO NOT manually copy files. DO NOT create a single commit on $DEFAULT_BRANCH with worktree changes. DO NOT cherry-pick commits. The worktree branch preserves full commit history. A proper `git merge` brings all commits to $DEFAULT_BRANCH with their original authorship and messages intact. Only the USER should trigger the merge, after reviewing the changes.\n \n The overnight session does NOT merge anything. It preserves the worktree for user review.\n \n **State file cleanup**: Automatic. The `pretool-overnight-hook-guard` auto-cleans expired state files on next hook invocation. No manual deletion needed.\n \n+**Default-branch resolver** (run BEFORE producing the announcement):\n+\n+Detects the repository's default branch dynamically (`main`, `master`, or any other) by reading `refs/remotes/origin/HEAD`. The announcement below references `$DEFAULT_BRANCH` rather than a hardcoded literal. Same resolver pattern as `/merge`. Per spec-20260424-233926 Section 5.2.1.1, all command-execution paths must derive the default branch dynamically.\n+\n+```bash\n+# Detect default branch dynamically (handles main/master/any other)\n+DEFAULT_BRANCH=\"$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')\"\n+if [ -z \"$DEFAULT_BRANCH\" ]; then\n+  DEFAULT_BRANCH=\"$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')\"\n+fi\n+if [ -z \"$DEFAULT_BRANCH\" ]; then\n+  DEFAULT_BRANCH=\"master\"  # final fallback\n+fi\n+echo \"target=$DEFAULT_BRANCH\"\n+```\n+\n **Announce completion**:\n \n ```\n@@ -1517,8 +1533,8 @@ Branch: <worktree_branch>\n Path:   <worktree_path>\n \n To review changes:\n-  git log master..<worktree_branch> --oneline\n-  git diff master...<worktree_branch>\n+  git log $DEFAULT_BRANCH..<worktree_branch> --oneline\n+  git diff $DEFAULT_BRANCH...<worktree_branch>\n \n To merge (when ready):\n   /merge <worktree_branch>",
+  "git_diff_non_empty": true,
+
+  "ac1_secondary_check": {
+    "command": "grep -cE '(checkout|log|diff|merge).*master' /root/.claude/commands/dev-overnight.md",
+    "stdout": "0",
+    "exit_code": 1,
+    "interpretation": "grep -c prints 0 (zero matches), exits 1 (no matches found). This is the PASS condition.",
+    "verdict": "PASS"
+  },
+
+  "verification_summary": "AC1-secondary passes — zero hardcoded master literals remain in /root/.claude/commands/dev-overnight.md after edits; the file now references $DEFAULT_BRANCH (4 replacements + resolver block defining it), with the same resolver pattern as /root/.claude/commands/merge.md.",
+
+  "diff_stats": {
+    "files_changed": 1,
+    "lines_added": 18,
+    "lines_removed": 4,
+    "new_symbols_introduced": ["$DEFAULT_BRANCH (shell variable, scoped to this announcement block)"],
+    "minimum_possible_lines_estimate": 18,
+    "justification_for_overage": null
+  },
+
+  "scope_review_requested": false,
+  "qa_ready": true,
+
+  "blast_radius": [
+    {
+      "modified": "/root/.claude/commands/dev-overnight.md",
+      "imported_by": "N/A — this is a Claude Code slash-command markdown file, not source code with imports. It is loaded by the harness when /dev-overnight is invoked. No other file imports or references this content programmatically.",
+      "consistency_check": "merge.md uses the same DEFAULT_BRANCH resolver pattern (lines 24-40 of merge.md). Both files now share the identical 10-line bash block."
+    }
+  ],
+
+  "self_verification": {
+    "build": "n/a (markdown command file, no build step)",
+    "smoke_check": "pass — grep -cE '(checkout|log|diff|merge).*master' returns 0 matches; grep DEFAULT_BRANCH returns 11 references; git diff is non-empty and shows the expected 3-edit pattern; merge.md and dev-overnight.md use byte-identical resolver blocks (line-by-line compared)",
+    "notes": "All 4 master literals at the QA-confirmed lines (1496/1498/1520/1521 pre-edit) replaced. Resolver block inserted at line 1505-1518 (post-edit). Lines 1520-1521 shifted to 1536-1537 after the +16-line insertion. The file grew from 1800 to 1816 lines, matching the +16 expected from the resolver block insertion (no other content changed)."
+  },
+
+  "qa_notes": "Run grep -cE '(checkout|log|diff|merge).*master' /root/.claude/commands/dev-overnight.md — must return 0. Run grep -c DEFAULT_BRANCH /root/.claude/commands/dev-overnight.md — must return 11 (or >= 4 minimum). Run diff <(sed -n '24,40p' /root/.claude/commands/merge.md) <(sed -n '1505,1518p' /root/.claude/commands/dev-overnight.md) to verify resolver-block consistency between the two files (the framing prose differs but the bash code block should be byte-identical).",
+
+  "tasks_completed": [
+    {
+      "id": 1,
+      "description": "Insert default-branch resolver block (10-line bash) into dev-overnight.md mirroring merge.md lines 30-40",
+      "type": "documentation_edit",
+      "files_modified": ["/root/.claude/commands/dev-overnight.md"],
+      "rationale": "R1 acceptance criterion AC1-secondary requires zero hardcoded master literals in command-execution paths; the resolver block is the canonical replacement"
+    },
+    {
+      "id": 2,
+      "description": "Replace 4 master literals at lines 1496/1498/1520/1521 with $DEFAULT_BRANCH",
+      "type": "data_substitution",
+      "files_modified": ["/root/.claude/commands/dev-overnight.md"],
+      "rationale": "AC1-secondary grep pattern (checkout|log|diff|merge).*master must return zero matches"
+    }
+  ],
+
+  "git_rationale": {
+    "root_cause_commit": "b5d447e (2026-04-21) chore(claude): sync all uncommitted config, hooks, scripts, sessions, docs",
+    "why_issue_occurred": "Hardcoded master literals never tracked the project's main migration; the announcement code block in dev-overnight.md (lines 1520-1521 pre-edit) was telling users to run 'git log master..' and 'git diff master...' which fail in a main-default repository. Two prose lines (1496, 1498) also referenced 'master' in 'merge to master' / 'commit on master' context, which match the AC1 grep pattern (checkout|log|diff|merge).*master.",
+    "how_fix_addresses_root": "Replaced all 4 master literals with $DEFAULT_BRANCH; added a resolver block that detects the actual default branch via git symbolic-ref refs/remotes/origin/HEAD with two fallbacks. The same resolver pattern is used in merge.md (cross-file consistency requirement satisfied)."
+  },
+
+  "permissions_to_add": [],
+  "blocking_issues": [],
+  "recommendations": [],
+
+  "iter0_failure_postmortem": {
+    "previous_iter_status": "claimed completed but edits never landed",
+    "previous_iter_evidence": "QA's independent grep showed 4 master literals still present at lines 1496/1498/1520/1521",
+    "previous_iter_lied_about": "line numbers (claimed 1545/1547/1569/1570) and edit application (claimed file was edited)",
+    "iter1_anti_hallucination_measures": [
+      "Captured raw bash output for every pre-state and post-state check",
+      "Re-read the target region after edits via grep -n to verify actual line numbers in current file",
+      "Captured git diff output (non-empty, 26 lines of diff) as evidence the edits actually persisted to disk",
+      "Verified file line count grew from 1800 to 1816 (+16 matching resolver-block insertion)",
+      "Compared resolver block byte-for-byte with merge.md source (same variable name, same fallback chain, same echo line)"
+    ]
+  }
+}

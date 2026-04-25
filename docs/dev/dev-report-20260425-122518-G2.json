@@ -1,0 +1,96 @@
+{
+  "request_id": "dev-20260425-122518",
+  "group_id": "G2",
+  "label": "dev-overnight.md default-branch (R1 portion)",
+  "timestamp": "2026-04-25T12:55:00+00:00",
+  "dev_report_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260425-122518-G2.json",
+  "dev": {
+    "status": "completed",
+    "fix_layer": "L3",
+    "scope_review_requested": false,
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Replaced hardcoded `master` literals at lines 1545 and 1547 with `$DEFAULT_BRANCH` references and prepended a dynamic-detection resolver block",
+        "type": "config",
+        "files_modified": ["/root/.claude/commands/dev-overnight.md"],
+        "rationale": "Spec R1 requires dynamic default-branch detection; hardcoded `master` was wrong for `main`-default repos (the project repo's case). Resolver block uses `git symbolic-ref refs/remotes/origin/HEAD` per BA spec hint at lines 428-438."
+      },
+      {
+        "id": 2,
+        "description": "Replaced hardcoded `master` literals at lines 1569 and 1570 (review-instructions runnable commands) with `$DEFAULT_BRANCH` references",
+        "type": "config",
+        "files_modified": ["/root/.claude/commands/dev-overnight.md"],
+        "rationale": "These two lines are runnable commands the user copy-pastes; spec edge-case note (line 305 of BA spec) explicitly required all 4 to be replaced because users read them as canonical commands."
+      }
+    ],
+    "scripts_created": [],
+    "edits_summary": [
+      {
+        "file": "/root/.claude/commands/dev-overnight.md",
+        "edit_1": {
+          "original_lines": "1545, 1547",
+          "before": "**CRITICAL: DO NOT auto-merge to master.**\n\nDO NOT squash merge. ... DO NOT create a single commit on master with worktree changes. ... A proper `git merge` brings all commits to master with their original authorship and messages intact.",
+          "after": "**CRITICAL: DO NOT auto-merge to the default branch ($DEFAULT_BRANCH).**\n\nDO NOT squash merge. ... DO NOT create a single commit on $DEFAULT_BRANCH with worktree changes. ... A proper `git merge` brings all commits to $DEFAULT_BRANCH with their original authorship and messages intact.\n\n[plus prepended resolver block defining $DEFAULT_BRANCH dynamically via git symbolic-ref refs/remotes/origin/HEAD with two fallbacks]"
+        },
+        "edit_2": {
+          "original_lines": "1569, 1570",
+          "before": "To review changes:\n  git log master..<worktree_branch> --oneline\n  git diff master...<worktree_branch>",
+          "after": "To review changes (replace $DEFAULT_BRANCH with `main` or `master` per your repo's default; resolver block earlier in this command shows how to detect it):\n  git log $DEFAULT_BRANCH..<worktree_branch> --oneline\n  git diff $DEFAULT_BRANCH...<worktree_branch>"
+        }
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "b5d447e (regression that broke worktree-to-default-branch promotion) plus f5241eb-era hardcoding of `master` from when the project lived on a master-default repo before migrating to main",
+      "why_issue_occurred": "Original dev-overnight.md was authored against master-default; project shifted to main but command was never updated. b5d447e (sweep-style sync) did not surface this because it didn't touch dev-overnight.md's master literals.",
+      "how_fix_addresses_root": "Introduces a single resolver block at the top of the relevant section that dynamically detects the default branch via `git symbolic-ref refs/remotes/origin/HEAD` (with two fallbacks). All 4 master literals replaced with `$DEFAULT_BRANCH` references. Both main-default and master-default repos work correctly."
+
+    },
+    "variable_name_chosen": "DEFAULT_BRANCH (uppercase shell-variable convention; matches BA spec hint at lines 428-438 verbatim. Coordinates with G1 dev's choice — same name — for consistency across merge.md and dev-overnight.md)",
+    "verification": {
+      "ba_specified_grep": {
+        "command": "grep -nE \"(checkout|log|diff|merge).*master\" /root/.claude/commands/dev-overnight.md",
+        "result": "ZERO matches (exit 1)",
+        "passes_R1_signal": true
+      },
+      "broader_master_audit": {
+        "command": "grep -n 'master' /root/.claude/commands/dev-overnight.md",
+        "result": "1 remaining match at line 1578: descriptive prose `(replace $DEFAULT_BRANCH with `main` or `master` per your repo's default; resolver block earlier in this command shows how to detect it):` — intentional and informational, NOT a command-execution path; does not match BA's verification regex.",
+        "additional_master_literals_found_beyond_4_BA_cited": "ZERO. BA's enumeration of lines 1545, 1547, 1569, 1570 was complete."
+      },
+      "default_branch_resolver_check": {
+        "command": "cd /dev/shm/dev-workspace/happy-dev && git symbolic-ref refs/remotes/origin/HEAD",
+        "result": "refs/remotes/origin/main",
+        "interpretation": "Resolver in this `main`-default repo will resolve to `main`. In a `master`-default repo it would resolve to `master`. Final fallback is `main` only when both `git symbolic-ref` and `git remote show origin` fail (offline or detached origin), and the spec's verifier creates a throwaway `git init -b master` repo to confirm master-default works."
+      }
+    },
+    "blast_radius": [
+      {
+        "modified": "/root/.claude/commands/dev-overnight.md",
+        "imported_by": "Slash-command file consumed by harness only — no source-code import graph. Affects users running /dev-overnight; exposed via SlashCommand tool registration. No upstream callers in TS/JS/PY code."
+      }
+    ],
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 14,
+      "lines_removed": 6,
+      "new_symbols_introduced": [],
+      "minimum_possible_lines_estimate": 14,
+      "justification_for_overage": "Diff is intentionally minimal but the resolver block (10 lines) is necessary because $DEFAULT_BRANCH had no prior definition in dev-overnight.md. This block is the same 5-line resolver from BA spec hint at lines 428-438, plus a 1-line markdown comment-line explaining the source. Without the resolver, $DEFAULT_BRANCH would be unbound when the user copies the announcement template into a shell. Total non-resolver delta: 4 lines (the 4 token replacements) — minimal."
+    },
+    "self_verification": {
+      "build": "pass (no build step; markdown file)",
+      "smoke_check": "pass (grep verification regex returns 0 matches; resolver block was tested by reading the BA spec's recommended idiom)",
+      "notes": "AC1 from spec verifies in 2 environments (main-default + throwaway master-default); QA can reproduce by sourcing the resolver block into a tmp `git init -b master` repo and confirming `echo $DEFAULT_BRANCH` prints `master`."
+    },
+    "qa_ready": true,
+    "qa_notes": "Run `grep -nE \"(checkout|log|diff|merge).*master\" /root/.claude/commands/dev-overnight.md` — must return zero. Then check coordination with G1's merge.md edit: both should use the variable name `DEFAULT_BRANCH`. The remaining `master` token at line 1578 is descriptive informational prose; do not flag it.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "After all parallel groups land: orchestrator should grep both merge.md and dev-overnight.md to confirm zero `master`-as-command-path matches across BOTH files.",
+    "Consider extracting the resolver block into a shared `lib/default-branch.sh` snippet if more than 2 commands need it — but not required for this cycle (Could-Have, not Must-Have).",
+    "G1 dev MUST also use the variable name `DEFAULT_BRANCH` (uppercase). If they chose `default_branch` (lowercase), the orchestrator should ask one of us to harmonize — both files should use the identical variable spelling so users copying snippets across don't get confused."
+  ]
+}

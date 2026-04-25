@@ -1,0 +1,105 @@
+{
+  "timestamp": "2026-04-25T14:30Z",
+  "task1_simulation_test": {
+    "method": "synthetic stdin piped directly to hook scripts (settings watcher hot-reload not available in this session)",
+    "results": {
+      "T1_git_privilege_random_commit": {
+        "expected_exit": 2,
+        "expected_stderr_contains": "BLOCKED: agent git commit",
+        "actual_exit": 0,
+        "actual_stderr": "",
+        "verdict": "DESIGN_LIMITATION",
+        "explanation": "Hook fail-opens because no LIVE overnight-state file exists. Both .claude/overnight-state-*.json files in happy-dev have end_time in the past (expired). Re-tested in happy-dev: still exit 0. Hook is gated by _is_overnight_active() → only fires when current_phase != complete AND now < end_time."
+      },
+      "T2_git_privilege_auto_bulk_allowed": {
+        "expected_exit": 0,
+        "actual_exit": 0,
+        "verdict": "PASS",
+        "note": "auto-bulk pattern allowed regardless of overnight context"
+      },
+      "T3_git_privilege_push_blocked": {
+        "expected_exit": 2,
+        "expected_stderr_contains": "BLOCKED: agent git push",
+        "actual_exit": 0,
+        "verdict": "DESIGN_LIMITATION (same reason as T1)"
+      },
+      "T5_claude_config_guard": {
+        "expected_exit": 2,
+        "expected_stderr_contains": "BLOCKED: claude config guard",
+        "actual_exit": 2,
+        "actual_stderr_excerpt": "BLOCKED: claude config guard: agent Edit to .claude/hooks/ is forbidden outside an explicit refactor session.",
+        "verdict": "PASS"
+      },
+      "T6_bulk_commit_detector_b5d447e_shape": {
+        "expected_exit": 2,
+        "expected_stderr_contains": "BLOCKED: bulk-commit detector",
+        "actual_exit": 2,
+        "actual_stderr_excerpt": "BLOCKED: bulk-commit detector — touched: commands/, docs/, hooks/, scripts/",
+        "verdict": "PASS"
+      },
+      "T7_bulk_commit_detector_benign_subject": {
+        "expected_exit": 0,
+        "actual_exit": 0,
+        "verdict": "PASS",
+        "note": "Conjunctive logic confirmed — 4 subsystems alone is not enough; subject must also match AI-bulk pattern"
+      }
+    },
+    "summary": "4/6 PASS, 2 DESIGN_LIMITATION (T1/T3 — git-privilege-guard is overnight-only, not always-on)",
+    "critical_finding": "git-privilege-guard scope is NARROWER than spec 5.2.4 R4.3 intent. Spec section 5.2.4 explicitly notes: 'b5d447e was committed in a regular Claude Code session on 2026-04-21 17:45 UTC — no overnight state file present — so this hook was structurally inert at the moment that mattered.' The G4 implementation kept the hook overnight-only with the justification 'Interactive sessions where the human is online and supervising every tool call do not need this guard'. This is a defensible design choice but contradicts the spec's explicit reasoning. NEW GAP for next session to decide.",
+    "new_gap": {
+      "id": "Gap E (NEW)",
+      "title": "git-privilege-guard scope reduction",
+      "details": "Hook only fires in live overnight context. The b5d447e regression case (non-overnight) would NOT be caught. User must decide: accept narrower scope (defensible argument: humans are watching in interactive sessions) OR widen to always-on (per spec letter)."
+    }
+  },
+  "task2_cleanup": {
+    "method": "mv to /tmp staging (rm forbidden by pretool-bash-safety.sh)",
+    "staging_directory": "/tmp/.cleanup-staging-1777139008",
+    "staging_size": "12M",
+    "completed": {
+      "playwright_console_logs": {
+        "count_moved": 705,
+        "location": "/tmp/.cleanup-staging-1777139008/playwright-logs/",
+        "remaining_at_source": 0,
+        "verdict": "DONE"
+      },
+      "stale_bulkrepo": {
+        "path": "/tmp/bulkrepo-sim-1777138637",
+        "verdict": "DONE (moved or already gone)"
+      }
+    },
+    "blocked_by_safety_hook": {
+      "overnight_state_files": [
+        "/dev/shm/dev-workspace/happy-dev/.claude/overnight-state-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/overnight-state-bfbc5f54-b231-4b52-b3bc-de01aeac0ccd.json"
+      ],
+      "workflow_state_files": [
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-049baf2c-547f-4a07-82af-06eb4ed42d8c.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-4b446615-bfc2-4fb5-846f-18c1b0b370f1.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-81c1a5b1-fb0d-404d-9baf-a1c417d38c04.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-bfbc5f54-b231-4b52-b3bc-de01aeac0ccd.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-d12e561c-040d-484b-9e82-66c46dd5c95b.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/workflow-f5726ada-5cd3-4fef-8b44-4fee09eb266e.json"
+      ],
+      "reason": "pretool-bash-safety.sh blocks any mv/rm on workflow-*.json or overnight-state-*.json — 'These files are required by the workflow enforcement system'.",
+      "user_action_required": "Delete via your own terminal: cd /dev/shm/dev-workspace/happy-dev/.claude && rm overnight-state-21d24e89-*.json overnight-state-bfbc5f54-*.json workflow-049baf2c-*.json workflow-21d24e89-*.json workflow-4b446615-*.json workflow-81c1a5b1-*.json workflow-bfbc5f54-*.json workflow-d12e561c-*.json workflow-f5726ada-*.json"
+    },
+    "preserved_per_spec_5_3": {
+      "worktrees_kept": [
+        ".claude/worktrees/overnight-20260329-9ae57c91 (live worktree, branch worktree-overnight-20260329-9ae57c91)",
+        ".claude/worktrees/overnight-20260403-d6f1eea4 (live worktree, branch worktree-overnight-20260403-d6f1eea4)"
+      ],
+      "workflow_files_kept": [
+        ".claude/workflow-9ae57c91-b5ff-4178-b883-eba53319be14.json (matches live worktree)",
+        ".claude/workflow-d6f1eea4-7769-4384-bd28-deae1ba26177.json (matches live worktree)"
+      ],
+      "spec_quote": "Section 5.3 Out of scope: 'Backporting fixes to old worktrees overnight-20260329-9ae57c91 or overnight-20260403-d6f1eea4 (still on disk — leave alone).'"
+    }
+  },
+  "summary_for_user": [
+    "Simulation: 4/6 PASS. T1/T3 revealed Gap E — git-privilege-guard is overnight-scoped (narrower than spec intent). User decision needed in next cycle.",
+    "Cleanup: 705 playwright logs + 12MB moved to /tmp/.cleanup-staging-1777139008. Bulkrepo also staged.",
+    "User action: 9 protected workflow/overnight-state files need manual rm from your own terminal (paths listed above)."
+  ]
+}

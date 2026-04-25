@@ -1,0 +1,202 @@
+{
+  "request_id": "dev-20260425-122518",
+  "group_id": "G1",
+  "group_label": "merge.md unified pass (R1 portion + R2 + R3b)",
+  "timestamp": "2026-04-25T12:25:18+00:00",
+  "dev_report_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260425-122518-G1.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "R1: Default-branch resolver block + replace 7 hardcoded `master` literals with `$DEFAULT_BRANCH`",
+        "type": "command-spec edit",
+        "files_modified": ["/root/.claude/commands/merge.md"],
+        "changes_summary": "Added 'Default-branch resolver' section (lines 24-40) at the top of the file, before Steps. Resolver tries `git symbolic-ref refs/remotes/origin/HEAD`, falls back to `git remote show origin` parse, finally falls back to literal `master`. Replaced all 7 hardcoded `master` execution-path literals (originally at lines 21,44,47,50,71,106,114) with `$DEFAULT_BRANCH` references. Replaced two user-facing prose mentions of master (originally lines 114,118) with `<default_branch>` / `the default branch` placeholders.",
+        "spec_signal": "AC1 — `grep -nE \"(checkout|log|diff|merge).*master\" /root/.claude/commands/merge.md` returns ZERO matches",
+        "rationale": "Root cause regression at b5d447e 2026-04-21 17:45 UTC removed downstream contracts without replacement; combined with the project's `main`-migration that was never propagated into command-execution paths, /merge ran against a non-existent branch. Resolver block now detects dynamically per spec 5.2.1.1."
+      },
+      {
+        "id": 2,
+        "description": "R2: Auto-bulk-commit bridge for zero-ahead worktree (option d)",
+        "type": "command-spec edit",
+        "files_modified": ["/root/.claude/commands/merge.md"],
+        "changes_summary": "Added new Step 4 'Auto-bulk-commit bridge for zero-ahead worktree' (lines 115-153). Uses `git rev-list --count $DEFAULT_BRANCH..$BRANCH_NAME` to detect zero-ahead. When count is 0: locates the worktree path via `git worktree list`, then `cd` into the worktree, runs `git add -A`, checks `git diff --cached --quiet`, and only if there's staged content runs `git commit -m \"auto-bulk: end-of-cycle commit for $BRANCH_NAME\"`. If the worktree is also clean (nothing staged), exits 0 with a message that there's nothing to merge. Commit message starts with the literal `auto-bulk: end-of-cycle commit for ` so the future R4.3 git-privilege-guard whitelists it. Block does NOT touch refs/checkpoints/* (out of scope per spec 5.3 / f2f8741 design lock).",
+        "spec_signal": "AC2 — `git log -1 --pretty=%s` on the merged commit matches `^auto-bulk: end-of-cycle commit for `; refs/checkpoints/* digest unchanged",
+        "rationale": "Per spec 5.2.1.2 option (d): produces a fresh semantic commit at /merge invocation time FROM the worktree's working tree (the `cd` ensures the commit's tree object reflects the worktree state, not the parent). Replaces the auto-commit-to-branch-HEAD behavior that b5d447e removed."
+      },
+      {
+        "id": 3,
+        "description": "R3b: Stash-aware untracked-overlap preflight",
+        "type": "command-spec edit",
+        "files_modified": ["/root/.claude/commands/merge.md"],
+        "changes_summary": "Added new Step 3 'Untracked-overlap preflight' (lines 86-113). Computes paths the merge would touch via `git diff --name-only $DEFAULT_BRANCH...$BRANCH_NAME`, parent untracked files via `git ls-files --others --exclude-standard`, and intersects with `comm -12`. If overlap is non-empty, prints the literal phrase `untracked overlap detected:` followed by the file list, then exits 2 — `git merge` is NEVER invoked on overlap. Step 3 is positioned BEFORE Step 4 (auto-bulk bridge) so untracked-overlap is detected before the parent could be polluted by an auto-commit step.",
+        "spec_signal": "AC4 — stdout contains literal `untracked overlap detected:` followed by file list; exit non-zero; no MERGE in reflog",
+        "rationale": "Per spec 5.2.1.3: prevents `git merge` from clobbering uncommitted parent state when worktree branches and parent share file paths. Literal phrase preserved verbatim per `standards_to_enforce.preserve_verification_signal_phrases_verbatim`."
+      },
+      {
+        "id": 4,
+        "description": "Step renumbering to maintain integer sequence",
+        "type": "structural",
+        "files_modified": ["/root/.claude/commands/merge.md"],
+        "changes_summary": "After inserting the new Step 3 (preflight) and Step 4 (auto-bulk bridge), renumbered downstream steps: original Step 3 (Merge) became Step 5; original Step 4 (Verify) became Step 6; original Step 5 (Cleanup) became Step 7; original Step 6 (Deploy reminder) became Step 8. Result: 8 sequential integer-numbered steps, no gaps, no decimals.",
+        "spec_signal": "standards_to_enforce.integer_step_numbering",
+        "rationale": "Quality standard: no decimal step numbering."
+      }
+    ],
+    "edits_by_line": [
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "1-3 (front-matter)",
+        "change": "description: 'Merge an overnight worktree branch to master ...' -> 'Merge an overnight worktree branch to the default branch ...'"
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "5-22 (header + intro + critical rules)",
+        "change": "Reworded references from 'master' to 'the default branch' in user-facing prose (no longer naming a specific branch in the contract description). Original lines 21,22 referenced 'on master'; now 'on the default branch'."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "24-40 (NEW)",
+        "change": "Inserted '## Default-branch resolver' block with rationale + bash code that detects DEFAULT_BRANCH via `git symbolic-ref refs/remotes/origin/HEAD`, falls back to `git remote show origin` parse, then literal 'master'."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "60-66 (Step 2 git log/diff)",
+        "change": "Original lines 44,47,50: `git log master..$BRANCH_NAME --oneline | wc -l` / `git log master..$BRANCH_NAME --oneline` / `git diff master...$BRANCH_NAME --stat` -> equivalents using `\"$DEFAULT_BRANCH..$BRANCH_NAME\"` with `git rev-list --count` (replaces `wc -l`) and `git diff --stat \"$DEFAULT_BRANCH...$BRANCH_NAME\"`."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "86-113 (NEW Step 3)",
+        "change": "Untracked-overlap preflight; literal phrase `untracked overlap detected:` at line 107; `exit 2` at line 111."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "115-153 (NEW Step 4)",
+        "change": "Auto-bulk-commit bridge; commit message `auto-bulk: end-of-cycle commit for $BRANCH_NAME` at line 142; subshell `cd $WORKTREE_PATH` ensures the commit comes from the worktree's working tree."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "155-160 (Step 5 Merge)",
+        "change": "Original line 71 `git checkout master` -> `git checkout \"$DEFAULT_BRANCH\"`; original line 74 `git merge $BRANCH_NAME --no-edit` quoted as `git merge \"$BRANCH_NAME\" --no-edit`."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "187-194 (Step 6 Verify)",
+        "change": "Original line 106 `git branch --merged master | grep $BRANCH_NAME` -> `git branch --merged \"$DEFAULT_BRANCH\" | grep \"$BRANCH_NAME\"`; step header renumbered Step 4 -> Step 6."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "197-222 (Step 7 Cleanup)",
+        "change": "Original line 114 `Merge complete. <count> commits merged to master.` -> `... merged to <default_branch>.`; original line 118 prose `... changes are on master.` -> `... changes are on the default branch.`; step header renumbered Step 5 -> Step 7."
+      },
+      {
+        "file": "/root/.claude/commands/merge.md",
+        "line": "224-230 (Step 8 Deploy reminder)",
+        "change": "Step header renumbered Step 6 -> Step 8."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "b5d447e — chore(claude): sync all uncommitted config, hooks, scripts, sessions, docs (2026-04-21 17:45 UTC)",
+      "why_issue_occurred": "b5d447e was a 93-file bulk sync that rewrote checkpoint hooks (posttool-git-checkpoint.sh + auto-commit.sh + stop-git-commit.sh + lib/checkpoint-core.sh) to redirect snapshots to refs/checkpoints/* without adding a replacement bridge for cycle-end semantic commits. Combined with R1 (master-vs-main hardcoding that was latent since the project's main migration), the result was: worktree branches sit at the base hash for entire overnight cycles AND /merge runs `git checkout master` against a repo whose default is `main`. /merge had nothing to merge AND was operating on a non-existent branch.",
+      "how_fix_addresses_root": "R1 substitutes a dynamic detection idiom for the hardcoded literal — eliminates the master-vs-main class of failures permanently. R2 adds a fresh bridge at /merge time (NOT at /dev-overnight time, NOT modifying refs/checkpoints/*) that produces ONE blessed semantic commit FROM the worktree's working tree when the branch is zero-ahead. R3b adds a preflight that detects parent untracked overlap before the merge could clobber state. All three layers in one file."
+    },
+    "verification_grep_outputs": {
+      "AC1_master_eradication": {
+        "command": "grep -nE \"(checkout|log|diff|merge).*master\" /root/.claude/commands/merge.md",
+        "result": "ZERO matches",
+        "passed": true
+      },
+      "AC2_auto_bulk_phrase_present": {
+        "command": "grep -n \"auto-bulk: end-of-cycle commit for\" /root/.claude/commands/merge.md",
+        "result": "Line 117 (rationale prose): 'commit message MUST match the regex `^auto-bulk: end-of-cycle commit for ` so the R4.3 git-privilege-guard whitelists it.'\nLine 142 (commit -m argument): `git commit -m \"auto-bulk: end-of-cycle commit for $BRANCH_NAME\"`",
+        "passed": true
+      },
+      "AC4_untracked_overlap_phrase_present": {
+        "command": "grep -n \"untracked overlap detected:\" /root/.claude/commands/merge.md",
+        "result": "Line 90 (rationale prose); Line 107 (echo statement when overlap found)",
+        "passed": true
+      },
+      "step_numbering_integer_sequential": {
+        "command": "grep -n \"^### Step\" /root/.claude/commands/merge.md",
+        "result": "Step 1 (line 44), Step 2 (line 56), Step 3 (line 86), Step 4 (line 115), Step 5 (line 155), Step 6 (line 187), Step 7 (line 197), Step 8 (line 224) — 8 sequential integer-numbered steps, no gaps, no decimals",
+        "passed": true
+      },
+      "remaining_master_mentions_are_documentation_only": {
+        "command": "grep -n \"master\" /root/.claude/commands/merge.md",
+        "result": "Lines 26 (rationale prose: 'main, master, or any other'), 28 (rationale prose: 'a hardcoded master literal regressed at commit b5d447e'), 31 (code comment: 'handles main/master/any other'), 37 (resolver fallback literal: `DEFAULT_BRANCH=\"master\"`). All four remaining mentions are documentation/rationale OR the explicit fallback literal — none are command-execution paths matched by the AC1 grep.",
+        "passed": true
+      }
+    },
+    "blast_radius": [
+      {
+        "modified": "/root/.claude/commands/merge.md",
+        "imported_by": [
+          "/root/.claude/commands/dev-overnight.md (handoff prose tells user to invoke /merge)",
+          "/root/.claude/commands/spec.md (references /merge as part of overnight workflow)"
+        ],
+        "impact_assessment": "These are orchestrator-level prose references, not code imports. dev-overnight.md is being modified in parallel by G2 (R1 portion) and spec.md by G3 (R3a). Renaming external prose to '/merge' is unaffected by our internal restructuring."
+      }
+    ],
+    "fix_layer": "L3 (R1 data substitution) + L4 (R2 + R3b logic)",
+    "diagnosis_layer_match": "matches BA-declared diagnosis_layer 'L3 (R1 data) + L4 (R2 logic, R3 logic) + L5 (R4 infrastructure) + L1 (R5 documentation)' — G1 covers the L3+L4 portion of the multi-layer fix",
+    "scope_review_requested": false,
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 105,
+      "lines_removed": 17,
+      "new_symbols_introduced": [
+        "$DEFAULT_BRANCH (shell variable, replaces 7 hardcoded literals + propagated to 2 user-facing strings)",
+        "$WORKTREE_PATH (shell variable, used in auto-bulk bridge — also exists in original Step 7)",
+        "$AHEAD_COUNT (shell variable, used in auto-bulk bridge zero-ahead detection)",
+        "$TOUCHED, $UNTRACKED, $OVERLAP (shell variables, used in untracked-overlap preflight)"
+      ],
+      "minimum_possible_lines_estimate": 100,
+      "justification_for_overage": "BA spec G1 requires three substantial Must-Have features in this single file: (1) R1 default-branch resolver with rationale prose + 3-tier fallback (~17 lines); (2) R2 zero-ahead detection + auto-bulk-commit-from-worktree bridge with non-touch-refs/checkpoints rationale (~38 lines); (3) R3b untracked-overlap preflight with literal verification phrase (~28 lines); plus rationale prose for each section (required by spec line 470 'Constraints: meaningful naming + git_root_cause_reference'). The Minimum-Diff Rule explicitly allows >20 lines when the diff is the minimum that makes the verification signals pass — each of R1/R2/R3b is independently testable and cannot be deleted. No new helper functions, no refactoring of pre-existing code, no rename of variables."
+    },
+    "pre_existing_guards_respected": [
+      {
+        "file": "/root/.claude/hooks/pretool-overnight-hook-guard.py",
+        "line": 220,
+        "type": "is_hooks_path predicate",
+        "removed_or_weakened": false,
+        "note": "Not in G1's scope — G4 owns this file."
+      },
+      {
+        "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+        "line": "various 89-461",
+        "type": "comprehensive safety category enforcement",
+        "removed_or_weakened": false,
+        "note": "G1 did not modify any hook. The new auto-bulk commit message will need to be allowed by future R4.3 (git-privilege-guard) — but R4.3 does not yet exist; G4 is creating it. Per spec, R4.3 must whitelist commit messages matching `^auto-bulk: end-of-cycle commit for `. G1's commit message is exactly that pattern, so when G4 lands the guard, our commit pattern will be accepted."
+      }
+    ],
+    "qa_ready": true,
+    "qa_notes": [
+      "AC1 verification: from any directory, `grep -nE \"(checkout|log|diff|merge).*master\" /root/.claude/commands/merge.md` MUST return zero matches.",
+      "AC2 verification (functional): create a synthetic worktree at zero-ahead state with dirty working tree; invoke /merge; verify `git log -1 main --pretty=%s` matches `^auto-bulk: end-of-cycle commit for `; capture `git for-each-ref refs/checkpoints/` digest before+after — must be byte-identical (no checkpoint refs touched).",
+      "AC4 verification (functional): create parent untracked file at a path the merge would touch; invoke /merge; stdout must contain literal `untracked overlap detected:` followed by the file list; exit code 2; `git reflog` shows no MERGE entry.",
+      "Resolver block test: from any repo with origin/HEAD set to refs/remotes/origin/main -> resolver echoes `target=main`. Throwaway repo with `git init -b master` and configured origin/HEAD -> resolver echoes `target=master`. Repo with no origin (degenerate) -> resolver falls through to `target=master` (the literal fallback at line 37).",
+      "Edge case: when the worktree branch has zero commits ahead AND the worktree's working tree is also clean (nothing to add), Step 4 prints 'Branch is at the same hash as $DEFAULT_BRANCH' and exits 0 (gracefully) instead of producing an empty commit.",
+      "Edge case: when WORKTREE_PATH cannot be located (e.g., branch exists but no worktree was created for it), Step 4 prints an explanatory error and exits 2 — does NOT attempt to commit from the parent."
+    ],
+    "permissions_to_add": [],
+    "self_verification": {
+      "build": "pass — /root/.claude/commands/merge.md is a markdown spec (no compile). Bash blocks have valid syntax (verified by visual inspection: closed braces, quoted variables, sub-shells balanced).",
+      "smoke_check": "skipped — `/merge` is an orchestrator prompt and cannot be smoke-tested in this dev subagent context (would require a real git repo, a worktree, and orchestrator invocation). QA will run the AC2/AC4 functional tests.",
+      "notes": "All grep-based verification signals from BA spec G1 PASS: zero `(checkout|log|diff|merge).*master` matches; literal phrases `untracked overlap detected:` and `auto-bulk: end-of-cycle commit for` present; integer-sequential 1-8 step numbering."
+    }
+  },
+  "blocking_issues": [],
+  "assumptions_made": [
+    "The phrase `untracked overlap detected:` is required EXACTLY (case + colon + space-or-newline-after) per spec 5.2.1.3 verification signal. I emitted it via `echo \"untracked overlap detected:\"` so the colon is followed by a newline.",
+    "The commit message regex `^auto-bulk: end-of-cycle commit for ` is anchored to start-of-message and must end with a literal space before the branch name. I used `auto-bulk: end-of-cycle commit for $BRANCH_NAME` which expands to exactly that shape.",
+    "When the worktree is also clean (zero-ahead + nothing to stage), exiting 0 with a 'nothing to merge' message is the correct behavior — the spec does not explicitly cover this edge but treating it as a no-op merge is consistent with the spirit of option (d). If QA finds this should instead error, it is a one-line change.",
+    "The fallback literal `DEFAULT_BRANCH=\"master\"` at resolver line 37 is acceptable because (a) it's the LAST fallback after two dynamic detections, (b) AC1 explicitly tests in a master-default repo (so this fallback being `master` is benign), and (c) the spec sample idiom in BA spec line 433 uses `main` as the final fallback — I chose `master` instead because the original file's hardcode was `master` and falling back to a different default could surprise users on legacy repos. If QA prefers `main`, it's a one-line change."
+  ],
+  "recommendations": [
+    "After G4 lands the R4.3 git-privilege-guard, run a smoke test: invoke /merge against a synthetic zero-ahead worktree and confirm the auto-bulk commit (which is initiated by the agent) is NOT blocked because the message matches the blessed-bridge whitelist.",
+    "Consider extracting the default-branch resolver into a shared shell snippet (e.g., `~/.claude/scripts/lib/default-branch.sh`) once dev-overnight.md (G2) also lands the same resolver — this avoids drift between the two implementations. Out of scope for G1.",
+    "Document the blessed-bridge contract in the postmortem (G5) so future agents understand why `auto-bulk: end-of-cycle commit for ` is a magic-string commit message."
+  ]
+}
