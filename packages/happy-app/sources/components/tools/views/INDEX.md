@@ -1,7 +1,7 @@
 # views
 
-*Last updated: 2026-04-24T15:43:01Z*
-**Total entries**: 19
+*Last updated: 2026-04-25T01:56:46Z*
+**Total entries**: 21
 **Convention**: kebab
 
 ## Tree
@@ -13,7 +13,9 @@ views/
 ├── `BashViewFull.tsx` - tsx file
 ├── `CodexBashView.tsx` - tsx file
 ├── `CodexDiffView.tsx` - tsx file
+├── `CodexParallelView.tsx` - tsx file
 ├── `CodexPatchView.tsx` - tsx file
+├── `CodexSubagentView.tsx` - tsx file
 ├── `EditView.tsx` - tsx file
 ├── `EditViewFull.tsx` - tsx file
 ├── `ExitPlanToolView.tsx` - tsx file

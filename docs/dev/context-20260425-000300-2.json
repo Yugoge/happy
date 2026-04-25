@@ -1,0 +1,242 @@
+{
+  "request_id": "dev-20260425-000300-2",
+  "timestamp": "2026-04-25T00:03:00+00:00",
+  "requirement": {
+    "original": "§5.15 Phase D — Codex Tool-suggest/plugin renderers — 2 tools (functions.tool_suggest, multi_tool_use.parallel). tool_suggest uses default Description/Input/Output rendering (ICON_REASONING/light-bulb, noStatus:true). multi_tool_use.parallel needs new CodexParallelView.tsx that copies TaskStatusRow primitive (TaskView.tsx:97-121) with \"Parallel\" header. sessionProtocolMapper.ts must project input.tool_uses[] into synthetic ToolCall shapes. Daemon rebuild + restart MANDATORY before E2E QA.",
+    "clarified": "Add knownTools entries and view components for functions.tool_suggest and multi_tool_use.parallel. Both tools are protocol-blocked at the Codex client layer (codexAppServerClient.ts emits no events for either). Apply DORMANT RENDERER strategy: ship happy-app UI infrastructure only. sessionProtocolMapper.ts changes and daemon rebuild are NOT needed this cycle.",
+    "what": "Ship knownTools.tsx entries + CodexParallelView.tsx + _all.tsx registry entries for Phase D tools",
+    "why": "§5.15 requires all Codex tools to have UI renderers. Phase D tools (tool_suggest, multi_tool_use.parallel) are currently invisible. DORMANT strategy ensures renderers are ready when Codex protocol support lands.",
+    "where": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx"
+    ],
+    "scope": {
+      "included": [
+        "knownTools.tsx: add functions.tool_suggest entry (ICON_REASONING, noStatus:true)",
+        "knownTools.tsx: add multi_tool_use.parallel entry (ICON_TASK, CodexParallelView)",
+        "CodexParallelView.tsx: NEW file, copies TaskStatusRow primitive, renders Parallel header + tool_uses[]",
+        "_all.tsx: import CodexParallelView, add to toolViewRegistry"
+      ],
+      "excluded": [
+        "sessionProtocolMapper.ts — protocol-blocked, deferred to future cycle",
+        "happy-cli source files — no daemon rebuild needed",
+        "toolFullViewRegistry — not required for this phase",
+        "Live E2E of multi_tool_use.parallel — tool not emitted by current Codex protocol"
+      ]
+    },
+    "success_criteria": [
+      "yarn typecheck passes with 0 errors in modified files",
+      "CodexParallelView renders Parallel header + tool rows for non-empty tool_uses input",
+      "getToolViewComponent('multi_tool_use.parallel') returns CodexParallelView",
+      "functions.tool_suggest has noStatus:true and ICON_REASONING in knownTools",
+      "No happy-cli source changes (no daemon rebuild required)"
+    ],
+    "constraints": [
+      "i18n: all user-visible strings must use t() and be added to all 9 language files",
+      "TypeScript strict mode must pass",
+      "input.tool_uses shape is unknown (protocol-blocked) — handle undefined/empty gracefully",
+      "Key 'multi_tool_use.parallel' contains a dot — must be quoted string literal in registry"
+    ]
+  },
+  "protocol_block_finding": {
+    "status": "CONFIRMED",
+    "evidence_type": "observed",
+    "evidence": "grep of packages/happy-cli/src/codex/ returns 0 matches for 'tool_suggest' and 'multi_tool_use'. codexAppServerClient.ts handles only item.type values: commandExecution (lines 280-307), fileChange (lines 309-340), agentMessage (lines 342-362). EventMsg typed as open { type: string } & Record<string, unknown> — no discriminated union. No EventMsg emission path exists for tool_suggest or multi_tool_use.parallel.",
+    "strategy": "DORMANT_RENDERER",
+    "deferred_work": "sessionProtocolMapper.ts branches for tool_suggest and multi_tool_use.parallel — deferred until Codex protocol emits these event types"
+  },
+  "root_cause_analysis": {
+    "symptom": "functions.tool_suggest and multi_tool_use.parallel produce no UI card in Codex sessions",
+    "root_cause": "Two-layer absence: (1) codexAppServerClient.ts has no handler for these item types — no EventMsg is emitted; (2) even if events were emitted, knownTools.tsx has no entries and _all.tsx has no registry entries to route them to renderers",
+    "root_cause_commit": "N/A — never implemented",
+    "why_introduced": "Phase A/B/C tools were added incrementally; Phase D tools were deferred",
+    "why_problematic": "Tool calls appear completely invisible to users",
+    "timeline": "Never implemented — absent from initial codebase",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "grep packages/happy-cli/src/codex/ for tool_suggest|multi_tool_use returns 0 matches (observed: grep execution)",
+      "codexAppServerClient.ts lines 280-364 read exhaustively: only commandExecution, fileChange, agentMessage handled (observed: direct Read)",
+      "sessionProtocolMapper.ts lines 280-388 read directly: only exec_command_begin/end and patch_apply_begin/end emit tool-call-start; line 381 is catch-all return empty envelopes (observed: direct Read)",
+      "knownTools.tsx is 1136 lines, no tool_suggest or multi_tool_use entries (observed: wc -l + grep)",
+      "sessionProtocolMapper.ts is 440 lines (observed: wc -l)",
+      "ICON_REASONING defined at knownTools.tsx:19 as Octicons light-bulb (observed: direct Read)",
+      "TaskStatusRow exported from TaskView.tsx:97-121 (observed: direct Read)",
+      "_all.tsx is 82 lines, toolViewRegistry has no Phase D entries (observed: direct Read)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["functions.tool_suggest", "multi_tool_use.parallel", "CodexParallelView", "TaskStatusRow", "ICON_REASONING", "noStatus"],
+    "localization_evidence": "Read codexAppServerClient.ts lines 260-365 and grep entire codex/ directory — zero occurrences of target tool names confirm protocol-block. Read sessionProtocolMapper.ts lines 280-388 — confirmed only 4 event types handled with envelopes.",
+    "located_source": "packages/happy-cli/src/codex/codexAppServerClient.ts:280-364 (protocol layer) + packages/happy-app/sources/components/tools/knownTools.tsx (renderer registry layer)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "N/A",
+      "commit_message": "N/A",
+      "confirmed_by": "N/A — never implemented, not a regression",
+      "bisect_blocked": null,
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L3",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "tool_suggest uses default Description/Input/Output rendering (ICON_REASONING/light-bulb, noStatus:true)",
+      "acceptance_criterion": "knownTools.tsx has 'functions.tool_suggest' entry with icon: ICON_REASONING, noStatus: true. yarn typecheck passes."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "multi_tool_use.parallel needs new CodexParallelView.tsx that copies TaskStatusRow primitive (TaskView.tsx:97-121) with \"Parallel\" header",
+      "acceptance_criterion": "CodexParallelView.tsx exists, renders Parallel header, iterates tool_uses[]. _all.tsx routes multi_tool_use.parallel to it. yarn typecheck passes."
+    },
+    {
+      "id": "R3-DORMANT",
+      "source_phrase": "sessionProtocolMapper.ts must project input.tool_uses[] into synthetic ToolCall shapes",
+      "acceptance_criterion": "DEFERRED — protocol-blocked. No sessionProtocolMapper.ts changes this cycle."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "Daemon rebuild + restart MANDATORY before E2E QA",
+      "acceptance_criterion": "SUPERSEDED by DORMANT strategy — no happy-cli changes, no daemon rebuild needed."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line_range": "1-1136",
+      "role": "Tool metadata registry — icon, noStatus, extractDescription, input/result schema per tool name",
+      "imports_from": ["leaf"],
+      "evidence": "wc -l confirms 1136 lines; grep confirmed 0 existing entries for target tools",
+      "verified_via": "both"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "line_range": "1-82",
+      "role": "toolViewRegistry — maps tool name string to React component",
+      "imports_from": ["CodexParallelView.tsx (to be added)"],
+      "evidence": "Direct Read of full 82-line file; toolViewRegistry confirmed at line 33",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+      "line_range": "NEW",
+      "role": "View component for multi_tool_use.parallel — renders Parallel header + tool_uses[] rows using TaskStatusRow pattern",
+      "imports_from": ["TaskView.tsx (TaskStatusRow pattern reference)"],
+      "evidence": "TaskView.tsx:97-121 read directly; TaskStatusRow props and structure confirmed",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/TaskView.tsx",
+      "line_range": "97-121",
+      "role": "Reference — TaskStatusRow primitive to copy into CodexParallelView",
+      "imports_from": ["leaf"],
+      "evidence": "Direct Read of lines 90-135 confirms TaskStatusRow at lines 97-121 with props: visibleTools, remainingCount, onSubToolPress",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line": 1105,
+      "type": "type-guard",
+      "code_snippet": "} satisfies Record<string, { title?...; icon...; noStatus?...; ... }>;",
+      "purpose": "TypeScript satisfies check — all entries must conform to the knownTools schema",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "viewport": "both 1440x900 desktop and 390x844 mobile",
+    "theme": "both light and dark",
+    "locale": "zh / en",
+    "auth_state": "logged-in (dev bot account cmi5mv9eh00wzpg14ph73jj3n)",
+    "data_state": "with-data (live Codex session)",
+    "browser": "Chrome desktop via Playwright MCP",
+    "url_path": "https://dev.life-ai.app"
+  },
+  "evidence": {
+    "observed": "codex的全部工具只有exc_command有渲染 — Phase D tools (functions.tool_suggest, multi_tool_use.parallel) produce no UI card",
+    "measured": {
+      "value": "0 knownTools entries, 0 toolViewRegistry entries, 0 EventMsg handlers in codexAppServerClient.ts for target tools",
+      "location": "knownTools.tsx:1-1136, _all.tsx:33-50, codexAppServerClient.ts:280-364"
+    },
+    "expected": {
+      "value": "knownTools entry + toolViewRegistry entry + view component for each tool; sessionProtocolMapper branches DORMANT",
+      "source": "§5.15 user requirement + DORMANT RENDERER strategy confirmed by sibling pipelines 0 and 1"
+    },
+    "gap": "2 knownTools entries missing, 1 new view file missing, 2 toolViewRegistry entries missing"
+  },
+  "scope_expansion": {
+    "search_pattern": "tool_suggest|multi_tool_use",
+    "search_scope": "packages/happy-cli/src/codex/, packages/happy-app/sources/components/tools/",
+    "user_reported": ["knownTools.tsx", "CodexParallelView.tsx", "sessionProtocolMapper.ts"],
+    "additional_found": ["_all.tsx — required for toolViewRegistry routing (was OBJ-2 in pipeline 1 QA)"],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx (add 2 entries)",
+      "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx (CREATE)",
+      "packages/happy-app/sources/components/tools/views/_all.tsx (add import + 2 registry entries)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "TaskStatusRow at TaskView.tsx:97-121 — confirmed by direct Read in this session; ICON_REASONING at knownTools.tsx:19 — confirmed by direct Read",
+    "url_or_location": "packages/happy-app/sources/components/tools/views/TaskView.tsx:97-121, packages/happy-app/sources/components/tools/knownTools.tsx:19",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L3",
+      "differs_from_all_priors": true,
+      "rationale": "No prior attempts for Phase D. First analysis."
+    }
+  },
+  "context": {
+    "codebase_state": "Phase A (10 web tools) and Phase B (9 local-exec tools) and CronList §5.18 registrations live in knownTools.tsx lines 939-1099. Phase C (5 subagent verbs) handled by pipeline 1. Phase D (this pipeline) has 0 existing entries.",
+    "recent_commits": "0ba2ddfc feat: cycle 1 (14 pipelines) + close-remediation",
+    "file_contents": {
+      "knownTools_line_count": 1136,
+      "sessionProtocolMapper_line_count": 440,
+      "all_tsx_line_count": 82,
+      "ICON_REASONING_line": 19,
+      "TaskStatusRow_lines": "97-121",
+      "noStatus_existing_users": ["TodoWrite:387", "CodexDiff:841", "CodexPatch:871", "AskUserQuestion:916"]
+    },
+    "dependencies": {},
+    "environment": {
+      "worktree": "/dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89",
+      "dev_web_url": "https://dev.life-ai.app",
+      "dev_api_url": "https://api-dev.life-ai.app"
+    }
+  },
+  "development_approach": {
+    "strategy": "DORMANT RENDERER — ship happy-app UI infrastructure only. No sessionProtocolMapper changes. No daemon rebuild.",
+    "files_to_create": [
+      "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx"
+    ],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx"
+    ],
+    "validation_approach": "yarn typecheck (zero errors). Code review of CodexParallelView structure. No live Codex E2E needed (protocol-blocked). Rebuild happy-app:dev and verify app loads without crash."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward dormant renderer pattern already established by sibling pipelines 0 and 1. No new architectural decisions needed."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

@@ -15,6 +15,8 @@ import { MultiEditViewFull } from './MultiEditViewFull';
 import { CodexBashView } from './CodexBashView';
 import { CodexPatchView } from './CodexPatchView';
 import { CodexDiffView } from './CodexDiffView';
+import { CodexSubagentView } from './CodexSubagentView';
+import { CodexParallelView } from './CodexParallelView';
 import { AskUserQuestionView } from './AskUserQuestionView';
 import { GeminiEditView } from './GeminiEditView';
 import { GeminiExecuteView } from './GeminiExecuteView';
@@ -44,6 +46,14 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     Task: TaskView,
     Agent: TaskView,
     AskUserQuestion: AskUserQuestionView,
+    // §5.15 Phase C — Codex subagent lifecycle verbs (DORMANT until protocol emits events)
+    'functions.spawn_agent': CodexSubagentView,
+    'functions.send_input': CodexSubagentView,
+    'functions.wait_agent': CodexSubagentView,
+    'functions.resume_agent': CodexSubagentView,
+    'functions.close_agent': CodexSubagentView,
+    // §5.15 Phase D — Codex parallel tool dispatch (DORMANT until protocol emits events)
+    'multi_tool_use.parallel': CodexParallelView,
     // Gemini tools (lowercase)
     edit: GeminiEditView,
     execute: GeminiExecuteView,
@@ -69,6 +79,8 @@ export { BashView } from './BashView';
 export { CodexBashView } from './CodexBashView';
 export { CodexPatchView } from './CodexPatchView';
 export { CodexDiffView } from './CodexDiffView';
+export { CodexSubagentView } from './CodexSubagentView';
+export { CodexParallelView } from './CodexParallelView';
 export { BashViewFull } from './BashViewFull';
 export { EditViewFull } from './EditViewFull';
 export { MultiEditViewFull } from './MultiEditViewFull';

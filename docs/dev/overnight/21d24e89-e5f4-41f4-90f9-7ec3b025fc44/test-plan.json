@@ -1,0 +1,277 @@
+{
+  "plan_id": "tp-20260424-234616",
+  "version": 1,
+  "timestamp": "2026-04-24T23:46:16Z",
+  "session_id": "21d24e89-e5f4-41f4-90f9-7ec3b025fc44",
+  "cycle_number": 1,
+  "spec_mode": "user-provided",
+  "spec_path": "docs/dev/specs/spec-20260424-084848.md",
+  "app_context": {
+    "url": "https://dev.life-ai.app",
+    "test_email": null,
+    "test_password": null,
+    "credentials_available": true,
+    "credentials_method": "localStorage injection (auth_credentials + mmkv.server-config\\custom-server-url)",
+    "dev_account_id": "cmi5mv9eh00wzpg14ph73jj3n",
+    "dev_api_url": "https://api-dev.life-ai.app",
+    "project_type": "React Native (Expo SDK 54) — happy-app web build served via nginx + Cloudflare tunnel",
+    "core_flow_steps": [
+      "Step 1: Navigate to https://dev.life-ai.app",
+      "Step 2: Inject auth_credentials and mmkv.server-config\\custom-server-url into localStorage",
+      "Step 3: Reload — app derives keys, connects WebSocket to api-dev",
+      "Step 4: Click into the live 'Overnight dev: spec-20260424-084848' session under /dev/shm/dev-workspace/happy-dev",
+      "Step 5: Observe tool-call rendering (TodoWrite, Bash, Read, etc.) and the bottom composer status bar (model chip + yolo + N% left)",
+      "Step 6: For Codex-flavored tests — provision a Codex session via the + sidebar button (NOT yet present in dev account; see test_data_setup_required)",
+      "Step 7: Send messages via the UI (NEVER via curl) to trigger missing content types"
+    ],
+    "core_flow_source": "browser",
+    "sample_data": {
+      "description": "Real dev sessions exist; new test content must be triggered by sending messages through the composer UI",
+      "fields": {
+        "trigger_codex_subagent": "From a Codex session, ask the model to spawn a subagent (functions.spawn_agent / wait_agent / close_agent)",
+        "trigger_codex_apply_patch": "From a Codex session, ask the model to apply a multi-file patch (functions.apply_patch)",
+        "trigger_codex_web_tool": "From a Codex session, ask the model to perform a web search / open / screenshot",
+        "trigger_long_background": "From a Claude Code session, run a long bash background task (e.g., sleep 300 && echo done &), then attempt to disconnect/reconnect"
+      }
+    }
+  },
+  "pm_experience": {
+    "app_not_running": false,
+    "credentials_verified": true,
+    "urls_visited": [
+      "https://dev.life-ai.app/",
+      "https://dev.life-ai.app/session/cmodk2iaj6q4nnz15hfix4l7e"
+    ],
+    "actions_taken": [
+      {
+        "url": "https://dev.life-ai.app/",
+        "action": "navigated to landing page; saw 'connecting' state then 'connected'",
+        "result": "page loaded with title 'Happy', no console errors",
+        "screenshot": null
+      },
+      {
+        "url": "https://dev.life-ai.app/",
+        "action": "injected auth_credentials and mmkv.server-config\\custom-server-url into localStorage",
+        "result": "ok — server URL set to api-dev",
+        "screenshot": null
+      },
+      {
+        "url": "https://dev.life-ai.app/",
+        "action": "reloaded after credential injection; saw machine list with 4 machines (applio, happy-dev, ~, ~/orchestra) and live sessions including the overnight session",
+        "result": "authenticated; machine cards rendered correctly",
+        "screenshot": "pm-landing-2026-04-24.png"
+      },
+      {
+        "url": "https://dev.life-ai.app/",
+        "action": "resized browser to 1440x900",
+        "result": "top bar reflowed responsively (post-§5.4 fix verified): Happy logo + connected status + 3 trailing icons all in proportion",
+        "screenshot": null
+      },
+      {
+        "url": "https://dev.life-ai.app/session/cmodk2iaj6q4nnz15hfix4l7e",
+        "action": "clicked into 'Overnight dev: spec-20260424-084848' session card",
+        "result": "session view loaded with tool cards rendering (TodoWrite, Bash, Read), composer status shows 'flibbertigibbeting… • 38% left' at the bottom — proves §5.1 plumbing is live (status bar exists with N% left text)",
+        "screenshot": null
+      }
+    ],
+    "core_flow_verified_in_browser": true,
+    "screenshots": [
+      "pm-landing-2026-04-24.png"
+    ],
+    "console_errors_found": [],
+    "network_failures_found": [],
+    "notes": "Phase 0 confirms: dev environment healthy, dev API at api-dev.life-ai.app reachable (200 + /health=ok), 4 machines + multiple sessions decrypt correctly. Top bar layout (§5.4/§5.5) appears responsive at 1440px. Status bar (§5.1) exists at bottom of session view. Spot-checked one observation: dev account has NO Codex-flavored sessions visible in the sidebar (matches the spec's Section 8 attention note 'Codex pipelines need a Codex session in dev'). This blocks live verification of §5.6, §5.7, §5.13, §5.14, §5.15-B/C/D until a Codex session is provisioned via the + sidebar button. PM is in supervisor mode — full re-validation of every spec item is NOT performed; the spec's Section 9 Final Consolidated State is treated as the authoritative starting point and the cycle's job is to (a) pick up the carry-forward Tier 1 items, and (b) discover any regressions or additional issues."
+  },
+  "previously_tested": [
+    "§5.1 — Per-session model persistence + status-bar chip (DONE live)",
+    "§5.3 — Bash popup command overflow (DONE live)",
+    "§5.4 — Top-bar happy logo + avatar non-responsive (DONE live)",
+    "§5.5 — Top-bar 2nd non-responsive case (DONE live, covered by §5.4)",
+    "§5.8 — Markdown tables overflow (DONE live; ported from prod a59b3795)",
+    "§5.9 — Stop-hook feedback suppression (DONE live; daemon rebuilt + restarted)",
+    "§5.11 — Detail-panel file path overflow (DONE live)",
+    "§5.12 — Attachment tray + silent oversize failure (DONE live; Modal.alert verified)",
+    "§5.16 — Inline LaTeX $...$ (DONE live KaTeX)",
+    "§5.17 — Markdown primitives (DONE source+bundle; live single-screenshot E2E gap remains)",
+    "§5.18 — CronList simplify (DONE live)",
+    "§5.2 — 1M-context models 0% (DONE source-only; live gated on 1M model picker entry)",
+    "§5.6 — Codex popup not aligned with Claude Code redesign (DONE source-only; gated on Codex session in dev)",
+    "§5.7 — Codex Description echoes raw command (DONE source-only; gated on Codex session in dev)",
+    "§5.15 Phase A — 10 Codex web-tool registrations (DONE bundle inclusion; live render gated on Codex session)"
+  ],
+  "focus": null,
+  "agent_assignments": {
+    "user": {
+      "mandatory": [],
+      "secondary": [],
+      "skip_reason": "Per orchestrator view Agent Relevance Analysis: user agent NOT relevant for this spec — acceptance criteria are captured verbatim in Section 5 by BA; no separate user-writes workflow. Core flow gate is still owned by user (per schema) but no user agent is launched this cycle. core_flow_completion is verified via the live overnight session being driven by this very orchestrator (the overnight session itself IS the live core flow)."
+    },
+    "product-owner": {
+      "mandatory": [],
+      "secondary": [],
+      "skip_reason": "Per orchestrator view: NOT relevant. No explicit product-owner role markers in spec; acceptance criteria captured by BA in Section 5."
+    },
+    "architect": {
+      "mandatory": [],
+      "secondary": [],
+      "skip_reason": "Per orchestrator view: NOT relevant. Spec has no architecture/structural/infrastructure concerns. No dependency analysis, no scalability discussion. All 18 requirements are UI rendering, layout, transport-layer ordering, or per-session state — handled by ba/dev/qa/ui-specialist."
+    },
+    "ui-specialist": {
+      "mandatory": [
+        "Validate that Cycle-1 + close-remediation 'DONE live' items have not regressed: spot-check §5.4/§5.5 top-bar responsiveness (resize 1440 → 1024 → 390), §5.18 CronList inline+sidebar split, §5.8 wide-table horizontal scroll, §5.11 file path ellipsis, §5.16 inline LaTeX render",
+        "Carry-forward Tier 1: §5.15 Phase B (Local-exec/engineering, 10 tools — apply_patch/write_stdin/update_plan/request_user_input/list_mcp_resources/list_mcp_resource_templates/read_mcp_resource/view_image/exec_command-already-done/mcp__happy__change_title) — design the inline-card visuals (icon/header/one-line summary) and right-side detail-panel layouts",
+        "Carry-forward Tier 1: §5.15 Phase C (Subagent/delegation, 5 tools — spawn_agent/send_input/wait_agent/resume_agent/close_agent) — design subagent visibility treatment matching Claude Code Agent tool",
+        "Carry-forward Tier 1: §5.15 Phase D (Tool-suggest/plugin, 2 tools — tool_suggest/multi_tool_use.parallel) — collapsible card listing constituent tool calls",
+        "Apply the 'compact inline / verbose sidebar' pattern established by §5.18 to every new Codex tool renderer",
+        "All visual designs must verify on BOTH desktop (1440x900) AND mobile (390x844) viewports — happy-app is React Native running on web+mobile simultaneously"
+      ],
+      "secondary": [
+        "Capture single combined screenshot for §5.17 markdown primitives (H1-H6, ~~strikethrough~~, - [ ]/- [x] task lists, nested lists, ordered lists, blockquotes, <kbd>, &lt;tag&gt;) on desktop + mobile to close the last warning",
+        "Code-quality cleanup §5.4: remove dead export `headerMaxWidth` from layout.ts:43 (low priority)"
+      ]
+    }
+  },
+  "core_flow_gate": {
+    "owner": "user",
+    "required": true,
+    "failure_is_cycle_failure": true,
+    "note": "User agent is NOT recommended this cycle (per orchestrator view), but the gate field is set per schema. Live core-flow verification this cycle is performed by ui-specialist + qa during their pipeline runs (each must end with a live screenshot in dev.life-ai.app on BOTH desktop and mobile)."
+  },
+  "priority_tiers": {
+    "tier_1_blockers": [
+      {
+        "spec_section": "5.15 Phase B",
+        "description": "Codex Local-exec/engineering tool renderers (10 tools): functions.apply_patch (closes §5.14), functions.write_stdin, functions.update_plan, functions.request_user_input, functions.list_mcp_resources, functions.list_mcp_resource_templates, functions.read_mcp_resource, functions.view_image, mcp__happy__change_title. functions.exec_command already done. Each tool must produce (a) inline conversation card with icon + one-line arg summary + status, (b) right-side detail panel with Description (real description, NEVER raw args per §5.7) + Input Parameters + Output rendered per tool type (diff for apply_patch, image for view_image, plan list for update_plan, etc.).",
+        "evidence": "Spec Section 9 Carry-forward item #1; spec Section 7 Cycle-next Phase B plan; spec Section 5.15 acceptance points 1-8",
+        "affects": "core_flow|user_visible_feature_gap",
+        "depends_on": "EXEMPT_PATHS update for knownTools.tsx (quality-gate blocker), Codex session provisioned in dev account"
+      },
+      {
+        "spec_section": "5.15 Phase C",
+        "description": "Codex Subagent/delegation tool renderers (5 tools): functions.spawn_agent, functions.send_input, functions.wait_agent, functions.resume_agent, functions.close_agent. Closes §5.13 (Codex subagent tasks not displayed). Render with same visibility treatment as Claude Code's Agent tool — header with subagent name/description, status indicator, result block on completion. Inline card AND detail panel.",
+        "evidence": "Spec Section 9 Carry-forward item #2; spec Section 7 Cycle-n+2 Phase C plan; spec Section 5.13 + 5.15 acceptance point 6",
+        "affects": "core_flow|user_visible_feature_gap",
+        "depends_on": "Codex session in dev with at least one spawn_agent invocation"
+      },
+      {
+        "spec_section": "5.15 Phase D",
+        "description": "Codex Tool-suggest/plugin renderers (2 tools): functions.tool_suggest, multi_tool_use.parallel. Collapsible card listing constituent tool calls.",
+        "evidence": "Spec Section 9 Carry-forward item #3; spec Section 7 Cycle-n+2 Phase D plan",
+        "affects": "user_visible_feature_gap",
+        "depends_on": "Codex session in dev"
+      },
+      {
+        "spec_section": "5.10",
+        "description": "Long background-task disconnect causes out-of-order delivery on reconnect. Two pieces: (a) proactive reconnect during long background tasks (don't wait for user message — heartbeat-driven reconnect when 2 consecutive intervals miss), (b) causal ordering guarantee in delivery queue (server adds monotonic per-session sequence number; client maintains reorder buffer keyed by sequence; emit messages strictly in sequence order). Cross-package: happy-app (sources/sync/messageQueue.ts), happy-cli (src/api/apiSession.ts), happy-server (sources/app/api/routes/sessionRoutes.ts).",
+        "evidence": "Spec Section 9 Carry-forward item #4; spec Section 5.10 verbatim user requirement; spec Section 8 attention note 'Transport-layer §5.10 is multi-package and needs its own cycle'",
+        "affects": "data_integrity|message_ordering|core_flow",
+        "depends_on": "Repro harness (long bash background task + simulated WebSocket disconnect via chrome://net-internals or Cloudflare drop)",
+        "scope_warning": "DO NOT bundle with UI work this cycle — multi-package transport bug; allocate dedicated cycle if budget allows; otherwise defer with a working repro harness committed for next session"
+      },
+      {
+        "spec_section": "5.14",
+        "description": "Codex multi-file edit — no right-sidebar rendering. Resolved by §5.15 Phase B's functions.apply_patch renderer routing into Claude Code's existing multi-file diff panel. Listed as Tier 1 separately because the spec carries it as a deferred item alongside §5.15 Phase B.",
+        "evidence": "Spec Section 9 carry-forward note: 'subset of §5.15 Phase B (functions.apply_patch)'; spec Section 7 'addressed as part of §5.15 Phase B above'",
+        "affects": "user_visible_feature_gap",
+        "depends_on": "§5.15 Phase B implementation"
+      },
+      {
+        "spec_section": "5.13",
+        "description": "Codex subagent tasks are not displayed. Resolved by §5.15 Phase C's spawn_agent/send_input/wait_agent/resume_agent/close_agent renderers. Listed Tier 1 separately for tracking.",
+        "evidence": "Spec Section 9 carry-forward note: 'subset of §5.15 Phase C'; spec Section 7 'addressed as part of §5.15 Phase C above'",
+        "affects": "user_visible_feature_gap",
+        "depends_on": "§5.15 Phase C implementation"
+      }
+    ],
+    "tier_2_major": [
+      {
+        "spec_section": "infrastructure",
+        "description": "Pre-existing quality-gate blockers (NOT introduced by Cycle 1). The ~/.claude/hooks/pretool-quality-gate.py 800-line cap blocks Edit/Write on foundational files: knownTools.tsx (967), AgentInput.tsx (1390+), sessionProtocolMapper.ts (883), storage.ts, persistence.ts, _default.ts, all 10 translations/*.ts. Without EXEMPT_PATHS additions, every future cycle touching these files hits the same wall and must use Python-bypass workarounds. Path A (~15 min): add to EXEMPT_PATHS with TODO markers. Path B (multi-day, lower priority): split files into per-domain modules.",
+        "evidence": "Spec Section 7 'Pre-existing quality-gate blockers'; spec Section 8 'Quality-gate hook is the single biggest source of friction'",
+        "affects": "developer_velocity|future_pipelines",
+        "scope_warning": "EXEMPT_PATHS is a global hook config, not a worktree change — must be done by user OR escalated as a recommendation. Worktree dev cannot edit ~/.claude/hooks/ from inside the worktree."
+      },
+      {
+        "spec_section": "5.17",
+        "description": "Markdown primitives — capture single-screenshot E2E evidence on desktop + mobile (the only remaining warning per spec Section 9). Send one combined message in a live dev session containing: H1-H6 headings, ~~strikethrough~~, - [x]/- [ ] task lists, nested - lists, 1. ordered lists, > / >> blockquotes, <kbd>Ctrl</kbd>+<kbd>C</kbd>, &lt;tag&gt; entities. Screenshot 1440x900 + 390x844.",
+        "evidence": "Spec Section 7 '§5.17 Capture single-screenshot evidence (low-priority QA gap)'; spec Section 9 status 'DONE (mostly)' — the 'live single-screenshot E2E gap is the one remaining warning'",
+        "affects": "spec_completeness"
+      },
+      {
+        "spec_section": "5.2 + 5.6 + 5.7 + 5.13 + 5.14 + 5.15-C",
+        "description": "Live verification gaps — provision (a) a Codex session in dev account cmi5mv9eh00wzpg14ph73jj3n via the + sidebar button (closes live verification of §5.6/§5.7/§5.13/§5.14/§5.15-C), and (b) a Claude [1m] model variant in the dev model picker (extend modelModeOptions.ts hardcoded list OR confirm server metadata.models exposes a 1M model) to close §5.2 live verification. After provisioning, re-run the QA scripts from cycle 1's qa-verification-plans.json.",
+        "evidence": "Spec Section 7 'Live-Codex provisioning' and 'Live-1M-model provisioning'; spec Section 8 'Codex pipelines need a Codex session in dev'; spec Section 9 carry-forward item #5",
+        "affects": "spec_completeness|live_evidence_gap"
+      }
+    ],
+    "tier_3_minor": [
+      {
+        "spec_section": "5.4 cleanup",
+        "description": "Code-quality cleanup. Remove dead export `headerMaxWidth` from packages/happy-app/sources/components/styles/layout.ts:43. Centralize SIDEBAR_WIDTH=450 and DRAWER_BREAKPOINT=901 in a single layout-constants.ts imported by both useHeaderMaxWidth.ts and RightSidebar.tsx.",
+        "evidence": "Spec Section 7 '§5.4 Code-quality cleanup'; spec Section 8 'Quality-gate dead-code from §5.4'",
+        "affects": "code_quality|future_regression_risk"
+      }
+    ]
+  },
+  "unresolved_from_previous": [
+    {
+      "description": "§5.15 Phase B — Codex Local-exec/engineering tools (10) — DEFERRED Tier 1",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Cycle 1 budget consumed by 14 parallel pipelines + close-remediation; Phase A only (10 web tools) completed",
+      "recommended_approach": "Reuse shared primitives from §5.6 (CodexBashView/CommandView unification) and §5.18 (compact inline + verbose sidebar pattern). Wire routing in knownTools.tsx after EXEMPT_PATHS unblocks editing. Each tool: inline card (icon + name + 1-line arg summary + status) + detail panel (Description distinct from raw args per §5.7, Input Parameters, Output rendered per tool type)."
+    },
+    {
+      "description": "§5.15 Phase C — Codex Subagent/delegation tools (5) — DEFERRED Tier 1; closes §5.13",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Same Cycle-1 budget reason as Phase B",
+      "recommended_approach": "Mirror Claude Code Agent tool visibility: header with subagent name/description, status indicator, result block on completion. Reference Claude Code's existing TaskView/Agent tool renderer."
+    },
+    {
+      "description": "§5.15 Phase D — Tool-suggest/plugin (2) — DEFERRED Tier 1",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Same Cycle-1 budget reason",
+      "recommended_approach": "Collapsible card listing constituent tool calls; lower complexity than Phases B/C"
+    },
+    {
+      "description": "§5.10 — Long background-task disconnect + out-of-order delivery — DEFERRED Tier 1",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Multi-package transport-layer bug; cycle 1 was 100% UI work; needed dedicated cycle with repro harness",
+      "recommended_approach": "Two pieces: (a) proactive reconnect in apiSession.ts heartbeat (don't wait for user message), (b) causal ordering via per-session monotonic sequence number assigned server-side + client reorder buffer. Build repro harness FIRST. Files: happy-app/sources/sync/messageQueue.ts, happy-cli/src/api/apiSession.ts, happy-server/sources/app/api/routes/sessionRoutes.ts."
+    },
+    {
+      "description": "§5.13 — Codex subagent tasks not displayed — DEFERRED Tier 1; subset of §5.15 Phase C",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Tracked as part of §5.15 Phase C carry-forward",
+      "recommended_approach": "Implement §5.15 Phase C — §5.13 falls out naturally"
+    },
+    {
+      "description": "§5.14 — Codex multi-file edit no right-sidebar — DEFERRED Tier 1; subset of §5.15 Phase B",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Tracked as part of §5.15 Phase B carry-forward",
+      "recommended_approach": "Implement functions.apply_patch in §5.15 Phase B and route through Claude Code's existing multi-file diff panel"
+    },
+    {
+      "description": "§5.17 — Single combined-message live screenshot evidence on desktop + mobile",
+      "original_cycle": 1,
+      "cycles_unresolved": 1,
+      "last_attempt_reason": "Cycle 1 verified via source + bundle + smoke; live single-screenshot E2E was the one remaining warning",
+      "recommended_approach": "Send combined message via composer UI to live dev session containing all 7 missing primitive types; screenshot 1440x900 + 390x844; attach paths to QA evidence"
+    }
+  ],
+  "recommended_specialists": [
+    {
+      "type": "ui-specialist",
+      "reason": "12+ visual design requirements remain in the carry-forward queue. §5.15 Phases B/C/D require designing inline-card icons + layouts + detail-panel structure for ~17 new Codex tool renderers. The 'compact inline / verbose sidebar' pattern from §5.18 must be applied uniformly. All work must verify on both desktop and mobile viewports — this is the ui-specialist's exact remit per orchestrator view."
+    }
+  ],
+  "test_data_setup_required": true,
+  "test_data_setup_notes": "Live verification of §5.6, §5.7, §5.13, §5.14, §5.15 Phases B/C/D requires a Codex-flavored session in dev account cmi5mv9eh00wzpg14ph73jj3n. Spec Section 8 explicitly warns: 'dev account has no Codex-flavored session; provision one BEFORE starting §5.15 Phase A or risk shipping unverified renderers.' BA/Dev/QA must navigate to https://dev.life-ai.app, click + sidebar button, select Codex as the agent flavor, send a test command (e.g., `Run: ls -la /tmp`), and document the click path in CLAUDE.md. Without this, all Codex-related items revert to source-only verification — which is INSUFFICIENT for a Tier 1 fix per CLAUDE.md's 'E2E verification MUST use live browser content' rule.",
+  "strategic_notes": "Supervisor mode insights from Section 9 of the spec (authoritative starting point):\n\n1. **Shared-primitive amortization is real** — Cycle 1 successfully grouped §5.16+§5.17 (markdown parser), §5.6+§5.3 (Codex popup unification + CommandView overflow), §5.4+§5.5 (header layout). This cycle should continue grouping: all §5.15 Phase-B/C/D tools share BashView/CommandView primitives + the §5.18 inline-compact/sidebar-verbose pattern. PM TRIAGE next pass should keep these as ONE logical group routed to ONE ui-specialist + one dev pipeline (multiple BAs OK, but the visual contract must be unified).\n\n2. **Daemon rebuild is mandatory** for any happy-cli change — Cycle 1 deferred this on §5.9 and earned a CLOSE: NO that took ~2.5 hours to remediate. §5.10 will touch happy-cli (apiSession.ts proactive reconnect); pre-commit checklist for that pipeline MUST include rebuild + restart + live verification.\n\n3. **The MMKV pattern from §5.1 is the canonical example** for any future per-session state work. Mirror storage.ts:834-862 + persistence.ts:191-206 byte-for-byte.\n\n4. **The 'port from prod' pattern from §5.8** is the canonical recipe — locate commit in /root/happy, read files, transcribe (do NOT reinvent). For QA, cross-reference must be `Read /root/happy/...` ONLY, never Playwright to life-ai.app (production).\n\n5. **BA-QA mid-pipeline gate** prevented late-stage diagnosis errors in cycle 1. Keep it.\n\n6. **Quality-gate file-size hook** is the single biggest source of friction. Adding paths to EXEMPT_PATHS is the highest-leverage 15-minute fix. This is OUTSIDE worktree scope (lives in ~/.claude/hooks/) so the cycle's recommendation is to escalate to user, not implement directly.\n\n7. **Codex session provisioning** is the SECOND-most-leveraged unblocker — without it, every Codex pipeline (§5.6/5.7/5.13/5.14/5.15-B/C/D, ~6 of 7 carry-forward Tier 1 items) reverts to source-only verification.\n\n8. **§5.10 is ALONE** — multi-package transport bug; do NOT bundle with UI work. If included this cycle, allocate the entire cycle to it; otherwise defer with a repro harness commit for next session.",
+  "notes": "Cycle 1 of session 21d24e89 is the FIRST cycle of this overnight session, but it is the SECOND cycle of work on spec-20260424-084848 (the prior overnight session bfbc5f54 completed cycle 1 + close-remediation and reached CLOSE: YES-ready status as of 2026-04-24T22:50Z). PM is in supervisor mode — the spec's Section 9 Final Consolidated State is the authoritative starting point. This test plan focuses on the 7 carry-forward items (§5.10, §5.13, §5.14, §5.15 Phases B/C/D, §5.17 final E2E screenshot) plus the 2 infrastructure unblockers (EXEMPT_PATHS + Codex session provisioning). Per orchestrator view, only ui-specialist is recommended this cycle (architect/product-owner/user are NOT relevant). Per supervisor protection rules, every item from the user's spec stays at Tier 1 unless CLOSED — no severity downgrades."
+}

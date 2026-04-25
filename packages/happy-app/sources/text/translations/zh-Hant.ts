@@ -512,6 +512,8 @@ export const zhHant: TranslationStructure = {
             webFinance: '財經',
             webSports: '體育',
             webScreenshot: '截圖',
+            toolSuggest: '建議工具',
+            parallelTool: '並行',
         },
         askUserQuestion: {
             submit: '提交答案',
@@ -538,6 +540,8 @@ export const zhHant: TranslationStructure = {
             webFinanceLookup: ({ symbol }: { symbol: string }) => `財經(${symbol})`,
             webSportsLookup: ({ league, team }: { league: string; team: string }) => `體育(${team || league})`,
             webScreenshotting: ({ target }: { target: string }) => `截圖(${target})`,
+            toolSuggesting: ({ name }: { name: string }) => `建議: ${name}`,
+            parallelToolCount: ({ count }: { count: number }) => `並行: ${count} 個工具`,
             grepPattern: ({ pattern }: { pattern: string }) => `grep(模式: ${pattern})`,
             multiEditEdits: ({ path, count }: { path: string; count: number }) => `${path} (${count} 處編輯)`,
             readingFile: ({ file }: { file: string }) => `正在讀取 ${file}`,

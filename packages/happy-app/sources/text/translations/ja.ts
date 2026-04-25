@@ -520,6 +520,8 @@ export const ja: TranslationStructure = {
             webFinance: 'ファイナンス',
             webSports: 'スポーツ',
             webScreenshot: 'スクリーンショット',
+            toolSuggest: 'ツール提案',
+            parallelTool: '並列',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `ターミナル(cmd: ${cmd})`,
@@ -539,6 +541,8 @@ export const ja: TranslationStructure = {
             webFinanceLookup: ({ symbol }: { symbol: string }) => `ファイナンス(${symbol})`,
             webSportsLookup: ({ league, team }: { league: string; team: string }) => `スポーツ(${team || league})`,
             webScreenshotting: ({ target }: { target: string }) => `スクリーンショット(${target})`,
+            toolSuggesting: ({ name }: { name: string }) => `提案: ${name}`,
+            parallelToolCount: ({ count }: { count: number }) => `並列: ${count} 個のツール`,
             grepPattern: ({ pattern }: { pattern: string }) => `grep(pattern: ${pattern})`,
             multiEditEdits: ({ path, count }: { path: string; count: number }) => `${path} (${count}件の編集)`,
             readingFile: ({ file }: { file: string }) => `${file}を読み取り中`,

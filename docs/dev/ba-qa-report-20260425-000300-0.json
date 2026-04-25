@@ -1,0 +1,70 @@
+{
+  "request_id": "dev-20260425-000300-0",
+  "timestamp": "2026-04-25T00:10:00Z",
+  "ba_spec_path": "docs/dev/ba-spec-20260425-000300-0.md",
+  "context_json_path": "docs/dev/context-20260425-000300-0.json",
+  "overnight_spec_path": "docs/dev/specs/spec-20260424-084848.md",
+  "verdict": "fail",
+  "summary": "BA captures the 9 net-new tools correctly and includes §5.7 + §5.18 contracts, but 7 of 8 mapper event-name hypotheses are unverified despite this being a carry-forward Tier 1 pipeline; one factual line-count discrepancy (mapper actual 440 lines vs spec's 388/883); ui-specialist path typo in context JSON.",
+  "objections": [
+    {
+      "dimension": "investigation_completeness",
+      "claim": "BA hypothesizes 7 Codex protocol event type names (write_stdin_begin, update_plan_begin, request_user_input_begin, list_mcp_resources_begin, list_mcp_resource_templates_begin, read_mcp_resource_begin, view_image_begin) using `<verb>_<noun>_begin` convention from OpenAI Codex.",
+      "problem": "BA explicitly defers empirical verification to Dev: 'Dev must empirically confirm by running a Codex session and inspecting the raw message log, OR consult the Codex SDK stream docs.' This is a CARRY-FORWARD Tier 1 pipeline (unresolved_cycles=1, dedup_hit) that has been deferred since session bfbc5f54. BA had concrete options to verify: (a) check existing Codex stream-json log files in the repo (search for `_begin` patterns in any .jsonl test fixture), (b) read Codex SDK source which is presumably in node_modules, (c) grep for any test data containing these tool calls, (d) inspect existing happy-cli mapper for any partial implementation hints. Instead BA submits 7 unverified hypotheses as the implementation contract. If the convention is wrong (e.g., Codex uses `tool_call_begin` with a discriminator field, not `<tool>_<verb>_begin`), Dev will implement 7 dead handler branches and QA will FAIL the entire pipeline, wasting an entire cycle. For an issue carrying forward across cycles, this depth of investigation is insufficient.",
+      "required_evidence": "BA must either (a) produce concrete event-name evidence from at least ONE source (Codex SDK source citation, fixture file grep, npm package inspection, or upstream docs URL), or (b) explicitly downgrade these 7 tools to 'investigation pipeline' status with first-cycle deliverable being event-name discovery, before mapper edits are attempted. Acceptable downgrade: split spec into Phase B-discover (Cycle N) + Phase B-implement (Cycle N+1)."
+    },
+    {
+      "dimension": "evidence_quality",
+      "claim": "Constraints section: 'sessionProtocolMapper.ts is 388 lines — within cap'. Edge Case #3: 'Same applies to `sessionProtocolMapper.ts` (883 lines).' Two contradictory line counts cited for the same file in the same spec.",
+      "problem": "Verified actual line count is 440 (via wc -l). Both BA-cited values (388 and 883) are factually wrong. The 883 figure would put the file over the 800 quality-gate cap and trigger the Python-bypass workaround requirement; the 388 figure says it is under the cap and direct Edit is allowed. These two numbers prescribe contradictory implementation procedures. Dev cannot know which path to take.",
+      "required_evidence": "BA must re-check sessionProtocolMapper.ts line count (440 actual), correct both occurrences in the spec, and explicitly state whether Python-bypass is required or direct Edit is allowed. At 440 lines the file is under cap, so direct Edit is allowed — but BA must say so unambiguously."
+    },
+    {
+      "dimension": "scope_alignment",
+      "claim": "BA narrows R1 (apply_patch) to: 'The mapper already emits CodexPatch for this event type. Only knownTools.tsx registration update needed to enforce minimal:true + extractDescription.' AC1 says: 'NOTE: The mapper already emits CodexPatch for this event type.'",
+      "problem": "User spec §5.15 acceptance point 7 says: 'functions.apply_patch (when spanning multiple files) must route into the shared multi-file edit detail panel — resolving §5.14.' Cycle 1 already wired patch_apply_begin → CodexPatch and CodexPatchView.tsx exists. So the mapper IS wired. However, BA's narrowed scope (registration-only) presumes the existing CodexPatchView fully satisfies §5.14 multi-file edit per-file diff requirement. BA does not verify this with line-citation evidence (no Read of CodexPatchView.tsx body confirming per-file diff iteration, no screenshot evidence from cycle 1 that multi-file works). If CodexPatchView only handles single-file patches, R1's narrowed scope leaves §5.14 unresolved.",
+      "required_evidence": "BA must cite the specific lines in CodexPatchView.tsx (file is 175 lines) that iterate over multiple files in `changes` and emit per-file ToolDiffView blocks, OR include a verification step in R1 that confirms multi-file rendering works before declaring §5.14 closed by registration-only edits."
+    },
+    {
+      "dimension": "evidence_quality",
+      "claim": "context_json line 229: `docs/dev/overnight/21d24e89-e5f4-41f4-90f9-7ec3b025bc44/ui-specialist-report.json` (note: `bc44` suffix).",
+      "problem": "Actual directory verified by ls is `21d24e89-e5f4-41f4-90f9-7ec3b025fc44` (suffix `fc44`, not `bc44`). One-character typo in the cited reference path. BA spec line 71 has the correct `fc44`. Internal inconsistency between BA spec and context JSON. Dev following the context JSON path will get a file-not-found error.",
+      "required_evidence": "BA must correct context-20260425-000300-0.json line 229 to match the BA spec's `7ec3b025fc44` suffix (the actual directory)."
+    },
+    {
+      "dimension": "scope_alignment",
+      "claim": "BA captures §5.7 (description-not-raw-args) in R11/AC1/AC2-AC8 sidebars and §5.18 (compact-inline + verbose-sidebar) in R10/lines 21-24/AC1-AC9.",
+      "problem": "This is the one area where BA scope is correct. R10/R11 are explicit, the canonical §5.18 recipe is restated verbatim in lines 21-24, and AC1 specifically calls out 'Description section shows the model's description, NEVER the raw patch content'. NO objection on this dimension — recording for transparency.",
+      "required_evidence": "None — pass on this scope element."
+    },
+    {
+      "dimension": "affected_file_accuracy",
+      "claim": "knownTools.tsx is 1136 lines (>800 quality-gate cap); CodexBash at line 455-523; CodexPatch at line 712-834; CronList reference at lines 939-953; insertion point ~line 1100-1118; change_title at line 600 (hidden:true).",
+      "problem": "All verified accurate via wc -l (1136 lines) and Grep: 'CodexBash' at line 455, 'CodexPatch' at line 712, 'change_title' at line 600 with hidden:true at line 603 and noStatus:true at line 605. Affected-file accuracy is HIGH for happy-app side. NO objection on this dimension for happy-app files.",
+      "required_evidence": "None — pass on this element."
+    },
+    {
+      "dimension": "investigation_completeness",
+      "claim": "Edge Case #2: 'mcp__happy__change_title alias: The existing change_title registration at knownTools.tsx:600 uses hidden: true. If the Codex stream emits mcp__happy__change_title as the tool name (not just change_title), the existing entry won't match. Dev must confirm whether a duplicate key or a mapper alias is the right approach.'",
+      "problem": "BA again defers an empirical question to Dev. The actual tool name emitted by Codex on the wire is determinable: it is either the model-facing function name (`mcp__happy__change_title`) or the post-processed name (`change_title`). BA has not run a Codex session, captured the JSONL, and grep'd for either string. Without this evidence, R9's two-option implementation choice (alias vs duplicate-key vs mapper) is unverifiable. The spec says the simplest fix is duplicate-key, but if the upstream tool name is actually `change_title` already (not `mcp__happy__change_title`), no fix is needed. Conversely if it is `mcp__happy__change_title`, only that exact full-name key works.",
+      "required_evidence": "BA must show one piece of evidence: either a grep result from existing Codex .jsonl files showing the tool name on the wire, or an explicit statement that this is part of the same Phase B-discover deliverable as the other 7 event names."
+    },
+    {
+      "dimension": "evidence_quality",
+      "claim": "BA spec line 50: 'Search pattern: exec_command_begin|patch_apply_begin|write_stdin|update_plan|request_user_input|list_mcp_resources|list_mcp_resource_templates|read_mcp_resource|view_image|change_title' applied to mapper + knownTools.tsx.",
+      "problem": "BA does not show the grep output from running this search. The claim 'absence confirmed for write_stdin/update_plan/etc.' is asserted in scope_expansion but no grep snippet is included. Self-verified: I ran `Grep 'functions\\.' on knownTools.tsx → 0 matches` which corroborates BA's claim that no Phase B entries exist in knownTools. So the claim is TRUE, but BA presented it as inferred-by-grep without including the grep output. This is a documentation hygiene gap, not a factual error — recording as a minor evidence-quality issue.",
+      "required_evidence": "Spec should include the literal grep output (e.g., 'rg \"functions\\.\" knownTools.tsx returned 0 matches' or 'rg \"write_stdin|update_plan\" sessionProtocolMapper.ts returned 0 matches') to make the absence claim auditable."
+    }
+  ],
+  "dimension_verdicts": {
+    "evidence_quality": "fail — line-count contradiction (388 vs 883, actual 440); path typo (bc44 vs fc44); some claims asserted without grep output included.",
+    "scope_alignment": "pass — all 9 tools captured, §5.7 contract included (R11), §5.18 canonical recipe captured (R10 + lines 21-24), correct 'net-new' framing vs spec's 10-tool group (exec_command excluded as already done).",
+    "investigation_completeness": "fail — 7 of 8 Codex event names hypothesized without empirical verification; mcp__happy__change_title wire-name unverified; for a carry-forward Tier 1 pipeline this depth is insufficient.",
+    "affected_file_accuracy": "mostly pass — knownTools.tsx (1136 lines, line 455 CodexBash, line 712 CodexPatch, line 600 change_title, 10 translation files all verified); CodexPatchView.tsx exists and is 175 lines; sessionProtocolMapper.ts line 381 fallthrough verified; BUT mapper line count cited as 388/883, actual 440 (factual error)."
+  },
+  "specialist_audit": {
+    "browser_verified_field_check": "BA cites ui-specialist-report.json as 'tier_2_verified' and 'browser-verified against live dev session' — this assertion is recorded; it would need to be cross-checked against the actual ui-specialist-report.json browser_verified field, which is out of scope for BA-validation but flagged for QA-of-implementation phase.",
+    "core_flow_check": "Not applicable — this is BA-validation, not implementation QA."
+  },
+  "recommendation": "FAIL the BA spec and require BA to resolve two blocking objections before Dev starts: (1) Either provide concrete evidence for the 7+1 Codex event-name hypotheses, OR explicitly split this pipeline into Phase B-discover + Phase B-implement; (2) Correct the sessionProtocolMapper.ts line count (440 actual, not 388 nor 883) and the ui-specialist-report path typo (fc44 not bc44). Once those are fixed, the spec is implementable. Dev can proceed concurrently on the knownTools registration + view-component portions which are independent of the mapper event names."
+}

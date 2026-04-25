@@ -526,6 +526,8 @@ export const en: TranslationStructure = {
             webFinance: 'Finance',
             webSports: 'Sports',
             webScreenshot: 'Screenshot',
+            toolSuggest: 'Suggest Tool',
+            parallelTool: 'Parallel',
         },
         askUserQuestion: {
             submit: 'Submit Answer',
@@ -552,6 +554,8 @@ export const en: TranslationStructure = {
             webFinanceLookup: ({ symbol }: { symbol: string }) => `Finance(${symbol})`,
             webSportsLookup: ({ league, team }: { league: string; team: string }) => `Sports(${team || league})`,
             webScreenshotting: ({ target }: { target: string }) => `Screenshot(${target})`,
+            toolSuggesting: ({ name }: { name: string }) => `Suggest: ${name}`,
+            parallelToolCount: ({ count }: { count: number }) => `Parallel: ${count} ${count === 1 ? 'tool' : 'tools'}`,
             grepPattern: ({ pattern }: { pattern: string }) => `grep(pattern: ${pattern})`,
             multiEditEdits: ({ path, count }: { path: string; count: number }) => `${path} (${count} edits)`,
             readingFile: ({ file }: { file: string }) => `Reading ${file}`,

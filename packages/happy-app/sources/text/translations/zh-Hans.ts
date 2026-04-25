@@ -513,6 +513,8 @@ export const zhHans: TranslationStructure = {
             webFinance: '财经',
             webSports: '体育',
             webScreenshot: '截图',
+            toolSuggest: '建议工具',
+            parallelTool: '并行',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `终端(命令: ${cmd})`,
@@ -532,6 +534,8 @@ export const zhHans: TranslationStructure = {
             webFinanceLookup: ({ symbol }: { symbol: string }) => `财经(${symbol})`,
             webSportsLookup: ({ league, team }: { league: string; team: string }) => `体育(${team || league})`,
             webScreenshotting: ({ target }: { target: string }) => `截图(${target})`,
+            toolSuggesting: ({ name }: { name: string }) => `建议: ${name}`,
+            parallelToolCount: ({ count }: { count: number }) => `并行: ${count} 个工具`,
             grepPattern: ({ pattern }: { pattern: string }) => `grep(模式: ${pattern})`,
             multiEditEdits: ({ path, count }: { path: string; count: number }) => `${path} (${count} 处编辑)`,
             readingFile: ({ file }: { file: string }) => `正在读取 ${file}`,

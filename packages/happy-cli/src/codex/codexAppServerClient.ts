@@ -361,6 +361,155 @@ export class CodexAppServerClient {
             return true;
         }
 
+        // §5.15 Phase E — Protocol contract: Codex 0.125.0
+        // source: codex app-server generate-ts /tmp/codex-ts/v2/ThreadItem.ts
+        // Activates 14 dormant cycle-1 renderers by emitting Option-2 EventMsg
+        // discriminators (per-item-type-family) for collabAgentToolCall,
+        // dynamicToolCall, mcpToolCall, plan, and imageView.
+
+        if (item.type === 'collabAgentToolCall') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+            const senderThreadId = typeof item.senderThreadId === 'string' ? item.senderThreadId : undefined;
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'collab_agent_call_begin',
+                    call_id: callId,
+                    callId,
+                    tool: item.tool,
+                    prompt: item.prompt ?? null,
+                    model: item.model ?? null,
+                    senderThreadId,
+                    receiverThreadIds: item.receiverThreadIds ?? [],
+                    agentsStates: item.agentsStates ?? {},
+                    subagent: senderThreadId,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'collab_agent_call_end',
+                    call_id: callId,
+                    callId,
+                    tool: item.tool,
+                    status: item.status,
+                    senderThreadId,
+                    subagent: senderThreadId,
+                });
+                return true;
+            }
+        }
+
+        if (item.type === 'dynamicToolCall') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'dynamic_tool_call_begin',
+                    call_id: callId,
+                    callId,
+                    namespace: item.namespace ?? null,
+                    tool: item.tool,
+                    arguments: item.arguments,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'dynamic_tool_call_end',
+                    call_id: callId,
+                    callId,
+                    namespace: item.namespace ?? null,
+                    tool: item.tool,
+                    status: item.status,
+                    success: item.success ?? null,
+                    durationMs: item.durationMs ?? null,
+                });
+                return true;
+            }
+        }
+
+        if (item.type === 'mcpToolCall') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'mcp_tool_call_begin',
+                    call_id: callId,
+                    callId,
+                    server: item.server,
+                    tool: item.tool,
+                    arguments: item.arguments,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'mcp_tool_call_end',
+                    call_id: callId,
+                    callId,
+                    server: item.server,
+                    tool: item.tool,
+                    status: item.status,
+                    durationMs: item.durationMs ?? null,
+                });
+                return true;
+            }
+        }
+
+        if (item.type === 'plan') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+            const text = typeof item.text === 'string' ? item.text : '';
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'plan_update_begin',
+                    call_id: callId,
+                    callId,
+                    text,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'plan_update_end',
+                    call_id: callId,
+                    callId,
+                    text,
+                });
+                return true;
+            }
+        }
+
+        if (item.type === 'imageView') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+            const path = typeof item.path === 'string' ? item.path : '';
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'image_view_begin',
+                    call_id: callId,
+                    callId,
+                    path,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'image_view_end',
+                    call_id: callId,
+                    callId,
+                    path,
+                });
+                return true;
+            }
+        }
+
         return method.startsWith('item/');
     }
 

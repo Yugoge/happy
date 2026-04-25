@@ -1,0 +1,141 @@
+{
+  "request_id": "dev-20260425-000300-0",
+  "iteration": 2,
+  "timestamp": "2026-04-25T00:30:00Z",
+  "ba_spec_path": "docs/dev/ba-spec-20260425-000300-0.md",
+  "context_json_path": "docs/dev/context-20260425-000300-0.json",
+  "previous_qa_report": "docs/dev/ba-qa-report-20260425-000300-0.json",
+  "verdict": "pass_with_objections",
+  "summary": "BA addressed all 5 prior blocking objections: (1) read codexAppServerClient.ts:280-364 and accurately documented event surface as 3 item types only; (2) line count corrected to 440 (verified by wc -l); (3) path typo fc44 fixed in context.reference_source URL; (4) verified CodexPatchView multi-file iteration at lines 98-135 (Object.entries(changes).map confirmed); (5) investigated mcp__happy__change_title wire name via systemPrompt.ts:8 grep + happyMcpStdioBridge.ts:68 read. The narrowing strategy (2 actionable + 7 deferred) is sound and well-justified by the protocol limitation. However, two NEW findings emerged during validation that warrant non-blocking objections.",
+  "objections_resolved": [
+    {
+      "prior_objection": "OBJ-1: Codex event names hypothesized without evidence",
+      "resolution": "BA Read codexAppServerClient.ts:280-364 and confirmed only 3 item.type values surface as EventMsg (commandExecution, fileChange, agentMessage); line 364 silently consumes all other types. The 7 hypothesized event names from iter 1 were proven non-existent. BA correctly downgraded the pipeline to 2 actionable + 7 deferred protocol-blocked tools.",
+      "verification": "QA spot-check: Read codexAppServerClient.ts lines 270-365. Confirmed exactly 3 item.type branches: commandExecution (lines 280-307), fileChange (lines 309-340), agentMessage (lines 342-362). Line 364 returns method.startsWith('item/') — silent catch-all. BA's claim is factually accurate.",
+      "status": "resolved"
+    },
+    {
+      "prior_objection": "OBJ-2: sessionProtocolMapper.ts line count contradiction (388 vs 883)",
+      "resolution": "BA settled on 440 lines with explicit clarification that there are TWO distinct mapper files: codex/utils/sessionProtocolMapper.ts (440) and claude/utils/sessionProtocolMapper.ts (883). Spec lines 64-67 and Quality Gate Table at lines 274-281 are now unambiguous.",
+      "verification": "QA spot-check: wc -l returned 440 for codex mapper, 883 for claude mapper. BA's values match.",
+      "status": "resolved"
+    },
+    {
+      "prior_objection": "OBJ-3: Path typo bc44 vs fc44 in context.reference_source",
+      "resolution": "Context JSON line 228 now reads '21d24e89-e5f4-41f4-90f9-7ec3b025fc44' (correct fc44 suffix matching actual directory).",
+      "verification": "QA spot-check: ls of docs/dev/overnight/ returned the directory '21d24e89-e5f4-41f4-90f9-7ec3b025fc44'. Context JSON cites this path correctly.",
+      "status": "resolved"
+    },
+    {
+      "prior_objection": "OBJ-4: §5.14 narrowed without verifying CodexPatchView supports multi-file diffs",
+      "resolution": "BA Read CodexPatchView.tsx lines 98-135 and explicitly cited Object.entries(changes).map(...) iteration (BA spec line 53, line 96, line 237). AC1 NOTE confirms the mapper already emits CodexPatch; only registration update is needed.",
+      "verification": "QA spot-check: Read CodexPatchView.tsx lines 90-138. Confirmed line 98 'const entries = changes ? Object.entries(changes) : []' and line 106 'entries.map(([file, change]) => {' iterate per-file. Each iteration renders ToolSectionView + ToolDiffView. Multi-file rendering CONFIRMED.",
+      "status": "resolved"
+    },
+    {
+      "prior_objection": "OBJ-5: mcp__happy__change_title wire-name unverified",
+      "resolution": "BA investigated and produced two complementary evidence pieces: (a) systemPrompt.ts:8 instructs Claude to call 'mcp__happy__change_title' (Claude wire name); (b) happyMcpStdioBridge.ts:68 registers MCP tool as 'change_title' (Codex wire name). Conclusion: Claude sessions emit the full mcp__ prefix; Codex/Gemini emit the short name. Both entries needed.",
+      "verification": "QA spot-check: grep of systemPrompt.ts:8 confirmed 'mcp__happy__change_title' string; Read of happyMcpStdioBridge.ts:67-79 confirmed server.registerTool('change_title', {...}). BA's mapping is accurate. NOTE: actual file path is packages/happy-cli/src/codex/happyMcpStdioBridge.ts (not claude/utils/) — minor path imprecision in BA spec but the file-and-line citation is correct.",
+      "status": "resolved"
+    }
+  ],
+  "new_objections": [
+    {
+      "id": "OBJ-A",
+      "severity": "minor",
+      "dimension": "scope_alignment",
+      "claim": "R3 proposes to add a NEW translation key tools.names.applyPatch to all 10 translation files. The CodexPatch entry at knownTools.tsx:713 already uses t('tools.names.applyChanges').",
+      "problem": "Verified: tools.names.applyChanges already exists in all 10 translation files (en.ts:514, ru.ts:509, ca.ts:500, zh-Hant.ts:500, zh-Hans.ts:501, ja.ts:508, it.ts:505, pl.ts:510, es.ts:500, pt.ts:499). The existing key is wired into the existing CodexPatch entry. Adding a parallel 'applyPatch' key creates two near-synonymous keys — a translation-files maintenance burden with no semantic benefit. AC3 says 'CodexPatch entry uses title: t(tools.names.applyPatch)' — but the current title is t('tools.names.applyChanges') and BA does not justify why renaming is required. This is a scope choice, not a blocking error: dev can either reuse the existing 'applyChanges' key (simpler — no translation files touched) or follow BA's spec literally and add the new key. Recommend BA pick the simpler path.",
+      "required_evidence": "BA should clarify: either (a) reuse t('tools.names.applyChanges') and remove R3 from the spec (no translation file edits needed; cycle becomes single-file change to knownTools.tsx), or (b) explicitly justify the rename and update all 10 translation files atomically with both keys aliased to the same string for one cycle of forward/backward compatibility.",
+      "blocks_dev": false
+    },
+    {
+      "id": "OBJ-B",
+      "severity": "minor",
+      "dimension": "investigation_completeness",
+      "claim": "BA does not mention that mcp__happy__change_title is already intercepted at the message-to-event layer in happy-app/sources/sync/reducer/messageToEvent.ts:28-31 (verbatim: 'if (block.type === tool-call && block.name === mcp__happy__change_title) ...').",
+      "problem": "QA grep found that messageToEvent.ts converts mcp__happy__change_title tool calls to service-message envelopes BEFORE they reach the knownTools renderer. This means the 'raw fallback card' that BA wants to suppress may not actually appear in Claude sessions today — the existing interceptor may already produce a 'Title changed to X' service message instead. If true, R2's added knownTools entry is defensive (belt-and-suspenders) but NOT a user-visible bug fix. AC2's GIVEN/WHEN/THEN may already pass without any change. This does NOT block dev — adding a hidden:true entry is harmless and provides defense-in-depth — but BA should acknowledge the existing interceptor and reframe AC2 as 'no regression' rather than 'fixes raw fallback card'.",
+      "required_evidence": "BA should add an Edge Case note: 'messageToEvent.ts:28-31 already intercepts mcp__happy__change_title and converts to service message. The new knownTools entry is defensive: if interception order changes or a tool-call envelope reaches the renderer, hidden:true prevents fallback. AC2 verifies no regression at either layer.'",
+      "blocks_dev": false
+    }
+  ],
+  "review_of_revised_strategy": {
+    "narrowing_to_2_actionable": "sound — protocol-blocked finding is rigorous and well-evidenced. Adding mapper branches for non-existent events would be dead code and waste a cycle. The 7 deferred tools are explicitly documented in protocol_blocked_tools (context JSON lines 303-315) with blocker file/lines and unblock_required notes — this is correct deferral, not silent dropping.",
+    "deferred_tools_documentation": "pass — context JSON includes a dedicated protocol_blocked_tools section (lines 303-315) listing all 7 tools with blocker_evidence, blocker_file, and unblock_required for each. BA spec lines 18-21 and 184 also call out the deferral with reason. This is proper documentation, not silent omission.",
+    "views_all_check": "N/A — this revised pipeline does NOT create new view components (R2 + R3 are knownTools.tsx + translation file edits only). The OBJ-2 from sibling pipeline 1 (views/_all.tsx) does not apply because no new view files are introduced. QA verified: Glob of views/_all.tsx returned no matches; current views/ directory does not export via _all aggregator.",
+    "scope_integrity": "pass — bug scope (§5.15 Phase B) was clearly narrowed and the narrowing is justified by observation, not by convenience. Cycle scope (2 tools) is honest about what is in scope vs deferred. No silent shrinkage."
+  },
+  "spot_check_evidence": {
+    "codexAppServerClient_ts_280_364": {
+      "claim": "Only 3 item.type emit EventMsg; line 364 silent catch-all",
+      "verified": true,
+      "qa_evidence": "Read packages/happy-cli/src/codex/codexAppServerClient.ts lines 270-365. Confirmed: line 280 commandExecution (item/started), line 293 commandExecution (item/completed), line 309 fileChange (started+completed handled together), line 342 agentMessage (item/completed). Line 364: return method.startsWith('item/'). Exactly matches BA spec table at lines 35-41."
+    },
+    "sessionProtocolMapper_codex_440_lines": {
+      "claim": "440 lines",
+      "verified": true,
+      "qa_evidence": "wc -l returned 440 for packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts. Matches BA spec."
+    },
+    "sessionProtocolMapper_claude_883_lines": {
+      "claim": "883 lines (different file, NOT touched)",
+      "verified": true,
+      "qa_evidence": "wc -l returned 883 for packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts. Matches BA spec edge case #5."
+    },
+    "knownTools_1136_lines": {
+      "claim": "1136 lines, requires Python bypass",
+      "verified": true,
+      "qa_evidence": "wc -l returned 1136 for packages/happy-app/sources/components/tools/knownTools.tsx. Matches BA spec quality gate table."
+    },
+    "CodexPatchView_175_lines_multifile": {
+      "claim": "175 lines; lines 98-135 iterate Object.entries(changes).map",
+      "verified": true,
+      "qa_evidence": "wc -l returned 175. Read CodexPatchView.tsx lines 90-138: line 98 entries = Object.entries(changes); line 106 entries.map(([file, change]) => ...) renders ToolSectionView + ToolDiffView per file. Multi-file rendering is real."
+    },
+    "knownTools_change_title_line_600": {
+      "claim": "change_title at line 600 with hidden:true",
+      "verified": true,
+      "qa_evidence": "Read knownTools.tsx lines 595-610: 'change_title': { title:'Change Title', icon:ICON_EDIT, hidden:true (line 603), minimal:true (line 604), noStatus:true (line 605), input/result schemas }. Matches BA spec exactly."
+    },
+    "knownTools_CodexPatch_line_712": {
+      "claim": "CodexPatch at line 712-834 lacking minimal:true",
+      "verified_partially": true,
+      "qa_evidence": "Read knownTools.tsx lines 700-766: 'CodexPatch' block starts line 712 with title:t('tools.names.applyChanges') (line 713), icon:ICON_EDIT (line 714), minimal:false (line 715). Already has extractDescription (lines 753-765) and extractSubtitle (lines 737-752). BA's claim 'lacks minimal:true' is correct (currently false). BA's claim 'lacks extractDescription' is INACCURATE — it already exists. The dev work is to flip minimal:false → minimal:true; extractDescription is already present and may or may not need adjustment. Spec line 169 says 'add ... extractDescription' but it already exists; BA should re-frame as 'tighten' or 'replace' for §5.18 compact recipe. Minor imprecision; not blocking."
+    },
+    "systemPrompt_mcp_full_name": {
+      "claim": "systemPrompt.ts:8 instructs Claude to call mcp__happy__change_title",
+      "verified": true,
+      "qa_evidence": "Grep of packages/happy-cli/src/claude/utils/systemPrompt.ts:8 returned the exact string. Claude wire name confirmed."
+    },
+    "happyMcpStdioBridge_codex_short_name": {
+      "claim": "happyMcpStdioBridge.ts:68 registers tool as 'change_title'",
+      "verified": true,
+      "qa_evidence": "Read packages/happy-cli/src/codex/happyMcpStdioBridge.ts lines 60-79. Line 68: server.registerTool('change_title', {...}). Codex wire name confirmed. Note: BA spec line 71 cites 'happyMcpStdioBridge.ts:68' without full path — the file lives at packages/happy-cli/src/codex/, not under claude/utils/. Minor path imprecision but line citation is accurate."
+    },
+    "translation_applyChanges_already_exists": {
+      "claim": "(QA-found) tools.names.applyChanges exists in all 10 translation files",
+      "verified": true,
+      "qa_evidence": "Grep across translations/ returned: en.ts:514, ru.ts:509, ca.ts:500, zh-Hant.ts:500, zh-Hans.ts:501, ja.ts:508, it.ts:505, pl.ts:510, es.ts:500, pt.ts:499. Existing key is wired into CodexPatch.title. BA's R3 'add tools.names.applyPatch' is potentially redundant — see OBJ-A."
+    },
+    "messageToEvent_intercepts_mcp_change_title": {
+      "claim": "(QA-found) messageToEvent.ts:28-31 already intercepts mcp__happy__change_title and converts to service message",
+      "verified": true,
+      "qa_evidence": "Grep of packages/happy-app/sources/sync/reducer/messageToEvent.ts: line 28 'if (block.type === tool-call && block.name === mcp__happy__change_title)' converts to {type:message, message:'Title changed to ...'}. The raw fallback card may not actually appear in current behavior. See OBJ-B."
+    },
+    "views_all_does_not_exist": {
+      "claim": "(QA-found) packages/happy-app/sources/components/tools/views/_all* does not exist",
+      "verified": true,
+      "qa_evidence": "Glob 'views/_all*' returned no matches. The sibling pipeline 1 OBJ-2 (views/_all.tsx) does not apply here because BA is not creating new view components."
+    }
+  },
+  "dimension_verdicts": {
+    "evidence_quality": "pass — all numeric and code-citation claims verified; minor inaccuracy in 'lacks extractDescription' claim (already exists) but does not block dev",
+    "scope_alignment": "pass — narrowing to 2 actionable + 7 deferred is rigorous and well-justified; deferred tools are explicitly documented",
+    "investigation_completeness": "pass — all 5 prior objections addressed with concrete evidence reads; minor gap on messageToEvent.ts interceptor (OBJ-B) noted but non-blocking",
+    "affected_file_accuracy": "pass — knownTools.tsx (1136), codex mapper (440), claude mapper (883), CodexPatchView (175), all line citations verified; happyMcpStdioBridge.ts path imprecision is cosmetic"
+  },
+  "recommendation": "PASS with two non-blocking objections (OBJ-A: applyPatch translation key may be redundant with existing applyChanges; OBJ-B: messageToEvent.ts interceptor already handles mcp__happy__change_title — entry is defensive). Dev can proceed with current spec. Suggested refinement: dev should consider reusing tools.names.applyChanges instead of adding new tools.names.applyPatch (simpler, no translation edits) and document the messageToEvent.ts interceptor in the implementation report. The 7 protocol-blocked tools are properly deferred — Phase B-discover should be tracked as a future cycle to extend codexAppServerClient.ts.",
+  "specialist_audit": {
+    "browser_verified_field_check": "BA cites ui-specialist-report.json as tier_2_verified; out of scope for BA-validation",
+    "core_flow_check": "Not applicable — this is BA-validation"
+  }
+}

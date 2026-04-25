@@ -1,0 +1,188 @@
+{
+  "request_id": "dev-20260425-030000-0",
+  "timestamp": "2026-04-25T03:15:00Z",
+  "agent": "qa",
+  "mode": "ba-validation",
+  "pipeline": 0,
+  "cycle": 2,
+  "ba_spec_path": "docs/dev/ba-spec-20260425-030000-0.md",
+  "context_json_path": "docs/dev/context-20260425-030000-0.json",
+  "architect_report_path": "docs/dev/overnight/21d24e89-e5f4-41f4-90f9-7ec3b025fc44/architect-report-cycle2.json",
+  "verdict": "pass_with_objections",
+  "summary": "BA spec is thorough, scope-aligned with architect's Option 2 recommendation, and all critical schema/line-count claims were verified against live artifacts. Evidence quality is high: codex CLI 0.125.0 verified, ThreadItem.ts schemas match BA quotes exactly, CollabAgentTool enum matches the verbMap, line 364 silent-consume verified by direct read, all line counts (1137 / 469 / 1275) confirmed, all 6 icon references exist, and the 8 existing + 7 missing knownTools entries are grep-confirmed. BA correctly adopted Option 2 EventMsg naming per architect. Three minor objections: (1) no explicit rollback plan, (2) AC6 regression check is static-bundle-only (no live Codex session verification), (3) daemon-binary-path resolution ambiguity is flagged but not resolved with a single concrete step — Dev must choose between two escape hatches. These objections are not blocking but Dev should be briefed. Bundling AC7 (§5.17 markdown regression) is an orthogonal scope-expansion signal but also not blocking.",
+  "dimension_1_evidence_quality": {
+    "verdict": "pass",
+    "checks": [
+      {
+        "claim": "codex app-server generate-ts executed to generate /tmp/codex-ts/v2/ThreadItem.ts",
+        "verification": "ls /tmp/codex-ts/v2/ThreadItem.ts + codex --version",
+        "result": "pass",
+        "evidence": "/tmp/codex-ts/v2/ThreadItem.ts exists; codex-cli 0.125.0 at /usr/bin/codex matches BA's Tier 1 source claim"
+      },
+      {
+        "claim": "5 ThreadItem variants (collabAgentToolCall, dynamicToolCall, mcpToolCall, plan, imageView) exist with schemas as quoted",
+        "verification": "Direct read of /tmp/codex-ts/v2/ThreadItem.ts",
+        "result": "pass",
+        "evidence": "All 5 variants present; schema fields (id, tool, status, senderThreadId, receiverThreadIds, prompt, model, reasoningEffort, agentsStates for collabAgentToolCall; id, namespace, tool, arguments, status, contentItems, success, durationMs for dynamicToolCall; id, server, tool, status, arguments, mcpAppResourceUri, result, error, durationMs for mcpToolCall; id, text for plan; id, path for imageView) match BA's quoted schemas verbatim"
+      },
+      {
+        "claim": "CollabAgentTool enum = spawnAgent|sendInput|resumeAgent|wait|closeAgent",
+        "verification": "Direct read of /tmp/codex-ts/v2/CollabAgentTool.ts",
+        "result": "pass",
+        "evidence": "Enum matches BA's verbMap exactly. BA's mapping: spawnAgent→spawn_agent, sendInput→send_input, wait→wait_agent, resumeAgent→resume_agent, closeAgent→close_agent is correct."
+      },
+      {
+        "claim": "Line counts: codexAppServerClient.ts=1137, sessionProtocolMapper.ts=469, knownTools.tsx=1275",
+        "verification": "wc -l on all 3 files",
+        "result": "pass",
+        "evidence": "Exact match: 1137 / 469 / 1275"
+      },
+      {
+        "claim": "codexAppServerClient.ts:364 silently returns true for all unhandled item/* methods",
+        "verification": "Read codexAppServerClient.ts:355-365",
+        "result": "pass",
+        "evidence": "Line 364: `return method.startsWith('item/');` — confirmed silent-consume"
+      },
+      {
+        "claim": "knownTools.tsx line 613 has mcp__happy__change_title entry (Claude Code alias)",
+        "verification": "grep mcp__happy__change_title knownTools.tsx",
+        "result": "pass",
+        "evidence": "Line 613: 'mcp__happy__change_title': {"
+      },
+      {
+        "claim": "8 existing functions.* / multi_tool_use.* entries in knownTools.tsx from cycle 1",
+        "verification": "grep for 6 functions.* tools + multi_tool_use.parallel + mcp__happy__change_title",
+        "result": "pass",
+        "evidence": "6 functions.* found (spawn_agent:1114, send_input:1132, wait_agent:1154, resume_agent:1177, close_agent:1193, tool_suggest:1210) + multi_tool_use.parallel (cycle 1) + mcp__happy__change_title:613 = 8 total. Matches BA's claim."
+      },
+      {
+        "claim": "7 missing knownTools entries: write_stdin, update_plan, request_user_input, list_mcp_resources, list_mcp_resource_templates, read_mcp_resource, view_image",
+        "verification": "grep all 7 names in knownTools.tsx",
+        "result": "pass",
+        "evidence": "Zero matches for any of the 7 — confirmed absent"
+      },
+      {
+        "claim": "6 icons referenced in BA's R5 design spec (ICON_TERMINAL/TODO/QUESTION/LINK/READ/IMAGE) all exist",
+        "verification": "grep ICON_[A-Z_]+ knownTools.tsx",
+        "result": "pass",
+        "evidence": "All 6 icons defined at lines 12-25 of knownTools.tsx"
+      },
+      {
+        "claim": "/root/happy-dev is a symlink",
+        "verification": "ls -la /root/happy-dev",
+        "result": "partial_pass",
+        "evidence": "Symlink confirmed: /root/happy-dev -> /dev/shm/dev-workspace/happy-dev. HOWEVER, this points to the MAIN repo, NOT the worktree. BA correctly flags this ambiguity in Pre-Flight §179-181."
+      }
+    ]
+  },
+  "dimension_2_scope_alignment": {
+    "verdict": "pass",
+    "checks": [
+      {"item": "All 5 ThreadItem variants captured", "result": "pass", "note": "collabAgentToolCall, dynamicToolCall, mcpToolCall, plan (R1); imageView as R10 (Could Have). Matches architect scope."},
+      {"item": "7 missing knownTools entries captured", "result": "pass", "note": "R5 lists all 7 with full design specs (icon + extractDescription)."},
+      {"item": "Cgroup-kill-safe daemon restart procedure", "result": "pass", "note": "Pattern A (systemd-run --scope) + Pattern B (nohup&) in Pre-Flight §5 + AC5."},
+      {"item": "Dormant renderer activation explicitly stated as outcome", "result": "pass", "note": "Goal paragraph states 'activating the 14 dormant renderers shipped in cycle 1'."},
+      {"item": "Option 2 EventMsg naming adopted per architect recommendation", "result": "pass", "note": "R2 explicitly adopts Option 2 with discriminator names collab_agent_call_begin/end, dynamic_tool_call_begin/end, mcp_tool_call_begin/end, plan_update_begin/end."},
+      {"item": "Path B retracted as not viable", "result": "pass", "note": "Context section states 'Path B is structurally blocked by this early return and is NOT viable. Path A is the only path.'"}
+    ]
+  },
+  "dimension_3_investigation_completeness": {
+    "verdict": "pass",
+    "checks": [
+      {"item": "Full event-emission chain investigated", "result": "pass", "note": "Codex CLI → codexAppServerClient (line 364) → sessionProtocolMapper (line 381 final return) → knownTools (missing 7) → dormant renderers. Chain traced."},
+      {"item": "mcp__happy__change_title routing verified", "result": "pass", "note": "R4 + Edge Cases explicitly covers: when item.server='happy' and item.tool='change_title', mapper constructs 'mcp__happy__change_title' to hit knownTools:613. Cycle 1 entry at line 613 is correct routing target."},
+      {"item": "collabAgentToolCall verbMap verified", "result": "pass", "note": "Technical Hints COLLAB_VERB_MAP matches CollabAgentTool.ts enum values exactly."},
+      {"item": "Edge case for imageView vs dynamicToolCall overlap", "result": "pass", "note": "Edge Cases §185 notes view_image may surface as either; includes safe dual-branch approach."},
+      {"item": "Edge case for senderThreadId as provider subagent", "result": "pass", "note": "Edge Cases §186 documents pickProviderSubagent() override via senderThreadId."},
+      {"item": "dynamicToolCall multi_tool_use.parallel handling", "result": "pass", "note": "Edge Cases §188 forwards item.arguments as args so CodexParallelView.tsx:22 extraction works."}
+    ]
+  },
+  "dimension_4_affected_file_accuracy": {
+    "verdict": "pass_with_caveat",
+    "checks": [
+      {"file": "codexAppServerClient.ts", "ba_claim": "1137 lines, Python bypass may be needed (above 800 cap)", "actual": "1137", "result": "pass"},
+      {"file": "sessionProtocolMapper.ts", "ba_claim": "469 lines, direct Edit OK (under 800 after +180)", "actual": "469", "result": "pass"},
+      {"file": "knownTools.tsx", "ba_claim": "1275 lines, Python bypass required", "actual": "1275", "result": "pass"},
+      {"file": "Daemon binary path", "ba_claim": "/root/happy-dev -> /dev/shm/dev-workspace/happy-dev (main repo, NOT worktree)", "actual": "/root/happy-dev -> /dev/shm/dev-workspace/happy-dev (verified)", "result": "pass", "caveat": "BA flags the ambiguity: worktree is at /dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260424-21d24e89, which does NOT correspond to the symlink target. Dev must either build from /dev/shm/dev-workspace/happy-dev/packages/happy-cli (main repo) or manually copy the worktree's dist/ into the main repo. BA notes this in §179-181 but does not pick one path — leaves it to Dev."},
+      {"item": "No additional happy-app side changes needed (dormant renderers auto-activate)", "result": "pass", "note": "Cycle 1 shipped _all.tsx + CodexSubagentView + CodexParallelView registrations. Once protocol events flow, renderers activate automatically. Only missing piece is the 7 new knownTools entries (R5), which BA covers."}
+    ]
+  },
+  "risk_assessment": {
+    "rollback_plan_present": false,
+    "rollback_gap": "BA spec has NO explicit rollback procedure. Architect report §blast_radius says 'git checkout of the 2-3 modified files + daemon rebuild restores prior behavior' — this is known to architect but NOT documented in the BA spec. Dev should fall back to architect's statement if protocol change breaks existing flows.",
+    "regression_check_on_live_codex_sessions": "partial",
+    "regression_gap": "AC6 verifies that exec_command_begin/patch_apply_begin/agent_message discriminator strings are still PRESENT in the bundle — this is a static-bundle check, not a live-session regression test. Live regression is explicitly noted as 'blocked on user escalation (Codex session provisioning in dev account)' (Won't Have §106). This is acceptable per cycle 1 DORMANT precedent but Dev should be aware.",
+    "blast_radius": {
+      "existing_live_codex_sessions": "MINIMAL — new branches are additive; existing exec_command/patch_apply/agentMessage paths untouched",
+      "daemon_scope": "happy-daemon-dev.service only (production daemons untouched)",
+      "cgroup_kill_risk": "mitigated by R6 + Pre-Flight §5 + AC5 (Pattern A or B)"
+    }
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "missing_rollback_plan",
+      "finding": "BA spec does not document an explicit rollback procedure. Architect's blast_radius.rollback_strategy ('git checkout of 2-3 files + daemon rebuild') should be incorporated into the spec's Pre-Flight Checklist or a new Rollback section.",
+      "recommendation": "Add a one-sentence rollback note: 'If post-restart journalctl shows [CodexAppServer] Error lines or AC6 fails, Dev runs: cd ${WORKTREE_PATH} && git checkout HEAD -- packages/happy-cli/src/codex/codexAppServerClient.ts packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts packages/happy-app/sources/components/tools/knownTools.tsx, then rebuild + restart.'",
+      "blocks_release": false
+    },
+    {
+      "severity": "minor",
+      "category": "weak_regression_check",
+      "finding": "AC6 only checks bundle presence of existing discriminator strings — not a live regression test. This is acceptable per cycle 1 DORMANT precedent but leaves a blind spot.",
+      "recommendation": "If a dev Codex session becomes available during Dev/QA, QA should open one existing session and verify CodexBash/CodexPatch/agent_message still render. If not available, bundle-grep is the fallback.",
+      "blocks_release": false
+    },
+    {
+      "severity": "minor",
+      "category": "daemon_binary_path_ambiguity",
+      "finding": "BA spec §179-181 documents that /root/happy-dev is a symlink to /dev/shm/dev-workspace/happy-dev (main repo), NOT to the worktree. The spec leaves Dev to choose between (a) building in the main-repo path or (b) copying worktree dist/ into main repo. This is a concrete operational decision that should be resolved in the spec, not deferred to Dev.",
+      "recommendation": "Pick one: 'Dev MUST run yarn build in ${WORKTREE_PATH}/packages/happy-cli, then cp -r ${WORKTREE_PATH}/packages/happy-cli/dist/* /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/ — the main-repo dist/ is what the daemon binary loads.' Dev then proceeds with cgroup-safe restart.",
+      "blocks_release": false
+    },
+    {
+      "severity": "minor",
+      "category": "scope_expansion_signal",
+      "finding": "AC7 (§5.17 markdown regression verification on desktop + mobile) is bundled into this pipeline but is orthogonal to the Codex protocol-extension primary task. It inflates the QA checklist without relating to Dev's changes.",
+      "recommendation": "Consider moving AC7 to a separate QA-only verification pass or a secondary pipeline. If kept, note that it is a regression check for unrelated prior work and should not block the cycle 2 primary verdict.",
+      "blocks_release": false
+    }
+  ],
+  "ba_spec_strengths": [
+    "Tier 1 source of truth correctly identified (codex app-server generate-ts) with exact file paths",
+    "Ground truth schemas inlined (§136-161) for Dev's reference without ambiguity",
+    "Option 2 EventMsg naming adopted per architect's explicit recommendation — prevents rework",
+    "COLLAB_VERB_MAP with exact enum-to-verb mapping reduces Dev ambiguity to zero",
+    "All 7 knownTools.tsx entries specified with icon + extractDescription patterns — Dev has copy-ready specs",
+    "Edge Cases section catches 5 non-obvious traps (imageView overlap, senderThreadId routing, mcp__happy__change_title convention, multi_tool_use.parallel args, plan single-event) — high-quality BA work",
+    "Pre-Flight Checklist includes sendExisting guard per CLAUDE.md REBOOT-RECOVERY-POSTMORTEM — critical safeguard preserved",
+    "Cgroup-safe daemon restart documented with two patterns (systemd-run --scope + nohup)",
+    "Quality-gate line-count analysis correct: sessionProtocolMapper stays under cap, knownTools needs Python bypass, codexAppServerClient flagged as 'may need bypass — Dev should verify'",
+    "Requirements decomposition table ties every requirement to a verbatim source phrase"
+  ],
+  "scope_verification": {
+    "pipeline_0_cycle_2_scope_match": true,
+    "pm_triage_items_covered": [
+      "14 dormant renderers activation via protocol extension (corrected to ~5 item.type branches per architect arch-1)",
+      "7 missing knownTools entries covered (per architect arch-2)",
+      "Path B retracted per architect arch-3",
+      "Option 2 EventMsg naming adopted per architect arch-4",
+      "Cgroup-kill daemon restart guard per architect arch-5",
+      "sessionProtocolMapper.ts actual LOC = 469 per architect arch-6",
+      "§5.10 transport-layer deferred to cycle 3 per architect arch-7",
+      "Dev worktree build path caveat per architect arch-8"
+    ],
+    "deferrals_documented": [
+      "EventMsg discriminated union tightening (POLISH, cycle 3)",
+      "emitItemEvent helper refactor (POLISH, cycle 3)",
+      "§5.10 transport-layer (~4-6h budget, cycle 3)",
+      "Live Codex session verification (blocked on user escalation)"
+    ]
+  },
+  "release_recommendation": "approve-with-warnings",
+  "next_actions": [
+    "Dev: proceed with BA spec as-is. Address the 3 minor objections during implementation if time permits (rollback note, daemon-binary-path resolution, regression check).",
+    "Dev: before running yarn build, execute the architect's recommended check: ls -la /root/happy-dev to confirm symlink target. Decide whether to build in main repo or copy dist/ from worktree.",
+    "QA: on verification, accept bundle-grep-only checks per cycle 1 DORMANT precedent if no live Codex session is available."
+  ]
+}
