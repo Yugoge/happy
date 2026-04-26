@@ -1,0 +1,182 @@
+{
+  "request_id": "dev-20260426-085000-ac12",
+  "timestamp": "2026-04-26T09:23:00Z",
+  "dev_report_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260426-085000-ac12.json",
+  "status": "completed",
+  "scope_note": "## SCOPE NOTE\nThis harness verifies the /merge command's bash logic in ISOLATION against\nsynthetic post-/dev-overnight worktree states. It does NOT verify the\nintegrated /dev-overnight + /merge end-to-end cycle on a real project.\n\nResult interpretation:\n- All 7 ACs PASS → /merge half of AC12 is empirically verified\n- Saga AC12 still requires a future fresh session to run a real /dev-overnight\n  cycle that ends with /merge invocation; this harness predicts that future\n  cycle will succeed but does not substitute for it",
+  "harness_dir": "/tmp/ac12-harness-20260426-091938/",
+  "harness_files": [
+    "/tmp/ac12-harness-20260426-091938/extract-merge-bash.sh",
+    "/tmp/ac12-harness-20260426-091938/run_merge.sh",
+    "/tmp/ac12-harness-20260426-091938/setup-A.sh",
+    "/tmp/ac12-harness-20260426-091938/setup-B.sh",
+    "/tmp/ac12-harness-20260426-091938/setup-C.sh",
+    "/tmp/ac12-harness-20260426-091938/run-merge-A.sh",
+    "/tmp/ac12-harness-20260426-091938/run-merge-B.sh",
+    "/tmp/ac12-harness-20260426-091938/run-merge-C.sh",
+    "/tmp/ac12-harness-20260426-091938/verify.sh",
+    "/tmp/ac12-harness-20260426-091938/run_all.sh"
+  ],
+  "execution_log": "=== AC12 harness /tmp/ac12-harness-20260426-091938 ===\nTest target: /root/.claude/commands/merge.md\nmerge.md SHA256 pre: 3d8ddc2d714514c3fd4af101ea8e0fc11dc28beaa4e52c0cdd66df5528f796a9\n\n--- Extracting merge.md bash blocks ---\nExtracted 68 lines\n\n--- Setup scenario A ---\nPreparing worktree (new branch 'worktree-overnight-A')\nScenario A pre-state: ahead=0 dirty_lines=2\nREPO=/tmp/ac12-harness-20260426-091938/repos/A\nWT=/tmp/ac12-harness-20260426-091938/repos/A-worktree\nBRANCH=worktree-overnight-A\n--- Run merge for scenario A ---\nScenario A complete: exit=0\n\n--- Setup scenario B ---\nPreparing worktree (new branch 'worktree-overnight-B')\nScenario B pre-state: ahead=0 dirty_lines=2\nREPO=/tmp/ac12-harness-20260426-091938/repos/B\nWT=/tmp/ac12-harness-20260426-091938/repos/B-worktree\nBRANCH=worktree-overnight-B\n--- Run merge for scenario B ---\nScenario B complete: exit=0\n\n--- Setup scenario C ---\nPreparing worktree (new branch 'worktree-overnight-C')\nScenario C TOUCHED: new-feature.tsx\nScenario C UNTRACKED: new-feature.tsx\nREPO=/tmp/ac12-harness-20260426-091938/repos/C\nWT=/tmp/ac12-harness-20260426-091938/repos/C-worktree\nBRANCH=worktree-overnight-C\n--- Run merge for scenario C ---\nScenario C complete: exit=2\n\nmerge.md SHA256 post: 3d8ddc2d714514c3fd4af101ea8e0fc11dc28beaa4e52c0cdd66df5528f796a9\n\n--- Verify ---\nAC12 RESULT: PASS (7/7 conditions met)\nReport: /tmp/ac12-harness-20260426-091938/ac12-report.json\n\n=== Done ===\n",
+  "ac12_report": {
+    "AC-AC12-1": true,
+    "evidence_AC1": "target=main",
+    "AC-AC12-2": true,
+    "evidence_AC2": "main-tip=2b77fee auto-bulk: end-of-cycle commit for worktree-overnight-A; auto-bulk reachable: 2b77fee auto-bulk: end-of-cycle commit for worktree-overnight-A",
+    "AC-AC12-3": true,
+    "evidence_AC3": "overlap-line='untracked overlap detected:' exit=2 main-log-unchanged=true",
+    "AC-AC12-4": true,
+    "evidence_AC4": "scripted_commits=4 allowed=4 non_scripted=0 unexpected=[]",
+    "AC-AC12-5": true,
+    "evidence_AC5": "mv_matches=0",
+    "AC-AC12-6": true,
+    "evidence_AC6": "pre=3d8ddc2d714514c3fd4af101ea8e0fc11dc28beaa4e52c0cdd66df5528f796a9 post=3d8ddc2d714514c3fd4af101ea8e0fc11dc28beaa4e52c0cdd66df5528f796a9 match=true",
+    "AC-AC12-B": true,
+    "evidence_ACB": "target=master",
+    "passed": 7,
+    "total": 7
+  },
+  "ac_results": [
+    {
+      "ac": "AC-AC12-1",
+      "expected": "stdout contains 'target=main'",
+      "measured": "target=main",
+      "verdict": "PASS",
+      "evidence": "Scenario A stdout line 1: target=main"
+    },
+    {
+      "ac": "AC-AC12-2",
+      "expected": "main reachable to 'auto-bulk: end-of-cycle commit for worktree-overnight-A'",
+      "measured": "main-tip=2b77fee auto-bulk: end-of-cycle commit for worktree-overnight-A",
+      "verdict": "PASS",
+      "evidence": "git log --oneline main shows auto-bulk SHA 2b77fee at the tip after fast-forward merge"
+    },
+    {
+      "ac": "AC-AC12-3",
+      "expected": "stdout 'untracked overlap detected:' AND exit!=0 AND main log unchanged",
+      "measured": "overlap-line='untracked overlap detected:' exit=2 main-log-unchanged=true",
+      "verdict": "PASS",
+      "evidence": "Scenario C stdout contains the literal phrase, exit code is 2, main log identical pre/post"
+    },
+    {
+      "ac": "AC-AC12-4",
+      "expected": "zero non-scripted commits in harness scripts",
+      "measured": "scripted_commits=4 allowed=4 non_scripted=0",
+      "verdict": "PASS",
+      "evidence": "Audit found exactly 4 git commit invocations, all in setup-A/B/C.sh and all in the explicit allow-list (init A, init B, init C, wt: add new-feature.tsx)"
+    },
+    {
+      "ac": "AC-AC12-5",
+      "expected": "zero ^[[:space:]]*mv  matches in harness scripts",
+      "measured": "mv_matches=0",
+      "verdict": "PASS",
+      "evidence": "grep -nE found zero matches across all 10 harness .sh files"
+    },
+    {
+      "ac": "AC-AC12-6",
+      "expected": "merge.md byte hash identical pre/post",
+      "measured": "pre=3d8ddc2d... post=3d8ddc2d... match=true",
+      "verdict": "PASS",
+      "evidence": "SHA256 of /root/.claude/commands/merge.md byte-identical before and after run_all.sh; dot-claude git status --porcelain -- commands/merge.md returns empty"
+    },
+    {
+      "ac": "AC-AC12-B",
+      "expected": "stdout contains 'target=master'",
+      "measured": "target=master",
+      "verdict": "PASS",
+      "evidence": "Scenario B stdout line 1: target=master"
+    }
+  ],
+  "scenario_stdouts": {
+    "A_stdout_full": "target=main\nBranch 'worktree-overnight-A' has zero commits ahead of 'main'.\nChecking worktree at /tmp/ac12-harness-20260426-091938/repos/A-worktree for uncommitted changes...\n[worktree-overnight-A 2b77fee] auto-bulk: end-of-cycle commit for worktree-overnight-A\n 2 files changed, 2 insertions(+)\n create mode 100644 new-file.txt\nAuto-bulk commit landed on worktree-overnight-A at /tmp/ac12-harness-20260426-091938/repos/A-worktree.\nYour branch is up to date with 'origin/main'.\nUpdating e301f8b..2b77fee\nFast-forward\n existing-file.txt | 1 +\n new-file.txt      | 1 +\n 2 files changed, 2 insertions(+)\n create mode 100644 new-file.txt\n",
+    "B_stdout_full": "target=master\nBranch 'worktree-overnight-B' has zero commits ahead of 'master'.\nChecking worktree at /tmp/ac12-harness-20260426-091938/repos/B-worktree for uncommitted changes...\n[worktree-overnight-B 282a95b] auto-bulk: end-of-cycle commit for worktree-overnight-B\n 2 files changed, 2 insertions(+)\n create mode 100644 new-file.txt\nAuto-bulk commit landed on worktree-overnight-B at /tmp/ac12-harness-20260426-091938/repos/B-worktree.\nYour branch is up to date with 'origin/master'.\nUpdating 0f6a336..282a95b\nFast-forward\n existing-file.txt | 1 +\n new-file.txt      | 1 +\n 2 files changed, 2 insertions(+)\n create mode 100644 new-file.txt\n",
+    "C_stdout_full": "target=main\nuntracked overlap detected:\nnew-feature.tsx\n\nResolution: stash, commit, or remove the listed parent untracked files before retrying /merge.\n"
+  },
+  "byte_hash_check": {
+    "merge_md_path": "/root/.claude/commands/merge.md",
+    "pre_sha256": "3d8ddc2d714514c3fd4af101ea8e0fc11dc28beaa4e52c0cdd66df5528f796a9",
+    "post_sha256": "3d8ddc2d714514c3fd4af101ea8e0fc11dc28beaa4e52c0cdd66df5528f796a9",
+    "identical": true,
+    "git_status_porcelain_after_dotclaude": ""
+  },
+  "harness_self_audit": {
+    "git_commit_invocations": {
+      "scripted_allowed": 4,
+      "non_scripted_violations": 0,
+      "allowlist": [
+        "setup-A.sh: scripted commit init A (setup-only)",
+        "setup-B.sh: scripted commit init B (setup-only)",
+        "setup-C.sh: scripted commit init C (setup-only)",
+        "setup-C.sh: scripted worktree-side commit creating new-feature.tsx (setup-only)"
+      ]
+    },
+    "mv_invocations": 0,
+    "merge_md_modifications": 0
+  },
+  "qa_advisory_objections_addressed": [
+    {
+      "obj": 1,
+      "summary": "Frame outputs as '/merge-half verified, integrated /dev-overnight pending future session'",
+      "addressed_in": "scope_note section of this report and the summary line; explicitly states this is the /merge half only"
+    },
+    {
+      "obj": 2,
+      "summary": "Variable scoping across extracted bash blocks: no `local` decoration, preserve subshell scope",
+      "addressed_in": "run_merge.sh sources the extracted bash at script scope (no function wrapper, no `local`). The `( cd $WT && ... )` subshells inside Step 4 are preserved verbatim from merge.md."
+    },
+    {
+      "obj": 3,
+      "summary": "Scenario A setup MUST run `git remote set-head origin -a` so origin/HEAD exists",
+      "addressed_in": "setup-A.sh runs `git remote set-head origin -a` after the initial push; setup-B.sh and setup-C.sh do the same. Without this, AC-AC12-1 false-fails because the resolver falls through to the master fallback."
+    },
+    {
+      "obj": 4,
+      "summary": "Scenario A 'dirty' worktree must produce non-empty git add -A diff",
+      "addressed_in": "setup-A.sh creates new-file.txt AND appends a line to existing-file.txt inside the worktree. Pre-state assertion confirms dirty_lines>=1; without this, Step 4 would take the clean-tree exit-0 branch and skip the auto-bulk path."
+    },
+    {
+      "obj": 5,
+      "summary": "Scenario C colliding file must be committed ON the worktree branch",
+      "addressed_in": "setup-C.sh commits new-feature.tsx on the worktree branch (worktree-overnight-C) so the diff main...worktree-overnight-C lists it; the parent-side same-path file is created untracked. Pre-state assertion confirms both: TOUCHED set contains new-feature.tsx AND UNTRACKED set contains new-feature.tsx."
+    }
+  ],
+  "summary": "/merge half of AC12 verified empirically: 7/7 ACs PASS via script-level harness against synthetic main/master/overlap scenarios; integrated /dev-overnight cycle remains for a future fresh session.",
+  "qa_ready": true,
+  "qa_notes": "Run /tmp/ac12-harness-20260426-091938/run_all.sh; expect 'AC12 RESULT: PASS (7/7 conditions met)'. Read /tmp/ac12-harness-20260426-091938/ac12-report.json for the booleans. To independently verify AC-AC12-6, after the harness run check that `cd /root/.claude && git status --porcelain -- commands/merge.md` returns empty output. The extract-merge-bash.sh script has built-in drift detection on lines 32/94/123/159 of merge.md and fails fast if those anchors no longer match the expected literals.",
+  "self_verification": {
+    "build": "skipped (no compilation step -- shell scripts only)",
+    "smoke_check": "pass",
+    "notes": "All 7 ACs PASS in two independent runs (initial run plus one clean re-run with different commit SHAs but identical semantic outcomes). merge.md byte-identical pre/post both runs. dot-claude git status clean for commands/merge.md."
+  },
+  "fix_layer": "L4",
+  "scope_review_requested": false,
+  "blocking_issues": [],
+  "recommendations": [
+    "When the integrated /dev-overnight + /merge cycle is run in a fresh session, the dev-overnight loop hooks must complete cleanly (sentinel + dot-claude state) so that this harness's predictions translate to the real saga.",
+    "Consider promoting this harness into the project's repo at tests/ac12/ (per BA spec Technical Hints) so subsequent merge.md edits run it in CI."
+  ],
+  "diff_stats": {
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_removed": 0,
+    "new_symbols_introduced": [],
+    "minimum_possible_lines_estimate": 0,
+    "justification_for_overage": null,
+    "note": "This task creates verification harness scripts under /tmp; it does NOT modify any project source file. AC-AC12-6 specifically requires zero diff to /root/.claude/commands/merge.md; satisfied (byte hash identical, dot-claude porcelain empty)."
+  },
+  "task_id": "20260426-085000-ac12",
+  "dev": {
+    "task_id": "20260426-085000-ac12"
+  },
+  "files_created": [
+    "docs/dev/ba-spec-20260426-085000-ac12.md",
+    "docs/dev/context-20260426-085000-ac12.json",
+    "docs/dev/ba-qa-report-20260426-085000-ac12.json",
+    "docs/dev/dev-report-20260426-085000-ac12.json",
+    "docs/dev/qa-report-20260426-085000-ac12.json",
+    "docs/dev/completion-20260426-085000-ac12.md"
+  ],
+  "files_modified": [
+    "docs/dev/specs/spec-20260424-233926.md"
+  ]
+}

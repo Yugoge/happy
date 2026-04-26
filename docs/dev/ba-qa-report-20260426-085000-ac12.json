@@ -1,0 +1,99 @@
+{
+  "verdict": "pass",
+  "review_mode": "BA-VALIDATION",
+  "summary": "BA spec is methodologically sound for an isolated /merge harness; explicitly W1-scoped away from real /dev-overnight. Acceptable scope reduction provided saga-level acknowledgment is preserved.",
+  "coverage_check": {
+    "ac12_condition_to_AC_map": {
+      "target=main (R1 default-branch fix)": "AC-AC12-1 -- direct stdout literal assertion",
+      "auto-bulk: end-of-cycle commit for ... (R2 bridge)": "AC-AC12-2 -- direct subject-line assertion + git log evidence",
+      "untracked overlap detected: (R3 preflight)": "AC-AC12-3 -- direct stdout literal + non-zero exit + main unchanged",
+      "zero manual git commit during cycle": "AC-AC12-4 -- meta (verifies harness discipline, not /merge itself)",
+      "zero manual mv": "AC-AC12-5 -- meta (verifies harness discipline)",
+      "zero master->main rewrite of merge.md": "AC-AC12-6 -- meta (verifies harness leaves dot-claude byte-identical)"
+    },
+    "extension_AC": "AC-AC12-B verifies master-default repo also resolves correctly -- good additional coverage proving the resolver is genuinely dynamic, not just hardcoded to main.",
+    "all_six_conditions_covered": true,
+    "notes": [
+      "AC-AC12-4/5/6 are correctly scoped as harness-discipline checks, not /merge behaviour checks. BA properly acknowledges this in the spec text.",
+      "Spec correctly observes the meta nature: condition 6 verifies the harness doesn't edit merge.md. This is not a /merge property but a test-hygiene property -- correctly included anyway because the saga-level AC12 wording demands no source-tree contamination."
+    ]
+  },
+  "methodology_soundness": {
+    "extraction_approach_review": "BA mandates verbatim sed-based extraction of merge.md lines 30-40, 92-113, 121-152, 158-162. Per merge.md read: the resolver block (30-40), preflight (92-113), auto-bulk bridge (121-152), and merge step (158-162) are all pure bash with no interactive prompts. Step 5's conflict path (167-184) prints a message and stops -- no read -p. BA correctly excludes Steps 6-8 (verify, cleanup prompt, deploy reminder) which contain the interactive parts.",
+    "interactive_prompts_in_under_test_blocks": "None. Steps 1-5 are pure bash; the only interactive surface is Step 7 cleanup prompt which is W4-excluded.",
+    "external_dependencies": "None beyond git itself. No calls to other slash commands. The resolver uses git symbolic-ref + git remote show; bridge uses git rev-list/diff/add/commit; preflight uses git diff/ls-files. All standard.",
+    "variable_assumptions": "BA correctly identifies that BRANCH_NAME must be set by the harness (it's a positional arg in run_merge), and that WORKTREE_PATH is computed inside the bridge. No mocking required.",
+    "drift_protection": "BA mandates a sanity check that line ranges still match expected function names before each run -- if merge.md is edited and the line ranges shift, the harness fails fast. Good.",
+    "verdict": "sound -- the bash blocks under test are isolatable, deterministic, and pure functions of git state."
+  },
+  "scenario_a_realism": {
+    "synthetic_state_described": "/tmp/ac12-repo-A: bare-pushed repo with origin/HEAD->main, plus a worktree on worktree-overnight-A with zero commits ahead of main but a dirty working tree.",
+    "matches_dev_overnight_output": "Plausibly. /dev-overnight commits to refs/checkpoints/* (per CLAUDE.md) and does not advance branch HEAD, so end-of-cycle the worktree branch is genuinely zero-ahead with a dirty tree. This is precisely the scenario the auto-bulk bridge was added to handle (per merge.md:117-119 rationale).",
+    "achievability": "Trivial to construct: git init bare remote; init parent; commit + push; git remote set-head origin -a; git worktree add for the branch; touch a file in the worktree without committing.",
+    "edge_cases_acknowledged": [
+      "E1: BA correctly notes git remote set-head origin -a is required after pushing initial commits or the resolver falls through to the master fallback and Scenario A would falsely fail.",
+      "E2: BA notes that zero-ahead means the diff intersection in Step 3 is empty, so overlap won't be triggered -- preflight passes naturally for Scenario A. This is correct expected behaviour.",
+      "E3: BA notes the awk parsing in Step 4 is sensitive to plain branch names. Scenarios use worktree-overnight-{A,B,C}.",
+      "E4: harness is sandboxed to /tmp/ac12-repo-* + tests/ac12/.",
+      "E5: exact exit codes asserted."
+    ],
+    "verdict": "sound"
+  },
+  "anti_fab_check": {
+    "captures_full_streams": "Yes -- M3 mandates stdout + stderr + exit code per scenario, plus pre/post git log --oneline for every relevant ref.",
+    "git_log_evidence_required": "Yes -- AC-AC12-2 requires git log --oneline main shows the auto-bulk commit; AC-AC12-3 requires git log --oneline main is unchanged from before the run.",
+    "audit_log_required": "Yes -- AC-AC12-4 requires an audit log with every git commit invocation tagged setup-only or run_merge-internal, and forbids untagged commits.",
+    "fabrication_resistance": "Strong. A dev fabricating ac12-report.json with all-true booleans would still need to fabricate captures/A-stdout.log containing target=main + the auto-bulk commit subject; captures/A-post-git-log.log showing the commit on main; captures/C-stdout.log with the literal preflight phrase + non-zero exit; AND leave merge.md byte-identical (independently verifiable by QA via cd /root/.claude && git status). The QA validation approach explicitly does spot-check reads of these files. Hard to fake all of it consistently.",
+    "remaining_fab_risk": "Low. Dev could in theory write the captures by hand without actually running the harness, but the verifier script consumes the captures to produce ac12-report.json -- if the captures don't match the asserted patterns, the booleans go false. So the dev would have to fabricate both captures AND the verifier output. QA running run_all.sh + verify.sh independently is the gate that breaks this attack.",
+    "verdict": "robust"
+  },
+  "layer_contract_d_check": {
+    "this_attempt_layer": "L4 (verification of L4 logic via runnable harness)",
+    "differs_from_priors": true,
+    "prior_attempts_layers": ["L3 (default-branch literal)", "L4 (auto-bulk bridge code)", "L4 (untracked-overlap preflight code)"],
+    "rationale": "Prior cycles modified source. This cycle adds zero lines to /root/.claude/commands/merge.md and instead produces evidence files. Verb is 'verify' not 'patch'. Genuinely novel.",
+    "verdict": "novel -- contract D passes."
+  },
+  "scope_reduction_acknowledgment": "This harness verifies /merge in isolation against synthetic scenarios. It DOES NOT verify: (1) that /dev-overnight's exploration phase produces the expected zero-ahead-but-dirty state, (2) that /merge invoked from inside an active /dev-overnight session works (env vars, hook context, sentinel state may differ), (3) that the integration of /dev-overnight + /merge end-to-end produces a clean cycle. AC12 strictly worded covers the integrated cycle; this harness covers only the /merge half. The scope reduction is honest -- W1 explicitly excludes the real /dev-overnight cycle, and the BA rationale is documented (12+ hours into a dirty session). User should accept this as 'AC12 /merge-half verified' rather than 'AC12 fully verified'. A subsequent cycle should still run a real /dev-overnight when session state permits.",
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "scope-honesty",
+      "concern": "BA spec is internally honest about scope (W1 excludes real /dev-overnight), but the title 'AC12 Script-Level Dry-Run Verification of /merge' could mislead a downstream reader into thinking AC12 is fully resolved. Recommend adding to the spec or close-report a sentence like: 'This cycle verifies the /merge bash logic in isolation; AC12's integration claim with /dev-overnight remains pending a real cycle.'",
+      "blocking": false
+    },
+    {
+      "severity": "minor",
+      "category": "extraction-fidelity",
+      "concern": "M1 says 'Harness extracts the four bash blocks ... into a single runnable function run_merge BRANCH_NAME taking the branch name as positional arg.' The extraction must NOT change variable scoping (DEFAULT_BRANCH, BRANCH_NAME, WORKTREE_PATH, AHEAD_COUNT, TOUCHED, UNTRACKED, OVERLAP all flow between blocks). BA mandates verbatim copy which preserves this. QA must spot-check that the extracted run_merge.sh keeps these as bare assignments (not local-scoped) so they propagate across blocks identically to merge.md execution.",
+      "blocking": false
+    },
+    {
+      "severity": "minor",
+      "category": "false-negative-risk-on-A",
+      "concern": "If git remote set-head origin -a is omitted in setup_scenario_a.sh, the resolver falls through to the master fallback and AC-AC12-1 would falsely fail. BA correctly flags this in E1. Setup must explicitly run set-head and assert symbolic-ref returns origin/main before run_merge runs.",
+      "blocking": false
+    },
+    {
+      "severity": "minor",
+      "category": "auto-bulk-on-empty-tree",
+      "concern": "Scenario A's worktree must be 'dirty' specifically with content that git add -A picks up. BA describes this as 'zero-ahead but dirty' but doesn't enumerate the exact dirty operation. Setup should explicitly write a file (e.g., echo 'A change' > new_file.txt inside the worktree path) and NOT commit it, so git add -A produces a non-empty staged diff and the bridge takes the commit branch (Step 4 line 139 condition).",
+      "blocking": false
+    },
+    {
+      "severity": "minor",
+      "category": "scenario-c-overlap-construction",
+      "concern": "Scenario C requires 'parent untracked file at a path the worktree branch's diff would touch'. This means: (a) worktree branch must have at least ONE commit ahead containing the file F, AND (b) parent's working tree must have F as untracked. BA setup_scenario_c.sh comment hints at this ('one worktree-side commit creating the file the parent will then untrack-overlap on'). Make explicit in dev work that the worktree commit must be on worktree-overnight-C (not on main) so the diff DEFAULT_BRANCH...BRANCH_NAME is non-empty.",
+      "blocking": false
+    }
+  ],
+  "fatal_gaps": [],
+  "limitations_to_user": [
+    "Verifies /merge bash logic against synthetic scenarios -- NOT an end-to-end /dev-overnight + /merge cycle.",
+    "Does not exercise hook context or sentinel state that an active /dev-overnight session brings.",
+    "Cannot detect bugs that only surface when /merge is invoked from within an overnight session env.",
+    "Does prove: resolver picks main on main-default, picks master on master-default; auto-bulk bridge produces a regex-compliant commit on zero-ahead-but-dirty; preflight detects untracked overlap and aborts."
+  ],
+  "verdict_rationale": "Pass with documented scope reduction. The BA spec covers all six AC12 conditions plus a master-default extension, mandates verbatim extraction (no paraphrase risk), captures full streams (no fabrication-by-omission), independently verifies dot-claude byte-stability (no merge.md tampering), and uses anti-fab discipline. The spec is internally honest about W1-excluded scope (real /dev-overnight). A partial real verification (this) is materially better than no verification (status quo before this cycle). Saga-level acknowledgement: this advances AC12 from 'source review only' to '/merge half empirically verified'; the integrated /dev-overnight cycle remains an open item for a clean future session.",
+  "recommendation_to_user": "Approve the BA spec. After dev produces the harness and QA confirms ac12-report.json shows seven trues with merge.md unchanged, the close-report should explicitly state 'AC12 /merge-isolated half verified; integrated /dev-overnight cycle pending a clean session' rather than 'AC12 closed'. Schedule a real /dev-overnight verification for a future session when state permits."
+}

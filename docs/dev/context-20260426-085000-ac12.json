@@ -1,0 +1,296 @@
+{
+  "request_id": "dev-20260426-085000-ac12",
+  "timestamp": "2026-04-26T09:12:00Z",
+  "requirement": {
+    "original": "Design an AC12 script-level dry-run verification: extract bash logic from /root/.claude/commands/merge.md and run it against synthetic post-/dev-overnight worktree state, capturing all 6 AC12 conditions plus master-default scenario.",
+    "clarified": "Build a runnable harness under /dev/shm/dev-workspace/happy-dev/tests/ac12/ that extracts the four bash blocks from merge.md verbatim into a run_merge function, executes it against three synthetic scenarios (A: main-default happy path, B: master-default, C: untracked overlap), captures stdout/stderr/exit codes, and emits a JSON report with one boolean per AC12 condition. The harness MUST NOT touch merge.md or any /root/.claude file.",
+    "what": "AC12 verification harness for /merge command",
+    "why": "Spec 5.2.3 / AC12 requires evidence the /merge command behaves correctly end-to-end on main-default worktrees. Running real /dev-overnight from this dirty session is impractical; script-level extraction of merge.md's bash blocks is the next-best legitimate verification.",
+    "where": [
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/run_merge.sh",
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/setup_scenario_a.sh",
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/setup_scenario_b.sh",
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/setup_scenario_c.sh",
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/run_all.sh",
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/verify.sh"
+    ],
+    "scope": {
+      "included": [
+        "Extracting verbatim bash from /root/.claude/commands/merge.md lines 30-40, 92-113, 121-152, 158-162",
+        "Building three synthetic git repos under /tmp/ac12-repo-{A,B,C}",
+        "Running run_merge non-interactively per scenario",
+        "Capturing stdout/stderr/exit codes",
+        "Emitting tests/ac12/ac12-report.json with seven booleans (six AC12 + master-default)",
+        "Verifying merge.md is untouched (AC-AC12-6)"
+      ],
+      "excluded": [
+        "Running a real /dev-overnight cycle from this session",
+        "Network git operations (push to real remote, fetch)",
+        "Modifying /root/.claude/commands/merge.md",
+        "Testing Step 6 (verify), Step 7 (cleanup), Step 8 (deploy reminder)",
+        "Resolving merge conflicts (out of AC12 scope)"
+      ]
+    },
+    "success_criteria": [
+      "tests/ac12/ac12-report.json reports ac12_1..ac12_6 and ac12_b all true",
+      "Scenario A stdout contains literal 'target=main'",
+      "Scenario A produces commit 'auto-bulk: end-of-cycle commit for worktree-overnight-A' on main",
+      "Scenario B stdout contains literal 'target=master'",
+      "Scenario C stdout contains literal 'untracked overlap detected:' with non-zero exit",
+      "No manual git commit / mv outside the documented setup-only allow-list",
+      "merge.md byte-identical before and after harness run"
+    ],
+    "constraints": [
+      "Bash with set -euo pipefail and IFS=$'\\n\\t'",
+      "POSIX + git only (no jq)",
+      "All filesystem writes confined to /dev/shm/dev-workspace/happy-dev/tests/ac12/ and /tmp/ac12-repo-*",
+      "Verbatim extraction of merge.md bash blocks (no paraphrase)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "AC12 has six load-bearing conditions but no automated end-to-end evidence of /merge correctness on main-default worktrees.",
+    "root_cause": "Prior cycles delivered source-level fixes (R1 default-branch resolver, R2 auto-bulk bridge, R3 untracked-overlap preflight) but stopped at code-review-level acceptance. No harness ran the resulting bash against representative scenarios, so behavioural evidence is missing.",
+    "root_cause_commit": "spec-20260424-233926 deliveries (multiple) introduced the L3/L4 source changes; this work covers their L4 verification.",
+    "why_introduced": "Spec authors assumed code review + bundle grep was sufficient evidence; user's AC12 wording requires evidence of zero manual git surgery, which can only be measured by running the command end-to-end.",
+    "why_problematic": "Without execution evidence, regressions in the resolver, preflight, or auto-bulk bridge would only surface during a real overnight run — by which point a user is awake and watching a broken /merge.",
+    "timeline": "Source-level fixes landed earlier this cycle; harness scoped now (2026-04-26 ~09:12 UTC).",
+    "affected_files": [
+      "/root/.claude/commands/merge.md (read-only contract)",
+      "/dev/shm/dev-workspace/happy-dev/tests/ac12/* (to create)"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "merge.md:30-40 contains DEFAULT_BRANCH resolver (observed: Read of merge.md)",
+      "merge.md:92-113 contains untracked-overlap preflight emitting literal 'untracked overlap detected:' on overlap (observed: Read of merge.md)",
+      "merge.md:121-152 contains auto-bulk bridge with commit subject regex '^auto-bulk: end-of-cycle commit for ' (observed: Read of merge.md)",
+      "merge.md:158-162 contains the actual git checkout DEFAULT_BRANCH + git merge BRANCH_NAME --no-edit (observed: Read of merge.md)",
+      "No tests/ac12/ directory exists in /dev/shm/dev-workspace/happy-dev/ (observed: ls of docs/dev/, no tests/ac12 listed; inferred no harness)",
+      "The three /tmp/ac12-repo-* paths are unused in current sessions (inferred: standard /tmp scratch convention, no specific evidence taken)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": [
+      "AC12",
+      "/merge",
+      "target=main",
+      "auto-bulk: end-of-cycle commit for",
+      "untracked overlap detected:",
+      "manual git commit",
+      "manual mv"
+    ],
+    "localization_evidence": "Read /root/.claude/commands/merge.md end-to-end and identified the four bash blocks the harness must extract; the literals 'target=main', 'auto-bulk: end-of-cycle commit for ', and 'untracked overlap detected:' all originate from merge.md and nowhere else.",
+    "located_source": "/root/.claude/commands/merge.md (resolver 30-40; preflight 92-113; auto-bulk 121-152; merge 158-162)",
+    "localization_blocked": null
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {"id": "R1", "source_phrase": "extract the bash logic from /root/.claude/commands/merge.md and run it directly against a synthetic post-/dev-overnight worktree state", "acceptance_criterion": "tests/ac12/run_merge.sh contains bash extracted verbatim from merge.md lines 30-40, 92-113, 121-152, 158-162; a sanity check confirms the line ranges before each run."},
+    {"id": "R2", "source_phrase": "capturing all 6 AC12 conditions", "acceptance_criterion": "tests/ac12/ac12-report.json has six booleans ac12_1..ac12_6 plus ac12_b for the master-default extension."},
+    {"id": "R3", "source_phrase": "Scenario A — Happy path", "acceptance_criterion": "/tmp/ac12-repo-A is a main-default repo; run_merge worktree-overnight-A emits 'target=main' and produces an auto-bulk commit on main."},
+    {"id": "R4", "source_phrase": "Scenario B — master-default repo", "acceptance_criterion": "/tmp/ac12-repo-B has origin/HEAD on master; run_merge emits 'target=master'."},
+    {"id": "R5", "source_phrase": "Scenario C — untracked overlap", "acceptance_criterion": "/tmp/ac12-repo-C has parent untracked file at a path the worktree branch's diff touches; run_merge emits 'untracked overlap detected:' and exits non-zero, with main unchanged."},
+    {"id": "R6", "source_phrase": "the harness script does NOT manually git commit (only via the merge.md logic)", "acceptance_criterion": "Audit log lists every git commit invocation; only setup_scenario_*.sh entries (tagged setup-only) plus run_merge-internal commits appear."},
+    {"id": "R7", "source_phrase": "No manual mv in the harness", "acceptance_criterion": "grep -n '^[[:space:]]*mv ' across tests/ac12/*.sh returns zero matches."},
+    {"id": "R8", "source_phrase": "No edit to /merge command source during the test", "acceptance_criterion": "git status --porcelain -- commands/merge.md inside /root/.claude is byte-identical pre/post run."}
+  ],
+  "component_chain": [
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line_range": "30-40",
+      "role": "DEFAULT_BRANCH resolver block — emits 'target=$DEFAULT_BRANCH'",
+      "imports_from": "leaf",
+      "evidence": "Read merge.md:30-40 verbatim",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line_range": "92-113",
+      "role": "Untracked-overlap preflight — emits 'untracked overlap detected:' and exit 2",
+      "imports_from": "leaf",
+      "evidence": "Read merge.md:92-113 verbatim",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line_range": "121-152",
+      "role": "Auto-bulk bridge — produces 'auto-bulk: end-of-cycle commit for $BRANCH_NAME' when AHEAD_COUNT=0",
+      "imports_from": "leaf",
+      "evidence": "Read merge.md:121-152 verbatim",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line_range": "158-162",
+      "role": "Merge step — git checkout DEFAULT_BRANCH; git merge BRANCH_NAME --no-edit",
+      "imports_from": "leaf",
+      "evidence": "Read merge.md:158-162 verbatim",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/tests/ac12/run_merge.sh",
+      "line_range": "(to-create)",
+      "role": "Aggregates the four blocks into a callable function run_merge BRANCH_NAME",
+      "imports_from": "/root/.claude/commands/merge.md",
+      "evidence": "Spec mandates verbatim extraction; component does not exist yet",
+      "verified_via": "Read of merge.md combined with documented extraction plan"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line": 107,
+      "type": "if",
+      "code_snippet": "if [ -n \"$OVERLAP\" ]; then echo \"untracked overlap detected:\"; ... exit 2; fi",
+      "purpose": "Prevents git merge from running when parent has untracked files at paths the merge would touch.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line": 117,
+      "type": "validator",
+      "code_snippet": "Commit message MUST match regex '^auto-bulk: end-of-cycle commit for ' for R4.3 git-privilege-guard whitelist",
+      "purpose": "Ensures auto-bulk commits pass the privilege guard so they aren't blocked at commit time.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line": 128,
+      "type": "if",
+      "code_snippet": "if [ \"$AHEAD_COUNT\" -eq 0 ]; then ... auto-bulk path ... fi",
+      "purpose": "Only triggers auto-bulk when the branch has no commits ahead — avoids accidental commits when the cycle already produced semantic commits.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/commands/merge.md",
+      "line": 139,
+      "type": "if",
+      "code_snippet": "if ( cd \"$WORKTREE_PATH\" && git add -A && ! git diff --cached --quiet ); then ... else exit 0; fi",
+      "purpose": "Skips auto-bulk when worktree is clean — protects against creating empty commits.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": false,
+    "reason_omitted": "User's complaint frames this as forward verification work, not a regression report. No 'used to work' phrasing; no prior /merge end-to-end run was ever observed succeeding."
+  },
+  "setup": {
+    "viewport": "N/A (CLI/script-level)",
+    "theme": "N/A",
+    "locale": "en",
+    "auth_state": "N/A",
+    "data_state": "synthetic git repos under /tmp/ac12-repo-{A,B,C} (created and torn down by the harness)",
+    "browser": "N/A",
+    "url_path": "N/A"
+  },
+  "evidence": {
+    "observed": "AC12 has no automated end-to-end harness today; spec authors stopped at source-level review.",
+    "measured": {
+      "value": "merge.md contains target=main literal at line 39, untracked overlap detected: at line 107, auto-bulk: end-of-cycle commit for at lines 117 and 142",
+      "location": "/root/.claude/commands/merge.md:30-40,92-113,121-152,158-162"
+    },
+    "expected": {
+      "value": "A harness extracting these blocks and running them against three scenarios produces a JSON report with seven true booleans (six AC12 conditions + master-default).",
+      "source": "spec-20260424-233926 Section 7 Step P4 + user's BA brief"
+    },
+    "gap": "Zero harness exists; AC12 evidence is currently absent."
+  },
+  "scope_expansion": {
+    "search_pattern": "target=|untracked overlap detected:|auto-bulk: end-of-cycle commit for ",
+    "search_scope": "/root/.claude/commands/",
+    "user_reported": ["/root/.claude/commands/merge.md"],
+    "additional_found": [],
+    "all_occurrences": [
+      "/root/.claude/commands/merge.md:39",
+      "/root/.claude/commands/merge.md:107",
+      "/root/.claude/commands/merge.md:117",
+      "/root/.claude/commands/merge.md:142"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "merge.md is the contract under test; verbatim bash extraction is mandated. Tier 2 because the file is in this session's repo and has been read directly, not a third-party spec.",
+    "url_or_location": "/root/.claude/commands/merge.md",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "spec-20260424-233926 R1 deliverable (DEFAULT_BRANCH resolver)",
+        "proposed_solution": "Replace hardcoded master with refs/remotes/origin/HEAD-derived DEFAULT_BRANCH",
+        "actual_change": "merge.md lines 30-40 added the resolver block",
+        "outcome": "Source landed; no end-to-end execution proof",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L3"
+      },
+      {
+        "artifact_path": "spec-20260424-233926 R2 deliverable (auto-bulk bridge)",
+        "proposed_solution": "Add zero-ahead-but-dirty bridge that produces a single auto-bulk commit",
+        "actual_change": "merge.md lines 121-152 added the bridge",
+        "outcome": "Source landed; no end-to-end execution proof",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "spec-20260424-233926 R3 deliverable (untracked-overlap preflight)",
+        "proposed_solution": "Detect parent untracked files that would collide with merged paths and abort",
+        "actual_change": "merge.md lines 92-113 added the preflight",
+        "outcome": "Source landed; no end-to-end execution proof",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L4"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "Prior attempts MODIFIED source code at L3/L4. This attempt VERIFIES that L4 logic by running it; it adds zero lines to /root/.claude/commands/merge.md and instead produces evidence files under tests/ac12/. The verb is 'verify' not 'patch', which is a fundamentally different action than the priors."
+    }
+  },
+  "context": {
+    "codebase_state": "Working tree dirty per /root git status (many ba-spec/qa-report files added, some core docs modified). Harness writes are confined to /dev/shm/dev-workspace/happy-dev and /tmp; nothing under /root/.claude is touched.",
+    "recent_commits": "ff2a6f3 docs(spec): regenerate views ...; 61e3a94 docs+bin: doc-sync residuals ...; 5f1dcc5 docs(dev): final-pass residuals ...",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "shell": "bash >= 4",
+      "git": ">= 2.30",
+      "writable_dirs": ["/dev/shm/dev-workspace/happy-dev/tests/ac12", "/tmp/ac12-repo-A", "/tmp/ac12-repo-B", "/tmp/ac12-repo-C"]
+    }
+  },
+  "development_approach": {
+    "strategy": "Build a thin harness that extracts merge.md's bash blocks (no paraphrasing) and runs them against three synthetic scenarios in non-interactive mode. Capture every relevant stream. Emit a single JSON report. Verify dot-claude tree byte-stability.",
+    "files_to_create": [
+      "tests/ac12/run_merge.sh",
+      "tests/ac12/setup_scenario_a.sh",
+      "tests/ac12/setup_scenario_b.sh",
+      "tests/ac12/setup_scenario_c.sh",
+      "tests/ac12/run_all.sh",
+      "tests/ac12/verify.sh",
+      "tests/ac12/captures/ (directory)",
+      "tests/ac12/ac12-report.json"
+    ],
+    "files_to_modify": [],
+    "validation_approach": "QA runs run_all.sh then verify.sh, reads ac12-report.json, and independently confirms merge.md is unchanged (git status -- commands/merge.md inside /root/.claude). All seven booleans must be true."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Verification harness against an in-tree contract; no industry-best-practice research needed beyond standard bash + git idioms."
+  },
+  "anti_fab_discipline": {
+    "trap_id": "Trap 11",
+    "rules": [
+      "Capture FULL stdout + stderr + exit code of every run_merge invocation per scenario.",
+      "Capture pre/post git log --oneline for main, master, and the worktree branch in every scenario.",
+      "Maintain an audit log enumerating every git command issued by the harness, tagged setup-only or run_merge-internal.",
+      "Forbid any git command outside those two tags.",
+      "Verify merge.md is byte-identical pre/post via git status --porcelain inside /root/.claude."
+    ]
+  }
+}
