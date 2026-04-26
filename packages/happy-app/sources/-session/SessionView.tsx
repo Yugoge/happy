@@ -23,7 +23,7 @@ import { voiceHooks } from '@/realtime/hooks/voiceHooks';
 import { startRealtimeSession, stopRealtimeSession } from '@/realtime/RealtimeSession';
 import { gitStatusSync } from '@/sync/gitStatusSync';
 import { sessionAbort } from '@/sync/ops';
-import { storage, useIsDataReady, useLocalSetting, useRealtimeStatus, useSessionMessages, useSessionUsage, useSetting } from '@/sync/storage';
+import { storage, useIsDataReady, useLocalSetting, useRealtimeStatus, useSessionMessages, useSessionUsage, useSetting, useSocketStatus } from '@/sync/storage';
 import { useSession } from '@/sync/storage';
 import { Session } from '@/sync/storageTypes';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
@@ -273,12 +273,17 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
     const { width } = useWindowDimensions();
     const isDesktop = width >= 901;
     const realtimeStatus = useRealtimeStatus();
+    const socketStatus = useSocketStatus();
     const cliWarning = useCliWarning(session);
     const micBtn = useMicButton(realtimeStatus, sessionId);
+    // Catch-up trigger: re-run when socket reconnects so the visible session
+    // re-fetches incremental messages and bridges any reconnect gap. Previously
+    // depended on realtimeStatus (voice realtime), which is unrelated to the
+    // websocket reconnect cycle. See spec-20260424-084848 §5.19 / pipeline 7.3.
     React.useLayoutEffect(() => {
         sync.onSessionVisible(sessionId);
         gitStatusSync.getSync(sessionId);
-    }, [sessionId, realtimeStatus]);
+    }, [sessionId, socketStatus]);
     return (
         <View style={{ flex: 1, flexDirection: 'row' }}>
             <View style={{ flex: 1 }}>

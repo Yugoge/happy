@@ -50,6 +50,7 @@ export type MarkdownSpan = {
     text: string,
     url: string | null,
     latex?: boolean,
+    latexDisplay?: boolean,
 }
 
 export function parseMarkdown(markdown: string) {

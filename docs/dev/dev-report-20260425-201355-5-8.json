@@ -1,0 +1,90 @@
+{
+  "request_id": "dev-20260425-201355-5-8",
+  "timestamp": "2026-04-25T20:30:00Z",
+  "item": "5.8",
+  "status": "completed",
+  "spec_item": "5.8",
+  "dev_report_path": "docs/dev/dev-report-20260425-201355-5-8.json",
+  "files_modified": [
+    "packages/happy-app/sources/components/MessageView.tsx:9-15 (added import)",
+    "packages/happy-app/sources/components/MessageView.tsx:32-35 (hook call + inline maxWidth override on messageContent View)",
+    "packages/happy-app/sources/components/MessageView.tsx:225 (added overflow:hidden to userMessageContainer)",
+    "packages/happy-app/sources/components/MessageView.tsx:234 (added overflow:hidden to userMessageBubble)",
+    "packages/happy-app/sources/components/MessageView.tsx:255-256 (added maxWidth:'100%' + overflow:hidden to toolContainer)"
+  ],
+  "files_created": [
+    "packages/happy-app/sources/hooks/useMessageContentMaxWidth.ts (84 lines)"
+  ],
+  "edits_summary": [
+    "Created new file useMessageContentMaxWidth.ts that mirrors the formula from useHeaderMaxWidth.ts (windowWidth - leftDrawerWidth - rightSidebarWidth, capped at 800 web/tablet, uncapped on Mac); added an SSR/first-paint guard returning the cap when windowWidth===0 (BA edge-case requirement)",
+    "Imported and called useMessageContentMaxWidth() inside MessageView; passed result as inline maxWidth override on the messageContent View (StyleSheet inline merging means the static layout.maxWidth value at line 217 is now harmlessly overridden by the reactive value)",
+    "Added overflow:'hidden' to userMessageContainer style block (line 225)",
+    "Added overflow:'hidden' to userMessageBubble style block (line 234)",
+    "Added maxWidth:'100%' + overflow:'hidden' to toolContainer style block (lines 255-256), pattern-matching the existing agentMessageContainer block"
+  ],
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/components/MessageView.tsx",
+      "imported_by": [
+        "packages/happy-app/sources/components/ChatList.tsx",
+        "packages/happy-app/sources/app/(app)/dev/messages-demo.tsx"
+      ]
+    },
+    {
+      "modified": "packages/happy-app/sources/hooks/useMessageContentMaxWidth.ts",
+      "imported_by": [
+        "packages/happy-app/sources/components/MessageView.tsx"
+      ]
+    }
+  ],
+  "rationale": "BA spec identified two co-conspirators causing message-card overflow: (1) static layout.maxWidth bound at module load, not reactive to viewport; (2) three sibling wrapper styles (userMessageContainer, userMessageBubble, toolContainer) lacked the overflow:hidden discipline that commit a59b3795 added only to agentMessageContainer. Fix: created a new hook (decoupled from useHeaderMaxWidth.ts to avoid lost-update conflicts with concurrent pipeline 5.4+5.5) using identical formula; applied it as inline maxWidth override on messageContent so the reactive value wins over the static StyleSheet field; added overflow:hidden + (where missing) maxWidth:'100%' to the three remaining wrapper blocks. All pre-existing guards preserved: messageContent.minWidth:0 (line 213) untouched; agentMessageContainer.maxWidth+overflow (lines 241-242) untouched; layout.maxWidth export untouched (used by ~25 other call sites).",
+  "type_check": "pass",
+  "type_check_details": "Ran `yarn workspace happy-app tsc --noEmit`. Output had pre-existing errors in 4 unrelated files (SessionActionsNativeMenu.android.tsx — Expo UI module; SidebarNavigator.tsx — pre-existing `sidebarCollapsed as any` accommodation noted by BA; SidebarAgentConversation.tsx — ModeSwitchMessage type; SidebarFileView.tsx — theme.background). NONE of my new/modified files (useMessageContentMaxWidth.ts, MessageView.tsx) appeared in the error list.",
+  "self_verification": {
+    "build": "skipped (per scope: NO docker build / yarn install / deploy)",
+    "smoke_check": "skipped (no executable acceptance criteria; QA performs Playwright verification at 390x844 + 1440x900)",
+    "notes": "Type-check verified. Live browser verification deferred to QA per spec; QA must check both viewports per BA's validation_approach."
+  },
+  "fix_layer": "L2",
+  "fix_layer_secondary": "L3",
+  "diff_stats": {
+    "files_changed": 2,
+    "lines_added": 95,
+    "lines_removed": 0,
+    "new_symbols_introduced": [
+      "useMessageContentMaxWidth (exported hook)",
+      "computeMessageContentMaxWidth (internal pure fn, mirrors computeHeaderMaxWidth)"
+    ],
+    "minimum_possible_lines_estimate": 90,
+    "justification_for_overage": "Hook file (~84 lines) is essentially required by BA Must-Have #1 and orchestrator's decoupling instruction (do NOT modify useHeaderMaxWidth.ts due to concurrent pipeline 5.4+5.5). Could not factor logic into a shared helper because that would touch useHeaderMaxWidth.ts. Duplication is intentional and BA-sanctioned to avoid lost-update conflicts. The 11 lines in MessageView.tsx are: 1 import + 1 hook call + 1 inline-style override + 4 style-block additions (overflow:hidden / maxWidth:100%). All within the BA-specified scope; no scope creep."
+  },
+  "scope_review_requested": false,
+  "ba_alignment": {
+    "must_haves_satisfied": [
+      "M1: messageContent maxWidth is reactive via useMessageContentMaxWidth() hook with same formula as useHeaderMaxWidth",
+      "M2: userMessageContainer gained overflow:'hidden'",
+      "M3: userMessageBubble gained overflow:'hidden'",
+      "M4: toolContainer gained maxWidth:'100%' + overflow:'hidden'"
+    ],
+    "should_have_satisfied": "Hook lives in packages/happy-app/sources/hooks/ alongside useHeaderMaxWidth (per orchestrator instruction, in a new sibling file rather than a sibling export, to avoid touching useHeaderMaxWidth.ts)",
+    "could_have_skipped": "Inline-card text numberOfLines/ellipsizeMode tweaks deferred (BA explicitly tagged Could-Have)",
+    "wont_have_respected": [
+      "Did NOT modify the table wrapper or its min(100%, calc(100vw - 32px)) cap (Cycle 5 PASS preserved)",
+      "Did NOT remove static layout.maxWidth field (other call sites preserved)",
+      "Did NOT modify MarkdownView block rendering",
+      "Did NOT modify agentMessageContainer (already correct)",
+      "Did NOT revert any prior commit",
+      "Did NOT modify useHeaderMaxWidth.ts (orchestrator decoupling instruction)"
+    ]
+  },
+  "guard_compliance": {
+    "messageContent.minWidth:0 (line 213)": "preserved",
+    "agentMessageContainer.maxWidth:'100%' (line 241)": "preserved",
+    "agentMessageContainer.overflow:'hidden' (line 242)": "preserved",
+    "MarkdownView table wrapper css (line 402)": "untouched"
+  },
+  "ready_for_qa": true,
+  "qa_notes": "Verify at viewport 390x844 (mobile) AND 1440x900 (desktop) on test session cmoedofgz86n5nz15xsldnk35. Required checks per BA: (1) 390 viewport — getBoundingClientRect().right<=390 for every paragraph SPAN, list-item DIV, blockquote DIV inside agent or user messages; (2) 390 viewport — inline tool-call cards (Bash, CronList) right<=390; (3) 1440 viewport — getComputedStyle on messageContent: scrollWidth===clientWidth for non-table content; (4) browser-resize 1440->800->390 — messageContent.width recomputes without reload (hook reactivity smoke test). Required screenshots per BA AC1-AC4 in docs/dev/evidence/qa-<qa-ts>/5.8-cycle-after/.",
+  "blockers": [],
+  "permissions_to_add": []
+}

@@ -1,0 +1,89 @@
+{
+  "item": "5.4-5",
+  "verdict": "pass",
+  "objections": [],
+  "summary": "BA spec is accurate, evidence-grounded, and scope-coherent. All four file:line claims grep-verified; shared-root-cause argument is logically tight and matches user directive verbatim.",
+  "verification_log": {
+    "evidence_quality": {
+      "verdict": "pass",
+      "checks": [
+        {
+          "claim": "WEB_TABLET_MAX_WIDTH_CAP = 800 at useHeaderMaxWidth.ts:15",
+          "actual": "Line 15 reads 'const WEB_TABLET_MAX_WIDTH_CAP = 800;'",
+          "match": true
+        },
+        {
+          "claim": "Math.min clamp at line 42",
+          "actual": "Line 42 reads 'return Math.min(available, WEB_TABLET_MAX_WIDTH_CAP);'",
+          "match": true
+        },
+        {
+          "claim": "Formula structure: windowWidth - leftDrawer - rightSidebar",
+          "actual": "Line 38: 'const available = Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth);' — exact match.",
+          "match": true
+        },
+        {
+          "claim": "isRunningOnMac branch at line 39 returns 'available' uncapped (Mac path is already correct)",
+          "actual": "Lines 39-40: 'if (isRunningOnMac()) { return available; }' — confirms Mac path bypasses the cap. Collapsing the branch produces identical Mac behavior and aligns web/tablet with it.",
+          "match": true
+        }
+      ]
+    },
+    "scope_alignment": {
+      "verdict": "pass",
+      "argument": "Both 5.4 and 5.5 trace to the same single line (line 42). 5.4 (avatar.right=1526 at 1920) is the static-cap symptom: maxWidth caps at 800 regardless of viewport. 5.5 (toggle clustering) is the dynamic-cap symptom: when both open and closed states clamp to 800, the centered 800px box only shifts position when right-sidebar is added/removed — never widens. Removing the clamp fixes both symptoms simultaneously because the underlying reactive formula (already in place from Cycle 1) becomes the actual return value. Bundling 5.4 + 5.5 is justified, not hand-wavy.",
+      "shared_root_cause_check": "logically_tight"
+    },
+    "investigation_completeness": {
+      "verdict": "pass",
+      "checks": [
+        {
+          "item": "Header.tsx consumer verified",
+          "result": "Confirmed via grep — line 47 calls hook, line 68 applies maxWidth. No code change needed in consumer."
+        },
+        {
+          "item": "ChatHeaderView.tsx consumer verified",
+          "result": "Confirmed via grep — line 50 calls hook, line 120 applies maxWidth. No code change needed in consumer."
+        },
+        {
+          "item": "Cycle 1 commit 0ba2ddfc verified",
+          "result": "Commit exists with message 'feat: cycle 1 (14 pipelines) + close-remediation'."
+        },
+        {
+          "item": "Prior BA spec (ba-spec-20260424-143000-11.md) referenced 800 cap as user-sanctioned",
+          "result": "Verified — line 90: 'if those caps are still desired'. Line 198 of code sketch: 'Math.min(availableWidth, 800)  // tablet/web cap preserved'. BA's claim that Cycle 1 carried over the cap by explicit sanction is correct."
+        },
+        {
+          "item": "isRunningOnMac is safe to collapse",
+          "result": "grep confirms isRunningOnMac is used ONLY at line 39 (the branch under removal) and imported at line 7. After fix, both lines must be removed; no other consumers in the file. BA spec explicitly notes this in Edge Cases & Risks (line 181)."
+        },
+        {
+          "item": "User directive citation (spec lines 2883-2887)",
+          "result": "Verbatim match: '把 800 替换成基于 viewport innerWidth 的响应函数；或去掉 max-width 让容器填满可用空间'. BA chose the second option as preferred, which is the safer interpretation (no new magic numbers)."
+        }
+      ]
+    },
+    "affected_file_accuracy": {
+      "verdict": "pass",
+      "verified_locations": [
+        "useHeaderMaxWidth.ts:11 (RIGHT_SIDEBAR_WIDTH = 450) — verified KEEP",
+        "useHeaderMaxWidth.ts:12 (RIGHT_SIDEBAR_DESKTOP_MIN_WIDTH = 901) — verified KEEP",
+        "useHeaderMaxWidth.ts:15 (WEB_TABLET_MAX_WIDTH_CAP = 800) — verified REMOVE",
+        "useHeaderMaxWidth.ts:42 (Math.min clamp) — verified REMOVE",
+        "useHeaderMaxWidth.ts:39-43 (isRunningOnMac branch) — verified COLLAPSE",
+        "useHeaderMaxWidth.ts:7 (isRunningOnMac import) — verified REMOVE (orphan after collapse)",
+        "Header.tsx:68 (consumer) — verified NO CHANGE",
+        "ChatHeaderView.tsx:120 (consumer) — verified NO CHANGE"
+      ]
+    }
+  },
+  "minor_observations": [
+    "BA spec line 58 mentions header-padding 16px is 'source of logo.left=17px'. This is correctly listed as a Won't-Have non-goal (line 162). No action required, but worth flagging that R1 acceptance allows 16-18px tolerance for logo.left.",
+    "BA's Mitigation for ultra-wide regression risk (Could-Have C1 at line 156) is appropriate — defers to a separate ticket if user objects, doesn't pre-emptively add scope.",
+    "Cycle 6 BA spec correctly identifies the failure category as 'tainted_reference' — Cycle 1's R4 sanctioned keeping the cap because no one questioned the 2023-era 800 value. This is the kind of self-aware retrospective framing that should pass."
+  ],
+  "novelty_check": {
+    "verdict": "valid",
+    "assessment": "BA correctly identifies this as a different sub-axis on the same L3 layer. Cycle 1 changed the *formula structure* (static→reactive); Cycle 6 changes the *terminal value* (clamp→passthrough). The two operations are independent and the second is the natural follow-up the prior cycle's R4 left open."
+  }
+}

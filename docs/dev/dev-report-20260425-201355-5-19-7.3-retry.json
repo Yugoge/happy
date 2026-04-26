@@ -1,0 +1,85 @@
+{
+  "pipeline": "7.3-BC-retry-app-sync",
+  "request_id": "dev-20260425-201355",
+  "timestamp": "2026-04-25T20:55:00Z",
+  "status": "completed",
+  "hook_block_recurred": false,
+  "summary": "Retry of sub-fixes 7.3.B and 7.3.C against packages/happy-app/sources/sync/sync.ts succeeded. Hook gate was resolved by user; no quality-gate rejection occurred. Both edits applied as documented in the prior dev report's intended_diff_text, with the line ranges still matching (the file did not shift). Sub-fix 7.3.A (SessionView.tsx wiring) was previously applied and is unchanged. Combined with 7.3.A this completes pipeline 7.3 fully: visible-session catch-up after websocket reconnect is now wired both at the React-component layer (SessionView socketStatus dependency) and at the data-sync layer (onReconnected callback re-invalidates the visible session's messagesSync), and the thinking indicator is preserved across hydrate when the session was recently active.",
+
+  "sub_fixes_applied": [
+    {
+      "id": "7.3.B",
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "lines": "75-80 (new lastVisibleSessionId field), 233-237 (onSessionVisible tracking), 1769-1779 (reconnect callback re-invalidate)",
+      "summary": "Three coordinated edits making the websocket onReconnected callback re-trigger visible-session catch-up. (1) Added private lastVisibleSessionId: string|null field with a 4-line explanatory comment placed alongside the messagesSync/sendSync Maps. (2) Set this.lastVisibleSessionId = sessionId at the top of onSessionVisible (before the existing getMessagesSync(...).invalidate()), with a 2-line explanatory comment. (3) In subscribeToUpdates' onReconnected callback, after this.feedSync.invalidate(), if (this.lastVisibleSessionId) call this.getMessagesSync(this.lastVisibleSessionId).invalidate() — replaced the now-stale comment that claimed catch-up flowed via realtimeStatus (which is voice-only). Defence in depth alongside SessionView.tsx 7.3.A wiring fix: 7.3.A binds catch-up to socketStatus in the React component; 7.3.B does it from the sync data layer.",
+      "diff_lines_added": 16,
+      "diff_lines_removed": 3,
+      "type_check": "pass"
+    },
+    {
+      "id": "7.3.C",
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "lines": "808-832 (replaced the processedSession block with preserve-if-recent logic)",
+      "summary": "Replaced the unconditional thinking:false / thinkingAt:0 reset in the fetchSessions decrypt loop with conservative preserve-if-recent logic. Reads existingSession from storage.getState().sessions[session.id]; if existingSession.thinking === true AND server's session.activeAt is within the last 5000ms, preserves thinking:true / thinkingAt from the existing record. Otherwise resets to false/0 (preserves prior behaviour). storage was already imported at line 6 of sync.ts. Used !! coercion on the boolean expression and the non-null-assertion existingSession! inside the ternary to keep TypeScript happy without changing the conditional logic.",
+      "diff_lines_added": 21,
+      "diff_lines_removed": 3,
+      "type_check": "pass"
+    }
+  ],
+
+  "diff_stats_total": {
+    "files_changed": 1,
+    "lines_added": 37,
+    "lines_removed": 6,
+    "new_symbols_introduced": ["Sync.lastVisibleSessionId (private field)"],
+    "minimum_possible_lines_estimate": 18,
+    "justification_for_overage": "Total diff is 37 lines added, 6 removed. The minimum possible is roughly 18 lines (3 lines for the field + tracking, 5 lines for reconnect re-fetch, ~10 lines for hydrate preserve logic). Overage is entirely explanatory comments (4-line block comment for the new field, 2-line comment in onSessionVisible, 5-line comment in reconnect callback explaining the prior misleading 'realtimeStatus' comment, 9-line comment in fetchSessions explaining the harmonization-with-7.2 logic). Comments are justified because: (a) the prior wiring had a misleading comment about realtimeStatus that contributed to the original bug, (b) 7.3.C's 5s window is a non-obvious magic number that future readers need to understand in the context of pipeline 7.2, (c) defence-in-depth between 7.3.A and 7.3.B needs explicit cross-reference. No new helper functions, no refactoring, no extracted constants beyond STALE_THINKING_MS (locally scoped)."
+  },
+
+  "harmonization_notes": "Preserve-if-recent logic (7.3.C) is intentionally conservative and works regardless of pipeline 7.2's behaviour:\n  - If 7.2 ships a server thinking-snapshot on connect: snapshot arrives within ~1s of connect; the 5s preserve window bridges that gap, then the snapshot overwrites cleanly (no UI flash).\n  - If 7.2 misses or is delayed: 5s preserve gives the CLI's next ~2s session-alive ephemeral time to arrive (CLI heartbeat is volatile.emit every 2s per packages/happy-cli/src/claude/session.ts:69-73).\n  - If session is truly idle: server's activeAt is older than 5s, preserveThinking=false, behaviour matches the prior unconditional reset.\nA follow-up cycle can tighten the window to <2s once 7.2's behaviour is verified end-to-end; loosening to 10s would also be safe but less responsive on indicator-cleared transitions.\n\n7.3.A and 7.3.B together provide defence-in-depth for the visible-session catch-up:\n  - 7.3.A (SessionView.tsx socketStatus dep): fires when a SessionView is mounted and socketStatus transitions. Covers the common 'tab visible during reconnect' case.\n  - 7.3.B (sync.ts onReconnected): fires on every reconnect regardless of which component is mounted, IF a session was recently visible. Covers backgrounded-tab and freshly-reopened-window cases.\nNeither is strictly necessary if the other is reliable, but ED specs explicitly call this 'redundant safety net'. Cost is 6 lines of executable logic + comments; benefit is robustness against React effect-timing edge cases.",
+
+  "type_check": "pass",
+  "type_check_details": "yarn workspace happy-app tsc --noEmit emits 5 pre-existing errors in unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx x2, SidebarFileView.tsx) — identical to the prior dev report. Grep on the tsc output for 'sync.ts' returns ZERO matches. My edits type-check cleanly.",
+
+  "self_verification": {
+    "build": "skipped (per spec instruction: 'DO NOT run docker build / yarn install / deploy')",
+    "smoke_check": "skipped (no executable acceptance criteria for this dev pipeline; QA owns Playwright e2e per spec §7)",
+    "type_check_for_my_files": "pass (zero errors in sync.ts)",
+    "notes": "Both 7.3.B and 7.3.C are type-clean and structurally complete. Ready for QA Playwright verification per addendum AC1/AC2/AC3."
+  },
+
+  "files_touched": [
+    "packages/happy-app/sources/sync/sync.ts (lines 75-80, 233-237, 808-832, 1769-1779)"
+  ],
+
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/sync/sync.ts",
+      "imported_by_count": "high (sync is a foundational module; imported by 30+ files via the storage subsystem and direct sync class consumers)",
+      "note": "sync.ts is a hub. However, the three changes here are surgical: (1) the new private field is internal-only with no external surface; (2) onSessionVisible's added line is a side-effect setter and does not change the function's public contract or return value; (3) the reconnect callback's added re-invalidate is internal subscription logic; (4) the hydrate preserve-if-recent logic ONLY affects the values written for thinking/thinkingAt and does not change which sessions are pushed nor their other fields. No external API surface change. QA should validate end-to-end behaviour (AC1/AC2/AC3) but does not need to re-verify unrelated callers.",
+      "high_impact": true,
+      "high_impact_reason": "sync.ts is the data-layer hub; behaviour changes here ripple through any UI that reads thinking/thinkingAt or relies on messagesSync invalidation."
+    }
+  ],
+
+  "fix_layer": "L4",
+  "scope_review_requested": false,
+  "scope_review_note": "Layer matches BA's diagnosis_layer L4 (data-flow wiring / state-machine state distribution).",
+
+  "spec_compliance_check": {
+    "minimum_diff_rule": "pass-with-justified-overage — 37 added / 6 removed total. Minimum reasonable is ~18 lines; overage is comments justified by the misleading prior comment, the non-obvious 5s magic number, and the cross-pipeline harmonization context. No new helpers, no CSS, no refactoring.",
+    "no_band_aid_rule": "pass — 7.3.B fixes wrong wiring (the prior reconnect callback explicitly said 'messages are fetched lazily via onSessionVisible called by SessionView when realtimeStatus changes' — that flow was broken because realtimeStatus is voice-only, not socket status). 7.3.C does NOT lower a check or swallow an error; it preserves a known-true state when timing windows make it likely valid, with a clear escape (5s window).",
+    "test_first_protocol": "skip-justified — UI integration behaviour at the React-effect / data-sync seam is not unit-testable without the full app harness; e2e is QA's pipeline per spec §7.",
+    "no_destructive_git_action": "pass — no git verbs invoked.",
+    "respect_pre_existing_guards": "pass — did not remove or weaken any pre-existing check. The reconnect callback retains all prior invalidations (sessionsSync, machinesSync, artifactsSync, friendsSync, friendRequestsSync, feedSync, sendSync); only added an additional invalidate. The fetchSessions hydrate retains the false/0 reset path; only added a conditional preserve branch. onSessionVisible retains all existing calls (getMessagesSync, gitStatusSync, voiceHooks); only added one assignment line."
+  },
+
+  "ready_for_qa": true,
+  "ready_for_qa_caveat": "QA verification per spec addendum AC1/AC2/AC3:\n  AC1 (real-time bg-task render after socket reconnect): expect /v3/sessions/:id/messages?after_seq=... call within 1s of websocket reconnect, even if SessionView's socketStatus effect hasn't fired yet.\n  AC2 (reopen-state-restore): expect 'thinking' indicator to remain on if the session was active within the last 5s before reopen.\n  AC3 (timestamp-not-frozen): governed by pipeline 7.1, not this pipeline. 7.3.C does NOT clobber thinkingAt when preserving (preserves the existing value).\nQA must verify both desktop AND mobile viewports per CLAUDE.md.",
+
+  "blockers": [],
+
+  "evidence_capture_notes_for_qa": "Browser DevTools should show:\n  1. Reconnect: WebSocket /v1/updates closes and reopens.\n  2. Within 1s of reconnect: REST GET /v3/sessions/:visibleSessionId/messages?after_seq=... fires (this is what 7.3.B enables in addition to 7.3.A's SessionView socketStatus dep).\n  3. Thinking indicator on a recently-active session: should remain 'claude babbling' across the reconnect window if activeAt was <5s ago.\n  4. Thinking indicator on an idle session: should clear normally (preserveThinking=false branch).",
+
+  "permissions_to_add": []
+}

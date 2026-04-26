@@ -1,0 +1,333 @@
+{
+  "request_id": "dev-20260425-201355-5-17",
+  "timestamp": "2026-04-25T20:13:55Z",
+  "spec_monolith": "docs/dev/specs/spec-20260424-084848.md",
+  "spec_section": "5.17",
+  "requirement": {
+    "original": "检修 Spec Item 5.17 — Markdown rendering broken: H2 font size equals body text (16px, should be larger/bold); list markers `-` and `1.` render as plain text instead of <ul>/<ol>/<li> elements.",
+    "clarified": "Two surgical visual fixes to packages/happy-app/sources/components/markdown/MarkdownView.tsx: (1) enlarge header1 (currently 16px = body) and header3 (currently 16px = body) so all heading fontSize > body fontSize; (2) refactor RenderListBlock and RenderNumberedListBlock so the bullet/number marker is rendered as a separate node (not literal text inside the same <Text> as the item content). Optionally add web-semantic accessibilityRole='list'/'listitem' / 'header' for <ul>/<ol>/<li>/<h1..6>.",
+    "what": "Fix header font-size collapse and list-marker leak in MarkdownView.tsx",
+    "why": "User-visible bug §5.17: H2 visually identical to body (only weight differs); lists display literal `-` / `1.` characters as if markdown source leaked through, even though the parser already detects them correctly.",
+    "where": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "scope": {
+      "included": [
+        "packages/happy-app/sources/components/markdown/MarkdownView.tsx — header1/header3 (and optionally header4-6) fontSize raise; RenderListBlock + RenderNumberedListBlock marker-as-separate-node refactor; optional accessibilityRole web semantic"
+      ],
+      "excluded": [
+        "Parser changes (parseMarkdown.ts / parseMarkdownBlock.ts / parseMarkdownSpans.ts) — already correct, verified live",
+        "Production /root/happy/ — strictly dev-only",
+        "Other §5.17 primitives that PASSED in prior cycle (blockquote, task-list, kbd, strikethrough, bold, italic, link, inline code, code-block, table, LaTeX, Mermaid)",
+        "Task list interactive checkbox <input> — separate carry-forward",
+        "Demo-prompt seed (QA's job to add a `### 三级标题` line for full H3 coverage)"
+      ]
+    },
+    "success_criteria": [
+      "After fix, computed fontSize of H1 element > body fontSize (>16px) on desktop AND mobile",
+      "After fix, computed fontSize of H2 element > body fontSize (preserved 20px)",
+      "After fix, computed fontSize of H3 element > body fontSize",
+      "After fix, no list-item leaf textContent begins with `- ` or `{n}. `",
+      "After fix, visible bullet/number marker rendered as a sibling node (not part of item-content text)",
+      "(Should-have) On web, ul+ol+li semantic count > 0",
+      "No regression on prior-cycle PASS items (blockquote, task-list, kbd, strikethrough, bold, italic, link, inline code, code-block, table, LaTeX)"
+    ],
+    "constraints": [
+      "Use theme.colors.* and Typography.* — no hardcoded colors",
+      "Preserve selectable=true on item-content text node (marker may be selectable=false)",
+      "Cross-platform: marker-as-sibling-node MUST work on iOS/Android/web; web-semantic accessibilityRole is purely additive",
+      "Keep paddingLeft: item.depth * 16 nested indent",
+      "Run yarn typecheck after change",
+      "Rebuild happy-app:dev from worktree, deploy via docker compose up -d happy-web-dev (NEVER from /root/happy)"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "User: H2 字号 = 正文（16px），应该加大加粗到 H1 那种层级。列表 `-`/`1.` 完全没渲染成 ul/ol/li。",
+    "root_cause": "Two distinct L1 (cosmetic) defects in MarkdownView.tsx: (1) header1 / header3..6 styles all have fontSize: 16 — equal to body, only fontWeight differentiates; (2) RenderListBlock writes literal '- ' inside <Text> content at line 176, RenderNumberedListBlock writes literal '{n}. ' at line 209. The dash and number characters are part of the rendered text node, indistinguishable from raw markdown source. Parser is INNOCENT — verified live: it correctly detects headings (level 1-6) and produces 'list' / 'numbered-list' blocks; the wrapper <View> is rendered correctly with class unistyles_2agt3r2nu7s.",
+    "root_cause_commit": "N/A — original implementation; no regression. Production /root/happy has identical bug.",
+    "why_introduced": "Original markdown renderer was minimal; literal '- ' was the simplest text-node approach to show a bullet without React Native list semantics. Headers were sized for compact chat-message display.",
+    "why_problematic": "(1) Visual collapse: with only fontWeight to differentiate H1/H3-6 from body, screen-reader-less users with subtle weight rendering perceive heading as bold paragraph, not heading. (2) Marker leak: the literal '- ' and '1. ' inside textContent looks identical to raw markdown source — directly produces user complaint '列表 - 漏成纯文本'. Affects accessibility (no <ul>/<ol>/<li> for screen readers) and visual hierarchy.",
+    "timeline": "Defect present since the markdown renderer was first introduced (commit 7f178466, Jan 2026 per prior BA spec). 2026-04-24 cycle (dev-report-20260424-143000-0) added blockquote / task-list / nested depth / kbd / strikethrough / HTML entity decode but did not modify existing header1..6 styles or list-marker emission.",
+    "affected_files": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "evidence_type": "observed",
+    "observations": [
+      "H1 element 一级标题 demo (rendered from `## 一级标题 demo` markdown — level=2): tagName=DIV, fontSize=20px, fontWeight=600, lineHeight=24px, class=unistyles_2a7hse6hphi (observed: Playwright getComputedStyle, dev session cmoedofgz86n5nz15xsldnk35, 2026-04-25T20:20Z)",
+      "H2 element 二级标题 demo (rendered from `### 二级标题 demo` markdown — level=3): tagName=DIV, fontSize=16px, fontWeight=600, lineHeight=28px, class=unistyles_20e3u2kmncu (observed)",
+      "Body p element 'Bold, italic, ...': tagName=DIV, fontSize=16px, fontWeight=400, lineHeight=24px (observed)",
+      "Unordered list item: tagName=DIV, textContent literally '- 无序列表项 A', fontSize=16px, paddingLeft=0px, listStyle='outside none none', parent class=unistyles_2agt3r2nu7s (observed)",
+      "Ordered list item: tagName=DIV, textContent literally '1. 有序第一', fontSize=16px, paddingLeft=0px (observed)",
+      "Semantic counts: h1=0, h2=0, h3=0, ul=0, ol=0, li=0 (observed)",
+      "Source code header1: { fontSize: 16, fontWeight: '900', lineHeight: 24 } at MarkdownView.tsx:545-551 (inferred: Read tool)",
+      "Source code header2: { fontSize: 20, fontWeight: '600', lineHeight: 24 } at MarkdownView.tsx:552-558 (inferred)",
+      "Source code header3: { fontSize: 16, fontWeight: '600', lineHeight: 28 } at MarkdownView.tsx:559-565 (inferred)",
+      "Source code header4..6: all fontSize: 16 at MarkdownView.tsx:566-582 (inferred)",
+      "Source code RenderListBlock literal `- ` prefix at MarkdownView.tsx:176 (inferred)",
+      "Source code RenderNumberedListBlock literal `{item.number.toString()}. ` prefix at MarkdownView.tsx:209 (inferred)",
+      "Mobile viewport (390x844): H1 fontSize 20px, H2 fontSize 16px, lists same literal-prefix textContent (observed: same Playwright session, after browser_resize 390x844, 2026-04-25T20:25Z)",
+      "Production /root/happy/packages/happy-app/sources/components/markdown/MarkdownView.tsx has identical header1: { fontSize: 16, fontWeight: '900' } (inferred: Read tool)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": [
+      "二级标题",
+      "H2",
+      "字号",
+      "正文",
+      "16px",
+      "列表",
+      "-",
+      "1.",
+      "ul",
+      "ol",
+      "li",
+      "markdown"
+    ],
+    "localization_evidence": "Reproduced symptom by navigating Playwright to https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 (auth + dev custom-server-url injected via localStorage), scrolling assistant message into view at desktop 1440x900 and mobile 390x844, then running getComputedStyle on rendered DOM elements containing '一级标题 demo' / '二级标题 demo' / '- 无序列表项 A' / '1. 有序第一'. Cross-validated unistyles class hashes against deployed bundle's CSSOM rules to confirm class→source mapping.",
+    "located_source": "packages/happy-app/sources/components/markdown/MarkdownView.tsx:545-582 (header styles) and :176, :209 (literal list marker prefixes)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": null,
+      "commit_message": null,
+      "confirmed_by": "n/a-not-a-regression",
+      "bisect_blocked": null,
+      "reproducibility_verified": true,
+      "note": "Not a regression. Defect present since markdown renderer introduction (commit 7f178466, Jan 2026 per prior BA spec ba-spec-20260424-143000-0.md). User complaint is novel attention to existing-but-hidden defect, not a recent break."
+    }
+  },
+  "diagnosis_layer": "L1",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "H2 字号 = 正文（16px）→ 加大 + 加粗到 H1 那种层级",
+      "acceptance_criterion": "After fix, getComputedStyle(h1).fontSize > 16px AND getComputedStyle(h2).fontSize > 16px AND getComputedStyle(h3).fontSize > 16px on both desktop 1440x900 and mobile 390x844 viewports."
+    },
+    {
+      "id": "R5",
+      "source_phrase": "列表 `-`/`1.` 完全没渲染成 ul/ol/li",
+      "acceptance_criterion": "After fix, no list-item leaf textContent begins with '- ' (unordered) or '{n}. ' (ordered). Marker rendered as a sibling node visually distinct from the item content text. Verified on desktop AND mobile."
+    },
+    {
+      "id": "R7",
+      "source_phrase": "完全没渲染成 ul/ol/li (semantic-HTML interpretation)",
+      "acceptance_criterion": "(Should-have) On web platform, document.querySelectorAll('ul,ol,li').length > 0 after rendering the demo content."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line_range": "91-152",
+      "role": "MarkdownView memo component — entry point; calls parseMarkdown(text), maps blocks to renderTextLikeBlock or renderComplexBlock",
+      "imports_from": ["./parseMarkdown"],
+      "evidence": "Read MarkdownView.tsx:1-152",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "line_range": "55-57",
+      "role": "Public parseMarkdown wrapper — delegates to parseMarkdownBlock",
+      "imports_from": ["./parseMarkdownBlock"],
+      "evidence": "Read parseMarkdown.ts:1-57",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "line_range": "120-132, 208-233, 268-277",
+      "role": "Block parser — tryHeader produces { type:'header', level:1..6 }; tryUnorderedList produces { type:'list' }; tryNumberedList produces { type:'numbered-list' }",
+      "imports_from": ["./parseMarkdownSpans", "./parseMarkdown (types)"],
+      "evidence": "Read parseMarkdownBlock.ts:1-277; verified regex matching 'leftover-' and '1. ' lines via inline node script",
+      "verified_via": "Read+Bash"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line_range": "165-213",
+      "role": "Block renderers — RenderHeaderBlock looks up style[`header${level}`]; RenderListBlock concatenates literal '- '; RenderNumberedListBlock concatenates literal '{n}. '",
+      "imports_from": ["leaf"],
+      "evidence": "Read MarkdownView.tsx:165-213",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line_range": "496-582",
+      "role": "Stylesheet — header1..6 font sizes / weights; list / blockquote / kbd / strikethrough styles",
+      "imports_from": ["leaf"],
+      "evidence": "Read MarkdownView.tsx:496-582",
+      "verified_via": "Read"
+    },
+    {
+      "file": "deployed bundle (happy-app:dev image)",
+      "line_range": "n/a",
+      "role": "Runtime — confirms class→CSS mapping via getComputedStyle / CSSOM",
+      "imports_from": ["leaf"],
+      "evidence": "Playwright getComputedStyle on session cmoedofgz86n5nz15xsldnk35; CSSOM rule dump matches source values exactly: unistyles_2a7hse6hphi=20px/600 (header2), unistyles_20e3u2kmncu=16/28/600 (header3), unistyles_2agt3r2nu7s=column flex/8mb/1gap (list wrapper)",
+      "verified_via": "Playwright"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line": 104,
+      "type": "type-guard",
+      "code_snippet": "const selectable = Platform.OS === 'web' || !markdownCopyV2;",
+      "purpose": "Disables Text.selectable on mobile when markdownCopyV2 is on, so long-press copy gesture works without OS native selection conflict",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line": 134,
+      "type": "if",
+      "code_snippet": "if (!markdownCopyV2 || Platform.OS === 'web') { return renderContent(); }",
+      "purpose": "Skips GestureDetector wrapping on web where it's not needed",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line": 174,
+      "type": "css-style",
+      "code_snippet": "<View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }}>",
+      "purpose": "List wrapper layout — must be preserved when refactoring to marker-as-sibling-node (current contract: column with 1px gap between items)",
+      "removal_authorized": true
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "viewport": "Both: 1440x900 desktop AND 390x844 mobile (CLAUDE.md mandates both)",
+    "theme": "light (default)",
+    "locale": "zh-Hans",
+    "auth_state": "logged-in (dev account cmi5mv9eh00wzpg14ph73jj3n)",
+    "data_state": "active session cmoedofgz86n5nz15xsldnk35 (dev-verify-131502) with markdown demo content",
+    "browser": "Chromium via Playwright MCP",
+    "url_path": "/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "evidence": {
+    "observed": "User: 'H2 字号 = 正文（16px），列表 `-`/`1.` 完全没渲染成 ul/ol/li' (Section 7 Correction §5.17 of spec-20260424-084848.md). QA-20260425-131502 confirmed.",
+    "measured": {
+      "value": {
+        "desktop_1440x900": {
+          "h1_rendered_dom": { "tagName": "DIV", "fontSize": "20px", "fontWeight": "600", "lineHeight": "24px", "class": "unistyles_2a7hse6hphi" },
+          "h2_rendered_dom": { "tagName": "DIV", "fontSize": "16px", "fontWeight": "600", "lineHeight": "28px", "class": "unistyles_20e3u2kmncu" },
+          "body_p_rendered_dom": { "tagName": "DIV", "fontSize": "16px", "fontWeight": "400", "lineHeight": "24px" },
+          "unordered_list_item_textContent": "- 无序列表项 A",
+          "ordered_list_item_textContent": "1. 有序第一",
+          "list_item_paddingLeft": "0px",
+          "list_item_listStyle": "outside none none",
+          "list_wrapper_class": "unistyles_2agt3r2nu7s (matches RenderListBlock wrapper {flexDirection:column, marginBottom:8, gap:1})",
+          "semantic_counts": { "h1": 0, "h2": 0, "h3": 0, "ul": 0, "ol": 0, "li": 0 }
+        },
+        "mobile_390x844": {
+          "h1_rendered_dom": { "fontSize": "20px", "fontWeight": "600", "lineHeight": "24px" },
+          "h2_rendered_dom": { "fontSize": "16px", "fontWeight": "600", "lineHeight": "28px" },
+          "body_p_rendered_dom": { "fontSize": "16px", "fontWeight": "400" },
+          "unordered_list_item_textContent": "- 无序列表项 A",
+          "ordered_list_item_textContent": "1. 有序第一"
+        },
+        "source_code_styles": {
+          "header1": "fontSize: 16, fontWeight: '900', lineHeight: 24 (MarkdownView.tsx:545-551)",
+          "header2": "fontSize: 20, fontWeight: '600', lineHeight: 24 (MarkdownView.tsx:552-558)",
+          "header3": "fontSize: 16, fontWeight: '600', lineHeight: 28 (MarkdownView.tsx:559-565)",
+          "header4_5_6": "all fontSize: 16, fontWeight: '600' (MarkdownView.tsx:566-582)",
+          "body_text": "fontSize: 16, fontWeight: '400', lineHeight: 24 (MarkdownView.tsx:500-508)",
+          "RenderListBlock_marker_emission": "<Text>- <RenderSpans/></Text> at MarkdownView.tsx:176 — literal '- ' is part of Text content",
+          "RenderNumberedListBlock_marker_emission": "<Text>{item.number.toString()}. <RenderSpans/></Text> at MarkdownView.tsx:209 — literal '{n}. ' is part of Text content"
+        },
+        "seed_prompt_quirk": "The demo prompt sent `## 一级标题 demo` (markdown level=2) and `### 二级标题 demo` (level=3). Chinese label is the literal text. So observed DOM 'H1 element' is actually parsed level=2 → header2 style (20px); observed DOM 'H2 element' is level=3 → header3 (16px). User's complaint about 'H2 = 正文' is structurally TRUE for header3 (and by extension header1/4/5/6 — all 16px = body)."
+      },
+      "location": "packages/happy-app/sources/components/markdown/MarkdownView.tsx:545-582 (header styles), :176 (unordered list marker), :209 (numbered list marker)"
+    },
+    "expected": {
+      "value": {
+        "header1": "fontSize ≥ 24px (HTML default H1 ≈ 2em ≈ 32px; chat-context 24-28px is reasonable). fontWeight ≥ 700.",
+        "header2": "fontSize 20px (already correct — keep)",
+        "header3": "fontSize 17-18px (HTML default H3 ≈ 1.17em ≈ 19px). fontWeight ≥ 600.",
+        "header4_5_6": "Optional: collapse to body 16px is acceptable IF fontWeight ≥ 600 visually distinguishes (already satisfied).",
+        "list_marker_emission": "Marker character (• for unordered, n. for ordered) rendered as a SEPARATE node (View or Text sibling), NOT inside the same Text leaf as the item content. textContent of the item-content leaf does NOT contain '- ' or '{n}. '. Marker is visually distinct (e.g., bullet glyph or right-aligned number).",
+        "semantic_HTML_web": "(Should-have) On web, ul+ol+li semantic count > 0; h1+h2+h3 semantic count > 0."
+      },
+      "source": "GitHub Flavored Markdown spec (https://github.github.com/gfm/#lists §5.2) + HTML user-agent stylesheet (https://html.spec.whatwg.org/multipage/rendering.html#sections-and-headings) + React Native Web accessibility role mapping (https://reactnative.dev/docs/accessibility#accessibilityrole)"
+    },
+    "gap": "Headers H1/H3/H4/H5/H6 fontSize collapsed to body (16px); only fontWeight differentiates. List markers leak as literal text inside <Text> content. Quantified: 5 of 6 header levels fail strict AC (fontSize > body); 100% of list items leak literal marker."
+  },
+  "scope_expansion": {
+    "search_pattern": "fontSize: 16 in header[1-6]; literal `'- '` or `${item.number.toString()}.` in RenderListBlock/RenderNumberedListBlock",
+    "search_scope": "packages/happy-app/sources/components/markdown/",
+    "user_reported": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx (H2 + lists)"
+    ],
+    "additional_found": [
+      "Same file MarkdownView.tsx — but additionally header1/header3/header4/header5/header6 all collapse to body too (only header2 is correctly larger). User reported only H2; grep reveals 5 of 6 levels affected."
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:176 (RenderListBlock literal '- ')",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:209 (RenderNumberedListBlock literal '{n}. ')",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:545-551 (header1 fontSize 16)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:559-565 (header3 fontSize 16)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:566-572 (header4 fontSize 16)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:573-577 (header5 fontSize 16)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:578-582 (header6 fontSize 16)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_1_external",
+    "description": "GitHub Flavored Markdown specification (lists rendering convention) + HTML user-agent stylesheet (heading typography defaults) + React Native Web accessibility role → semantic HTML mapping",
+    "url_or_location": "https://github.github.com/gfm/#lists ; https://html.spec.whatwg.org/multipage/rendering.html#sections-and-headings ; https://reactnative.dev/docs/accessibility#accessibilityrole",
+    "copy_allowed": true,
+    "dev_constraint": "Choose fontSize values from external typography conventions (H1 ≥ 24px, H3 ≥ 17px). Do NOT copy from production /root/happy/ — production has the same bug."
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing+dedup_hit+git_log",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ba-spec-20260424-143000-0.md + docs/dev/dev-report-20260424-143000-0.json",
+        "proposed_solution": "Add 7 missing primitives — strikethrough, task-list, nested-list depth, blockquote, kbd, HTML entity decode; ensure no regression on existing primitives.",
+        "actual_change": "4 files modified — parseMarkdown.ts (added 'strikethrough'/'kbd' to span styles, 'task-list'/'blockquote' to block types, depth field on list items), parseMarkdownSpans.ts (added ~~ and <kbd> regexes + entity decode), parseMarkdownBlock.ts (refactored monolith into ParseCtx + 12 helpers; added blockquote / task-list / nested-depth branches), MarkdownView.tsx (added RenderTaskListBlock + RenderBlockquoteBlock; updated RenderListBlock for depth indent).",
+        "outcome": "Blockquote, task-list, kbd, strikethrough, nested-list depth all PASS per QA-20260425-131502. But H1/H2/H3 typography NOT changed (header1/3..6 still 16px = body); list-marker emission NOT changed (literal '- ' / '{n}. ' still in Text content); 100% of list items still leak markdown source.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L1+L4 (cosmetic + parser additions)",
+        "why_failed": "Spec MoSCoW R6 said 'existing headings/ordered lists must NOT regress' but never required them to MEET the AC font-size>body rule. AC only specified marker-indent for nested lists, not marker-distinct-from-text-content. So implementation correctly held to the literal under-ask while leaving the actual AC-failing behaviour intact."
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L1",
+      "differs_from_all_priors": true,
+      "rationale": "Attempt 1 was additive (new branches, new components, new types — all GREEN-FIELD code). This attempt MODIFIES EXISTING code: existing header1..6 fontSize values, existing RenderListBlock and RenderNumberedListBlock marker-emission lines. Different lines (545-582, 176, 209 vs Attempt 1's added lines around 165-200), different intent (fix existing renderer behaviour vs add new branches), no overlap with Attempt 1's modifications. Layer is L1 in both cases but the surface area is disjoint."
+    }
+  },
+  "context": {
+    "codebase_state": "Worktree /dev/shm/dev-workspace/happy-dev at commit fcaaf4bb (HEAD). MarkdownView.tsx and parseMarkdown* files unchanged in this worktree relative to HEAD. happy-app:dev image deployed at port 8097.",
+    "recent_commits": [
+      "fcaaf4bb docs: spec layering re-architecture (3-layer A/B/C separation)",
+      "6eb52654 docs: session-recovery bugfix spec + close debate trail",
+      "0ba2ddfc feat: cycle 1 (14 pipelines) + close-remediation",
+      "0dd09cc3 fix: align table rendering with prod — empty first cell no longer drops last column"
+    ],
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "dev_session": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+      "dev_session_working_dir": "/tmp/dev-verify-131502",
+      "dev_account": "cmi5mv9eh00wzpg14ph73jj3n",
+      "deployed_image": "happy-app:dev (port 8097)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Surgical edit of MarkdownView.tsx only. Two independent sub-fixes that can land in same commit: (a) raise header1/3 (and optionally 4-6) fontSize values; (b) refactor RenderListBlock and RenderNumberedListBlock to render marker as a sibling node, optionally with web accessibilityRole='list'/'listitem' for semantic HTML.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+    ],
+    "validation_approach": "QA: live Playwright run on dev session cmoedofgz86n5nz15xsldnk35 at desktop 1440x900 AND mobile 390x844. (1) getComputedStyle on rendered H1/H2/H3 elements — assert fontSize > body fontSize. (2) Inspect list-item DOM — assert no leaf textContent begins with '- ' or '{n}. '; assert visible marker as sibling node. (3) (should-have) document.querySelectorAll('ul,ol,li').length > 0 on web. Screenshots saved per viewport. Verify no regression by visual+DOM check on blockquote / task-list / kbd / strikethrough / bold / italic / link / inline code / code-block / table / LaTeX (all PASSED in cycle 0424)."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": false,
+    "meaningful_naming": true,
+    "git_root_cause_reference": false
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward L1 cosmetic fix with clear root cause directly observed in browser DOM and pinpointed to exact source lines. External spec references (GFM, HTML UA stylesheet, RNW accessibilityRole) are well-known and inline-cited; no open research questions."
+  }
+}

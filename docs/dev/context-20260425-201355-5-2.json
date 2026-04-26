@@ -1,0 +1,303 @@
+{
+  "request_id": "dev-20260425-201355-5-2",
+  "timestamp": "2026-04-25T20:13:55+00:00",
+  "spec_item": "5.2",
+  "spec_file": "docs/dev/specs/spec-20260424-084848.md",
+  "cycle": 6,
+  "requirement": {
+    "original": "claude 全部1M系列模型的context占用显示失败，这是因为目前happy-dev不适配1M模型。例如这张图展示的context为0%这是根本不可能的",
+    "clarified": "Make AgentInput status-bar `N% left` indicator render correctly for both 'default' and 'sonnet 4.6' Claude picker selections. Cycle 1 fixed L3 (denominator constant) but the L4 logic gaps (Claude path never sets currentModelCode; truthy guard hides indicator when contextSize=0) leave the indicator absent on real sessions. Forward-fix on top of commit 0ba2ddfc — no revert.",
+    "what": "Add flavor-aware default-window resolution at the AgentInput call site so picker='default' on Claude resolves to 1_000_000 (per user assertion), and replace the truthy-guard `usageData?.contextSize ? ... : null` with a presence check so the indicator renders even when contextSize is currently 0 (alwaysShow=true case).",
+    "why": "Cycle 5 user audit (2026-04-25T15:00Z, spec line 2801) asserts: 'default 模型本身就是 1M——这是 happy-dev 架构 bug，不是 provisioning gap. 当前 sonnet 4.6 + default 都没显示 context%'. Live BA Playwright re-verification on session cmoedofgz86n5nz15xsldnk35 (model='sonnet', alwaysShowContextSize=true) confirms zero `% left` token in the AgentInput leaf text.",
+    "where": [
+      "packages/happy-app/sources/components/modelModeOptions.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "scope": {
+      "included": [
+        "Add getDefaultModelContextWindow(flavor) helper to modelModeOptions.ts",
+        "Modify AgentInput.tsx call site (lines 361-367) to use flavor-aware default + presence-check guard",
+        "Live Playwright verification at desktop 1280x720 and mobile 390x844 with picker toggled between 'default' and 'sonnet'"
+      ],
+      "excluded": [
+        "Modifying packages/happy-cli (daemon-restart risk; R7 'write Claude-side currentModelCode' is Could-Have, deferred to a separate cycle)",
+        "Reverting commit 0ba2ddfc or any history rewrite (forward-fix only)",
+        "Touching production happy (only happy-app:dev rebuild)",
+        "Changing warning thresholds (5%, 10%) — they remain correct",
+        "Changing the token counter at reducer.ts:1233 — correct"
+      ]
+    },
+    "success_criteria": [
+      "Live: picker='default' Claude session, alwaysShowContextSize=true, contextSize~500_000 → status bar shows ~50% left",
+      "Live: picker='sonnet' Claude session, alwaysShowContextSize=true, contextSize~100_000 → status bar shows ~50% left (non-regression)",
+      "Live: contextSize=0 with alwaysShow=true → indicator still renders (100% left or equivalent)",
+      "Live: alwaysShow=false + remaining>10 → indicator absent (no regression to existing behaviour)",
+      "Both desktop 1280x720 and mobile 390x844 screenshots captured for AC1/AC2/AC5"
+    ],
+    "constraints": [
+      "Must be additive on top of Cycle 1 commit 0ba2ddfc (no revert; no removal of getModelContextWindow)",
+      "Must NOT depend on metadata.currentModelCode being populated for Claude sessions",
+      "Must preserve `getContextWarning`'s internal 5%/10% threshold logic",
+      "Frontend-only — no happy-cli or server changes",
+      "Per global rule: NO fallback_plan: source+bundle+typecheck for UI pipelines"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "AgentInput status bar shows no `N% left` text for picker='default' or picker='sonnet' Claude sessions, even with alwaysShowContextSize=true.",
+    "root_cause": "Two distinct L4 logic gaps not addressed by Cycle 1's L3 lookup-table fix: (1) For picker='default' on Claude, `resolvedModelKey` falls through to `metadata.currentModelCode`, but the Claude code path of happy-cli (packages/happy-cli/src/claude/**) never writes that field — it is set only by the ACP/Codex/Gemini path (sessionConfigMetadata.ts:113). So `getModelContextWindow(null)===200_000` regardless of the underlying model. (2) The conditional render guard at AgentInput.tsx:365, `props.usageData?.contextSize ? getContextWarning(...) : null`, treats `contextSize=0` as falsy and hides the indicator — even when alwaysShowContextSize=true and usageData is present.",
+    "root_cause_commit": "0ba2ddfc — feat: cycle 1 (14 pipelines) + close-remediation (introduced the partial fix; the gap is what Cycle 1 did NOT address)",
+    "why_introduced": "Cycle 1 BA spec correctly identified the L3 hardcoded denominator and replaced it with a per-model lookup. The lookup logic is sound for keys it can match. The plumbing assumption — that picker='default' would fall through to a populated `metadata.currentModelCode` — was never verified, and the truthy-vs-presence guard subtlety was overlooked.",
+    "why_problematic": "Cycle 5 user audit shows the symptom persists: BOTH 'default' and 'sonnet 4.6' fail to render the indicator on real sessions. The existing fix is necessary but insufficient.",
+    "timeline": "Bug originally reported in spec §5.2 (created 2026-04-24); Cycle 1 partial fix landed 2026-04-24T23:22Z (commit 0ba2ddfc); Cycle 5 QA self-reported BLOCKED 2026-04-25T13:15Z; user audit overturned to FAIL 2026-04-25T15:00Z; this re-attempt 2026-04-25T20:13Z.",
+    "affected_files": [
+      "packages/happy-app/sources/components/AgentInput.tsx",
+      "packages/happy-app/sources/components/modelModeOptions.ts"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "observed: live Playwright probe 2026-04-25T20:18Z on session cmoedofgz86n5nz15xsldnk35 (model='sonnet', alwaysShowContextSize=true): AgentInput leaf text array = ['last seen 2 hours ago', '', 'sonnet 4.6', '', 'don't ask', '', '', '', '', ''] — zero `%` token, zero `left` token",
+      "observed: localStorage `mmkv.default\\settings` contains `\"alwaysShowContextSize\":true` — user has the setting ENABLED, so the absence cannot be blamed on the default-off setting",
+      "observed: docker image `happy-app:dev` built 2026-04-25T10:27Z — AFTER commit 0ba2ddfc (2026-04-24T23:22Z) — confirming Cycle 1 fix IS deployed",
+      "inferred: AgentInput.tsx:365 truthy guard `props.usageData?.contextSize ? ... : null` — JavaScript treats 0 as falsy → null → no render",
+      "inferred: getModelContextWindow(null) === 200_000 (modelModeOptions.ts:96 fallback)",
+      "inferred: packages/happy-cli/src/claude/** has zero writes to `metadata.currentModelCode` (only `agent/acp/sessionConfigMetadata.ts:113` writes it, and that path runs only for Codex/Gemini)",
+      "inferred (user-asserted): 'default 模型本身就是 1M' (spec line 2801) — happy-dev's default Claude model has a 1_000_000 context window per the user's product assertion"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["context%", "context占用", "1M", "default", "sonnet 4.6", "0%", "left"],
+    "localization_evidence": "Reproduced bug live in Chrome at https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 with alwaysShowContextSize=true. DOM probe shows AgentInput leaf-text contains 'sonnet 4.6' chip but no `% left` token anywhere. Walking up from the chip to the AgentInput root reveals the status-bar region renders only connection-status, model chip, and permission-mode chip — confirming the contextWarning render branch (AgentInput.tsx:874-883) is NOT entered.",
+    "located_source": "packages/happy-app/sources/components/AgentInput.tsx:361-367 (resolvedModelKey + truthy guard) + packages/happy-app/sources/components/modelModeOptions.ts:95-101 (denominator lookup) + packages/happy-cli/src/agent/acp/sessionConfigMetadata.ts:113 (only currentModelCode writer; Claude path absent)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "bisect_blocked": "Not applicable — this is not a regression from prior working state; it is a new symptom mass-revealed by Cycle 5's audit. The Cycle 1 partial fix is verifiable via `git show 0ba2ddfc -- packages/happy-app/sources/components/AgentInput.tsx packages/happy-app/sources/components/modelModeOptions.ts`. No bisect needed."
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {"id": "R1", "source_phrase": "default 模型本身就是 1M——这是 happy-dev 架构 bug (spec line 2801)", "acceptance_criterion": "When picker key is 'default' or null on a Claude session, denominator used by getContextWarning is 1_000_000; does NOT depend on metadata.currentModelCode."},
+    {"id": "R3", "source_phrase": "当前 sonnet 4.6 + default 都没显示 context% (spec line 2801)", "acceptance_criterion": "With alwaysShowContextSize=true, the `% left` indicator renders for any session that has a usageData object, even when contextSize is currently 0."},
+    {"id": "R4", "source_phrase": "claude 全部1M系列模型的context占用显示失败 (spec line 1485)", "acceptance_criterion": "With picker='sonnet' and alwaysShowContextSize=true and contextSize > 0, status bar renders N% left against the 200_000 denominator (no regression vs Cycle 1)."},
+    {"id": "R5", "source_phrase": "context为0%这是根本不可能的 (spec line 1485)", "acceptance_criterion": "At contextSize=500_000 on a 'default'-picker Claude session, status bar shows ~50% left, NOT 0% left."}
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/-session/SessionView.tsx",
+      "line_range": "225-235",
+      "role": "useSessionSettings hook reads `useSessionUsage(sessionId)` (live latestUsage) and `useSetting('alwaysShowContextSize')`; passes both to AgentInput via props.",
+      "imports_from": "packages/happy-app/sources/components/AgentInput.tsx",
+      "evidence": "Read line 227-228",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/-session/SessionView.tsx",
+      "line_range": "490-494",
+      "role": "resolveUsageData(settings.usage, session.latestUsage) merges live ephemeral and persisted usage into one object passed as `usageData` prop.",
+      "imports_from": "leaf",
+      "evidence": "Read line 490-494",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/-session/SessionView.tsx",
+      "line_range": "538-543",
+      "role": "ComposerInput renders <AgentInput usageData={usage} alwaysShowContextSize={settings.showCtx} ...> — wires both into AgentInput props.",
+      "imports_from": "packages/happy-app/sources/components/AgentInput.tsx",
+      "evidence": "Read line 540",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line_range": "361-367",
+      "role": "Call site: computes resolvedModelKey, calls getModelContextWindow, applies truthy guard `usageData?.contextSize ?...:null`. THIS is the fix point.",
+      "imports_from": "packages/happy-app/sources/components/modelModeOptions.ts",
+      "evidence": "Read line 361-367 — confirmed Cycle 1 wiring present",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/modelModeOptions.ts",
+      "line_range": "95-101",
+      "role": "getModelContextWindow(modelKey): returns 1_000_000 if key matches /1m$/i etc, else 200_000. Cannot recognise raw Claude IDs like `claude-opus-4-20250514`.",
+      "imports_from": "leaf",
+      "evidence": "Read line 95-101 — verified: `if (!modelKey) return 200_000;` confirms null fallback to 200k",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line_range": "291-304",
+      "role": "getContextWarning(contextSize, alwaysShow, theme, maxContextSize=200_000): computes percentage; returns `null` if `remaining > 10 && !alwaysShow`. With alwaysShow=true returns object always.",
+      "imports_from": "leaf",
+      "evidence": "Read line 291-304",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line_range": "874-883",
+      "role": "Render branch: `{contextWarning && (...)}` displays `N% left`. If contextWarning is null (from line 365 truthy guard OR line 303 fall-through), branch is skipped — no DOM emitted.",
+      "imports_from": "leaf",
+      "evidence": "Read line 874-883",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/agent/acp/sessionConfigMetadata.ts",
+      "line_range": "113",
+      "role": "ONLY writer of metadata.currentModelCode in the entire CLI. Runs in ACP path (Codex/Gemini), NOT Claude. Establishes that for Claude sessions, currentModelCode is always undefined.",
+      "imports_from": "leaf",
+      "evidence": "Grep `currentModelCode` across packages/happy-cli/src returned only acp/* and types.ts — no Claude path writes",
+      "verified_via": "grep"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "line_range": "1225-1237",
+      "role": "processUsageData computes contextSize = (cache_creation + cache_read + input). Triggered by ephemeral 'usage' WebSocket event (sync.ts:2270). For sessions with no recent usage events, latestUsage may be undefined.",
+      "imports_from": "leaf",
+      "evidence": "Read line 1225-1237",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line": 365,
+      "type": "if (truthy)",
+      "code_snippet": "const contextWarning = props.usageData?.contextSize ? getContextWarning(...) : null;",
+      "purpose": "Originally guards against undefined usageData. Side effect: also hides indicator when contextSize===0. THIS guard is to be REPLACED with a presence check.",
+      "removal_authorized": true
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line": 303,
+      "type": "if (return null)",
+      "code_snippet": "return null; // No display needed — when remaining > 10 and !alwaysShow",
+      "purpose": "Hides indicator when usage is comfortable AND user setting is off. Must be PRESERVED — this is the user-controllable behaviour.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line": 779,
+      "type": "if (conditional render)",
+      "code_snippet": "{(props.connectionStatus || contextWarning || (displayPermissionMode && permissionModeKey !== 'default') || isNonDefaultModel) && (...)}",
+      "purpose": "Hides the entire status bar row when nothing to show. Must be PRESERVED.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/AgentInput.tsx",
+      "line": 874,
+      "type": "if (conditional render)",
+      "code_snippet": "{contextWarning && (<Text ...>{contextWarning.text}</Text>)}",
+      "purpose": "Render branch for the warning text. Must be PRESERVED.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/modelModeOptions.ts",
+      "line": 96,
+      "type": "if (null fallback)",
+      "code_snippet": "if (!modelKey) return 200_000;",
+      "purpose": "Default-fallback when no modelKey is provided. Must be PRESERVED — kept as the safe baseline for non-Claude unknown flavors. The new flavor-aware default is layered ABOVE this, not in place of it.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "viewport": "1280x720 desktop AND 390x844 mobile (both required)",
+    "theme": "both",
+    "locale": "zh",
+    "auth_state": "logged-in (dev account cmi5mv9eh00wzpg14ph73jj3n)",
+    "data_state": "active Claude session with messages — verified live on cmoedofgz86n5nz15xsldnk35; AC3 needs a session whose usage event has not yet arrived",
+    "browser": "Chrome desktop (anti-detection Playwright); Safari iOS reported by user",
+    "url_path": "/session/<session-id> — any Claude flavor session"
+  },
+  "evidence": {
+    "observed": "Live Playwright probe 2026-04-25T20:18Z on https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 — AgentInput leaf-text array contains 'last seen 2 hours ago', 'sonnet 4.6', 'don't ask'; zero `%` or `left` token. localStorage settings.alwaysShowContextSize === true confirmed.",
+    "measured": {
+      "value": "AgentInput.tsx:365 — `props.usageData?.contextSize ? getContextWarning(...) : null` (truthy guard); modelModeOptions.ts:96 — `if (!modelKey) return 200_000;`; happy-cli/src/agent/acp/sessionConfigMetadata.ts:113 — only writer of currentModelCode (Codex/Gemini path).",
+      "location": "packages/happy-app/sources/components/AgentInput.tsx:361-367 + modelModeOptions.ts:95-101 + happy-cli/src/agent/acp/sessionConfigMetadata.ts:113"
+    },
+    "expected": {
+      "value": "Default Claude denominator = 1_000_000 (per user assertion 'default 模型本身就是 1M'); presence-based render guard so contextSize=0 with alwaysShow=true still renders; regression-safe for sonnet/opus/haiku at 200_000.",
+      "source": "spec-20260424-084848.md line 2801 (user audit) + Anthropic public model docs https://www.anthropic.com/api"
+    },
+    "gap": "Two L4 logic defects: (1) picker='default' on Claude has no model-identity source (CLI Claude path doesn't write currentModelCode → resolvedModelKey=null → 200_000 denominator instead of 1M); (2) truthy guard at line 365 hides indicator when contextSize===0 even with alwaysShow=true. Result: users see ZERO `% left` text on default+sonnet sessions."
+  },
+  "scope_expansion": {
+    "search_pattern": "MAX_CONTEXT_SIZE | getModelContextWindow | getContextWarning | latestUsage | contextSize | currentModelCode",
+    "search_scope": "packages/happy-app/sources/** + packages/happy-cli/src/**",
+    "user_reported": ["AgentInput status bar of any 1M-context Claude session"],
+    "additional_found": [
+      "packages/happy-cli/src/agent/acp/sessionConfigMetadata.ts:113 (only currentModelCode writer; Claude path absent — discovered via grep, NOT in user report)",
+      "AgentInput.tsx:365 truthy guard hiding contextSize=0 case (discovered via code re-read, NOT in user report)"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/AgentInput.tsx:11",
+      "packages/happy-app/sources/components/AgentInput.tsx:291-304",
+      "packages/happy-app/sources/components/AgentInput.tsx:361-367",
+      "packages/happy-app/sources/components/AgentInput.tsx:779",
+      "packages/happy-app/sources/components/AgentInput.tsx:874-883",
+      "packages/happy-app/sources/components/modelModeOptions.ts:73-101",
+      "packages/happy-app/sources/-session/SessionView.tsx:204",
+      "packages/happy-app/sources/-session/SessionView.tsx:227-228",
+      "packages/happy-app/sources/-session/SessionView.tsx:490-494",
+      "packages/happy-app/sources/-session/SessionView.tsx:540",
+      "packages/happy-app/sources/sync/reducer/reducer.ts:1225-1237",
+      "packages/happy-app/sources/sync/sync.ts:2270-2280",
+      "packages/happy-cli/src/agent/acp/sessionConfigMetadata.ts:113"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_1_external",
+    "description": "Anthropic public model documentation — Claude model context-window specifications. Augmented by tier_2_verified user assertion in spec-20260424-084848.md line 2801: 'default 模型本身就是 1M'.",
+    "url_or_location": "https://www.anthropic.com/api + docs/dev/specs/spec-20260424-084848.md line 2801",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing AND dedup_hit AND git_log",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ba-spec-20260424-143000-6.md",
+        "proposed_solution": "Replace hardcoded MAX_CONTEXT_SIZE=190000 with per-model lookup getModelContextWindow(modelKey) returning 1_000_000 for /1m$/i | -1m- | :1m else 200_000. Thread through getContextWarning via 4th parameter.",
+        "actual_change": "modelModeOptions.ts +21/-0 (added getModelContextWindow); AgentInput.tsx +40/-8 (removed constant, added import, extended getContextWarning signature, computed resolvedModelKey + maxContextSize at call site with picker-key='default' falling through to metadata.currentModelCode). Committed in 0ba2ddfc on 2026-04-24T23:22Z. Image happy-app:dev rebuilt 2026-04-25T10:27Z.",
+        "outcome": "Live BA Playwright re-verification 2026-04-25T20:18Z: status bar still shows zero `% left` token for picker='sonnet' AND for picker='default'. User audit at 2026-04-25T15:00Z (spec line 2801) downgraded verdict from BLOCKED to FAIL. Symptom unchanged.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L3"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "Cycle 1 fixed L3 (denominator constant table). This re-attempt addresses L4 (logic): (a) flavor-aware default-window resolution that does NOT require metadata.currentModelCode (because Claude path never sets it) — the picker='default' on Claude is unconditionally treated as 1M per the user's product assertion; (b) replaces the truthy guard `usageData?.contextSize ? ... : null` with a presence check `usageData ? ... : null` so contextSize=0 with alwaysShow=true still renders. Both changes are at L4 and target different lines than Cycle 1."
+    }
+  },
+  "context": {
+    "codebase_state": "Branch main; commit 0ba2ddfc landed Cycle 1 fix; image happy-app:dev built 2026-04-25T10:27Z (after commit); deployed at https://dev.life-ai.app via happy-web-dev container.",
+    "recent_commits": "0ba2ddfc feat: cycle 1 (14 pipelines) + close-remediation; 4381eaf5 feat: cycle 2 (codex protocol activation); fcaaf4bb docs: spec layering re-architecture",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "dev_url": "https://dev.life-ai.app",
+      "dev_api": "https://api-dev.life-ai.app",
+      "dev_account": "cmi5mv9eh00wzpg14ph73jj3n",
+      "test_session": "cmoedofgz86n5nz15xsldnk35",
+      "test_session_workdir": "/tmp/dev-verify-131502"
+    }
+  },
+  "development_approach": {
+    "strategy": "Forward-fix on top of Cycle 1's commit 0ba2ddfc. Add a small flavor-aware helper `getDefaultModelContextWindow(flavor)` to modelModeOptions.ts. Modify AgentInput.tsx call site (lines 361-367) to (a) use the new helper when picker key is 'default' or null, falling back to existing getModelContextWindow for explicit non-default keys; (b) replace truthy guard with presence check. NO revert. NO history rewrite. NO happy-cli changes (R7 deferred).",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/modelModeOptions.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "validation_approach": "QA must do live Playwright verification at desktop 1280x720 AND mobile 390x844. AC1 (default→1M, ~50% at 500k contextSize), AC2 (sonnet→200k, ~50% at 100k contextSize, no regression), AC3 (contextSize=0 with alwaysShow=true still renders), AC4 (alwaysShow=false + remaining>10 still hides — no regression), AC5 (live verification on cmoedofgz86n5nz15xsldnk35 with picker toggled). Screenshots to docs/dev/evidence/qa-<timestamp>/5.2/. NO source-only fallback allowed."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward bug fix with concrete root cause already identified via code reading + live Playwright reproduction. The two L4 gaps (model-identity sourcing for picker='default'; truthy-guard render condition) are mechanical defects, not architectural decisions requiring industry-best-practice research. The Anthropic API documentation (1_000_000 / 200_000) is the only external reference needed and is already documented as tier_1_external."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

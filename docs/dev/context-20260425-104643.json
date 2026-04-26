@@ -1,0 +1,186 @@
+{
+  "request_id": "dev-20260425-104643",
+  "timestamp": "2026-04-25T10:46:43Z",
+  "requirement": {
+    "original": "Refactor the spec at docs/dev/specs/spec-20260424-233926.md to fix the 7 maturity gaps identified by /close (transcript at docs/dev/close-report-20260425-001000.md). The work is RESTRUCTURING + DECISION-LOCKING + SCOPE-DECLARATION on a markdown spec file — no code changes. After the fix, re-running /close on the same spec must produce CLOSE: YES.",
+    "clarified": "Edit exactly one markdown file (the spec) using anchor-text replacements to: (1) move R4 + 5.4 from Section 1 into Section 5 as 5.2.4 and 5.2.5; (2) lock 5.2.1.2 to option (d); (3) lock 5.2.1.3 to worktree-aware /spec + stash-aware /merge preflight; (4) reconcile 5.2.1.2(d)/5.2.3 contradiction; (5) declare cross-repo scope (project + global Claude config) in new 5.3.1; (6) attach pass/fail signal to 5.2.5; (7) attach per-requirement verification signals to all of 5.2.x.",
+    "what": "Restructure + decision-lock + scope-declare the markdown spec at /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md.",
+    "why": "/close 2026-04-25T10:30Z returned CLOSE: NO with 7 specific structural defects. Without these fixes, no /dev cycle can be confidently kicked off against the spec.",
+    "where": ["/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"],
+    "scope": {
+      "included": [
+        "Editing the single spec file via anchor-text replacements",
+        "Preserving all evidence and reasoning from the original spec",
+        "Locking 4 user-decided defaults (option d for bridge; worktree-aware /spec; in-scope cross-repo; postmortem deliverable pass/fail)",
+        "Adding verification signals for R1–R5 of the spec (not for R1–R7 of THIS BA->Dev cycle's MoSCoW; those are separate)"
+      ],
+      "excluded": [
+        "Any code change to any hook, command, script, or package",
+        "Editing any file under /root/.claude/",
+        "Renumbering Sections 1–8 of the spec",
+        "Re-doing the b5d447e investigation (postmortem is a future /dev cycle deliverable)",
+        "Touching Section 5.1's verbatim Chinese user requirement",
+        "Touching Section 1's commit-level evidence or signal table"
+      ]
+    },
+    "success_criteria": [
+      "After dev's edit, the spec file contains sub-sections 5.2.4 and 5.2.5 (R4 and investigation deliverable) inside Section 5",
+      "Section 5.2.1.2 names option (d) as the chosen approach with (a)/(b)/(c) demoted to 'Considered alternatives'",
+      "Section 5.2.1.3 has no 'either/or' option-menu language; one behavior is locked",
+      "Sections 5.2.1.2 and 5.2.3 are mutually consistent (explicit reconciliation paragraph present)",
+      "New sub-section 5.3.1 'Cross-repo scope' names both project and global-Claude-config in-scope paths",
+      "Section 5.2.5 has an explicit Pass/Fail block specifying postmortem path, 4 named sections, and JSONL-found-or-documented-pruned criterion",
+      "Each acceptance sub-point in 5.2.x has a 'Verification signal:' block with at least one falsifiable check",
+      "Re-running /close on the edited spec produces CLOSE: YES (final acceptance test)"
+    ],
+    "constraints": [
+      "Only one file may be edited (the spec under repair)",
+      "Use Edit (anchor-text) not Write (full-file rewrite)",
+      "Preserve --- section separators",
+      "Preserve verbatim Chinese in 5.1",
+      "Preserve all commit hashes and codex evidence in Section 1"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "/close on spec-20260424-233926.md returned CLOSE: NO with 7 numbered structural defects.",
+    "root_cause": "The original spec author placed forward-looking Requirement 4 and the investigation gap (mis-labeled 5.4) inside Section 1 (Before/observed-state) instead of Section 5 (User's Acceptance Criterion / authoritative source). Compounded by leaving 5.2.1.2 and 5.2.1.3 as option menus rather than locked decisions. The structural placement defect makes Section 5 not self-contained, which is what QA+codex flagged.",
+    "root_cause_commit": "N/A — this is a markdown structural defect in spec-20260424-233926.md itself, written 2026-04-24T23:39Z; not a code regression.",
+    "why_introduced": "The original BA (or whoever populated Section 1) added R4 and 5.4 as inline narrative inside Section 1 because they emerged from the codex investigation that lives in Section 1. Mechanically convenient but structurally wrong.",
+    "why_problematic": "Section 5 is the contract for /dev cycles. If R4 lives in Section 1, a /dev cycle could legitimately ignore it as 'background context' rather than 'must-have requirement'. Codex flagged this directly.",
+    "timeline": "Spec written 2026-04-24T23:39Z. /close run 2026-04-25T10:30Z returned NO. This BA invocation 2026-04-25T10:46:43Z. Fix is one markdown editing pass.",
+    "affected_files": ["/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"],
+    "evidence_type": "observed",
+    "observations": [
+      "Read /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md lines 1-223 (observed: full file content)",
+      "R4 'Anti-regression via hook-based agent privilege restriction' header literally appears at line 82, inside Section 1's narrative (observed)",
+      "'### 5.4: Investigation gap' header literally appears at line 105, inside Section 1's narrative (observed)",
+      "Section 5 starts at line 155 and Section 5.2 enumerates only 5.2.1, 5.2.2, 5.2.3 — no 5.2.4 or 5.2.5 (observed)",
+      "5.2.1.2 line 175 contains literal string 'Options: (a)' (observed)",
+      "5.2.1.3 line 176 contains literal strings 'either stash, error clearly, or auto-resolve' AND 'EITHER warn ... OR write into the worktree' (observed)",
+      "5.2.3 line 183 contains 'no manual git commit' which contradicts 5.2.1.2(d) auto-bulk (observed)",
+      "5.3 lines 187-189 list out-of-scope items but do not name /root/.claude/* paths (observed)",
+      "Read /dev/shm/dev-workspace/happy-dev/docs/dev/close-report-20260425-001000.md lines 1-93 (observed: full close-report content) — it lists exactly 7 numbered gaps and matches the user's 7-point invocation"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["spec-20260424-233926.md", "Section 1", "Section 5", "5.2.1.2", "5.2.1.3", "5.2.3", "5.2.4", "5.2.5", "5.3", "5.4", "R4", "/close", "CLOSE: NO"],
+    "localization_evidence": "Read both the spec file and the close report end-to-end. Line numbers and anchor text confirmed for every defect. The close report's 7-point gap list maps 1:1 onto the user's 7-point fix instruction, which maps 1:1 onto the BA's edit blocks 1–8.",
+    "located_source": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md (lines 81–115 = R4+5.4 mis-placement; lines 173–183 = 5.2.x option menus and contradiction; lines 185–189 = 5.3 missing cross-repo scope)",
+    "localization_blocked": null,
+    "git_bisect_result": null
+  },
+  "diagnosis_layer": "L2",
+  "requirements_decomposition": [
+    {"id": "R1", "source_phrase": "Move Requirement 4 (hook-based agent privilege restriction) and Section 5.4 (b5d447e investigation gap) OUT of Section 1 and INTO Section 5 proper as their own numbered sub-sections (5.4 and 5.5).", "acceptance_criterion": "Section 5.2 in the edited spec contains sub-sections 5.2.4 (R4 content) and 5.2.5 (former 5.4 content), with content preserved verbatim. Section 1's old R4 block (lines 81-103) and old '### 5.4' header (line 105) are replaced by a one-line signpost each pointing forward to Section 5."},
+    {"id": "R2", "source_phrase": "Section 5.2.1.2 currently lists FOUR bridge options (a/b/c/d) without picking one. Pick exactly ONE and lock it as the chosen approach. Default recommendation: option (d).", "acceptance_criterion": "Section 5.2.1.2 contains the literal phrase 'Chosen: option (d)' (or close equivalent). Options (a), (b), (c) appear only inside a 'Considered alternatives' sub-paragraph."},
+    {"id": "R3", "source_phrase": "Section 5.2.1.3 currently lists multiple /spec collision-handling options without picking one. Pick exactly ONE.", "acceptance_criterion": "Section 5.2.1.3 contains a single locked behavior: '/spec writes into the worktree IF a worktree is active for the same spec id; ELSE writes into parent with a stash-aware preflight in /merge.' No 'either/or' language remains."},
+    {"id": "R4", "source_phrase": "Resolve the 5.2.1.2(d) ↔ 5.2.3 contradiction.", "acceptance_criterion": "5.2.1.2 contains an explicit reconciliation paragraph stating that option (d) makes a NEW semantic commit FROM the working tree at /merge time and does NOT touch refs/checkpoints/*. 5.2.3 is reworded to allow the orchestrator-blessed auto-bulk commit at /merge time as the only permitted git commit, distinguishing it from manual surgery."},
+    {"id": "R5", "source_phrase": "Declare /root/.claude/hooks/* and /root/.claude/commands/* either explicitly IN-SCOPE or OUT-OF-SCOPE for this fix. Default recommendation: IN-SCOPE.", "acceptance_criterion": "New sub-section 5.3.1 'Cross-repo scope' names BOTH project-repo .claude/hooks/, .claude/commands/, .claude/scripts/, docs/, packages/ AND global Claude config repo /root/.claude/hooks/, /root/.claude/commands/ as in-scope authoritative edit targets for the underlying engineering described by the spec."},
+    {"id": "R6", "source_phrase": "Section 5.4 ... currently asks 4 open questions but has no pass/fail signal. Add explicit acceptance criteria.", "acceptance_criterion": "Section 5.2.5 contains a 'Pass/Fail signal' block specifying: file docs/dev/postmortems/b5d447e-checkpoint-regression.md exists; the file contains four named non-empty sections (User-prompt-recovered, Agent-reasoning, Hook-that-should-have-caught-it, Concrete-hook-paths-to-add); the User-prompt-recovered section identifies a specific JSONL path under ~/.claude/projects/*/ OR documents the JSONL has been pruned/rotated."},
+    {"id": "R7", "source_phrase": "Add concrete verification signals per acceptance point in Section 5.2.", "acceptance_criterion": "Each of 5.2.1.1, 5.2.1.2, 5.2.1.3, 5.2.4, 5.2.5 contains a 'Verification signal' block with at least one falsifiable check: grep result, git log count, exit code, or 'file exists with named non-empty sections'. The exact phrasings provided by the user (R1 grep on master, R2 git log count, R3 untracked overlap detected stdout, R4 hook exit code 2, R5 anti-bulk-commit-detector) are embedded verbatim in the relevant section."}
+  ],
+  "component_chain": [
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+      "line_range": "1-223",
+      "role": "The single markdown spec file under repair. Contains 8 sections per spec template; the defects are concentrated in Section 1 (R4+5.4 mis-placement) and Section 5 (option menus + contradiction + missing scope + missing pass/fail + missing verification signals).",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool returned full 223-line content; defect line numbers confirmed: R4 at L82, 5.4 at L105, 5.2.1.2 at L175, 5.2.1.3 at L176, 5.2.3 at L183, 5.3 at L185-189",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/docs/dev/close-report-20260425-001000.md",
+      "line_range": "75-91",
+      "role": "QA+codex consensus document listing the 7 maturity gaps. Authoritative reference for what 'mature' means.",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool returned full 93-line content; the 7 gaps listed at lines 79-90 map 1:1 to the user's 7-point invocation",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [],
+  "setup": {
+    "viewport": "N/A — markdown file edit",
+    "theme": "N/A",
+    "locale": "en (spec contains preserved Chinese 5.1)",
+    "auth_state": "N/A",
+    "data_state": "spec file exists at the path with 223 lines, post-cycle-1 state",
+    "browser": "N/A",
+    "url_path": "N/A — file: /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"
+  },
+  "evidence": {
+    "observed": "/close on spec-20260424-233926.md returned CLOSE: NO. Codex objected (with QA agreement after reassessment): Section 5 is structurally incomplete (R4 sits in Section 1, sub-points 5.2.1.2/5.2.1.3 are unresolved option menus, 5.2.1.2(d) contradicts 5.2.3, and external /root/.claude/* paths aren't declared in-scope).",
+    "measured": {
+      "value": "R4 at lines 81-103 inside Section 1; '### 5.4' header at line 105 inside Section 1; Section 5.2 has only 5.2.1/5.2.2/5.2.3; 5.2.1.2 line 175 says 'Options: (a)...(b)...(c)...(d)'; 5.2.1.3 line 176 says 'either stash, error clearly, or auto-resolve' + 'EITHER warn ... OR write into the worktree'; 5.2.3 line 183 says 'no manual git commit'; 5.3 lines 187-189 do not name /root/.claude/* paths; 5.4 (line 105) lists 4 open questions but no pass/fail.",
+      "location": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md:81-189"
+    },
+    "expected": {
+      "value": "Section 5 contains 5.1, 5.2 (with 5.2.1.1/5.2.1.2/5.2.1.3/5.2.2/5.2.3/5.2.4/5.2.5 each with one locked decision and ≥1 verification signal), 5.3 (with 5.3.1 declaring cross-repo scope). Section 1 contains only signposts to Section 5 for R4 and the investigation deliverable. /close re-runs to CLOSE: YES.",
+      "source": "docs/dev/close-report-20260425-001000.md lines 75-91 (QA-codex consensus on what 'mature' looks like) + the user's invocation prompt with 4 default decisions"
+    },
+    "gap": "7 distinct edit blocks on one file. Quantified: ~30 lines of content move from Section 1 to Section 5; ~50 lines of new locked-decision content added in Section 5.2.4/5.2.5; ~20 lines of new verification signals interleaved into 5.2.x; ~15 lines of new 5.3.1 cross-repo-scope content."
+  },
+  "scope_expansion": {
+    "search_pattern": "spec-20260424-233926.md (the file under repair)",
+    "search_scope": "this BA->Dev cycle is intentionally scoped to one file; no expansion is appropriate (the user explicitly said 'no code changes')",
+    "user_reported": ["/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"],
+    "additional_found": [],
+    "all_occurrences": ["/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "The close report (docs/dev/close-report-20260425-001000.md) is the authoritative QA+codex consensus on what's wrong with the spec. The user's BA invocation prompt re-states each gap with a locked default decision. Both documents are session-verified by the user.",
+    "url_or_location": "/dev/shm/dev-workspace/happy-dev/docs/dev/close-report-20260425-001000.md (lines 75-91) + the user's invocation in this turn",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+        "proposed_solution": "Document codex's findings on the /merge regression with commit hashes, evidence, and 3 friction-point requirements + R4 anti-regression + 5.4 investigation gap.",
+        "actual_change": "Wrote the spec file with 8 template sections; populated Section 1 with codex evidence + R4 + 5.4 inline; populated Section 5 with verbatim user requirement + 3 acceptance points + out-of-scope.",
+        "outcome": "/close 2026-04-25T10:30Z returned NO. Two structural defects (R4+5.4 in wrong section), two unlocked decisions (5.2.1.2 + 5.2.1.3 option menus), one internal contradiction (5.2.1.2(d) vs 5.2.3), one missing scope declaration (cross-repo), one missing pass/fail (5.4), missing per-acceptance verification signals.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L2"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L2",
+      "differs_from_all_priors": true,
+      "rationale": "Prior attempt placed correct content in structurally-wrong locations and left decisions open. This attempt does NOT regenerate content from scratch — it preserves all evidence and reasoning verbatim, MOVES R4 and the investigation block into Section 5 as 5.2.4/5.2.5, LOCKS one decision per option-menu using the user's stated defaults, ADDS pass/fail signals where missing, and DECLARES cross-repo scope. The novelty is 'restructure + decision-lock', not 'rewrite'. This addresses the structural defect (L2) directly rather than re-attempting the content (which would be the same-failure-shape)."
+    }
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "User has already made all 4 design decisions via /close feedback (option d for bridge; worktree-aware /spec; in-scope cross-repo; postmortem deliverable). The remaining work is mechanical structural editing on a markdown file. No industry best-practice search would alter the edit plan."
+  },
+  "context": {
+    "codebase_state": "Branch: main. HEAD: 0ba2ddfc 'feat: cycle 1 (14 pipelines) + close-remediation'. Worktree overnight-20260424-bfbc5f54 already removed. The spec file exists and has not been modified since 2026-04-24T23:39Z.",
+    "recent_commits": "0ba2ddfc feat: cycle 1 (14 pipelines) + close-remediation; 430206f2 revert: roll back overnight dd8c665a changes; dd8c665a restore: recover pre-disaster state; cbcd616a Auto-commit: 2026-04-13 15:35:02; 4d3f298a Auto-commit: 2026-04-13 07:28:24",
+    "file_contents": {
+      "spec_under_repair": "Read in full (223 lines). Defect line numbers confirmed.",
+      "close_report": "Read in full (93 lines). 7-point gap list confirmed at lines 79-90."
+    },
+    "dependencies": {},
+    "environment": {
+      "project_root": "/dev/shm/dev-workspace/happy-dev",
+      "working_directory": "/dev/shm/dev-workspace/happy-dev",
+      "global_claude_config": "/root/.claude/ → symlink to /dev/shm/dev-workspace/dot-claude/"
+    }
+  },
+  "development_approach": {
+    "strategy": "Use the Edit tool with anchor-text replacements (8 distinct edits in order) to restructure the spec file in place. Preserve all evidence. After each edit, re-Read to confirm anchor stability for the next edit. After all 8 edits, re-Read the entire file and verify that: (a) Section 1 ends with signposts only (no R4/5.4 inline content); (b) Section 5 contains all required 5.2.1.x, 5.2.2, 5.2.3, 5.2.4, 5.2.5, and 5.3.1 sub-sections with locked decisions and verification signals; (c) no '### 5.4:' header remains; (d) no 'Options: (a)' or 'either ... or' option-menu language remains.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"
+    ],
+    "validation_approach": "QA re-runs /close on the edited spec. Verdict must be CLOSE: YES (or at minimum, no objections raised on any of the 7 original gaps). Falsifiable check list for QA: (1) grep -nE '^### 5\\.4:' returns 0 matches in the spec; (2) grep -nE 'Options: \\(a\\)' returns 0 matches; (3) grep -nE 'EITHER.*OR' (case-insensitive within 5.2.1.3) returns 0 matches; (4) grep -nE '^### 5\\.2\\.4:' returns 1 match; (5) grep -nE '^### 5\\.2\\.5:' returns 1 match; (6) grep -nE '^### 5\\.3\\.1:' returns 1 match; (7) grep -nE 'Verification signal' returns ≥5 matches; (8) /root/.claude/hooks/ AND /root/.claude/commands/ both appear in the new 5.3.1 block."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "item": "5.19",
+  "verdict": "pass",
+  "summary": "Synthesis is sufficient to launch 3 parallel pipelines, but H_F (Layer 1 / CLI keepAlive) is HYPOTHESIZED, not proven; remaining claims are grep-verified.",
+  "ready_for_3_pipeline_dev": true,
+  "evidence_verification": {
+    "spot_checked_claims": [
+      {
+        "claim": "session.ts:69-93 keepAlive is turn-scoped (H_F)",
+        "verified": "partial",
+        "actual_source": "session.ts:69-73 starts setInterval(keepAlive, 2000) in constructor; session.ts:80 clearInterval ONLY in cleanup(); session.ts:85-93 onThinkingChange updates this.thinking which keepAlive then emits next tick",
+        "verdict": "keepAlive timer itself runs continuously while Session object lives — NOT turn-scoped. What IS turn-scoped is the value of this.thinking (set true at turn start, false at Stop). So the timer keeps firing with thinking=false after Stop. This is consistent with the user's symptom (babbling indicator disappears) but INCONSISTENT with 'Last Updated 23:16:47 frozen' claim — if keepAlive really fires every 2s, server's lastActiveAt would keep updating. Either (a) keepAlive cleanup is being called somewhere unexpected, (b) volatile.emit drops frames silently, OR (c) 'Last Updated' in user's screenshot represents new-message timestamp not lastActiveAt. Section 4 of addendum frames H_F as 'suspect: the setInterval MAY be cleared' which is appropriate hedge."
+      },
+      {
+        "claim": "apiSession.ts:151-155 socket connect handler only does receiveSync.invalidate()",
+        "verified": "yes",
+        "actual_source": "apiSession.ts:151-155 confirmed: 'this.rpcHandlerManager.onSocketConnect(this.socket); this.receiveSync.invalidate();' — no thinking snapshot send"
+      },
+      {
+        "claim": "apiSession.ts:523-533 emits volatile session-alive",
+        "verified": "yes",
+        "actual_source": "Confirmed: socket.volatile.emit('session-alive', {sid, time, thinking, mode})"
+      },
+      {
+        "claim": "AgentInput.tsx:778-804 renders babbling indicator",
+        "verified": "yes",
+        "actual_source": "Confirmed: lines 778-804 render connectionStatus dot+text including the thinking/babbling state. Source of session.thinking (sessionUtils.ts:22-74) not directly checked but pointer consistent across BA + Codex; safe to trust"
+      },
+      {
+        "claim": "SessionView.tsx:275-281 uses useRealtimeStatus (voice) not useSocketStatus",
+        "verified": "yes",
+        "actual_source": "Confirmed verbatim: 'const realtimeStatus = useRealtimeStatus(); … React.useLayoutEffect(() => { sync.onSessionVisible(sessionId); gitStatusSync.getSync(sessionId); }, [sessionId, realtimeStatus]);' — this is the wrong dependency"
+      },
+      {
+        "claim": "sync.ts:803 fetchSessions hydrates thinking:false, thinkingAt:0",
+        "verified": "yes",
+        "actual_source": "Confirmed at sync.ts:801-808: '...session, thinking: false, thinkingAt: 0, metadata, agentState' for every session"
+      },
+      {
+        "claim": "sync.ts:1647-1729 fetchMessages does not replay lifecycle to recover thinking",
+        "verified": "yes",
+        "actual_source": "Confirmed: function paginates /v3/sessions/:id/messages, decrypts, normalizes, enqueueMessages — never touches session.thinking"
+      },
+      {
+        "claim": "sync.ts:1756-1771 reconnect callback only invalidates syncs, no per-session fetchMessages",
+        "verified": "yes",
+        "actual_source": "Confirmed: reconnect callback invalidates sessionsSync/machinesSync/artifactsSync/friends/feed/sendSync. Comment at 1765-1767 explicitly admits 'Messages are fetched lazily per-session via onSessionVisible (called by SessionView when realtimeStatus changes)' — confirming the broken wiring"
+      },
+      {
+        "claim": "sessionUpdateHandler.ts:146-186 handles session-alive, broadcasts ephemeral",
+        "verified": "yes",
+        "actual_source": "Confirmed: lines 146-190 handle socket.on('session-alive'), validate, queueSessionUpdate, buildSessionActivityEphemeral(sid, true, t, thinking || false), eventRouter.emitEphemeral with user-scoped-only filter"
+      },
+      {
+        "claim": "schema.prisma:93-105 Session model has no thinking field",
+        "verified": "yes",
+        "actual_source": "Confirmed: model Session has id/tag/accountId/metadata/agentState/dataEncryptionKey/seq/active/lastActiveAt/createdAt/updatedAt — no thinking field"
+      },
+      {
+        "claim": "socket.ts:103-112 machine-connect snapshot exists; no session equivalent",
+        "verified": "yes",
+        "actual_source": "Confirmed: at line 104 'if (connection.connectionType === machine-scoped)' triggers buildMachineActivityEphemeral broadcast. No analogous code for user-scoped connections to broadcast session thinking state"
+      }
+    ]
+  },
+  "objections": [
+    {
+      "dimension": "investigation_completeness",
+      "severity": "minor",
+      "claim": "H_F (Layer 1 / CLI Stop-hook turn-scoped keepAlive) presented as a confirmed root cause via user observation",
+      "problem": "H_F is HYPOTHESIZED, not proven. Source reading shows keepAlive runs every 2s continuously while Session object lives — NOT turn-scoped. The user's frozen 'Last Updated 23:16:47' evidence requires one of three explanations that the synthesis does not commit to: (a) Session.cleanup() is fired prematurely, (b) socket.volatile silently drops post-Stop frames, or (c) the timestamp shown in UI is NOT server's lastActiveAt but the most-recent new-message createdAt (in which case H_F's 'keepAlive collapses' framing is misleading). Section 4 hedges with 'suspect' but Section 7.1's prescriptive 'ensure keepAlive is session-scoped, NOT turn-scoped' implies a fix that may already be the case.",
+      "required_evidence": "Pipeline 7.1 Dev MUST first capture runtime evidence (journalctl -u happy-daemon-dev | grep session-alive timestamps spanning the Stop transition) before patching, OR pivot Pipeline 7.1 to focus on emitting fresh thinking=true on bg-task wake (which is the observable user-visible problem) rather than re-architecting keepAlive scope.",
+      "proceed_recommendation": "OK to launch Pipeline 7.1 in parallel with 7.2/7.3, but its first action must be runtime capture, not source edit. The BA spec R3 already mandates this ('Inferred-only fix is REJECTED')."
+    },
+    {
+      "dimension": "scope_alignment",
+      "severity": "minor",
+      "claim": "AC4/AC5 (matrix viewport + Playwright) from BA spec are not enumerated in Section 5.19 addendum's acceptance criteria list",
+      "problem": "Addendum Section 5.19 lists AC1/AC2/AC3 (real-time render / reopen state restore / timestamp not frozen) plus AC4 (desktop+mobile) and AC5 (Playwright). BA spec separately defines AC1/AC2/AC3/AC4/AC5 with overlapping but slightly different framing (AC1=desktop real-time render, AC2=mobile, AC3=ordering, AC4=no regression, AC5=runtime evidence). The two AC numbering schemes are NOT explicitly reconciled. QA verification at the end of cycle could miss BA's AC3 (chronological ordering across batched flushOutbox) or AC4c (task-notification still suppressed).",
+      "required_evidence": "QA at cycle end must verify BOTH AC sets as a UNION (5 ACs from addendum + 5 from BA spec, with deduplication). Specifically: ordering preservation (BA AC3) and no-regression on task-notification swallow (BA AC4c) MUST be in the QA matrix.",
+      "proceed_recommendation": "Acceptable for now; orchestrator should either reconcile AC numbering before QA, or QA should treat addendum AC1-AC5 ∪ BA spec AC1-AC5 as the full criterion set."
+    },
+    {
+      "dimension": "pipeline_orthogonality",
+      "severity": "minor",
+      "claim": "Pipelines 7.1 / 7.2 / 7.3 declared 'disjoint' file ownership",
+      "problem": "Mostly true, but Pipeline 7.2 (Server) and Pipeline 7.3 (App) have a coupling: 7.2 emits an ephemeral on connect; 7.3's app must handle that ephemeral type if it's new. If 7.2 introduces a new event payload (e.g., 'session-thinking-snapshot') and 7.3 doesn't add the matching handler, the snapshot is silently dropped. This is a fix-order dependency hidden inside 'orthogonal' pipelines.",
+      "required_evidence": "Either 7.2 reuses existing ephemeral 'activity' shape (no new payload type, app already handles), OR 7.2 and 7.3 must agree on a new event name + payload schema BEFORE either pipeline edits code. The addendum implies the former (reuse activity ephemeral) but doesn't make it explicit.",
+      "proceed_recommendation": "Orchestrator should instruct Pipeline 7.2 dev to constrain the connect-time snapshot to the EXISTING 'activity' ephemeral shape (sid, active, activeAt, thinking) — this matches buildSessionActivityEphemeral already used at sessionUpdateHandler.ts:181, so app side at sync.ts handleEphemeralUpdate already has the handler. No new event needed."
+    },
+    {
+      "dimension": "evidence_quality",
+      "severity": "minor",
+      "claim": "Addendum cites 'Playwright session cmoeru0d58tvtnz15wbhcrrru — agent messages e186-e258 only became visible after user typed e265' as live reproduction evidence",
+      "problem": "BA spec's evidence is from the BA agent's own observation in a session that itself exhibits the bug. It does NOT include a captured WebSocket frame log or server log excerpt showing what the server sent vs. what the app received during the gap. This is a known gap (BA spec section 'Evidence (Contract A) … BA could NOT capture the exact seq numbers / WebSocket frames'). Section 5.19 inherits this gap.",
+      "required_evidence": "Pipeline 7.3 (or QA at cycle end) must capture mcp__playwright__browser_network_requests including ws frames during one reproduction so the post-fix verification has a clean before/after comparison.",
+      "proceed_recommendation": "OK to launch dev pipelines now; require ws-frame capture in QA cycle's verification matrix."
+    },
+    {
+      "dimension": "affected_file_accuracy",
+      "severity": "minor",
+      "claim": "Pipeline 7.1 references apiSession.ts:151-155 as part of Layer 1 CLI keepAlive scope fix",
+      "problem": "apiSession.ts:151-155 is the SOCKET CONNECT handler (which only does receiveSync.invalidate()), NOT the keepAlive emit logic. The connect handler is irrelevant to 'turn-scoped vs session-scoped keepAlive timer' — it doesn't touch the timer at all. The relevant lines for the keepAlive scope claim are session.ts:69-93 (timer ownership) and apiSession.ts:523-533 (emit). Including 151-155 in 7.1's scope is either (a) a typo for 'apiSession.ts:151-155 should ALSO send a fresh keepAlive on connect to bridge reconnect gaps' (which would be a NEW feature, not an H_F fix), or (b) a copy-paste error.",
+      "required_evidence": "Orchestrator should clarify with Pipeline 7.1 dev whether the intent is (a) on socket reconnect, immediately call this.client.keepAlive(this.thinking, this.mode) once before the next 2s tick, OR (b) drop 151-155 from 7.1's scope. (a) is actually a useful additional fix — bridges the reconnect gap so app gets a fresh thinking value sooner.",
+      "proceed_recommendation": "Pipeline 7.1 should adopt interpretation (a): add a one-shot keepAlive call inside apiSession.ts socket connect handler at line 154, after receiveSync.invalidate(). This is the smallest CLI-side change that meaningfully helps Layer 2 recovery."
+    }
+  ],
+  "synthesis_strengths": [
+    "All 11 file:line claims spot-checked against source — 10 verified verbatim, 1 partially verified (H_F nuance noted above)",
+    "Two-layer interlock argument is sound: H_F creates the trigger (no fresh thinking on bg-wake), H_E makes it irrecoverable (reset-on-hydrate + no catch-up + no snapshot)",
+    "Pipeline split CLI/Server/App matches package boundaries — file edits do not cross packages, no merge conflicts expected",
+    "Addendum correctly identifies the misleading comment at sync.ts:1765-1767 ('SessionView re-fetches on realtimeStatus change') and the actual code at SessionView.tsx:281 (deps array uses realtimeStatus = voice, not socketStatus = websocket) — this is the smoking-gun mis-wiring",
+    "Server-side gap correctly identified: machine-connect has activity snapshot at socket.ts:103-112, but no session equivalent — Pipeline 7.2 has clear precedent to copy",
+    "Suspect commits (7d2bf1fa removing reconnect bulk-fetch; 5a08be71 latest-first batching) are correctly named and dated",
+    "Acceptance criteria (AC1 real-time bg-task render, AC2 reopen state restore, AC3 timestamp not frozen) directly correspond to user's three verbatim statements quoted in Section 5.19"
+  ],
+  "remaining_risks": [
+    "H_F runtime-proof gap: Pipeline 7.1 must first capture journalctl evidence of session-alive cadence across Stop boundary BEFORE editing session.ts. If the cadence is in fact continuous (which source reading suggests), 7.1's effective fix is at apiSession.ts:151-155 (send fresh keepAlive on reconnect) and at session.ts:85-93 (ensure onThinkingChange(true) fires when claude wakes from bg-task notification), NOT a re-architecture of the timer scope.",
+    "AC2 reopen-state-restore depends on Pipeline 7.2 + 7.3 BOTH landing — if only one ships, the AC fails. Orchestrator should not declare cycle 6 done until all 3 pipelines have built+deployed evidence.",
+    "Verification scenario requires a running 30+min background subagent. QA cycle time budget should account for this — a short QA cycle that can't reproduce the trigger will produce false PASS.",
+    "Production rollout (default + jade daemons) is explicitly out of scope per Section 8 — but the bug exists there too. PM should track follow-up cycle for production."
+  ],
+  "verified_against_complaint": true,
+  "verified_location_keywords": [
+    "happy-cli", "session.ts", "apiSession.ts",
+    "happy-server", "sessionUpdateHandler.ts", "socket.ts", "schema.prisma",
+    "happy-app", "sync.ts", "SessionView.tsx", "AgentInput.tsx"
+  ],
+  "location_overlap": [
+    "happy session", "claude babbling", "Last Updated", "online", "stop", "thinking", "thinking", "session-alive", "reconnect", "ephemeral", "activity"
+  ],
+  "complaint_resolution_evidence": "Synthesis maps user's three verbatim statements to specific code: (1) '只有用户重新发消息才会收到后台任务结束了 claude 的反映' → apiSession.ts flushOutbox (BA H_A-D) AND/OR sync.ts handleEphemeralUpdate not refreshed on reconnect (Codex H_E); (2) '关闭 web 之后…左下角的 claude babling 消失了' → sync.ts:803 fetchSessions hard-resets thinking:false (Codex H_E); (3) 'Last Updated 25/04/2026, 23:16:47…stop 之后就不会实时更新消息' → session.ts:69-93 keepAlive scope (user H_F, hypothesized, source-reading suggests timer is actually continuous so the precise mechanism remains to be runtime-verified by Pipeline 7.1).",
+  "complaint_element_pointer": {
+    "selector": "[data-testid=session-status-text] AND [data-testid=session-last-updated]",
+    "how_located": "AgentInput.tsx:778-804 renders connection status text dot+label; session list item shows 'Last Updated' timestamp",
+    "found_in_dom": true,
+    "page_url": "https://dev.life-ai.app/session/<sid>"
+  },
+  "build_verification": {
+    "status": "skipped",
+    "skip_reason": "BA-validation mode: NOT code verification, NOT runtime verification. QA validates BA synthesis quality only."
+  },
+  "self_verification": {
+    "claims_total": 11,
+    "claims_with_evidence": 11,
+    "claims_superficial": 0,
+    "superficial_details": [],
+    "confidence": "high"
+  }
+}

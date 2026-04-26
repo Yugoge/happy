@@ -1,0 +1,419 @@
+{
+  "request_id": "dev-20260425-bgtask",
+  "timestamp": "2026-04-25T21:00:00Z",
+  "requirement": {
+    "original": "刚刚后台任务导致 happy session 不更新的问题重新出现了。只有用户重新发消息才会收到后台任务结束了 claude 的反映（响应/输出）。这个是很严重的问题。",
+    "clarified": "claude-code's text response to a <task-notification> system-reminder (injected when an Agent tool with run_in_background:true finishes) is delivered to happy-server but does NOT render in happy-app UI in real-time. User must send a new message to trigger rendering.",
+    "what": "Real-time rendering of in-turn agent text emitted after backgrounded subagent completion is broken; messages queue silently until user sends another prompt.",
+    "why": "Critical infrastructure-layer bug. User cannot see asynchronous claude output without manually 'kicking' the UI. Reduces app to polling-by-user-action.",
+    "where": [
+      "packages/happy-cli/src/api/apiSession.ts (flushOutbox latest-first + sendClaudeSessionMessage)",
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts (task-notification swallow)",
+      "packages/happy-cli/src/claude/utils/OutgoingMessageQueue.ts (delay/release tool-call queue)",
+      "packages/happy-server/sources/app/api/routes/v3SessionRoutes.ts (emit new-message)",
+      "packages/happy-server/sources/app/events/eventRouter.ts (recipient filter + connection emit)",
+      "packages/happy-app/sources/sync/sync.ts (handleUpdate fast-path / fallback invalidate)",
+      "packages/happy-app/sources/sync/storage.ts (applyMessages reducer + sort by createdAt)"
+    ],
+    "scope": {
+      "included": [
+        "Diagnose why post-task-notification agent text does not stream to app",
+        "Add runtime instrumentation (debug logs) on CLI flushOutbox and app handleUpdate",
+        "Forward-fix at the confirmed hypothesis layer (no revert)",
+        "Verify fix on desktop AND mobile via Playwright"
+      ],
+      "excluded": [
+        "Revert any of cca7fe27 / ae29dd3e / 22c5e38b / 5a08be71",
+        "Surface <task-notification> as user-facing message",
+        "Restart production daemons",
+        "Modify production /root/happy/ tree",
+        "Re-architect SessionEnvelope or sessionProtocolMapper",
+        "Backwards-fix via destructive git commands"
+      ]
+    },
+    "success_criteria": [
+      "Agent text emitted by claude after a <task-notification> renders in app within 2s on both desktop AND mobile, no user kick required",
+      "Existing flushOutbox seq-gap detection (cca7fe27) still triggers on user-message-send seq jumps",
+      "<task-notification> still suppressed (does not appear in DOM textContent)",
+      "Dev report includes runtime evidence (server log / daemon log / ws frame) of pre-fix and post-fix state"
+    ],
+    "constraints": [
+      "Forward-fix only; no revert of prior fix commits",
+      "Build dev web and dev cli from worktree, never /root/happy",
+      "Only happy-daemon-dev may be restarted (via safe-daemon-restart.sh SOP, user-only)",
+      "Run yarn typecheck after changes",
+      "Verify on desktop 1440x900 AND mobile 390x844 viewports"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Agent text emitted by claude in response to a <task-notification> system-reminder is not rendered in happy-app in real-time; only renders after user sends a new prompt",
+    "root_cause": "UNCONFIRMED — four candidate hypotheses (H_A app-side seq fast-path miss / H_B InvalidateSync debouncing / H_C ws transport loss / H_D silent flushOutbox backoff). Dev MUST rule in/out at least 2 of 4 via runtime evidence before claiming root cause.",
+    "root_cause_commit": "candidate: 5a08be71 fix: batch outbox flush (latest-first) and log backoff errors — introduced non-monotonic seq vs logical-time ordering which may starve the app's fast-path",
+    "why_introduced": "5a08be71 fixed a 400+-message resume blocking issue by sending newest 50 first to give user fast feedback",
+    "why_problematic": "Non-monotonic seq order may cause the app's fast-path (incomingSeq === currentLastSeq + 1) to fail repeatedly, falling back to getMessagesSync.invalidate() which may be debounced/coalesced — net effect: passive in-turn updates queue until something invalidates the cache (user sending a message).",
+    "timeline": "5a08be71 landed 2026-03-24. cca7fe27 (Bug #9 app seq-gap) landed 2026-03-18 BEFORE 5a08be71. So Bug #9's fix preceded the latest-first batching that may now defeat it. The current symptom likely surfaced sometime between 2026-03-24 and 2026-04-25 but no specific commit between is identified as the regression marker.",
+    "affected_files": [
+      "packages/happy-cli/src/api/apiSession.ts",
+      "packages/happy-app/sources/sync/sync.ts"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "Live observed at https://dev.life-ai.app/session/cmoeru0d58tvtnz15wbhcrrru: assistant turn block 'BA: 后台任务通知不实时刷新调查' (e186-e195) and follow-up agent text e242-e258 only became visible AFTER user typed e265='结束了？' — Playwright DOM snapshot captured 2026-04-25T21:00Z (observed)",
+      "Composer state shows 'actioning…' (session.thinking === true) yet preceding text didn't render — observed",
+      "User-supplied screenshot at /tmp/happy-attachments/f28c26bb-…-image.png shows mobile iOS Safari with 5 queued agent messages appearing simultaneously after user's prompt — observed",
+      "packages/happy-cli/src/api/apiSession.ts:313-338 uses splice(-batchSize, batchSize) — newest first batching, confirmed by direct read (inferred about behavioral impact)",
+      "packages/happy-app/sources/sync/sync.ts:1854-1866 fast-path requires consecutive seq, falls back to invalidate — confirmed by direct read (inferred about debouncing severity)",
+      "packages/happy-app/sources/sync/storage.ts:556-557 sorts messages by createdAt desc — confirmed by direct read (inferred about ordering interaction with non-monotonic seq)",
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:855-859 swallows <task-notification> by emitting empty envelopes — confirmed by direct read",
+      "packages/happy-cli/src/api/apiSession.ts:384-389 also drops legacy-output for swallowed task-notifications — confirmed by direct read",
+      "git log shows prior commits cca7fe27, ae29dd3e, 22c5e38b all addressed app-side seq-gap detection — confirmed via git show (observed)",
+      "git log shows 5a08be71 introduced the latest-first batching post-cca7fe27 — confirmed via git show (observed)"
+    ],
+    "diagnosis_completeness": "incomplete (no DevTools/network capture of the missing push during a real reproduction; dev MUST capture this before fixing)",
+    "complaint_location_keywords": [
+      "后台任务",
+      "happy session",
+      "不更新",
+      "重新发消息",
+      "claude",
+      "响应",
+      "输出"
+    ],
+    "localization_evidence": "Reproduced live via Playwright at https://dev.life-ai.app/session/cmoeru0d58tvtnz15wbhcrrru — observed agent messages e186-e258 rendered only after user prompt e265='结束了？'. Composer shows 'actioning…'. This narrows the failure to the WebSocket-push → app-render path. Source files traced via direct grep + read.",
+    "located_source": "packages/happy-app/sources/sync/sync.ts:1784-1872 (handleUpdate new-message branch) AND packages/happy-cli/src/api/apiSession.ts:313-338 (flushOutbox latest-first batching). Both contain the keyword 'message' / 'session' matching user complaint.",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "5a08be71",
+      "commit_message": "fix: batch outbox flush (latest-first) and log backoff errors",
+      "confirmed_by": "git-log-diff",
+      "bisect_blocked": "git bisect not feasible without a reliable single-command reproduction; dev's reproduction prompt (Agent run_in_background → wait → reply) has nondeterministic timing dependent on subagent completion. Dev MUST run the reproduction with HEAD+log-instrumentation first to confirm the suspect commit, NOT actually run git bisect.",
+      "reproducibility_verified": true
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "刚刚后台任务导致 happy session 不更新的问题重新出现了。只有用户重新发消息才会收到后台任务结束了 claude 的反映（响应/输出）",
+      "acceptance_criterion": "Trigger Agent tool with run_in_background:true; subagent finishes; orchestrator emits text reply; that text appears in happy-app UI within 2s without any user input. Verify on desktop 1440x900 AND mobile 390x844."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "(implicit from prior cycle failures noted in CLAUDE.md and overnight postmortems) — fix MUST be evidence-based",
+      "acceptance_criterion": "Dev report includes server log / daemon log / Playwright ws-frame screenshot showing missing-push pre-fix and successful-push post-fix."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-cli/src/claude/claudeRemote.ts",
+      "line_range": "166-229",
+      "role": "for-await over SDK stream-json messages; each message dispatched to onMessage callback",
+      "imports_from": "packages/happy-cli/src/claude/sdk/query.ts",
+      "evidence": "grep 'onMessage' shows callsite at line 170; grep 'for await (const message of response)' at line 166",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/claude/claudeRemoteLauncher.ts",
+      "line_range": "163-176",
+      "role": "buildOnMessage assembles SDK message → log conversion → queue with delay if has tool_use blocks",
+      "imports_from": "packages/happy-cli/src/claude/utils/OutgoingMessageQueue.ts, sdkToLogConverter.ts",
+      "evidence": "grep 'buildOnMessage' returns single definition at line 163; queueLogMessage called at 174",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/claude/utils/OutgoingMessageQueue.ts",
+      "line_range": "32-103",
+      "role": "Per-tool-call delayed enqueue (250ms or until tool_result releases); strict ID-ordered processing",
+      "imports_from": "leaf",
+      "evidence": "Read entire file (191 lines)",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/api/apiSession.ts",
+      "line_range": "313-348",
+      "role": "Outbox flush — latest-first 50-message batches; POST /v3/sessions/:id/messages",
+      "imports_from": "leaf",
+      "evidence": "grep 'flushOutbox' returns line 313; splice(-batchSize, batchSize) at 318",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/api/apiSession.ts",
+      "line_range": "355-425",
+      "role": "sendClaudeSessionMessage — protocol-mapper-driven envelopes + legacy duplex output",
+      "imports_from": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+      "evidence": "grep 'sendClaudeSessionMessage' shows function definition at 355; isSwallowedByMapper check at 384-389",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+      "line_range": "671-693, 855-883",
+      "role": "Map JSONL message to SessionEnvelope[]; <task-notification> swallowed via getSystemInjectedServiceText() returning null",
+      "imports_from": "leaf",
+      "evidence": "grep 'task-notification' returns line 672, 857; getSystemInjectedServiceText at 855-883",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-server/sources/app/api/routes/v3SessionRoutes.ts",
+      "line_range": "160-217",
+      "role": "POST /v3/sessions/:id/messages — create messages in tx, emit new-message update per created msg",
+      "imports_from": "packages/happy-server/sources/app/events/eventRouter.ts",
+      "evidence": "grep 'buildNewMessageUpdate' shows usage at 204; emitUpdate at 212",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-server/sources/app/events/eventRouter.ts",
+      "line_range": "230-338",
+      "role": "EventRouter — recipientFilter dispatch; per-connection socket.emit",
+      "imports_from": "leaf",
+      "evidence": "grep 'emitUpdate' shows method at 232; emit at 303",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "line_range": "1774-1872",
+      "role": "Browser/mobile WebSocket update handler — fast-path consecutive seq, fallback invalidate",
+      "imports_from": "packages/happy-app/sources/sync/storage.ts",
+      "evidence": "grep 'handleUpdate' shows method at 1774; new-message branch at 1784; fallback at 1864-1865",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "line_range": "1577-1626",
+      "role": "App-side flushOutbox (when user sends message); seq-gap detection from cca7fe27",
+      "imports_from": "leaf",
+      "evidence": "grep 'flushOutbox' shows method at 1577; gap-detection at 1621-1626",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/storage.ts",
+      "line_range": "504-609",
+      "role": "Zustand applyMessages reducer; sort by createdAt desc; updates sessionMessages state",
+      "imports_from": "leaf",
+      "evidence": "grep 'applyMessages' shows definition at 504; sort at 556-557",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts",
+      "line": 857,
+      "type": "if",
+      "code_snippet": "if (trimmedContent.startsWith('<task-notification>')) { return 'Task completed'; }",
+      "purpose": "Suppress <task-notification> system-injected user message from ever reaching the app as a real bubble (Bug 12B)",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-cli/src/api/apiSession.ts",
+      "line": 386,
+      "type": "if",
+      "code_snippet": "const isSwallowedByMapper = body.type === 'user' && typeof body.message?.content === 'string' && body.message.content.trim().startsWith('<task-notification>'); if (!isSwallowedByMapper && (body.type === 'assistant' || body.type === 'user')) { ... legacy duplex enqueue ... }",
+      "purpose": "Prevent legacy duplex path from leaking <task-notification> after mapper swallowed it",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "line": 1621,
+      "type": "if",
+      "code_snippet": "if (maxSeq > currentLastSeq + data.messages.length) { log.log('flushOutbox seq gap detected …'); this.getMessagesSync(sessionId).invalidate(); } else { this.sessionLastSeq.set(sessionId, maxSeq); }",
+      "purpose": "Bug #9 (cca7fe27): when app sends user msg and gets back a maxSeq that exceeds expected, recover via fetch instead of advancing cursor past missed messages",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "line": 1854,
+      "type": "if",
+      "code_snippet": "if (lastMessage && currentLastSeq !== undefined && incomingSeq === currentLastSeq + 1) { this.enqueueMessages(...); this.sessionLastSeq.set(sid, incomingSeq); ... } else { this.getMessagesSync(sid).invalidate(); }",
+      "purpose": "Fast-path consecutive seq for cheap WS push; otherwise defer to full fetch",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/sync/sync.ts",
+      "line": 1678,
+      "type": "if",
+      "code_snippet": "this.sessionLastSeq.set(sessionId, maxSeq); /* before decrypt */",
+      "purpose": "Advance cursor before decrypt/normalize so a bad message can't get the loop stuck forever (Bug #9 robustness)",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": true,
+    "items": [
+      {
+        "check": "git bisect performed",
+        "status": "blocked",
+        "evidence": "blocked — reproduction has nondeterministic timing; suspect commit 5a08be71 identified via git-log-diff instead. Dev MUST verify with log instrumentation, not bisect."
+      },
+      {
+        "check": "globals.css reviewed",
+        "status": "skipped",
+        "finding": "n/a — bug is in data sync layer, not CSS"
+      },
+      {
+        "check": "middleware / root layout / providers audited",
+        "status": "skipped",
+        "findings": ["n/a — bug is in WebSocket data path, not React layout"]
+      },
+      {
+        "check": "getComputedStyle() read on target element",
+        "status": "skipped",
+        "computed": "n/a — bug is rendering-absence, not CSS visibility"
+      },
+      {
+        "check": "build / deploy / dependency changes ruled out",
+        "status": "done",
+        "finding": "Recent commits 9709254a, fcaaf4bb, 6eb52654 unrelated; git log shows seq-related fixes (cca7fe27, ae29dd3e, 22c5e38b, 5a08be71) all in WS path."
+      }
+    ]
+  },
+  "setup": {
+    "viewport": "Desktop 1440x900 (BA observed) AND Mobile 390x844 (user reported via screenshot, must verify in fix)",
+    "theme": "light",
+    "locale": "zh-Hans",
+    "auth_state": "logged-in (dev account cmi5mv9eh00wzpg14ph73jj3n)",
+    "data_state": "active session with Agent tool used in run_in_background:true mode; subagent completed before orchestrator turn ended",
+    "browser": "Chromium via Playwright MCP (BA), Safari iOS (user)",
+    "url_path": "https://dev.life-ai.app/session/<id> — observed at cmoeru0d58tvtnz15wbhcrrru"
+  },
+  "evidence": {
+    "observed": "刚刚后台任务导致 happy session 不更新的问题重新出现了。只有用户重新发消息才会收到后台任务结束了 claude 的反映（响应/输出）",
+    "measured": {
+      "value": "Live DOM at https://dev.life-ai.app/session/cmoeru0d58tvtnz15wbhcrrru shows agent messages e186-e258 only became visible to user after user typed e265='结束了？'. Composer 'actioning…' state confirms session.thinking=true. Screenshot bg-task-bug-current-session.png saved.",
+      "location": "https://dev.life-ai.app/session/cmoeru0d58tvtnz15wbhcrrru (Playwright DOM snapshot 2026-04-25T21:00Z)"
+    },
+    "expected": {
+      "value": "Agent text emitted between <task-notification> injection and SDK 'result' message must render in happy-app within 2s without user kick",
+      "source": "Architecture intent — every non-suppressed assistant message goes through SessionEnvelope mapper → server → ws push → app render in ≤2s under normal load. Confirmed by BA's read of packages/happy-cli/src/api/apiSession.ts:355-425 + packages/happy-server/sources/app/api/routes/v3SessionRoutes.ts:198-217 + packages/happy-app/sources/sync/sync.ts:1784-1866."
+    },
+    "gap": "Render delay = unbounded (renders only when user manually sends another prompt). Expected delay ≤ 2s. Gap is 'never auto-renders' — qualitative, not measured in seconds."
+  },
+  "scope_expansion": {
+    "search_pattern": "task-notification | flushOutbox | new-message | sessionLastSeq | handleUpdate",
+    "search_scope": "packages/happy-cli/src/{claude,api}, packages/happy-server/sources/app/{events,api/routes,api/socket}, packages/happy-app/sources/sync",
+    "user_reported": [
+      "happy app frontend (mobile/web)"
+    ],
+    "additional_found": [
+      "packages/happy-cli/src/api/apiSession.ts:313-348",
+      "packages/happy-cli/src/api/apiSession.ts:355-425",
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:671-693",
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:855-883",
+      "packages/happy-cli/src/claude/utils/OutgoingMessageQueue.ts:1-191",
+      "packages/happy-cli/src/claude/claudeRemoteLauncher.ts:147-176",
+      "packages/happy-server/sources/app/api/routes/v3SessionRoutes.ts:160-217",
+      "packages/happy-server/sources/app/events/eventRouter.ts:230-338",
+      "packages/happy-app/sources/sync/sync.ts:1577-1626",
+      "packages/happy-app/sources/sync/sync.ts:1655-1730",
+      "packages/happy-app/sources/sync/sync.ts:1774-1872",
+      "packages/happy-app/sources/sync/storage.ts:504-609"
+    ],
+    "all_occurrences": [
+      "packages/happy-cli/src/api/apiSession.ts:313",
+      "packages/happy-cli/src/api/apiSession.ts:340",
+      "packages/happy-cli/src/api/apiSession.ts:355",
+      "packages/happy-cli/src/api/apiSession.ts:384",
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:672",
+      "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:857",
+      "packages/happy-app/sources/sync/sync.ts:1577",
+      "packages/happy-app/sources/sync/sync.ts:1612",
+      "packages/happy-app/sources/sync/sync.ts:1657",
+      "packages/happy-app/sources/sync/sync.ts:1678",
+      "packages/happy-app/sources/sync/sync.ts:1784",
+      "packages/happy-app/sources/sync/sync.ts:1854",
+      "packages/happy-app/sources/sync/sync.ts:1864",
+      "packages/happy-server/sources/app/api/routes/v3SessionRoutes.ts:204",
+      "packages/happy-server/sources/app/events/eventRouter.ts:232"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Project-internal protocol — verified by direct read of current HEAD. Prior fix commits cca7fe27, ae29dd3e, 22c5e38b, 5a08be71 are second-tier reference sources for behavior expectations.",
+    "url_or_location": "git show cca7fe27 ae29dd3e 22c5e38b 5a08be71 in this repository",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "commit cca7fe27",
+        "proposed_solution": "Detect seq gap in flushOutbox and recover missed messages via getMessagesSync.invalidate() instead of advancing cursor past them",
+        "actual_change": "Added if (maxSeq > currentLastSeq + data.messages.length) invalidate else advance to packages/happy-app/sources/sync/sync.ts (lines 1612-1626 in HEAD)",
+        "outcome": "Fix held in code; user now reports the SAME visible symptom is back. The fix only addresses the app's own outbox flush (response to user-sent message), NOT the passive in-turn agent text receipt path.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "commit ae29dd3e",
+        "proposed_solution": "Same as cca7fe27 (rolled into it)",
+        "actual_change": "Same",
+        "outcome": "Same — wrong scope vs current symptom",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "commit 22c5e38b",
+        "proposed_solution": "Detect flushOutbox seq gap and recover missed messages",
+        "actual_change": "Same family; included Dockerfile.server fix for patches/ ordering",
+        "outcome": "Same — wrong scope vs current symptom",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "commit 5a08be71",
+        "proposed_solution": "Batch outbox flush latest-first to give user fast feedback on resume",
+        "actual_change": "packages/happy-cli/src/api/apiSession.ts:313-338 — splice(-batchSize, batchSize) + while loop",
+        "outcome": "Solved 400+-message resume blocking. SUSPECTED to have introduced current symptom: non-monotonic seq vs logical-time may cause app fast-path to repeatedly miss → fallback invalidate → debounced refetch → only fires on next user kick.",
+        "failure_category": "tainted_reference",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "commit e9ff8a9a",
+        "proposed_solution": "Restrict recipientFilter for various non-message events to reduce daemon traffic",
+        "actual_change": "happy-server eventRouter callsites — new-session/delete-session/etc routed user-scoped-only; new-message UNCHANGED (still all-interested-in-session)",
+        "outcome": "Unrelated to current symptom — new-message path unchanged. Documenting for completeness.",
+        "failure_category": "other",
+        "target_layer": "L4"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "Prior attempts addressed the APP-SIDE outbox path (response to user-sent message). This regression involves the PASSIVELY-RECEIVED channel: WebSocket push of agent text emitted in-turn by claude in reaction to a backgrounded subagent's task-notification, with no paired user message. This is a strictly different code path and load profile (burst-y in-turn streaming with non-monotonic CLI seq) than any prior commit exercised. Forward-fix only — no revert of prior commits."
+    }
+  },
+  "context": {
+    "codebase_state": "branch=main, dirty (overnight worktree dirty pollution), HEAD=9709254a auto-bulk: end-of-cycle commit",
+    "recent_commits": "9709254a auto-bulk end-of-cycle; fcaaf4bb spec layering; 6eb52654 session-recovery bugfix spec; bf590c4e cycle 3-4 PM2 alternate QA; 4381eaf5 cycle 2 codex protocol activation",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "node_version": "20",
+      "yarn_workspaces": true,
+      "dev_web_image": "happy-app:dev",
+      "dev_server_image": "happy-server-dev:latest",
+      "dev_cli_path": "/dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index.mjs"
+    }
+  },
+  "development_approach": {
+    "strategy": "Two-step: (1) add log instrumentation on CLI flushOutbox + app handleUpdate, rebuild dev web/cli, reproduce, capture evidence to confirm hypothesis. (2) Apply forward-fix at confirmed layer (likely sync.ts handleUpdate fallback path OR apiSession.ts flushOutbox ordering). NO revert of prior commits.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/sync/sync.ts (add seq logging at 1851-1855, 1864-1865, 1612-1626; fix forward at confirmed layer after evidence)",
+      "packages/happy-cli/src/api/apiSession.ts (add flushOutbox batch logging at 313-338; potentially adjust ordering after evidence)"
+    ],
+    "validation_approach": "Playwright reproduction at https://dev.life-ai.app/session/<id>: send the reproduction prompt described in BA spec Technical Hints; observe agent text rendering latency; capture ws frames + server logs + daemon logs; verify desktop AND mobile."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "destructive_action_check": {
+    "any_destructive_verb_proposed": false,
+    "verbs_present_in_spec": [],
+    "user_consent_traceability": "n/a — no destructive actions proposed; all fixes are additive forward-edits"
+  }
+}

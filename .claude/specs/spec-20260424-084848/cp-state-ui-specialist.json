@@ -1,0 +1,44 @@
+{
+  "spec_id": "spec-20260424-084848",
+  "agent_type": "ui-specialist",
+  "instance_id": null,
+  "agent_id": "a5f0e15001564e71e",
+  "is_running": true,
+  "checked_in_at": "2026-04-25T00:36:22Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read ui-specialist.md view and identify visual design briefs for §5.3, §5.4-5.8, §5.11-5.18",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-24T12:54:16Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "For each reference screenshot, produce design-intent description (layout, spacing, overflow behaviour)",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-24T12:54:16Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Write UI specialist report JSON with visual-state observations per requirement",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-24T12:54:16Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Flag requirements that cannot be reproduced without live UI (e.g., §5.13, §5.14 - no reference screenshot)",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-24T12:54:16Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/ui-specialist-report-spec-20260424-084848.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

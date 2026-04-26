@@ -1,0 +1,46 @@
+{
+  "pipeline": "5.18-retry",
+  "request_id": "dev-20260425-201355-5-18-retry",
+  "item": "5.18",
+  "timestamp": "2026-04-25T20:55:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260425-201355-5-18-retry.json",
+  "status": "completed",
+  "hook_block_recurred": false,
+  "files_modified": [
+    "packages/happy-app/sources/components/tools/knownTools.tsx:952-966"
+  ],
+  "edits_summary": [
+    "Applied previously-blocked patch on CronList knownTools entry: renamed `extractDescription` -> `extractSubtitle` (so ToolView.tsx:154-166 actually consumes it), removed the `t('tools.names.cronList') + ' '` title prefix from both return paths (the title is rendered separately as the row header by ToolView), simplified the empty-input return to literal `'{}'`, and inlined the truncation expression. Net diff: -1 line (line 965 collapsed `truncated` const into the return). Block now spans lines 952-966 (was 952-967)."
+  ],
+  "rationale": "RETRY of 5.18. The first attempt (dev-report-20260425-201355-5-18.json) was hook-blocked by ~/.claude/hooks/pretool-quality-gate.py because knownTools.tsx is 1398 lines with a pre-existing depth-6 nesting at line 823 (in the Update/MultiEdit pattern, not CronList). The user resolved the hook gate prior to this retry, and the Edit went through on first try. Both QA-BA caveats were verified successfully in the first cycle: (1) ToolView.tsx:154-166 reads ONLY extractSubtitle, not extractDescription — confirmed; (2) font-parity gap accepted as a known minimum-diff trade-off (better than the current 'header-only' state).",
+  "type_check": "pass",
+  "type_check_notes": "Ran `yarn workspace happy-app tsc --noEmit`. Exit code 2 due to PRE-EXISTING errors in unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx) — none touch knownTools.tsx, ToolView.tsx, or tools/views/*. Targeted grep `tsc --noEmit | grep knownTools|ToolView|tools/views` returned 'NO ERRORS'. The edit is type-clean.",
+  "self_verification": {
+    "build": "skipped (no docker rebuild requested in scope; dev-overnight will pick up on next deploy cycle)",
+    "smoke_check": "skipped (UI render verification belongs to QA per dev-overnight protocol; structural typecheck pass is the dev-side gate)",
+    "notes": "File post-edit content verified by Read of lines 950-967 — matches `exact_intended_patch.new_block` from prior dev-report.json byte-for-byte (modulo final ~2 lines of formatting collapse from inlining `truncated`)."
+  },
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "imported_by_summary": "ToolView.tsx (consumes via knownTools[tool.name].extractSubtitle), TaskView.tsx (consumes via extractDescription for OTHER tools — CronList not in TaskView path). No public type changes.",
+      "high_impact": false
+    }
+  ],
+  "diff_stats": {
+    "files_changed": 1,
+    "lines_added": 12,
+    "lines_removed": 13,
+    "net_change": -1,
+    "new_symbols_introduced": [],
+    "minimum_possible_lines_estimate": 1,
+    "justification_for_overage": "Could have been a 1-character rename (extractDescription -> extractSubtitle) BUT the existing return strings prepended t('tools.names.cronList') as a visual title in the description row. Now that the value renders in the second-row `description` slot below the auto-rendered header (which already shows the tool title), the prefix would be a duplicate 'CronList CronList {}'. So the prefix removal is required for correctness, taking the net diff from 1-char to -1-line."
+  },
+  "fix_layer": "L2",
+  "scope_review_requested": false,
+  "qa_ready": true,
+  "qa_notes": "QA verification path (per prior dev-report's qa_notes, unchanged): navigate Playwright to https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35, scroll to existing CronList card, confirm DOM now shows TWO text rows (header 'CronList' + body '{}'), capture desktop 1440x900 + mobile 390x844 screenshots. KNOWN GAP from caveat #2: second row is sans-serif, NOT monospace (ToolView styles.toolDescription has no fontFamily field). Per task statement this is acceptable for minimum-diff scope. Acceptance criteria M1, M2, M5 fully satisfied; M3 partially met (dimmed yes, monospace no); M4 viewport coverage independent of fontFamily.",
+  "ready_for_qa": true,
+  "blockers": [],
+  "permissions_to_add": []
+}

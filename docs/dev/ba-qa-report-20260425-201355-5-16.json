@@ -1,0 +1,109 @@
+{
+  "item": "5.16",
+  "verdict": "pass",
+  "summary": "BA's source-level claims verified at exact file:line; regex-collision hypothesis empirically reproduced via standalone Node simulation; user complaint interpretation is well-grounded though leaves one open thread about user's actual rendered observation.",
+  "evidence_verification": {
+    "claim_1_inline_regex_at_line_6": {
+      "status": "verified",
+      "evidence": "Read parseMarkdownSpans.ts line 6 directly. Confirmed regex: `(\\$([^\\s$][^$\\n]*?[^\\s$]|[^\\s$\\d\\\\])\\$)` is alternative group 10-11. Comment on line 4 explicitly says 'Capture groups 1-9: existing bold/italic/link/code; 10-11: inline latex $...$;'."
+    },
+    "claim_2_block_guard_startsWith": {
+      "status": "verified",
+      "evidence": "Read parseMarkdownBlock.ts line 150 directly. Exact text: `if (!trimmed.startsWith('$$')) return false;`. The function `tryLatexBlock` returns false unless trimmed line starts with $$, so mid-line $$...$$ falls through to span tokenizer."
+    },
+    "claim_3_markdownspan_type": {
+      "status": "verified",
+      "evidence": "Read parseMarkdown.ts lines 48-53. MarkdownSpan type currently has `latex?: boolean` on line 52. BA's proposed addition of `latexDisplay?: boolean` is non-breaking and structurally clean."
+    },
+    "claim_4_markdownview_dispatch": {
+      "status": "verified",
+      "evidence": "Read MarkdownView.tsx lines 354-355. Current code: `if (props.span.latex) { return <LatexRenderer key={props.index} content={props.span.text} inline />; }`. BA's proposed change to `inline={!props.span.latexDisplay}` is consistent with existing dispatch pattern."
+    },
+    "claim_5_regex_collision_empirical": {
+      "status": "verified_via_simulation",
+      "evidence": "Ran the exact line-6 regex in Node.js against test inputs. Results: input 'Block: $$E=mc^2$$.' produces exactly ONE match at index 8 with grp10=`$E=mc^2$` and grp11=`E=mc^2`. This proves the inline regex consumes the inner $...$ portion of mid-line $$...$$ leaving the outer $ markers as literal text. Behavior matches BA's architectural prediction precisely.",
+      "test_results": {
+        "midline_block_input": "Block: $$E=mc^2$$.",
+        "midline_match_index": 8,
+        "midline_match_consumed": "$E=mc^2$",
+        "midline_match_grp11": "E=mc^2",
+        "midline_stray_dollars_in_text": "leading $ at index 7 and trailing $ at index 16 are left as literal text, producing visual '$ <KaTeX> $'",
+        "ownline_block_input": "$$E=mc^2$$",
+        "ownline_inline_regex_would_match": true,
+        "ownline_actual_path": "block parser intercepts at parseMarkdownBlock.ts:150 BEFORE span tokenizer runs, so inline regex never sees this content",
+        "price_input_matches": 0,
+        "varname_input_matches": 0,
+        "false_positive_guards_holding": true
+      }
+    },
+    "claim_6_regression_commit": {
+      "status": "verified",
+      "evidence": "git log on parseMarkdownSpans.ts confirms 3 commits touch this file: 0ba2ddfc (cycle 1, 2026-04-24), 2cd19102 (Improve agent markdown rendering), 7f178466 (fix: fix monorepo). The 0ba2ddfc commit message matches BA claim of 'feat: cycle 1 (14 pipelines) + close-remediation'. Inline LaTeX regex (groups 10-11) was added in 0ba2ddfc — confirmed via git log timestamp (2026-04-24) preceding user complaint (2026-04-25)."
+    }
+  },
+  "scope_alignment_analysis": {
+    "user_verbatim": "block latex 之前是好的现在被修坏了（我从未要求改 block）, inline latex 一点都没动",
+    "literal_translation": "block latex was good before, now it's broken (I never asked to change block), inline latex has not moved at all",
+    "ba_interpretation": "User perceives 'block was good, now broken' because cycle 1's new inline regex eats the inner $...$ of mid-line $$...$$ producing '$ <KaTeX> $' with stray dollar markers. User reads the stray $ as a regression of block rendering.",
+    "alternative_interpretations_considered": [
+      {
+        "hypothesis": "User saw raw $$ markers leak on own-line block (no rendering at all)",
+        "ba_evidence_against": "BA Playwright probe at 20:19 UTC on dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 found 4 .katex elements with no raw $ leak in body.innerText for canonical own-line content. If this hypothesis were true, .katex-display count would be 0 and $$E would appear in body.innerText.",
+        "verdict": "ruled out by live DOM measurement"
+      },
+      {
+        "hypothesis": "User saw a different breakage entirely (CSS regression, KaTeX font-loading failure)",
+        "ba_evidence_against": "BA verified KaTeX stylesheet href === 'https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css', font-family resolved to 'KaTeX_Main', .katex-display computed display === 'block', annotations correctly hidden. No CSS or font regression.",
+        "verdict": "ruled out by computed style measurement"
+      },
+      {
+        "hypothesis": "Mid-line $$ collision (BA's interpretation)",
+        "evidence_supporting": "Empirically reproduced in Node simulation; cycle 1 QA report flagged the same behavior as 'pass-with-note'; commit 0ba2ddfc is the regression source; user complaint timing (2026-04-25) follows commit (2026-04-24) by ~24h.",
+        "verdict": "best-fit hypothesis, well-supported"
+      }
+    ],
+    "remaining_uncertainty": "User did not provide a screenshot of what they actually see. BA interpretation is the most plausible reading given (a) cycle 1 QA already documented the mid-line collision as a residual issue, (b) live probe rules out other regression modes, (c) the empirical regex behavior matches the symptom 'block-looking content with stray $'. But without a user screenshot, BA cannot be 100% certain that mid-line $$ is what the user is referring to. This is a soft objection, not a blocking one — BA interpretation is the most defensible given available evidence and the proposed fix would resolve the documented bug regardless."
+  },
+  "investigation_completeness": {
+    "git_blame_done": true,
+    "git_blame_evidence": "BA cited commits f8b208fa (2026-03-23, block intro) and 0ba2ddfc (2026-04-24, inline regex add). I confirmed 0ba2ddfc via git log on parseMarkdownSpans.ts.",
+    "regression_commit_identified": true,
+    "regression_commit": "0ba2ddfc",
+    "live_runtime_probe_done": true,
+    "live_probe_evidence_quality": "high — DOM-level assertions, not just screenshot. 4 .katex elements with annotation textContent verified, computed display values verified, KaTeX CSS href verified, body.innerText leak check (-1 indexOf) verified. Probed at BOTH desktop 1280x720 AND mobile 390x844.",
+    "prior_attempts_documented": true,
+    "prior_attempts_count": 2,
+    "novelty_check_done": true,
+    "novelty_rationale_solid": "Differs from priors by precedence dimension (new $$ alternative placed BEFORE $...$) plus latexDisplay variant — neither prior attempt touched precedence or variant dimension."
+  },
+  "affected_file_accuracy": {
+    "all_cited_files_exist": true,
+    "all_line_numbers_accurate": true,
+    "files_to_modify_match_claims": [
+      {"file": "parseMarkdown.ts", "ba_claimed_lines": "48-53", "verified_actual": "type definition spans 48-53, latex?: boolean on line 52", "match": true},
+      {"file": "parseMarkdownSpans.ts", "ba_claimed_lines": "6", "verified_actual": "regex pattern is the entire content of line 6", "match": true},
+      {"file": "MarkdownView.tsx", "ba_claimed_lines": "354-355", "verified_actual": "props.span.latex check on line 354, return statement on line 355", "match": true}
+    ],
+    "files_to_keep_unchanged_match_claims": [
+      {"file": "parseMarkdownBlock.ts", "ba_claim": "do not modify, line 150 startsWith('$$') is intentional contract", "verified": true, "rationale": "Keeping startsWith guard means own-line block path stays distinct from new span-level $$ path; this is correct design."},
+      {"file": "LatexRenderer.tsx", "ba_claim": "no change needed, already accepts inline?: boolean", "verified": "implicitly via grep + code chain — context JSON's component_chain entry confirmed LatexWebInline (displayMode:false) and LatexWebBlock (displayMode:true) exist with inline prop"}
+    ]
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "interpretation_uncertainty",
+      "description": "BA interpretation that user 'block was good, now broken' = mid-line $$ collision is plausible and well-supported, but no user screenshot was captured to confirm. The proposed fix is correct regardless (mid-line $$ collision is a real bug per cycle 1 QA pass-with-note), so this does not block the cycle. However, dev should be aware that if user feedback after deployment says 'still broken in a different way', the fallback is to ask user for a screenshot of the broken rendering.",
+      "blocks_release": false,
+      "recommendation": "Proceed with fix as specified. After deployment, ask user to confirm the specific scenario their original complaint referred to was indeed mid-line $$ (or a different scenario)."
+    },
+    {
+      "severity": "minor",
+      "category": "design_choice",
+      "description": "BA Decision Note recommends option 1 (inline-display: KaTeX displayMode:true inside an inline span). This produces a tall formula squeezed into prose context. Option 2 (hoist to own block) would visually match user expectation of 'block math'. BA recommendation is structurally simpler, but if the visual squeeze is too cramped on actual $E=mc^2$ rendering, follow-up may be needed. Acceptance criteria R1 only requires zero raw $ chars, not a specific visual mode, so this is not a blocking issue.",
+      "blocks_release": false,
+      "recommendation": "Dev implements option 1 per BA spec. If user post-deployment finds the inline-display visually unsatisfactory, file a follow-up issue."
+    }
+  ],
+  "verdict_rationale": "BA deliverable is well-grounded in source evidence: file:line claims verified directly via Read, regex-collision hypothesis empirically reproduced via standalone Node test, regression commit confirmed via git log, prior attempts properly documented with novelty check, runtime DOM evidence captured at both desktop and mobile viewports. The interpretation of user complaint as a mid-line $$ collision is the best-fit hypothesis given available evidence (cycle 1 QA already flagged it as a known residual; live probe rules out other regression modes). Proposed fix is structurally correct (precedence-ordered regex alternative + non-breaking type extension + dispatch threading) and respects the existing block-parser contract. Two minor objections raised about interpretation uncertainty and visual mode choice; neither blocks the cycle."
+}

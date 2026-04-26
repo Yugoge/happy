@@ -1,0 +1,55 @@
+{
+  "request_id": "dev-20260425-201355-5-18",
+  "item": "5.18",
+  "timestamp": "2026-04-25T20:25:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260425-201355-5-18.json",
+  "status": "blocked",
+  "files_modified": [],
+  "edits_summary": [
+    "Intended edit: packages/happy-app/sources/components/tools/knownTools.tsx:957-966 — rename `extractDescription` -> `extractSubtitle` on the CronList entry, simplify return strings to `'{}'` placeholder (when input empty) and truncated JSON (when keys present), removing the `t('tools.names.cronList') + ' '` title prefix since the title is already rendered as the header on the row above."
+  ],
+  "rationale": "The CronList knownTools entry currently defines `extractDescription`, but ToolView.tsx:161-164 reads ONLY `extractSubtitle` to populate the description row. Therefore `extractDescription` is dead code on this entry, and the inline card collapses to just the header. Renaming the field to `extractSubtitle` wires the existing logic into the row that ToolView actually renders. This is a 1-field-name patch — minimum diff possible to fix item 5.18.",
+  "qa_caveat_1_resolution": "CONFIRMED. Read ToolView.tsx:154-166 (extractStrings function): only `knownTool.extractSubtitle` is consumed for the second-row `description` value. `extractDescription` is NEVER read in this file. The BA premise is correct: the fix MUST use `extractSubtitle`, not `extractDescription`. extractDescription is consumed elsewhere only by TaskView.tsx for subagent rendering, which CronList does not travel through (no entry in views/_all.tsx).",
+  "qa_caveat_2_resolution": "FONT-PARITY GAP CONFIRMED — the second row will use the default system font, NOT Menlo/monospace. ToolView.tsx:372-376 styles.toolDescription declares `fontSize: 13, color: theme.colors.textSecondary, marginTop: 2` with NO `fontFamily` field — falls through to system default. By contrast BashView.tsx:104-110 styles.command explicitly declares `fontFamily: MONO_FONT` (Menlo on iOS, monospace on Android/web). Per task instructions, the extractSubtitle fix is still applied (it's a strict improvement over the current 'only 4 chars' state), but the user requirement R2 ('monospace, dimmed, mirroring `$ ls -la`') is partially unmet. To achieve full font parity, a follow-up cycle would need either: (a) register a tiny `CronListView` in views/_all.tsx that renders a BashView-style commandLine row with MONO_FONT, OR (b) add a per-knownTool monospace flag that ToolView reads to switch the toolDescription font. Both are out of scope for this minimum-diff cycle.",
+  "type_check": "skipped",
+  "ready_for_qa": false,
+  "blockers": [
+    "PreToolUse quality-gate hook (~/.claude/hooks/pretool-quality-gate.py) BLOCKED the Edit on knownTools.tsx with: 'File has 1398 lines (max 800). Split into modules. Line 823: nesting depth 6 (max 3). Extract to helper function.' Both violations are PRE-EXISTING — line 823 is inside another tool entry (Update/MultiEdit pattern, NOT CronList), and the file size has been over 800 lines for many commits. The intended Edit is a minimum-diff rename that does NOT increase lines or nesting depth (in fact reduces lines by ~2 and removes one branch). Per Subagent Hook Discipline rule, the dev subagent MUST NOT bypass the hook (no shell wrappers, no rewriting to another file, no editing the hook). PAUSE-PENDING-USER is the prescribed response. The user must either (a) apply the patch manually in their TTY where the hook blocks the same way but with explicit override, OR (b) split knownTools.tsx into modules in a separate cleanup pass before this fix can land, OR (c) extend ~/.claude/hooks/pretool-quality-gate.py to allow no-worse edits to pre-existing-violation files. Recommend option (c) as a one-line tolerance check (compute lines/depth of pre-edit content, only block if post-edit values are strictly greater)."
+  ],
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "imported_by": [
+        "packages/happy-app/sources/components/tools/ToolView.tsx",
+        "packages/happy-app/sources/components/tools/views/* (any view that imports the knownTools registry)"
+      ],
+      "note": "Change is scoped to the CronList entry's per-tool extractor function name. No imports change. No public type changes. No ABI/ABI-shape impact on importers."
+    }
+  ],
+  "diff_stats": {
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_removed": 0,
+    "new_symbols_introduced": [],
+    "minimum_possible_lines_estimate": 3,
+    "justification_for_overage": null,
+    "intended_diff": {
+      "files_changed": 1,
+      "lines_added_intended": 5,
+      "lines_removed_intended": 7,
+      "net_intended": -2,
+      "summary": "Rename `extractDescription` -> `extractSubtitle` on CronList entry; drop the `t('tools.names.cronList') + ' '` title prefix from both return paths (since the title is rendered separately as the header) — return literal '{}' for empty input, truncated JSON for non-empty input."
+    }
+  },
+  "fix_layer": "L2",
+  "scope_review_requested": false,
+  "qa_ready": false,
+  "qa_notes": "BLOCKED — see blockers[]. The exact intended patch is documented in `intended_diff` and `edits_summary`. Once the hook block is resolved, QA verification path is unchanged: navigate Playwright to https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35, scroll to the existing CronList card, confirm DOM shows TWO text rows (header 'CronList' + body '{}'), capture desktop 1440x900 + mobile 390x844 screenshots, compare side-by-side with adjacent Bash card. Note the font-parity gap from caveat #2 — second row will be sans-serif, NOT monospace. QA may consider this acceptable as a minimum-diff fix (M1, M2, M5 satisfied; M3 partially met — dimmed yes, monospace no; M4 viewport coverage independent of fontFamily).",
+  "permissions_to_add": [],
+  "exact_intended_patch": {
+    "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+    "old_block_lines": "952-967",
+    "old_block": "    'CronList': {\n        title: t('tools.names.cronList'),\n        icon: ICON_CLOCK,\n        minimal: true,\n        input: z.object({}).partial().passthrough(),\n        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {\n            const input = opts.tool.input || {};\n            const keys = Object.keys(input);\n            if (keys.length === 0) {\n                return t('tools.names.cronList') + ' {}';\n            }\n            const summary = JSON.stringify(input);\n            const truncated = summary.length > 40 ? summary.substring(0, 40) + '...' : summary;\n            return t('tools.names.cronList') + ' ' + truncated;\n        }\n    },",
+    "new_block": "    'CronList': {\n        title: t('tools.names.cronList'),\n        icon: ICON_CLOCK,\n        minimal: true,\n        input: z.object({}).partial().passthrough(),\n        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {\n            const input = opts.tool.input || {};\n            const keys = Object.keys(input);\n            if (keys.length === 0) {\n                return '{}';\n            }\n            const summary = JSON.stringify(input);\n            return summary.length > 40 ? summary.substring(0, 40) + '...' : summary;\n        }\n    },"
+  }
+}

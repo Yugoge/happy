@@ -1,0 +1,255 @@
+{
+  "request_id": "dev-20260425-201355-5-4-5",
+  "timestamp": "2026-04-25T20:13:55Z",
+  "requirement": {
+    "original": "检修 Spec Items 5.4 + 5.5 (treated as ONE bundle — shared root cause per Cycle 5 audit). Header container hardcoded max-width=800 + logo.left pinned at 17px (non-responsive). Sidebar toggle direction inverted: collapsed → cluster instead of expanding.",
+    "clarified": "Remove the hardcoded WEB_TABLET_MAX_WIDTH_CAP=800 constant in useHeaderMaxWidth.ts so the top-bar's content max-width is driven entirely by the reactive formula `windowWidth - leftDrawerWidth - rightSidebarWidth`. Restores correct expand/contract direction on sidebar toggles and aligns avatar with viewport right edge on desktop.",
+    "what": "Remove the 800px artificial cap inside the existing useHeaderMaxWidth hook so the already-reactive formula's true output drives layout (instead of being clamped to 800).",
+    "why": "Cycle 1 made the calculation reactive but preserved the legacy 800 cap, so on 1920 viewport the avatar still sits 394px short of the right edge and any sidebar toggle is masked by the cap (both states clamp to 800). User reports this as both §5.4 (non-adaptive) and §5.5 (inverted-toggle clustering).",
+    "where": [
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts"
+    ],
+    "scope": {
+      "included": [
+        "Delete WEB_TABLET_MAX_WIDTH_CAP constant",
+        "Remove the Math.min(available, cap) clamp at the function tail",
+        "Collapse the if (isRunningOnMac()) branch (both paths now identical)",
+        "Remove now-unused isRunningOnMac import if applicable",
+        "Add a code comment referencing Cycle 5 user directive"
+      ],
+      "excluded": [
+        "Header.tsx and ChatHeaderView.tsx — no consumer-side changes; they already take maxWidth from the hook",
+        "RightSidebar.tsx SIDEBAR_WIDTH=450 constant",
+        "RIGHT_SIDEBAR_DESKTOP_MIN_WIDTH=901 breakpoint",
+        "paddingHorizontal: 16 in Header.tsx:214 / ChatHeaderView.tsx:220 (the source of measured logo.left=17 — but it is normal content padding, not a bug)",
+        "HeaderLogo.tsx",
+        "Replacing 800 with any other magic number"
+      ]
+    },
+    "success_criteria": [
+      "useHeaderMaxWidth.ts no longer contains the literal 800 anywhere outside an inline comment",
+      "yarn typecheck passes in packages/happy-app/",
+      "At 1920 viewport with sidebars closed, avatar.right ≥ 1900 (delta ≤ 20px from viewport.innerWidth)",
+      "At 1280 viewport with sidebars closed, avatar.right ≥ 1260 (delta ≤ 20px)",
+      "Right-sidebar close at 1280 produces header.content.width INCREASE ≥ 400px",
+      "Left-drawer collapse at 1280 produces header.content.width INCREASE ≥ 250px",
+      "Mobile 390 layout unchanged (avatar.right ≈ 376, no new overflow)"
+    ],
+    "constraints": [
+      "Single-file change (the hook)",
+      "No new constants — removal only",
+      "Must preserve mobile and tablet behavior (the cap doesn't bite at narrow viewports anyway, so removal is a no-op there)",
+      "Must not affect existing 901px breakpoint or 450px sidebar reservation"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "At 1920 viewport, top-bar's avatar sits at right=1526 (394px short of viewport right edge); logo appears pinned at the left at ~17px; toggling the right sidebar moves elements but does NOT expand the header content area into the freed space — instead user perceives elements clustering toward the centered 800px box.",
+    "root_cause": "useHeaderMaxWidth.ts:42 applies `Math.min(available, WEB_TABLET_MAX_WIDTH_CAP)` where WEB_TABLET_MAX_WIDTH_CAP=800 (line 15). On any web/tablet viewport ≥ ~880px (drawer + 800), `available` exceeds 800 so the cap dominates the formula's true output. Both sidebar-open and sidebar-closed states produce maxWidth=800 (the cap), so toggling visually shifts the centered 800px container's position rather than its width — appearing to the user as 'clustering' rather than 'expanding'.",
+    "root_cause_commit": "0ba2ddfc - feat: cycle 1 (14 pipelines) + close-remediation (introduced useHeaderMaxWidth hook AND preserved the 800 cap from the legacy static layout.headerMaxWidth)",
+    "why_introduced": "Cycle 1 BA spec ba-spec-20260424-143000-11.md R4 explicitly sanctioned 'if those caps are still desired' — the 800 cap was carried over from the original static `layout.headerMaxWidth` constant without re-evaluation against user feedback. The hook fixed the static-vs-reactive issue but left the value untouched.",
+    "why_problematic": "User's complaint is precisely about the cap value, not the calculation method. Making the calculation reactive is necessary but not sufficient — the cap itself must be removed for the header content area to actually consume the available space. Until the cap is removed, no toggle can be expressed visually because the 800 floor masks all variations beyond drawer width on wide viewports.",
+    "timeline": "Cap value (800) inherited from pre-Cycle-1 static constant. Hook introduced 2026-04-24 in Cycle 1 commit 0ba2ddfc. User reported §5.4/§5.5 still failing in Cycle 5 (2026-04-25, dev-20260425-131502). User-direction in Cycle 5 Section 7 Correction (line 2883) explicitly authorizes removing the 800 cap.",
+    "affected_files": [
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (single-file fix)"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "useHeaderMaxWidth.ts:15 contains 'const WEB_TABLET_MAX_WIDTH_CAP = 800;' (inferred: static read of source)",
+      "useHeaderMaxWidth.ts:42 contains 'return Math.min(available, WEB_TABLET_MAX_WIDTH_CAP);' — only on the non-Mac branch (inferred: static read)",
+      "Header.tsx:68 consumes the hook return value via {maxWidth: headerMaxWidth} (inferred: static read)",
+      "ChatHeaderView.tsx:120 consumes identically (inferred: static read)",
+      "QA Cycle 5 measured at 1920 viewport: avatar.right=1526, R_to_viewport_delta=394px (observed: Cycle 5 QA Playwright run, recorded in spec-20260424-084848.md line 2589)",
+      "QA Cycle 5 measured at 1280: avatar.right=1206, R_to_viewport_delta=74px (observed: same)",
+      "Cycle 5 audit confirmed §5.5 inverted-toggle symptom shares root cause with §5.4 (observed: user feedback recorded in spec-20260424-084848.md line 2804–2805, 2847–2848)",
+      "isRunningOnMac() returns false on web browsers (inferred: platform.ts:7-8 'if (Platform.OS !== \"ios\") return false;')",
+      "git log shows commit 0ba2ddfc as the introduction of useHeaderMaxWidth.ts with the 800 cap baked in (observed: git log + git show)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": [
+      "顶部栏",
+      "happy logo",
+      "头像",
+      "位置hardcoded",
+      "max-width=800",
+      "logo.left",
+      "17px",
+      "sidebar 折叠",
+      "聚拢",
+      "useHeaderMaxWidth"
+    ],
+    "localization_evidence": "Cycle 5 Section 4 Correction (lines 2789–2826) reports user reproduced both §5.4 and §5.5 on dev.life-ai.app; QA Cycle 5 captured viewport-by-viewport measurements (lines 2585–2624). Cycle 5 Section 7 Correction (line 2883–2887) names useHeaderMaxWidth as the entry point. Live test session cmoedofgz86n5nz15xsldnk35 was created in Cycle 5 dev step (line 2926) for QA at /tmp/dev-verify-131502.",
+    "located_source": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts:15 (constant) and :42 (clamp application)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "0ba2ddfc",
+      "commit_message": "feat: cycle 1 (14 pipelines) + close-remediation",
+      "confirmed_by": "git-log-diff",
+      "bisect_blocked": null,
+      "reproducibility_verified": true
+    }
+  },
+  "diagnosis_layer": "L3",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "顶部栏的happy logo和头像元素没有自适应窗口内容元素的伸缩（位置hardcoded）",
+      "acceptance_criterion": "At 1920×1080 viewport with right-sidebar closed, the avatar's bounding-box right edge satisfies viewport.innerWidth - avatar.right ≤ 20px. At 1280×800, the same constraint ≤ 20px holds. Logo container left edge stays near the natural flex-row offset (~16-17px content padding) — this offset is unchanged from current behavior; the moving boundary is the right edge."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "没有自适应的另外一个案例 — 响应方向反了：sidebar 折叠时元素聚拢而非展开。和 5.4 同根因",
+      "acceptance_criterion": "At 1280×800 with right-sidebar opened then closed, header.content.getBoundingClientRect().width MUST INCREASE by ≥ 400px on close (matching the 450 SIDEBAR_WIDTH minus padding rounding tolerance). Toggle direction: expansion-on-close, contraction-on-open. No measurable case where toggling produces visual clustering."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "line_range": "15-42",
+      "role": "Owns WEB_TABLET_MAX_WIDTH_CAP=800 constant and the Math.min clamp that masks the reactive formula's output on web/tablet",
+      "imports_from": "leaf (no further hops needed for the fix)",
+      "evidence": "grep 'WEB_TABLET_MAX_WIDTH_CAP\\|Math.min(available' packages/happy-app/sources/hooks/useHeaderMaxWidth.ts → matches lines 15, 42",
+      "verified_via": "both"
+    },
+    {
+      "file": "packages/happy-app/sources/components/navigation/Header.tsx",
+      "line_range": "47-68",
+      "role": "Consumer 1: calls useHeaderMaxWidth() and applies the value as `maxWidth: headerMaxWidth` on the content View (line 68)",
+      "imports_from": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "evidence": "grep 'useHeaderMaxWidth' packages/happy-app/sources/components/navigation/Header.tsx → lines 7 (import), 47 (call), 68 (apply)",
+      "verified_via": "both"
+    },
+    {
+      "file": "packages/happy-app/sources/components/ChatHeaderView.tsx",
+      "line_range": "50-120",
+      "role": "Consumer 2: identical pattern to Header.tsx — calls useHeaderMaxWidth() at line 50, applies at line 120",
+      "imports_from": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "evidence": "grep 'useHeaderMaxWidth' packages/happy-app/sources/components/ChatHeaderView.tsx → lines 13 (import), 50 (call), 120 (apply)",
+      "verified_via": "both"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "line": 38,
+      "type": "safety-clamp",
+      "code_snippet": "const available = Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth);",
+      "purpose": "Ensures `available` never goes negative if drawers somehow exceed viewport (defensive lower bound)",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "line": 34,
+      "type": "if",
+      "code_snippet": "const isRightSidebarDesktop = windowWidth >= RIGHT_SIDEBAR_DESKTOP_MIN_WIDTH;",
+      "purpose": "Mobile/tablet vs desktop sidebar mode breakpoint — only desktop reserves 450px column for the sidebar; on narrower viewports the sidebar is a full-screen modal so no width subtraction needed.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": true,
+    "items": [
+      {"check": "git bisect performed", "status": "skipped", "evidence": "Already-known regression-introducer (Cycle 1, commit 0ba2ddfc) — cycle 1 spec line 14 of useHeaderMaxWidth.ts comments 'preserved from the original static layout.headerMaxWidth'; QA Cycle 5 confirmed FAIL persists post-Cycle-1."},
+      {"check": "globals.css reviewed", "status": "skipped", "finding": "N/A — React Native + Unistyles, no globals.css equivalent affecting header"},
+      {"check": "middleware / root layout / providers audited", "status": "done", "findings": ["No global wrapper modifies header maxWidth; only Header.tsx and ChatHeaderView.tsx consume the hook directly."]},
+      {"check": "getComputedStyle() read on target element", "status": "done", "computed": "Cycle 5 QA (line 2596) explicitly states 'top-bar inner container has fixed width=800, centered'. avatar.right=1526 at 1920 viewport confirms the measurement."},
+      {"check": "build / deploy / dependency changes ruled out", "status": "done"}
+    ]
+  },
+  "setup": {
+    "viewport": "1920x1080 desktop (primary repro), 1280x800 desktop (secondary), 390x844 mobile (regression check)",
+    "theme": "both",
+    "locale": "en",
+    "auth_state": "logged-in",
+    "data_state": "with-data",
+    "browser": "Chrome desktop via Playwright at dev.life-ai.app",
+    "url_path": "/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "evidence": {
+    "observed": "顶部栏的happy logo和头像元素没有自适应窗口内容元素的伸缩（位置hardcoded）+ §5.5 sidebar toggle inverted (clustering instead of expanding); audited 2026-04-25 in Cycle 5 Section 4 Correction line 2803–2805.",
+    "measured": {
+      "value": "WEB_TABLET_MAX_WIDTH_CAP = 800; applied via Math.min(available, 800); Cycle 5 QA at 1920×1080 → avatar.right=1526 (R_delta=394px); at 1280 → avatar.right=1206 (R_delta=74px)",
+      "location": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts:15,42 + Cycle 5 QA report in spec-20260424-084848.md:2585-2596"
+    },
+    "expected": {
+      "value": "Header content row width = windowWidth - leftDrawerWidth - rightSidebarWidth (no upper cap). At 1920 sidebar-closed: ≈1920px; at 1920 right-sidebar-open: ≈1470px; at 1280 sidebar-closed: ≈1280px.",
+      "source": "User directive in /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-084848.md Section 7 Correction line 2883–2887"
+    },
+    "gap": "At 1920 viewport with sidebars closed: rendered=800, expected≈1904 → 1104px under-utilized. At 1280: rendered=800, expected≈1264 → 464px under-utilized. Sidebar toggle: rendered Δ=0 (cap dominates both states), expected Δ≥400 (450-padding tolerance)."
+  },
+  "scope_expansion": {
+    "search_pattern": "WEB_TABLET_MAX_WIDTH_CAP|Math\\.min\\(available, ?WEB_TABLET_MAX_WIDTH_CAP\\)|maxWidth.*headerMaxWidth",
+    "search_scope": "packages/happy-app/sources/**",
+    "user_reported": [
+      "packages/happy-app/sources/components/navigation/Header.tsx (top-bar)",
+      "packages/happy-app/sources/components/ChatHeaderView.tsx (chat top-bar)"
+    ],
+    "additional_found": [
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (single source of the cap; the *only* file requiring code change)"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts:15 (constant definition)",
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts:42 (clamp application)",
+      "packages/happy-app/sources/components/navigation/Header.tsx:47,68 (consumer)",
+      "packages/happy-app/sources/components/ChatHeaderView.tsx:50,120 (consumer)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "User directive in Cycle 5 Section 7 Correction explicitly authorizes removing the 800 cap from useHeaderMaxWidth.",
+    "url_or_location": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-084848.md line 2883–2887",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ba-spec-20260424-143000-11.md + commit 0ba2ddfc",
+        "proposed_solution": "Replace static layout.headerMaxWidth=800 constant with a hook (useHeaderMaxWidth) that re-evaluates on every render using windowWidth, left-drawer state, and right-sidebar open/close.",
+        "actual_change": "Created packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (new file). Refactored Header.tsx and ChatHeaderView.tsx to consume the hook. Critically retained the 800 cap as WEB_TABLET_MAX_WIDTH_CAP and applied via Math.min(available, 800) on the non-Mac branch.",
+        "outcome": "PARTIAL FIX. The hook IS reactive (re-renders on viewport/sidebar change), but the preserved 800 cap dominates on viewports ≥ ~880 so the header still measures 800 regardless of viewport size or sidebar state. Cycle 5 QA confirmed avatar.right=1526 at 1920 → R_delta=394 still exceeds the user's expectation; user explicitly reported §5.5 inverted-toggle symptom is the same root cause.",
+        "failure_category": "tainted_reference",
+        "target_layer": "L3"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L3",
+      "differs_from_all_priors": true,
+      "rationale": "Cycle 1 (prior attempt) restructured the *computation* (static const → reactive hook) but kept the *value* of the artificial 800 cap. This attempt does NOT touch the computation structure at all — it deletes the 800 cap (the magic-number clamp at the function tail) so the existing reactive formula's true output drives layout. The action axis is different: prior = restructure-formula; this = remove-clamp. Different code site within the same file, different operation kind. Acceptable per Contract D — 'a different (typically deeper) layer' is also satisfied here in the sense that we are now removing the *root assumption* (that 800 is a desirable cap) rather than restructuring around it."
+    }
+  },
+  "context": {
+    "codebase_state": "main branch HEAD = fcaaf4bb 'docs: spec layering re-architecture (3-layer A/B/C separation)'. useHeaderMaxWidth.ts unchanged since Cycle 1.",
+    "recent_commits": "fcaaf4bb docs: spec layering re-architecture | 6eb52654 docs: session-recovery bugfix spec + close debate trail | bf590c4e feat: preserve cycle 3-4 PM2 alternate QA artifacts | 4381eaf5 feat: cycle 2 (codex protocol activation) + close-remediation | 0ba2ddfc feat: cycle 1 (14 pipelines) + close-remediation",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "dev_url": "https://dev.life-ai.app",
+      "dev_api": "https://api-dev.life-ai.app",
+      "test_session": "cmoedofgz86n5nz15xsldnk35",
+      "test_directory": "/tmp/dev-verify-131502",
+      "build_target": "happy-app:dev (port 8097)",
+      "worktree_path": "/dev/shm/dev-workspace/happy-dev"
+    }
+  },
+  "development_approach": {
+    "strategy": "Single-file removal of the 800 cap inside useHeaderMaxWidth.ts. Delete WEB_TABLET_MAX_WIDTH_CAP constant; collapse the if (isRunningOnMac()) branch into a single `return Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth);` (or `return available;` after computing); remove the now-unused isRunningOnMac import. Add a code comment referencing this BA spec and the Cycle 5 user directive. Run yarn typecheck.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts"
+    ],
+    "validation_approach": "Build dev frontend (docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev /dev/shm/dev-workspace/happy-dev), `cd /root/deploy && docker compose up -d happy-web-dev`, then Playwright verification on https://dev.life-ai.app at viewports [1920, 1280, 390]. Inject auth credentials per CLAUDE.md. Use live test session cmoedofgz86n5nz15xsldnk35. Capture screenshots and DOM measurements (header.content.getBoundingClientRect, avatar.right) at each viewport AND across right-sidebar/left-drawer toggles. Compare W_open vs W_closed for both toggles. Fail any case where toggle Δ < 200px on left-drawer, < 400px on right-sidebar, or where avatar.right is more than 20px short of viewport.right at 1920/1280 with sidebars closed."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "straightforward bug fix with clear root cause and explicit user directive in Cycle 5 Section 7 Correction; no industry-best-practices ambiguity to resolve."
+  }
+}

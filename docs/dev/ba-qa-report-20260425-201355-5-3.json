@@ -1,0 +1,57 @@
+{
+  "item": "5.3",
+  "verdict": "pass",
+  "evidence_quality": {
+    "runtime_dom_walk_concrete": true,
+    "concrete_measurements_present": [
+      "Text node depth 0: width=1065 (overflow-x: visible, whitespace: pre-wrap, wordBreak: normal)",
+      "CommandView container depth 2: width=1109, overflow-x: hidden",
+      "ScrollView depth 5: clientWidth=390, scrollWidth=1109, overflow-x: auto",
+      "Dialog root depth 11: clientWidth=390"
+    ],
+    "file_line_claims_verified": {
+      "SidebarBashView.tsx:42-60": "VERIFIED — lines 42-60 contain the <View styles.container><ScrollView horizontal>...<CommandView /></ScrollView></View> structure exactly as BA describes. The outer <ScrollView horizontal> with showsHorizontalScrollIndicator={true} at line 44-48 is the wrapper to be removed. styles.commandWrapper at lines 71-74 has flex:1, minWidth:'100%' as BA claims.",
+      "CommandView.tsx:42-58": "VERIFIED — line 42-45 is the 'line' style { alignItems: 'baseline', flexDirection: 'row' } (no flexWrap, confirming cycle-1 removal). Lines 53-58 are the 'commandText' style (no flex:1, confirming cycle-1 removal). BA's plan to add a conditional 'wrap?' prop that re-introduces flexWrap+flexShrink on these styles when wrap=true matches exactly what the line-range supports.",
+      "BashViewFull.tsx:49": "VERIFIED — line 49 is the <CommandView /> call inside its own horizontal ScrollView wrapper (lines 43-57). BA's NOT-modify constraint is well-founded.",
+      "CodexBashView.tsx:125": "VERIFIED — line 125 contains <CommandView and is in the bash branch as BA describes; out-of-scope is correctly marked."
+    }
+  },
+  "scope_alignment": {
+    "user_acceptance_clause_quoted": "Acceptable implementations: horizontal scroll within the command code block, soft-wrap at word boundaries, or responsive truncation with a way to see the full text",
+    "user_explicitly_allows_wrap": true,
+    "wrap_satisfies_user_intent": true,
+    "rationale": "Spec §5.3 acceptance point 2 (lines 1502-1504 of monolith) explicitly lists soft-wrap at word boundaries as an acceptable implementation. BA's switch from horizontal-scroll to wrap-mode is squarely within the user's stated acceptance set. The R1/R2 measurable criterion (no DOM element's bounding rect.right > popup container.right) is a direct check against the verbatim user complaint '超出了弹窗宽度'."
+  },
+  "investigation_completeness": {
+    "ba_diagnosed_invisibility_root_cause": true,
+    "diagnosis_rationale": "BA correctly identifies that React Native ScrollView with showsHorizontalScrollIndicator={true} on web only reveals the scrollbar on touch/hover, not at rest. Combined with desktop screenshot evidence (cycle 5 desktop.png showing visual overflow past popup right edge), BA's reframe of 'scroll math is correct but affordance is invisible' is supported.",
+    "ba_protected_other_callers": true,
+    "protection_mechanism": "BA mandates the wrap prop be opt-in (default false), with explicit Don't-Modify rules for BashViewFull.tsx (which keeps its own horizontal ScrollView wrapper at lines 43-57) and CodexBashView.tsx. AC4 mandates 'git diff' show no change to those two files. This protects the cycle-1 fix where it was correctly applied."
+  },
+  "conflict_resolution": {
+    "conflict": "Spec §5.3 cycle-5 audit (lines 2802, 2838-2843) claims depth-5 element is OUTSIDE the popup panel ('面板外面的某层'). BA's runtime DOM walk claims depth-5 IS the SidebarBashView ScrollView (clientWidth=390 matching dialog clientWidth=390).",
+    "resolution": "BA's evidence wins. (a) Static code reading of SidebarBashView.tsx:42-60 confirms the ScrollView is INSIDE the panel structure: <View styles.container><ScrollView horizontal>...</ScrollView></View>. (b) BA's runtime measurement clientWidth=390 matches dialog clientWidth=390 — if depth-5 were a message-list container outside the panel, its clientWidth would be the message column width, not 390. (c) The cycle-5 audit was a code-blind audit ('找到任何带 overflow-x:auto 的祖先就 PASS'). BA's runtime DOM walk corrects the audit's misidentification by measuring the actual element. (d) Importantly, BA does NOT contradict the user's complaint — BA agrees the user sees overflow; BA just refines the WHY (invisible affordance, not 'no scroll ancestor').",
+    "section7_prescription_compatibility": "Section 7 says 'popup 内层 overflow ... 真正的右侧详情面板需要加 overflow-x:auto'. The popup panel ALREADY has overflow-x:auto on its inner ScrollView. BA's wrap-mode is a stronger, more user-friendly fix than re-adding another overflow layer — it eliminates the need for a horizontal scrollbar entirely. The Section 7 author wanted 'visible content inside popup'; wrap-mode delivers that more reliably than scroll-mode on web Chrome."
+  },
+  "potential_concerns": [
+    {
+      "concern": "BA's wrap-mode introduces a wordBreak: 'break-all' web-only property. This will break long unbroken paths mid-character on web, which is acceptable for terminal output but visually different from production.",
+      "severity": "minor",
+      "ba_already_addressed": true,
+      "ba_address_text": "Edge Cases & Risks section mentions 'long unbroken paths need wordBreak: break-all to wrap mid-token. This is web-only CSS; on iOS/Android RN the equivalent is letter-by-letter wrapping — needs verification by QA on at least one native platform OR documented as web-only with native fallback to break-on-space.'"
+    },
+    {
+      "concern": "Removing SidebarBashView's outer ScrollView means commandWrapper's minWidth:'100%' is no longer needed. BA Technical Hints correctly mandates removing minWidth:'100%' along with the ScrollView. This avoids dead style.",
+      "severity": "informational",
+      "ba_already_addressed": true
+    },
+    {
+      "concern": "AC1 acceptance criterion uses bounding rect.right comparison, which is the correct R1 measurable. AC2 same for mobile. AC3 only verifies BashViewFull.tsx is unchanged via static diff — does not actually browser-verify horizontal scroll still works in BashViewFull. This is a slight gap but acceptable for this cycle since cycle 1 already verified that path.",
+      "severity": "informational",
+      "ba_already_addressed": true,
+      "ba_address_text": "AC3 'screenshot captured for regression-trace' implies QA still does take a screenshot of BashViewFull post-fix; combined with AC4 git-diff invariant, regression coverage is adequate."
+    }
+  ],
+  "objections": [],
+  "summary": "BA spec is well-evidenced (concrete clientWidth/scrollWidth measurements with hex selector chains), file:line claims grep-verified, scope aligns with user's verbatim acceptance clause (soft-wrap explicitly listed), and the conflict with cycle-5 audit is correctly resolved by BA's runtime DOM walk overriding the audit's static-grep misidentification. Wrap-mode L2 structural fix is novel vs cycle 1's L1 cosmetic and protects BashViewFull/CodexBashView via opt-in prop."
+}

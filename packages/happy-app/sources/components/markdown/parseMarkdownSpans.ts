@@ -1,9 +1,9 @@
 import type { MarkdownSpan } from "./parseMarkdown";
 
 // Updated pattern to handle nested markdown and asterisks
-// Capture groups 1-9: existing bold/italic/link/code; 10-11: inline latex $...$;
-// 12-13: strikethrough ~~...~~; 14-15: <kbd>...</kbd>
-const pattern = /(\*\*(.*?)(?:\*\*|$))|(\*(.*?)(?:\*|$))|(\[([^\]]+)\](?:\(([^)]+)\))?)|(`(.*?)(?:`|$))|(\$([^\s$][^$\n]*?[^\s$]|[^\s$\d\\])\$)|(~~(.*?)(?:~~|$))|(<kbd>([\s\S]*?)<\/kbd>)/g;
+// Capture groups 1-9: existing bold/italic/link/code; 10-11: display latex $$...$$ (HIGHER precedence);
+// 12-13: inline latex $...$; 14-15: strikethrough ~~...~~; 16-17: <kbd>...</kbd>
+const pattern = /(\*\*(.*?)(?:\*\*|$))|(\*(.*?)(?:\*|$))|(\[([^\]]+)\](?:\(([^)]+)\))?)|(`(.*?)(?:`|$))|(\$\$([\s\S]+?)\$\$)|(\$([^\s$][^$\n]*?[^\s$]|[^\s$\d\\])\$)|(~~(.*?)(?:~~|$))|(<kbd>([\s\S]*?)<\/kbd>)/g;
 
 // Decode common HTML entities (&lt;, &gt;, &amp;, &quot;, &#NNN;, &nbsp;)
 // so Claude's content with escaped HTML renders as intended literal characters.
@@ -67,12 +67,20 @@ function isPriceLikeDollar(source: string, matchIndex: number): boolean {
     return /[A-Za-z0-9]/.test(prev);
 }
 
-function handleLatexMatch(spans: MarkdownSpan[], source: string, match: RegExpExecArray): void {
+function handleLatexDisplayMatch(spans: MarkdownSpan[], source: string, match: RegExpExecArray): void {
     if (isEscapedDollar(source, match.index) || isPriceLikeDollar(source, match.index)) {
         pushTextWithAutoLinks(spans, match[10], []);
         return;
     }
-    spans.push({ styles: [], text: match[11], url: null, latex: true });
+    spans.push({ styles: [], text: match[11], url: null, latex: true, latexDisplay: true });
+}
+
+function handleLatexMatch(spans: MarkdownSpan[], source: string, match: RegExpExecArray): void {
+    if (isEscapedDollar(source, match.index) || isPriceLikeDollar(source, match.index)) {
+        pushTextWithAutoLinks(spans, match[12], []);
+        return;
+    }
+    spans.push({ styles: [], text: match[13], url: null, latex: true });
 }
 
 function handleLinkMatch(spans: MarkdownSpan[], match: RegExpExecArray) {
@@ -93,11 +101,13 @@ function handleMatchedToken(spans: MarkdownSpan[], source: string, match: RegExp
     } else if (match[8]) {
         spans.push({ styles: ['code'], text: match[9], url: null });
     } else if (match[10]) {
-        handleLatexMatch(spans, source, match);
+        handleLatexDisplayMatch(spans, source, match);
     } else if (match[12]) {
-        pushTextWithAutoLinks(spans, match[13], ['strikethrough']);
+        handleLatexMatch(spans, source, match);
     } else if (match[14]) {
-        spans.push({ styles: ['kbd'], text: match[15], url: null });
+        pushTextWithAutoLinks(spans, match[15], ['strikethrough']);
+    } else if (match[16]) {
+        spans.push({ styles: ['kbd'], text: match[17], url: null });
     }
 }
 

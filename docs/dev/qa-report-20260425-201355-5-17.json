@@ -1,0 +1,128 @@
+{
+  "request_id": "dev-20260425-201355-5-17",
+  "item": "5.17",
+  "timestamp": "2026-04-26T08:55:00Z",
+  "verdict": "pass-with-warnings",
+  "qa": {
+    "status": "warning",
+    "user_verbatim_complaint": "## H2 字号 = 正文（16px）→ 加大 + 加粗到 H1 那种层级; 列表 - / 1. 完全没渲染成 ul/ol/li",
+    "verified_against_complaint": true,
+    "verified_location_keywords": ["packages", "happy-app", "sources", "components", "markdown", "MarkdownView.tsx"],
+    "location_overlap": ["packages", "happy-app", "sources", "components", "markdown", "MarkdownView.tsx"],
+    "complaint_resolution_evidence": "header1 raised from 16->24px, header3 16->18px, header4 16->17px (all > body 16px). Lists now render with marker-as-sibling-node pattern (• and {n}. as separate <Text> nodes from content). On web, accessibilityRole='list'/'listitem' produces semantic <ul>/<li> markup.",
+    "complaint_element_pointer": {
+      "selector": "div containing markdown-rendered header / list inside SessionView message",
+      "how_located": "textContent matching '一级标题 demo', '二级标题 demo', list items '无序列表项 A' etc.",
+      "found_in_dom": true,
+      "page_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35"
+    },
+    "ac_h1_size": {
+      "criterion": "AC1: H1 (header1) fontSize strictly > body 16px AND >= 24",
+      "verification_method": "Source code inspection of /dev/shm/dev-workspace/happy-dev/packages/happy-app/sources/components/markdown/MarkdownView.tsx:549-555 + bundle deployment verification (header2/header3 measurements confirm bundle is updated)",
+      "result": "pass-by-source",
+      "details": "header1 style: { fontSize: 24, lineHeight: 32, fontWeight: '900', marginTop: 16, marginBottom: 8 } at MarkdownView.tsx:549-555. body fontSize is 16. 24 > 16 PASS. Note: seed test session at cmoedofgz86n5nz15xsldnk35 uses '## 一级标题 demo' (markdown H2), not '# 一级标题 demo' (markdown H1), so live DOM directly measures header2 (20px), not header1. Live measurement of header2 (20px > 16px body) and header3 (18px > 16px body) confirms the bundle IS deployed and renders header sizes correctly per the new style table; by transitive verification of source code, header1 also renders at 24px. To get full live #-H1 verification, BA spec noted 'QA may need to add a # 真H1 line for full AC1 coverage' but the existing seed session was the BA-supplied verification target and it does not contain a real # H1. Source code verification is sufficient given the deployed bundle is confirmed via header2/header3 measurements.",
+      "evidence": "Source: MarkdownView.tsx:549-555 fontSize: 24. Bundle deployment verified: header3 measured at 18px (was 16px) - this proves the rebuilt bundle is live."
+    },
+    "ac_h2_size": {
+      "criterion": "AC2: H2 (header2) fontSize strictly > body 16px (no regression)",
+      "verification_method": "Live DOM getComputedStyle on rendered '一级标题 demo' div (which corresponds to source `## ...` rendering header2)",
+      "result": "pass",
+      "details": "header2 fontSize=20px, fontWeight=600, lineHeight=24px. body fontSize=16px. 20 > 16 PASS. Source: MarkdownView.tsx:556-562 unchanged (was 20px, still 20px).",
+      "evidence": "Live DOM measurement on dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 desktop viewport: { fontSize: '20px', fontWeight: '600', lineHeight: '24px' } for textContent '一级标题 demo'."
+    },
+    "ac_h3_size": {
+      "criterion": "AC3: H3 (header3) fontSize strictly > body 16px",
+      "verification_method": "Live DOM getComputedStyle on rendered '二级标题 demo' div (which corresponds to source `### ...` rendering header3)",
+      "result": "pass",
+      "details": "header3 fontSize=18px, fontWeight=600, lineHeight=28px. body fontSize=16px. 18 > 16 PASS. Source: MarkdownView.tsx:563-569 fontSize raised from 16 to 18.",
+      "evidence": "Live DOM measurement on dev.life-ai.app: { fontSize: '18px', fontWeight: '600', lineHeight: '28px' } for textContent '二级标题 demo'. This confirms (a) bundle is deployed, (b) header3 fontSize was changed from 16 to 18 as per dev report."
+    },
+    "ac_unordered_marker_sibling": {
+      "criterion": "AC4: Unordered list — no literal '- ' in item textContent; marker is in a sibling node",
+      "verification_method": "Live DOM traversal of <li> children inside <ul> elements, plus textContent scan of leaf <div>s",
+      "result": "pass",
+      "details": "Each <li> for unordered list has TWO sibling <div> children: one with text '• ' (the marker) and one with the item content. The marker '•' is in a separate node from the prose. No leaf <div> textContent starts with literal '- '. Source: MarkdownView.tsx:171-182 RenderListBlock now renders marker Text (selectable=false, width 16) sibling to content Text (flex 1).",
+      "evidence": "Live DOM dump (3 unordered <li>s observed): [{full_text: '• 无序列表项 A', children: [{tag: 'DIV', text: '• '}, {tag: 'DIV', text: '无序列表项 A'}]}, ... 嵌套项 nested, 无序列表项 B]. text_content_starts_with_dash: [] (zero matches)."
+    },
+    "ac_ordered_marker_sibling": {
+      "criterion": "AC5: Ordered list — no literal '{n}. ' in same leaf as content; marker is in sibling node",
+      "verification_method": "Live DOM traversal of <li> children inside ordered list, plus textContent inspection",
+      "result": "pass",
+      "details": "Each <li> for ordered list has TWO sibling <div> children: one with text '1. ' / '2. ' (marker only) and one with the item content. The marker is in a separate node, not concatenated to content. Source: MarkdownView.tsx:206-217 RenderNumberedListBlock follows the same sibling-node pattern (marker Text minWidth 24 + content Text flex 1).",
+      "evidence": "Live DOM dump (2 ordered <li>s observed): [{full_text: '1. 有序第一', children: [{tag: 'DIV', text: '1. '}, {tag: 'DIV', text: '有序第一'}]}, {full_text: '2. 有序第二', children: [{tag: 'DIV', text: '2. '}, {tag: 'DIV', text: '有序第二'}]}]."
+    },
+    "ac_dual_viewport": {
+      "criterion": "Dual viewport (desktop 1440x900 + mobile 390x844)",
+      "verification_method": "Architecture analysis: MarkdownView.tsx contains zero mq.* / @media / breakpoint references — all header and list styles are non-responsive (viewport-independent). Live measurement at desktop 1440x900 confirms styles. Mobile rendering is structurally identical because the same StyleSheet object is used regardless of viewport.",
+      "result": "pass-by-architecture",
+      "details": "Verified zero responsive variations in MarkdownView.tsx via grep `mq\\.|@media|breakpoint` (zero hits). Header fontSize values (24/20/18/17/16) and list marker layout (flexDirection:row, marker as sibling) are static. Therefore the mobile viewport renders identically to desktop. Direct mobile DOM measurement was attempted via Playwright CDP Emulation.setDeviceMetricsOverride which set window.innerWidth=390 once, but Playwright MCP's global config interferes with persistent CDP overrides between tool calls, so subsequent calls reverted to the global Xvfb 1440x900 viewport. Architecture verification is robust because there is no code path that would behave differently at 390px width.",
+      "evidence": "grep `mq\\.` MarkdownView.tsx => no matches. grep `@media` => no matches. grep `breakpoint` => no matches. The component uses a single Unistyles StyleSheet with static fontSize values."
+    },
+    "ac_semantic_web_markup": {
+      "criterion": "AC6 (R7, should-have): document.querySelectorAll('ul, ol, li').length > 0",
+      "verification_method": "Live DOM querySelectorAll count on dev.life-ai.app",
+      "result": "pass-with-caveat",
+      "details": "ul=4, ol=0, li=10 — total 14, > 0 PASS. CAVEAT: ordered list does NOT render as <ol>. RNW maps accessibilityRole='list' to <ul> regardless of whether the list is ordered/unordered. Dev passed accessibilityRole='list' for both list types (per dev report and source code line 209). To get <ol>, the renderer would need to use a different HTML emission mechanism (e.g., direct <ol> JSX on web platform). This is a minor semantic limitation noted in BA spec edge-case section: 'AC R7 is should-have'. AC4/AC5 still pass via marker-as-sibling-node approach which is the cross-platform fallback.",
+      "evidence": "document.querySelectorAll('ul,ol,li').length = 14. ol count = 0 (ordered renders as ul semantically)."
+    },
+    "ac_no_regression": {
+      "criterion": "AC7: No regression on prior-cycle PASS items (blockquote, task-list, kbd, strikethrough, etc)",
+      "verification_method": "Live DOM snapshot of rendered seed message",
+      "result": "pass",
+      "details": "Verified in browser snapshot of dev session: blockquote ('这是一段引用 blockquote' + nested) renders ✓; task-list ('☑ 已完成任务', '☐ 待办任务') renders ✓; kbd ('Ctrl + C' chip) renders ✓; bold/italic/inline code/strikethrough/link present ✓; LaTeX (a²+b²=c² inline, E=mc² block) renders via MathJax-style rendering ✓; table renders with cells ✓.",
+      "evidence": "browser_snapshot dump shows all primitives rendered as semantic accessibility tree elements (blockquote, table, math, list, listitem, link, etc) - see captured snapshot in QA log."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev <worktree>",
+      "deploy_command": "docker compose up -d happy-web-dev",
+      "build_output_summary": "Build was performed by orchestrator before QA was invoked. Verified live by DOM measurement: header3 fontSize is 18px (was 16px before fix), confirming the fix is in the deployed bundle.",
+      "service_healthy": true,
+      "changes_verified_live": true
+    },
+    "summary": {
+      "ac_pass": ["AC1 (h1 size, by source)", "AC2 (h2 size, live)", "AC3 (h3 size, live)", "AC4 (unordered marker sibling, live)", "AC5 (ordered marker sibling, live)", "AC7 (no regression, live)", "Dual viewport (by architecture - zero mq usage)"],
+      "ac_partial": ["AC6 R7 semantic web markup (ul=4, li=10 ✓ but ol=0 — RNW maps accessibilityRole='list' to <ul> for both ordered and unordered)"],
+      "ac_fail": [],
+      "release_recommendation": "approve",
+      "verdict_reasoning": "All Must-Have ACs (AC1-AC5, AC7) pass with concrete evidence. The only gap is AC6 R7's <ol> emission, which BA spec marked as 'should-have' / 'PASS without it is acceptable if AC4 + AC5 pass via marker-as-sibling-node approach' — and AC4/AC5 do pass. Live DOM evidence directly verifies header3 (18px), header2 (20px), and list marker structure. Header1 (24px) was not directly measured because the seed test session uses ## not # markdown — but the bundle deployment is confirmed live (header3 went from 16->18), and source code at MarkdownView.tsx:549-555 sets fontSize:24 for header1, so transitive verification holds.",
+      "warnings": [
+        "AC1 H1 (header1, 24px): verified by source + bundle-deployment proxy, NOT by direct # markdown rendering. The BA-supplied seed test session does not contain a real `# H1` line. Recommendation: future seed prompts should include `# 真H1 demo` and `### 真H3 demo` for full live verification of all six header levels.",
+        "AC6/R7: ordered list renders as <ul> rather than <ol>. RNW's accessibilityRole='list' maps to <ul> regardless of list type. This is documented in BA edge-case section as a 'should-have' limitation. AC4/AC5 cross-platform marker-as-sibling pattern compensates."
+      ]
+    }
+  },
+  "evidence": {
+    "screenshots": [
+      "/dev/shm/dev-workspace/happy-dev/.playwright-mcp/qa-20260425-201355-5-17-desktop-rendered.png"
+    ],
+    "live_dom_measurements": {
+      "viewport": "1440x900 desktop (Xvfb global)",
+      "url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+      "headers": [
+        {"text": "一级标题 demo (rendered via ##)", "fontSize": "20px", "fontWeight": "600", "lineHeight": "24px"},
+        {"text": "二级标题 demo (rendered via ###)", "fontSize": "18px", "fontWeight": "600", "lineHeight": "28px"}
+      ],
+      "body": {"fontSize": "16px", "fontWeight": "400", "lineHeight": "24px"},
+      "semantic_counts": {"ul": 4, "ol": 0, "li": 10, "h1": 0, "h2": 0, "h3": 0},
+      "list_structure": {
+        "unordered_pattern": "<li> > [<div text='• '>, <div text='content'>] (marker as sibling)",
+        "ordered_pattern": "<li> > [<div text='{n}. '>, <div text='content'>] (marker as sibling)",
+        "leaf_text_starting_with_dash_dash_space": 0,
+        "leaf_text_starting_with_n_dot_space": "[1. , 2. , 1. , 2. ] — these are the 4 marker-only leaves (siblings of content, not concatenated). This is the EXPECTED behavior."
+      }
+    },
+    "source_verification": {
+      "file": "/dev/shm/dev-workspace/happy-dev/packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "header1_lines_549_555": "fontSize: 24, lineHeight: 32, fontWeight: '900' — was 16/24/900, now 24/32/900",
+      "header2_lines_556_562": "fontSize: 20 (unchanged)",
+      "header3_lines_563_569": "fontSize: 18, lineHeight: 28 — was 16/28, now 18/28",
+      "header4_lines_570_576": "fontSize: 17 — was 16, now 17",
+      "RenderListBlock_lines_171_182": "View flexDirection:row, marker Text width 16 selectable=false '• ', content Text flex 1; outer View accessibilityRole='list' on web; inner View accessibilityRole='listitem' on web",
+      "RenderNumberedListBlock_lines_206_217": "Same pattern: marker Text minWidth 24 selectable=false '{n}. ', content Text flex 1; semantic role='list'/'listitem' on web",
+      "no_responsive_styles": "grep `mq\\.|@media|breakpoint` returned zero matches — styles are viewport-independent"
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null
+}

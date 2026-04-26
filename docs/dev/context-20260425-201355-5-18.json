@@ -1,0 +1,244 @@
+{
+  "request_id": "dev-20260425-201355-5-18",
+  "timestamp": "2026-04-25T20:21:00Z",
+  "requirement": {
+    "original": "检修 Spec Item 5.18 — CronList inline view shows only 4 chars (\"CronList\"), missing the INPUT line entirely. User requires format matching bash card (e.g., $ <command> style — display the input line even when input is {}).",
+    "clarified": "Restore an input-summary row to the CronList tool's inline card so the inline surface shows TWO visual rows (header + dimmed input row) modeled on the Bash card's $ <command> commandLine row. The row must render even when tool.input is {}. The right-side detail panel established in Cycle 4 stays unchanged.",
+    "what": "Add a second visible row to the CronList inline tool card, populated with the tool's input summary (or literal {} when empty), styled like Bash's commandLine row.",
+    "why": "Cycle 4 of spec-20260424-084848 over-applied 'simplify' by deleting the input row entirely. User audit on 2026-04-25 made it explicit: '展示 input' means render the input row in compact form (like Bash's $ ls -la), NOT delete it.",
+    "where": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx (CronList entry, lines 952-967)"
+    ],
+    "scope": {
+      "included": [
+        "knownTools.tsx CronList entry: add extractSubtitle (or rename extractDescription -> extractSubtitle) so the inline card's second row is populated from the tool input.",
+        "Verify desktop 1440x900 and mobile 390x844 viewports both render the two-row card without overflow."
+      ],
+      "excluded": [
+        "Right-side detail panel rendering (already correct from Cycle 4).",
+        "Bash card rendering (reference only).",
+        "Any other §5.x item (no multitasking).",
+        "Other tools whose extractDescription is dead-coded (similar fix may apply but is out of scope here)."
+      ]
+    },
+    "success_criteria": [
+      "Live DOM at https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 shows the CronList card with TWO visible text rows (header 'CronList' + non-empty input row).",
+      "When tool.input === {}, the second row's textContent is a non-empty literal placeholder (e.g. '{}').",
+      "Second row's computed font-family is monospace (matches Bash commandLine row).",
+      "Right-side detail panel still shows three sections: Description / Input Parameters / Output.",
+      "yarn typecheck in packages/happy-app passes."
+    ],
+    "constraints": [
+      "Touch only the CronList entry in knownTools.tsx; do not change ToolView.tsx, do not modify any other tool entry.",
+      "Do not remove the right-sidebar detail rendering.",
+      "Use the existing extractSubtitle field — do NOT introduce a new field name."
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "Inline CronList card collapses to a single header row showing only 'CronList'; no input/argument summary row is rendered.",
+    "root_cause": "knownTools.tsx CronList entry defines extractDescription (which is consumed only by TaskView.tsx for subagent rendering) but does NOT define extractSubtitle. ToolView.tsx — the generic renderer that handles CronList — reads ONLY extractSubtitle (extractStrings(): line 161-164) for the second-row description. Therefore the description function on CronList is silently dead, and the second-row JSX (ToolView.tsx:93-97 'cfg.description && <Text>') never renders because cfg.description is null.",
+    "root_cause_commit": "N/A — present since Cycle 4 of spec-20260424-084848 introduced minimal:true + extractDescription on CronList (no git bisect needed; the field-name mismatch is visible in the current source).",
+    "why_introduced": "Cycle 4's 'simplify the inline card' direction made minimal:true the goal and used extractDescription as the description-source field. extractDescription is consumed by TaskView (Agent/Task) for subagent rendering, not by the generic ToolView path that CronList travels.",
+    "why_problematic": "User's verbatim direction was '展示 input 就行' (show the input — keep it minimal but DO show it), not 'remove the input'. Cycle 4 deleted the input row instead of compacting it.",
+    "timeline": "Cycle 4 (~2026-04-24/25) introduced the over-simplified state. QA Cycle 5 reported PASS on the over-simplified state. User audit 2026-04-25 ~14:50–15:00 reversed the verdict to FAIL.",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx"
+    ],
+    "evidence_type": "observed",
+    "observations": [
+      "CronList card outerHTML at https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 contains exactly one text node 'CronList' with no second-row Text sibling — observed via Playwright DOM read 2026-04-25T20:21Z (desktop 1440x900 AND mobile 390x844).",
+      "Adjacent Bash card on the same conversation shows two rows: header 'Inspect attached binary file' + body '$ ls -la /tmp/happy-attachments/...' — observed via Playwright DOM read 2026-04-25T20:21Z.",
+      "ToolView.tsx:161-164 (inferred from source): extractStrings() reads only knownTool.extractSubtitle for the description, NOT extractDescription.",
+      "knownTools.tsx:952-967 (inferred from source): CronList entry has extractDescription but no extractSubtitle.",
+      "Mobile viewport screenshot side-by-side proof: docs/dev/evidence/ba-20260425-201355-5-18/cronlist-mobile-390.jpeg — top card 'CronList' (single row), card immediately below shows Bash 'List dev spec files and confirm' + '$ ls /root/docs/dev/...' (two rows)."
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["CronList", "inline", "input", "$ <command>", "bash card"],
+    "localization_evidence": "Reproduced live on dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 in Playwright. Captured CronList card outerHTML (1 text row) AND Bash card outerHTML (2 text rows) at both 1440x900 and 390x844. Mobile screenshot at docs/dev/evidence/ba-20260425-201355-5-18/cronlist-mobile-390.jpeg shows both cards stacked, demonstrating the gap.",
+    "located_source": "packages/happy-app/sources/components/tools/knownTools.tsx:952-967 (CronList entry — extractDescription defined but extractSubtitle missing)",
+    "localization_blocked": null
+  },
+  "diagnosis_layer": "L2",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "把 input 行加回去（即使是 `{}` 也显示）",
+      "acceptance_criterion": "The inline CronList card has a second visible row whose textContent is non-empty even when tool.input === {}."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "学习对象：bash card 的 `$ ls -la /tmp` 那种格式",
+      "acceptance_criterion": "The second row uses monospace font family and a dimmed text color; visually mirrors BashView.tsx commandLine row (one line, prompt-glyph + arg text)."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "学习 bash + subagent 的渲染模式",
+      "acceptance_criterion": "CronList inline card has the same two-row visual structure (header + dimmed body line) as the Bash inline card observed in the same session."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "现在的渲染模式保留但是只加入到右侧侧边栏",
+      "acceptance_criterion": "Right-sidebar detail panel still shows Description / Input Parameters / Output (unchanged from Cycle 4)."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line_range": "952-967",
+      "role": "CronList tool registry entry — declares title, icon, minimal flag, and the per-row extractor functions (extractSubtitle, extractStatus, extractDescription).",
+      "imports_from": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "evidence": "Read knownTools.tsx lines 952-967; CronList entry has only extractDescription, NOT extractSubtitle.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "154-166",
+      "role": "extractStrings() — pulls description string from knownTool.extractSubtitle ONLY.",
+      "imports_from": "packages/happy-app/sources/components/tools/ToolView.tsx (same file, used by buildToolConfig)",
+      "evidence": "Read ToolView.tsx lines 154-166; line 161 'if (knownTool && typeof knownTool.extractSubtitle === function)' — extractDescription is never read here.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "85-106",
+      "role": "Header JSX — renders cfg.toolTitle (top row) and conditionally renders cfg.description (second row, line 93-97).",
+      "imports_from": "leaf",
+      "evidence": "Read ToolView.tsx lines 85-106; second-row Text exists at lines 93-97 with style toolDescription, conditional on cfg.description.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "line_range": "35-60",
+      "role": "Specialized view registry — confirms CronList has NO entry, so it falls through to the generic ToolView path.",
+      "imports_from": "leaf",
+      "evidence": "Read _all.tsx; no 'CronList' key in toolViewRegistry.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/BashView.tsx",
+      "line_range": "61-83",
+      "role": "REFERENCE only — Bash specialized view that produces the two-row card (header from ToolView + body $ <command> commandLine row from BashView itself).",
+      "imports_from": "leaf",
+      "evidence": "Read BashView.tsx; commandLine View at line 64-67 with monospace prompt + command Text.",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line": 93,
+      "type": "if",
+      "code_snippet": "{cfg.description && (<Text style={styles.toolDescription} numberOfLines={1}>{cfg.description}</Text>)}",
+      "purpose": "Only render the second-row Text if a description string is present. This guard is GOOD — it prevents an empty Text node when no subtitle exists. The fix does not need to remove or weaken this guard; it just needs to ensure cfg.description is non-empty for CronList by populating extractSubtitle.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line": 161,
+      "type": "type-guard",
+      "code_snippet": "if (knownTool && typeof knownTool.extractSubtitle === 'function') { const sub = knownTool.extractSubtitle({ tool, metadata }); if (typeof sub === 'string' && sub) description = sub; }",
+      "purpose": "Type-checks that extractSubtitle is callable and returns a non-empty string. The fix MUST return a non-empty string from extractSubtitle (e.g. '{}' literal) — empty string would be filtered out by this guard.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line": 956,
+      "type": "validator",
+      "code_snippet": "input: z.object({}).partial().passthrough()",
+      "purpose": "Zod schema declaring CronList accepts any object input (zero or more keys). Confirms the tool may legitimately be called with {} — supports the 'render even when {}' requirement.",
+      "removal_authorized": false
+    }
+  ],
+  "setup": {
+    "viewport": "1440x900 desktop AND 390x844 mobile (both verified live)",
+    "theme": "light",
+    "locale": "zh (user requirement) / en (UI strings)",
+    "auth_state": "logged-in (dev account cmi5mv9eh00wzpg14ph73jj3n)",
+    "data_state": "with-data — session cmoedofgz86n5nz15xsldnk35 has CronList tool call AND Bash tool calls for side-by-side comparison",
+    "browser": "Chrome desktop via Playwright on dev.life-ai.app",
+    "url_path": "/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "evidence": {
+    "observed": "User Cycle-5 audit (2026-04-25 ~14:50-15:00) verbatim: '当前 inline 只剩 \"CronList\" 4 字。要参照 bash card 的 inline 渲染模式，把 input 行加回去（即使是 `{}` 也显示）。学习对象：bash card 的 `$ ls -la /tmp` 那种格式。' Plus original §5.18: '学习 bash + subagent 的渲染模式 展示 input 就行'.",
+    "measured": {
+      "value": "1 visible text row only ('CronList', 8 chars); card height 56px; no sibling Text element below the title",
+      "location": "live DOM at https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35; cardHTML captured at 2026-04-25T20:21Z; rendered by packages/happy-app/sources/components/tools/ToolView.tsx as configured by knownTools.tsx:952-967"
+    },
+    "expected": {
+      "value": "2 visible text rows: header (CronList) + dimmed monospace body row mirroring Bash's `$ <command>` style; body row non-empty even when input === {}",
+      "source": "docs/dev/specs/spec-20260424-084848.md Section 7 Cycle 5 correction lines 2889-2890; live reference DOM of Bash card in same session showing the 2-row pattern."
+    },
+    "gap": "1 row vs 2 rows = 1 missing visible row. Visible chars 8 ('CronList') vs expected ≥ ~10 chars (e.g. 'CronList' header + '{}' body)."
+  },
+  "scope_expansion": {
+    "search_pattern": "'CronList' (registry key) and 'BashView' / 'commandLine' (reference component)",
+    "search_scope": "packages/happy-app/sources/components/tools/**",
+    "user_reported": [
+      "Inline CronList card on the conversation surface."
+    ],
+    "additional_found": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx:952 (CronList entry — only registry occurrence)",
+      "packages/happy-app/sources/components/tools/ToolView.tsx:154-166 (extractStrings — confirms only extractSubtitle is read)",
+      "packages/happy-app/sources/components/tools/views/_all.tsx (no specialized view for CronList — confirms generic-path rendering)",
+      "packages/happy-app/sources/components/tools/views/BashView.tsx:61-83 (REFERENCE pattern only)"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx:952"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Bash inline card pattern in this same codebase, verified live this session (Playwright DOM of an active Bash card in session cmoedofgz86n5nz15xsldnk35).",
+    "url_or_location": "packages/happy-app/sources/components/tools/views/BashView.tsx:61-83 (commandLine row); knownTools.tsx:68-101 (Bash entry shape — title fn + extractSubtitle null + minimal:true with specialized view).",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/specs/spec-20260424-084848.md §5.18 Cycle 4 (BA spec) + Cycle 5 QA (initial PASS) + Cycle 5 user audit (FAIL reversal) at lines 2710-2716, 2858-2862, 2889-2890",
+        "proposed_solution": "Simplify the inline card to a single header line; move the verbose INPUT/OUTPUT block to the right sidebar.",
+        "actual_change": "Set CronList knownTools entry to minimal:true with only extractDescription (which is dead code on the generic ToolView path). Effect: card collapsed to icon + 'CronList' header only; no second row.",
+        "outcome": "Visual fail — user's '展示 input 就行' was misread as '删掉 input'. The card now has zero information beyond the tool name, breaking parity with the Bash card the user explicitly named as the reference.",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L2"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L2",
+      "differs_from_all_priors": true,
+      "rationale": "Cycle 4 was subtractive at L2 (delete the second row by routing through a field name the renderer ignores). This attempt is additive at L2/L3: define extractSubtitle (the field the renderer actually reads) and populate it with a non-empty input summary, modeled on Bash's commandLine row. The fix reverses Cycle 4's direction (add row instead of remove) and uses a different field name (extractSubtitle instead of extractDescription)."
+    }
+  },
+  "context": {
+    "codebase_state": "main branch; CronList knownTools entry currently at packages/happy-app/sources/components/tools/knownTools.tsx:952-967 with only extractDescription defined.",
+    "recent_commits": "fcaaf4bb docs: spec layering re-architecture; spec-20260424-084848 Cycle 4 §5.18 dev change introduced the current over-simplified state.",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "dev_url": "https://dev.life-ai.app",
+      "dev_session_id": "cmoedofgz86n5nz15xsldnk35",
+      "dev_account_id": "cmi5mv9eh00wzpg14ph73jj3n"
+    }
+  },
+  "development_approach": {
+    "strategy": "Single-file additive change. Add extractSubtitle to the CronList entry in knownTools.tsx, returning the same input-summary string that the dead extractDescription currently returns. Optionally remove the dead extractDescription as cleanup.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx"
+    ],
+    "validation_approach": "QA navigates Playwright to https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35, injects auth + dev server URL, scrolls to the existing CronList tool call, captures (a) DOM showing TWO text rows on the card, (b) screenshot at desktop 1440x900, (c) screenshot at mobile 390x844. Compares against the captured Bash card on the same viewport for visual parity. Verifies right-sidebar detail panel still shows three sections by clicking the card. Runs yarn typecheck in packages/happy-app."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": false,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward field-name mismatch in an in-repo registry; root cause established by reading both files and reproducing live. No external best-practice research needed."
+  }
+}

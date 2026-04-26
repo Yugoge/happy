@@ -4,15 +4,11 @@ import { useAuth } from '@/auth/AuthContext';
 import { useIsTablet } from '@/utils/responsive';
 import { useLocalSetting } from '@/sync/storage';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
-import { isRunningOnMac } from '@/utils/platform';
 
 // Mirrors RightSidebar.tsx constants; duplicated here to avoid a circular
 // import since RightSidebar consumes other hooks. Keep in sync if they change.
 const RIGHT_SIDEBAR_WIDTH = 450;
 const RIGHT_SIDEBAR_DESKTOP_MIN_WIDTH = 901;
-
-// Web/tablet cap preserved from the original static layout.headerMaxWidth.
-const WEB_TABLET_MAX_WIDTH_CAP = 800;
 
 interface HeaderMaxWidthInputs {
     windowWidth: number;
@@ -35,11 +31,12 @@ function computeHeaderMaxWidth(inputs: HeaderMaxWidthInputs): number {
     const rightSidebarWidth = rightSidebarOpen && isRightSidebarDesktop
         ? RIGHT_SIDEBAR_WIDTH
         : 0;
-    const available = Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth);
-    if (isRunningOnMac()) {
-        return available;
-    }
-    return Math.min(available, WEB_TABLET_MAX_WIDTH_CAP);
+    // Cycle 6 (BA spec dev-20260425-201355-5-4-5): removed
+    // WEB_TABLET_MAX_WIDTH_CAP=800. Cycle 1 carried that value over from the
+    // legacy static `layout.headerMaxWidth`; user feedback in
+    // spec-20260424-084848.md §7 (line 2883–2887) directs to remove the cap so
+    // the header content row fills the available main area on all platforms.
+    return Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth);
 }
 
 /**
@@ -54,8 +51,9 @@ function computeHeaderMaxWidth(inputs: HeaderMaxWidthInputs): number {
  *                       otherwise mirrors SidebarNavigator's drawer formula.
  *   rightSidebarWidth = 450 only when viewport >= 901px AND sidebar open;
  *                       0 on mobile (sidebar is full-screen modal there).
- * On Mac the original code returned Infinity; we preserve "no cap" semantics
- * by returning `available` directly. Web/tablet caps at 800 as before.
+ * No upper cap is applied on any platform — the formula's true output drives
+ * layout. See compute function comment for rationale (Cycle 6 BA spec
+ * dev-20260425-201355-5-4-5).
  */
 export function useHeaderMaxWidth(): number {
     const auth = useAuth();

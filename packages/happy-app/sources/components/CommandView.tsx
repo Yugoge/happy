@@ -13,6 +13,9 @@ interface CommandViewProps {
     maxHeight?: number;
     fullWidth?: boolean;
     hideEmptyOutput?: boolean;
+    // When true, the command line wraps within its container instead of overflowing horizontally.
+    // Opt-in to preserve existing horizontal-scroll behavior for callers that wrap us in <ScrollView horizontal>.
+    wrap?: boolean;
 }
 
 export const CommandView = React.memo<CommandViewProps>(({
@@ -25,10 +28,14 @@ export const CommandView = React.memo<CommandViewProps>(({
     maxHeight,
     fullWidth,
     hideEmptyOutput,
+    wrap,
 }) => {
     const { theme } = useUnistyles();
     // Use legacy output if new props aren't provided
     const hasNewProps = stdout !== undefined || stderr !== undefined || error !== undefined;
+
+    // Web-only break-all so unbroken paths/tokens wrap mid-character. Native uses default break-on-space.
+    const wrapTextStyle = wrap && Platform.OS === 'web' ? ({ wordBreak: 'break-all' } as any) : undefined;
 
     const styles = StyleSheet.create({
         container: {
@@ -42,6 +49,7 @@ export const CommandView = React.memo<CommandViewProps>(({
         line: {
             alignItems: 'baseline',
             flexDirection: 'row',
+            ...(wrap ? { flexWrap: 'wrap' as const } : null),
         },
         promptText: {
             fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
@@ -55,6 +63,7 @@ export const CommandView = React.memo<CommandViewProps>(({
             fontSize: 14,
             color: theme.colors.terminal.command,
             lineHeight: 20,
+            ...(wrap ? { flexShrink: 1 } : null),
         },
         stdout: {
             fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
@@ -96,24 +105,24 @@ export const CommandView = React.memo<CommandViewProps>(({
             {/* Command Line */}
             <View style={styles.line}>
                 <Text style={styles.promptText}>{prompt} </Text>
-                <Text style={styles.commandText}>{command}</Text>
+                <Text style={[styles.commandText, wrapTextStyle]}>{command}</Text>
             </View>
 
             {hasNewProps ? (
                 <>
                     {/* Standard Output */}
                     {stdout && stdout.trim() && (
-                        <Text style={styles.stdout}>{stdout}</Text>
+                        <Text style={[styles.stdout, wrapTextStyle]}>{stdout}</Text>
                     )}
 
                     {/* Standard Error */}
                     {stderr && stderr.trim() && (
-                        <Text style={styles.stderr}>{stderr}</Text>
+                        <Text style={[styles.stderr, wrapTextStyle]}>{stderr}</Text>
                     )}
 
                     {/* Error Message */}
                     {error && (
-                        <Text style={styles.error}>{error}</Text>
+                        <Text style={[styles.error, wrapTextStyle]}>{error}</Text>
                     )}
 
                     {/* Empty output indicator */}
@@ -124,7 +133,7 @@ export const CommandView = React.memo<CommandViewProps>(({
             ) : (
                 /* Legacy output format */
                 output && (
-                    <Text style={styles.commandText}>{'\n---\n' + output}</Text>
+                    <Text style={[styles.commandText, wrapTextStyle]}>{'\n---\n' + output}</Text>
                 )
             )}
         </View>

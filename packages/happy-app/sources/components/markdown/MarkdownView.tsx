@@ -171,9 +171,11 @@ function RenderHeaderBlock(props: { level: 1 | 2 | 3 | 4 | 5 | 6, spans: Markdow
 function RenderListBlock(props: { items: { depth: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
     const listStyle = [style.text, style.list];
     return (
-        <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }}>
+        <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }} accessibilityRole={Platform.OS === 'web' ? ('list' as any) : undefined}>
             {props.items.map((item, index) => (
-                <Text selectable={props.selectable} style={[listStyle, { paddingLeft: item.depth * 16 }]} key={index}>- <RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
+                <View key={index} style={{ flexDirection: 'row', paddingLeft: item.depth * 16 }} accessibilityRole={Platform.OS === 'web' ? ('listitem' as any) : undefined}>
+                    <Text selectable={false} style={[listStyle, { width: 16, flexShrink: 0 }]}>{'• '}</Text><Text selectable={props.selectable} style={[listStyle, { flex: 1 }]}><RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
+                </View>
             ))}
         </View>
     );
@@ -204,9 +206,11 @@ function RenderBlockquoteBlock(props: { content: ReturnType<typeof parseMarkdown
 function RenderNumberedListBlock(props: { items: { number: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
     const listStyle = [style.text, style.list];
     return (
-        <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }}>
+        <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }} accessibilityRole={Platform.OS === 'web' ? ('list' as any) : undefined}>
             {props.items.map((item, index) => (
-                <Text selectable={props.selectable} style={listStyle} key={index}>{item.number.toString()}. <RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
+                <View key={index} style={{ flexDirection: 'row' }} accessibilityRole={Platform.OS === 'web' ? ('listitem' as any) : undefined}>
+                    <Text selectable={false} style={[listStyle, { minWidth: 24, flexShrink: 0 }]}>{`${item.number}. `}</Text><Text selectable={props.selectable} style={[listStyle, { flex: 1 }]}><RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
+                </View>
             ))}
         </View>
     );
@@ -352,7 +356,7 @@ function RenderSpanItem(props: RenderSpanItemProps) {
     }, [props.span.url]);
 
     if (props.span.latex) {
-        return <LatexRenderer key={props.index} content={props.span.text} inline />;
+        return <LatexRenderer key={props.index} content={props.span.text} inline={!props.span.latexDisplay} />;
     }
     if (!props.span.url) {
         return <Text key={props.index} selectable={props.selectable} style={[props.baseStyle, props.span.styles.map(s => style[s])]}>{props.span.text}</Text>;
@@ -543,8 +547,8 @@ const style = StyleSheet.create((theme) => ({
         color: theme.colors.text,
     },
     header1: {
-        fontSize: 16,
-        lineHeight: 24,  // Reduced from 36 to 24
+        fontSize: 24,
+        lineHeight: 32,
         fontWeight: '900',
         marginTop: 16,
         marginBottom: 8
@@ -557,14 +561,14 @@ const style = StyleSheet.create((theme) => ({
         marginBottom: 8
     },
     header3: {
-        fontSize: 16,
-        lineHeight: 28,  // Reduced from 32 to 28
+        fontSize: 18,
+        lineHeight: 28,
         fontWeight: '600',
         marginTop: 16,
         marginBottom: 8,
     },
     header4: {
-        fontSize: 16,
+        fontSize: 17,
         lineHeight: 24,
         fontWeight: '600',
         marginTop: 8,

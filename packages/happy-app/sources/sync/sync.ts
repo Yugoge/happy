@@ -73,6 +73,11 @@ class Sync {
     private sessionsSync: InvalidateSync;
     private messagesSync = new Map<string, InvalidateSync>();
     private sendSync = new Map<string, InvalidateSync>();
+    // Pipeline 7.3.B: most-recently-visible session id, used so the websocket
+    // reconnect callback can re-trigger catch-up for the visible session even
+    // when SessionView's socketStatus dependency hasn't fired yet (defence in
+    // depth alongside SessionView.tsx wiring fix).
+    private lastVisibleSessionId: string | null = null;
     private sendAbortControllers = new Map<string, AbortController>();
     private sessionLastSeq = new Map<string, number>();
     private pendingOutbox = new Map<string, OutboxMessage[]>();
@@ -227,6 +232,9 @@ class Sync {
 
 
     onSessionVisible = (sessionId: string) => {
+        // Pipeline 7.3.B: remember which session is currently visible so
+        // subscribeToUpdates' onReconnected callback can re-trigger catch-up.
+        this.lastVisibleSessionId = sessionId;
         this.getMessagesSync(sessionId).invalidate();
 
         // Also invalidate git status sync for this session
@@ -797,11 +805,27 @@ class Sync {
             // Decrypt agent state using session-specific encryption
             let agentState = await sessionEncryption.decryptAgentState(session.agentStateVersion, session.agentState);
 
-            // Put it all together
+            // Pipeline 7.3.C: do NOT clobber locally-known thinking on every
+            // hydrate. If we already have thinking=true for this session AND
+            // the server's most recent activity (activeAt) is within the last
+            // 5s, preserve the indicator — the CLI is plausibly still mid-turn
+            // and a fresh ephemeral may not arrive before render. Otherwise
+            // reset (the prior behaviour). Pipeline 7.2 (server-side thinking
+            // snapshot on connect) is expected to land alongside this; if 7.2
+            // ships a guaranteed snapshot we can tighten this back to an
+            // unconditional reset in a follow-up.
+            const existingSession = storage.getState().sessions[session.id];
+            const STALE_THINKING_MS = 5000;
+            const preserveThinking = !!(
+                existingSession &&
+                existingSession.thinking === true &&
+                session.activeAt > 0 &&
+                Date.now() - session.activeAt < STALE_THINKING_MS
+            );
             const processedSession = {
                 ...session,
-                thinking: false,
-                thinkingAt: 0,
+                thinking: preserveThinking ? true : false,
+                thinkingAt: preserveThinking ? (existingSession!.thinkingAt ?? 0) : 0,
                 metadata,
                 agentState
             };
@@ -1762,9 +1786,16 @@ class Sync {
             this.friendsSync.invalidate();
             this.friendRequestsSync.invalidate();
             this.feedSync.invalidate();
-            // Messages are fetched lazily per-session via onSessionVisible (called by SessionView
-            // when realtimeStatus changes). Session metadata + agentState (including permission
-            // requests) are already refreshed by sessionsSync.invalidate() above.
+            // Pipeline 7.3.B: explicitly re-fetch incremental messages for the
+            // currently-visible session here in addition to SessionView.tsx's
+            // socketStatus-bound effect (defence in depth). The previous comment
+            // claimed catch-up was wired via realtimeStatus, but realtimeStatus
+            // is voice-only — see spec §5.19 / pipeline 7.3 for the full story.
+            if (this.lastVisibleSessionId) {
+                this.getMessagesSync(this.lastVisibleSessionId).invalidate();
+            }
+            // Session metadata + agentState (including permission requests) are
+            // already refreshed by sessionsSync.invalidate() above.
             for (const sync of this.sendSync.values()) {
                 sync.invalidate();
             }

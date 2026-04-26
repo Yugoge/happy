@@ -67,8 +67,10 @@ export class Session {
         this.jsRuntime = opts.jsRuntime ?? 'node';
 
         // Start keep alive
+        logger.info(`[BGTASK-INSTR-7.1][KEEPALIVE-INIT] sid=${this.client.sessionId} thinking=${this.thinking} mode=${this.mode} ts=${Date.now()}`);
         this.client.keepAlive(this.thinking, this.mode);
         this.keepAliveInterval = setInterval(() => {
+            logger.info(`[BGTASK-INSTR-7.1][KEEPALIVE-TICK] sid=${this.client.sessionId} thinking=${this.thinking} mode=${this.mode} ts=${Date.now()}`);
             this.client.keepAlive(this.thinking, this.mode);
         }, 2000);
     }
@@ -77,13 +79,16 @@ export class Session {
      * Cleanup resources (call when session is no longer needed)
      */
     cleanup = (): void => {
+        logger.info(`[BGTASK-INSTR-7.1][KEEPALIVE-CLEANUP] sid=${this.client.sessionId} ts=${Date.now()} stack=${new Error().stack?.split('\n').slice(1, 6).join(' | ')}`);
         clearInterval(this.keepAliveInterval);
         this.sessionFoundCallbacks = [];
         logger.debug('[Session] Cleaned up resources');
     }
 
     onThinkingChange = (thinking: boolean) => {
+        const prev = this.thinking;
         this.thinking = thinking;
+        logger.info(`[BGTASK-INSTR-7.1][THINKING-CHANGE] sid=${this.client.sessionId} prev=${prev} next=${thinking} ts=${Date.now()}`);
         this.client.keepAlive(thinking, this.mode);
     }
 

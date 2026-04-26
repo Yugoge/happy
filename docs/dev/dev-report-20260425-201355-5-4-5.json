@@ -1,0 +1,54 @@
+{
+  "request_id": "dev-20260425-201355-5-4-5",
+  "timestamp": "2026-04-25T20:13:55Z",
+  "dev_report_path": "docs/dev/dev-report-20260425-201355-5-4-5.json",
+  "item": "5.4-5",
+  "status": "completed",
+  "files_modified": [
+    "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts:1-73"
+  ],
+  "edits_summary": [
+    "Removed import { isRunningOnMac } from '@/utils/platform' (was line 7) -- no longer used after collapsing branch",
+    "Removed const WEB_TABLET_MAX_WIDTH_CAP = 800 (was line 15) and its 1-line comment (line 14)",
+    "Removed if (isRunningOnMac()) { return available; } branch (was lines 39-41) -- web/tablet path now matches Mac path",
+    "Removed Math.min(available, WEB_TABLET_MAX_WIDTH_CAP) clamp (was line 42); replaced with single return Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth) at the function tail",
+    "Added 5-line comment block documenting the Cycle 6 BA spec reference (dev-20260425-201355-5-4-5) and user directive in spec-20260424-084848.md §7",
+    "Updated JSDoc on useHeaderMaxWidth() to remove stale 'Web/tablet caps at 800 as before' line; replaced with 'No upper cap is applied on any platform'"
+  ],
+  "rationale": "Cycle 1 commit 0ba2ddfc made the header max-width calculation reactive but preserved the legacy 800px cap as WEB_TABLET_MAX_WIDTH_CAP, so on viewports >= ~880px the cap dominated and avatar.right stayed at 1526 (394px short of 1920 viewport edge). Both sidebar-open and sidebar-closed states clamped to 800, masking toggle effects and producing the §5.5 'inverted toggle / clustering' symptom. Per BA spec dev-20260425-201355-5-4-5 (L3 fix authorized by user directive in spec-20260424-084848.md §7 Correction line 2883-2887), the cap is removed entirely so the existing reactive formula (windowWidth - leftDrawer - rightSidebar) drives layout. Single-file change (15 lines net diff). No new constants introduced. Math.max(0, ...) safety-clamp guard preserved. RIGHT_SIDEBAR_WIDTH=450 and RIGHT_SIDEBAR_DESKTOP_MIN_WIDTH=901 preserved (real layout constants per BA spec exclusions). Header.tsx and ChatHeaderView.tsx consumers verified to take the hook's return value via maxWidth: headerMaxWidth -- no consumer-side changes needed.",
+  "type_check": "pass",
+  "type_check_notes": "yarn typecheck in packages/happy-app/ exits with pre-existing errors in unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx). None of the errors reference useHeaderMaxWidth.ts or isRunningOnMac. grep confirms zero new typecheck issues from this change. The pre-existing SidebarNavigator.tsx 'sidebarCollapsed' as any error was already documented in the original useHeaderMaxWidth.ts comment (line 60-62 of new file).",
+  "ready_for_qa": true,
+  "blockers": [],
+  "diff_stats": {
+    "files_changed": 1,
+    "lines_added": 9,
+    "lines_removed": 11,
+    "new_symbols_introduced": [],
+    "minimum_possible_lines_estimate": 6,
+    "justification_for_overage": null
+  },
+  "fix_layer": "L3",
+  "scope_review_requested": false,
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "imported_by": [
+        "packages/happy-app/sources/components/navigation/Header.tsx",
+        "packages/happy-app/sources/components/ChatHeaderView.tsx"
+      ]
+    }
+  ],
+  "self_verification": {
+    "build": "pass",
+    "smoke_check": "skipped (Playwright/UI verification is QA's job per BA spec validation_approach; dev scope per orchestrator forbids docker build / yarn install / deploy)",
+    "notes": "Type check confirms no new errors. File grep confirms WEB_TABLET_MAX_WIDTH_CAP no longer exists outside an inline comment. isRunningOnMac import removed. Single return statement now returns Math.max(0, windowWidth - leftDrawerWidth - rightSidebarWidth) directly per BA spec M2/M3."
+  },
+  "qa_notes": "Per BA spec validation_approach, QA should: (1) build happy-app:dev from worktree with HAPPY_SERVER_URL=https://api-dev.life-ai.app, (2) docker compose up -d happy-web-dev, (3) Playwright on https://dev.life-ai.app at viewports [1920, 1280, 390], inject auth credentials per CLAUDE.md, use test session cmoedofgz86n5nz15xsldnk35. Verify AC1-AC6: avatar.right >= 1900 at 1920, >= 1260 at 1280, mobile 390 unchanged, right-sidebar toggle produces W_closed - W_open >= 400, left-drawer toggle produces delta >= 250. Both desktop AND mobile viewports per E2E rule.",
+  "permissions_to_add": [],
+  "blocking_issues": [],
+  "recommendations": [
+    "If QA reports ultra-wide monitor concern (e.g., 4K), add a parent-container max-width via separate mechanism per BA spec C1 -- NOT inside this hook",
+    "Pipeline 5.8 (useMessageContentMaxWidth.ts new file) is a sibling concern using the same window dims hook -- coordinate that no shared imports break"
+  ]
+}

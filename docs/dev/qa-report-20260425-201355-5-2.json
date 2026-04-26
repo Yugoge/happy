@@ -1,0 +1,196 @@
+{
+  "item": "5.2",
+  "request_id": "dev-20260425-201355-5-2",
+  "timestamp": "2026-04-26T08:60:00+00:00",
+  "verdict": "partial",
+  "ac1_default_context_percent": "code+bundle verified, live render UNVERIFIED (no test session with hydrated usageData accessible)",
+  "ac2_sonnet_context_percent": "code+bundle verified, live render UNVERIFIED (no test session with hydrated usageData accessible)",
+  "ac3_dual_viewport": "pass (status bar renders correctly at both viewports without overflow / cut-off; no `% left` token present because usageData is undefined for offline session — this is per-spec correct behavior)",
+  "user_verbatim_complaint": "claude 全部1M系列模型的context占用显示失败，这是因为目前happy-dev不适配1M模型。例如这张图展示的context为0%这是根本不可能的",
+  "verified_against_complaint": true,
+  "verified_location_keywords": ["agentinput", "tsx", "modelmodeoptions", "ts", "5.2", "context%", "default", "sonnet", "1m"],
+  "location_overlap": ["context%", "default", "sonnet", "1m"],
+  "complaint_resolution_evidence": "Bundle index-bd700f881e7c7ed0e23d8720d550d95a.js contains: (1) `getDefaultModelContextWindow = function(n){return 'codex'===n ? 2e5 : 1e6}` (codex→200k, all else (claude/gemini/unknown)→1M), and (2) call site `'default'!==e.modelMode.key ? getModelContextWindow(B) : getDefaultModelContextWindow(I)` with presence-check guard `e.usageData ?`. The fix matches the BA spec L4 wiring exactly: when picker='default' on a Claude session, denominator is 1_000_000; when picker='sonnet'/'opus'/'haiku', denominator falls through to existing getModelContextWindow → 200_000.",
+  "complaint_element_pointer": {
+    "selector": "AgentInput status bar (textarea[placeholder='Type a message ...'] ancestor depth ~23)",
+    "how_located": "React fiber walk up from textbox node",
+    "found_in_dom": true,
+    "page_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "element_screenshots": {
+    "before_selector": "AgentInput status bar",
+    "before_path": "(none — Cycle 1 fix already in main branch)",
+    "after_path": "qa-5.2-desktop-final.png + qa-5.2-mobile-final.png",
+    "same_element_verified": true
+  },
+
+  "build_verification": {
+    "status": "pass",
+    "build_command": "docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev (run by orchestrator)",
+    "deploy_command": "docker compose up -d happy-web-dev (run by orchestrator)",
+    "build_output_summary": "Image happy-app:dev rebuilt 2026-04-26T08:45:31Z, container happy-web-dev started 2026-04-26T08:47:03Z",
+    "service_healthy": true,
+    "changes_verified_live": true,
+    "skip_reason": null
+  },
+
+  "bundle_verification": {
+    "checked": true,
+    "bundle_path": "/_expo/static/js/web/index-bd700f881e7c7ed0e23d8720d550d95a.js",
+    "bundle_length": 7894816,
+    "fix_signatures_found": [
+      "getDefaultModelContextWindow function present (definition: 'codex'===n ? 2e5 : 1e6)",
+      "Call site present: 'default'!==e.modelMode.key ? getModelContextWindow(B) : getDefaultModelContextWindow(I)",
+      "Presence-based guard present: e.usageData ? r(e.usageData...) : null (NOT the old truthy guard e.usageData?.contextSize ? ...)",
+      "1_000_000 constant present in bundle (1e6/1000000)"
+    ],
+    "verdict": "Fix is fully deployed in the live bundle"
+  },
+
+  "react_state_verification": {
+    "checked": true,
+    "method": "React fiber walk-up from textarea[placeholder] to find AgentInput component",
+    "agentinput_props_observed": {
+      "modelMode": {"key": "sonnet", "name": "sonnet 4.6"},
+      "alwaysShowContextSize": true,
+      "metadata.flavor": "claude",
+      "metadata.currentModelCode": "undefined (confirmed not in metadata key list)",
+      "usageData": "undefined (typeof === 'undefined')"
+    },
+    "interpretation": "AgentInput receives correct props. Test session is offline (last seen 15 hours ago) so usageData is not hydrated. Per BA spec edge-cases section: 'If usage is undefined from resolveUsageData... the indicator should render NOTHING'. Therefore zero `% left` token in DOM is the CORRECT behavior here, not a bug."
+  },
+
+  "live_dom_verification": {
+    "ac3_indicator_renders": {
+      "checked": true,
+      "session_tested": "cmoedofgz86n5nz15xsldnk35 (offline, alwaysShowContextSize=true, usageData=undefined)",
+      "result": "no `% left` token present in DOM",
+      "expected_per_spec": "no render when usageData is undefined (BA spec edge-cases line 133)",
+      "verdict": "matches expected behavior"
+    },
+    "ac1_default_picker_renders_with_1M_denominator": {
+      "checked": false,
+      "blocker": "Could not access an active session with hydrated usageData. (1) /v1/sessions API does not expose decrypted latestUsage. (2) /session/<active-id> URL bouncing back to inactive session in this browser instance. (3) WebSocket events for usage not yet received in test window.",
+      "indirect_evidence": "Bundle code path executes correctly: when picker.key === 'default', it calls getDefaultModelContextWindow(flavor='claude') → returns 1_000_000. When usageData is present, getContextWarning(contextSize, alwaysShow=true, theme, 1_000_000) returns text='${remaining}% left'. Logic verified by simulation: 500_000/1_000_000 → '50% left' (matches AC1)."
+    },
+    "ac2_sonnet_picker_renders_with_200k_denominator": {
+      "checked": false,
+      "blocker": "Same as AC1 — no active session with hydrated usageData accessible.",
+      "indirect_evidence": "Bundle preserves Cycle 1's getModelContextWindow path for non-default picker keys. Logic verified by simulation: 100_000/200_000 → '50% left' (matches AC2)."
+    }
+  },
+
+  "evidence": {
+    "screenshots_desktop": [
+      "qa-5.2-desktop-inactive-default.png",
+      "qa-5.2-desktop-final.png"
+    ],
+    "screenshots_mobile": [
+      "qa-5.2-mobile-final.png"
+    ],
+    "dom_dumps": "AgentInput leaf-text array on inactive session: ['last seen 15 hours ago', 'sonnet 4.6', 'don't ask'] — zero `% left` token. usageData prop = undefined (confirmed via React fiber inspection at depth 23-24).",
+    "bundle_excerpts": [
+      "getDefaultModelContextWindow=function(n){return'codex'===n?2e5:1e6}",
+      "'default'!==e.modelMode.key?(0,_r(d[14]).getModelContextWindow)(B):(0,_r(d[14]).getDefaultModelContextWindow)(I),O=e.usageData?r(e.usageData..."
+    ],
+    "react_props_dump": {
+      "modelMode": {"key": "sonnet", "name": "sonnet 4.6"},
+      "alwaysShowContextSize": true,
+      "metadata_flavor": "claude",
+      "usageData_typeof": "undefined"
+    }
+  },
+
+  "ui_test_results": [
+    {
+      "scenario": "Verify deployed bundle contains the L4 fix (forward-fix on top of Cycle 1)",
+      "url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+      "status": "pass",
+      "reason": null,
+      "steps_performed": [
+        "browser_navigate to https://dev.life-ai.app",
+        "browser_evaluate localStorage injection (auth + custom-server-url=api-dev)",
+        "browser_navigate to /session/cmoedofgz86n5nz15xsldnk35",
+        "browser_evaluate fetch /_expo/static/js/web/index-*.js and grep for fix signatures"
+      ],
+      "assertions": [
+        {
+          "expected": "Bundle exports getDefaultModelContextWindow",
+          "actual": "Found: getDefaultModelContextWindow=function(n){return'codex'===n?2e5:1e6}",
+          "passed": true
+        },
+        {
+          "expected": "Call site uses ternary (picker==='default' ? getDefault : getModel)",
+          "actual": "Found: 'default'!==e.modelMode.key?getModelContextWindow(B):getDefaultModelContextWindow(I)",
+          "passed": true
+        },
+        {
+          "expected": "Render guard uses presence check (e.usageData ?), not truthy contextSize check",
+          "actual": "Found: e.usageData?r(e.usageData... — presence check confirmed",
+          "passed": true
+        }
+      ],
+      "evidence": "qa-5.2-desktop-final.png + qa-5.2-mobile-final.png"
+    },
+    {
+      "scenario": "Verify AgentInput render correctly handles undefined usageData (AC3 negative case)",
+      "url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+      "status": "pass",
+      "reason": null,
+      "steps_performed": [
+        "browser_evaluate React fiber walk-up from textarea[placeholder] to AgentInput",
+        "browser_evaluate dump props.usageData / props.alwaysShowContextSize / props.modelMode",
+        "browser_evaluate scan DOM tree for /\\d+%\\s*left/ token"
+      ],
+      "assertions": [
+        {
+          "expected": "When usageData is undefined, indicator does NOT render (per BA spec edge-cases line 133)",
+          "actual": "usageData_typeof = 'undefined', `% left` token absent from DOM. Behavior matches spec.",
+          "passed": true
+        },
+        {
+          "expected": "Status bar renders correctly at desktop and mobile viewports without overflow / cut-off",
+          "actual": "At 1440x900 and 390x844, status bar shows 'last seen 15 hours ago | sonnet 4.6 | don\\'t ask' without overflow",
+          "passed": true
+        }
+      ],
+      "evidence": "qa-5.2-desktop-final.png (1440x900), qa-5.2-mobile-final.png (390x844)"
+    },
+    {
+      "scenario": "Verify AC1: default picker on Claude → 1M denominator → ~50% left at contextSize=500k (LIVE RENDER UNVERIFIED)",
+      "url": "https://dev.life-ai.app/session/<active-id>",
+      "status": "skipped",
+      "reason": "Could not access an active session with hydrated usageData. /v1/sessions API does not expose decrypted latestUsage; /session/<active-id> URL bouncing back to inactive session due to SPA state caching. Bundle + React props inspection confirm logic is correct, but live `% left` text in DOM not directly observed under picker='default'+usageData={contextSize: 500000} conditions.",
+      "indirect_evidence": "Simulation of bundle's getContextWarning(500_000, true, 1_000_000) → '50% left' (matches AC1 expected). Bundle's call-site ternary calls getDefaultModelContextWindow when picker==='default' (returns 1e6 for claude flavor)."
+    },
+    {
+      "scenario": "Verify AC2: sonnet picker → 200k denominator → ~50% left at contextSize=100k (LIVE RENDER UNVERIFIED)",
+      "url": "https://dev.life-ai.app/session/<active-id>",
+      "status": "skipped",
+      "reason": "Same blocker as AC1.",
+      "indirect_evidence": "Simulation of bundle's getContextWarning(100_000, true, 200_000) → '50% left' (matches AC2 expected). Bundle preserves Cycle 1's getModelContextWindow path for picker.key='sonnet' (returns 200_000)."
+    }
+  ],
+
+  "all_findings": [
+    {
+      "severity": "minor",
+      "location": "verification methodology",
+      "issue": "AC1 and AC2 could not be observed in live DOM because no active session with hydrated usageData was accessible to QA in this run.",
+      "recommendation": "User can manually verify by opening any active Claude session at dev.life-ai.app where Claude has emitted at least one usage event, with picker switched between 'default' and 'sonnet' and alwaysShowContextSize=true. The fix logic is fully verified at the bundle and React-state level.",
+      "blocks_release": false
+    }
+  ],
+
+  "self_verification": {
+    "claims_total": 8,
+    "claims_with_evidence": 7,
+    "claims_superficial": 1,
+    "superficial_details": [
+      "Live DOM rendering of `% left` token under picker='default'+usageData hydrated NOT directly observed (bundle + simulation evidence only)"
+    ],
+    "confidence": "medium-high"
+  },
+
+  "summary": "5.2 fix is correctly deployed in happy-app:dev bundle and AgentInput receives correct props; AC3 (no render when usageData=undefined) verified live; AC1+AC2 (live `% left` text under hydrated usageData) NOT directly observed due to no active session with hydrated usageData accessible; bundle+simulation strongly suggest the fix works. Verdict: PARTIAL (bundle/code verified, full live render under all conditions not yet observed)."
+}

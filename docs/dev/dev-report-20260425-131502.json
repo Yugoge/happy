@@ -1,0 +1,141 @@
+{
+  "request_id": "dev-20260425-131502",
+  "timestamp": "2026-04-25T13:33:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260425-131502.json",
+  "status": "completed",
+  "task_type": "verification_pass_seed_session_creation",
+  "test_session": {
+    "url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+    "session_id": "cmoedofgz86n5nz15xsldnk35",
+    "working_directory": "/tmp/dev-verify-131502",
+    "machine_card_label": "/tmp/dev-verify-131502",
+    "machine_card_subtitle": "master",
+    "agent_selected": "claude code",
+    "model_at_creation": "default model (no explicit model set yet for this session in mmkv.default\\session-model-modes)",
+    "baseline_session_count": 9,
+    "baseline_machine_count": 4,
+    "baseline_machine_cards": [
+      "/dev/shm/dev-workspace/applio (3 sessions)",
+      "/dev/shm/dev-workspace/happy-dev (1 session)",
+      "~ (4 sessions)",
+      "~/orchestra (1 session)"
+    ],
+    "post_creation_session_count": 10,
+    "post_creation_machine_count": 5,
+    "post_creation_new_machine_card": "/tmp/dev-verify-131502 (1 session: dev-verify-131502)",
+    "delta": 1,
+    "creation_method": "UI click on Start New Session button (per CLAUDE.md UI-only mandate)",
+    "baseline_count_methodology": "Counted distinct session-row entries in sidebar accessibility snapshot at navigation time (refs e57, e63, e69, e90, e111, e117, e123, e129, e146 = 9). After session creation a new machine-card group appeared with one new session (e279), bringing visible total to 10."
+  },
+  "seed_message_sent": "Render the following demo content in your reply, exactly as a single markdown answer (no preamble, no explanation prose):\n\n## 一级标题 demo\n### 二级标题 demo\n\n**Bold**, *italic*, `inline code`, ~~strikethrough~~, [link to dev](https://dev.life-ai.app).\n\n> 这是一段引用 blockquote\n>> 嵌套引用 nested\n\n- 无序列表项 A\n  - 嵌套项 nested\n- 无序列表项 B\n\n1. 有序第一\n2. 有序第二\n\n- [x] 已完成任务\n- [ ] 待办任务\n\n<kbd>Ctrl</kbd> + <kbd>C</kbd>\n\nInline LaTeX: $a^2 + b^2 = c^2$. Block LaTeX:\n\n$$E = mc^2$$\n\nA wide table:\n\n| Path | Type | Description with extra-long content that should overflow | Notes |\n|---|---|---|---|\n| /home/用户/projects/源码/main.py | python脚本file源代码source | 主程序入口main entrypoint文件 with extra padding text 30+chars | 需要review代码质量check吧 |\n| /var/log/system.log | log文件超长路径名 should/wrap/or/scroll/horizontally | server日志输出logs production trace details record | append-only |\n\nAfter that table, run: please use the Bash tool to execute `ls /root/docs/dev/ba-spec-20260423-080000.md /root/docs/dev/context-20260423-080000.json /root/.claude/dev-registry/dev-20260425-131502/ba.json && echo FILES_OK`.\n\nThen call the CronList tool with empty input to demonstrate the cron tool card.",
+  "claude_response_summary": {
+    "response_received": true,
+    "session_status_after_completion": "online (status bar)",
+    "context_left_after_seed": "74% left",
+    "tool_calls_observed": [
+      "Bash (with permission prompt; user approved 'Yes' once)",
+      "CronList (rendered as compact inline card, single header line)"
+    ],
+    "user_clicked_yes_for_bash_permission": true,
+    "bash_command_actually_executed": "ls /root/docs/dev/ba-spec-20260423-080000.md /root/docs/dev/context-20260423-080000.json /root/.claude/dev-registry/dev-20260425-131502/ba.json && echo FILES_OK",
+    "bash_exit_code_observed": 2,
+    "bash_error_text_observed": "ls: cannot access '/root/.claude/dev-registry/dev-20260425-131502/ba.json': No such file or directory",
+    "bash_overflow_indicator": "+2 more lines (visible at end of compact bash card body)",
+    "rendering_artifacts_present": {
+      "headings_h1_h2_h3": true,
+      "inline_latex": true,
+      "block_latex": true,
+      "wide_table": true,
+      "code_block": false,
+      "blockquote": true,
+      "task_list": true,
+      "kbd_or_strikethrough": true,
+      "cronlist_tool_call": true,
+      "bash_tool_call": true
+    },
+    "rendering_artifacts_evidence_locations": {
+      "inline_latex_katex_math_ref": "math node ref e528 in snapshot file (a^2 + b^2 = c^2)",
+      "block_latex_katex_math_ref": "math node ref e569 in snapshot file (E = mc^2)",
+      "wide_table_table_ref": "table ref e589 with 4 columnheaders + 2 datarows",
+      "blockquote_refs": "e509 (outer), e512 (nested 嵌套引用 nested)",
+      "task_list_checkbox_chars": "☑ (checked) at e521, ☐ (unchecked) at e522",
+      "kbd_text_render": "Ctrl + C visible at e523 (rendered as text — QA will measure if it has kbd styling)",
+      "cronlist_inline_card_ref": "e458 (outer) + e462 (label 'CronList'). No INPUT/OUTPUT visible inline.",
+      "bash_card_ref": "e486 (command line) with overflow indicator e611 ('+2 more lines')"
+    },
+    "rendering_caveats": [
+      "Code block: seed message did NOT include a fenced code block; the rendered Bash CARD has a code-styled command line (e486 / e487-e488) but that is the Bash tool card, not a markdown ``` fence. Marked false above for that reason. QA should add a separate fenced-code seed message if they need to verify ``` rendering.",
+      "Strikethrough: the seed message included `~~strikethrough~~`. The accessibility snapshot collapsed bold/italic/code/strikethrough into a single text run e507. QA should inspect the actual DOM <del> / <s> elements to verify primitive 5.17 strikethrough rendering."
+    ]
+  },
+  "evidence_files": [
+    "docs/dev/evidence/dev-20260425-131502/01-baseline.png",
+    "docs/dev/evidence/dev-20260425-131502/01b-form-filled.png",
+    "docs/dev/evidence/dev-20260425-131502/02-after-seed.png",
+    "docs/dev/evidence/dev-20260425-131502/03-snapshot-after-seed.md"
+  ],
+  "preconditions": {
+    "dev_daemon_pid": 275490,
+    "dev_daemon_port": 35607,
+    "dev_daemon_health_check": "pass",
+    "dev_daemon_health_check_method": "HTTP 404 returned by GET /127.0.0.1:35607/ — server alive, /state route does not exist; ps -p 275490 confirms process alive running /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index.mjs daemon start-sync",
+    "dev_environment_only": true,
+    "production_not_touched": true,
+    "production_url_verification": "Browser only navigated to https://dev.life-ai.app/* and https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35; never to life-ai.app, localhost:8090, api.life-ai.app",
+    "no_curl_session_creation": true,
+    "no_api_session_creation": true,
+    "ui_click_session_creation_method": "Start New Session button in sidebar header → directory chip → typed /tmp/dev-verify-131502 → agent chip → switched codex→claude code → message textbox → typed seed → arrow-up send button",
+    "working_directory_verification": "/tmp/dev-verify-131502 created fresh on filesystem with mkdir + README.md; session header shows /tmp/dev-verify-131502 sub-text under session title 'dev-verify-131502'"
+  },
+  "seed_session_observations_for_qa": {
+    "5.1_model_persistence": "READY — model dropdown accessible in AgentInput. Initial model = default. localStorage 'mmkv.default\\\\session-model-modes' currently has only the OLD session entry {cmod5abiw5033nz15wzg6ubxe: 'haiku'} — meaning persistence works for the previous session. Once QA picks a non-default model on this new session and sends 'ack', the key should gain a new entry for cmoedofgz86n5nz15xsldnk35.",
+    "5.2_1m_context_display": "OBSERVED 74% left in status bar after seed message. QA should verify whether this is a 1M model context or a regular ~200K context. If default model isn't 1M-flavoured, QA needs to switch to a 1M variant (per BA-QA objection #1: tightened threshold = at least 5pp drop after a multi-thousand-token paste).",
+    "5.3_bash_popup_overflow": "READY — Bash card e486 visible with '$ ls /root/docs/dev/ba-spec-20260423-080000.md /root/docs/dev/context-20260423-080000.json /root/.claude/dev-registry/dev-20260425-131502/ba.json && echo FILES_OK' command (long, will overflow). Click the card to open the right-side popup.",
+    "5.4_top_bar_responsive": "READY — current viewport 1440x900 has Happy logo + connected dot at top-left of sidebar (img e17 + 'Happy' label e19), session header avatar at top-right of conversation pane. QA should resize viewport per the 5.4 plan and capture geometry.",
+    "5.5_top_bar_second_case": "READY — sidebar collapse / split-view toggles at e26/e30/e33 in top header. Per BA-QA objection #2, QA must explicitly try at least 2 toggles.",
+    "5.8_wide_table_overflow": "READY — table e589 rendered, screenshot 02-after-seed.png shows 'Description w...' truncating at right edge of conversation pane. QA should measure card.right vs viewport.innerWidth and verify horizontal scroll on table wrapper.",
+    "5.9_no_stop_hook_feedback": "READY — bodyText scan after Claude finished did not surface any 'Stop hook feedback' string. QA should re-confirm with explicit DOM query.",
+    "5.10_disconnect_repro": "NOT IN THIS SESSION — per BA spec, 5.10 requires a SECOND session for disconnect repro; QA spawns that one separately if it survives the timebox (Section 7 already lists 5.10 as carry-forward).",
+    "5.11_detail_panel_path_overflow": "READY — Bash card with very long absolute paths is present. QA clicks it to open the right-side detail panel.",
+    "5.12_attachment_tray": "READY — composer is visible at e429 with attachment buttons (e438, e441, e609, e445, e447). QA tests upload sequence per the 5.12 plan.",
+    "5.16_inline_latex": "VERIFIED-VISUAL — KaTeX <math> nodes e528 (inline) and e569 (block) present in DOM. QA must run document.querySelectorAll('.katex') count check and verify no raw $...$ text remains.",
+    "5.17_markdown_primitives": "PARTIALLY VERIFIED-VISUAL — h2 (e505), h3 (e506), blockquote (e509), nested blockquote (e512), unordered list (e513-e516), ordered list (e517-e519), task list (e520-e522), kbd-text (e523) all rendered. QA must inspect the actual element tag names (h2/h3/del/s/blockquote/input[type=checkbox]/kbd) to confirm semantic-correct rendering rather than bold-styled <p>s.",
+    "5.18_cronlist_compact_card": "VERIFIED-VISUAL — inline CronList card at e458/e462 is single-row with icon + 'CronList' text only. NO INPUT or OUTPUT text node visible inline. QA clicks the card to verify sidebar shows Description + Input Parameters + Output sections."
+  },
+  "diff_stats": {
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_removed": 0,
+    "new_symbols_introduced": [],
+    "minimum_possible_lines_estimate": 0,
+    "justification_for_overage": null
+  },
+  "fix_layer": "N/A — verification pass, no application code modified",
+  "scope_review_requested": false,
+  "qa_ready": true,
+  "blast_radius": [],
+  "self_verification": {
+    "build": "skipped (no application code modified — verification pass only)",
+    "smoke_check": "pass",
+    "smoke_check_details": "Session creation observed end-to-end via UI; Claude responded with all expected rendering artifacts (KaTeX inline + block, wide table, blockquote, task list, kbd, CronList card, Bash card with overflow indicator); session count delta = +1 confirmed via sidebar snapshot; no production URL ever accessed; no curl/API used.",
+    "notes": "Bash command exit code 2 because the test paths the seed message instructed Claude to ls don't exist under THIS dev daemon's filesystem (the daemon is rooted differently than the orchestrator worktree). This does NOT affect verification — the Bash tool CARD renderer worked correctly (showed cmd, exit code, error message, and overflow indicator), which is exactly what 5.3/5.11 verify."
+  },
+  "qa_handoff_notes": [
+    "Session ID for QA: cmoedofgz86n5nz15xsldnk35 — URL https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+    "Working dir: /tmp/dev-verify-131502 (fresh, no contention with active orchestrator worktree per BA-QA objection #5)",
+    "Default model used (NOT haiku from prior session). For 5.2 verification, QA must open the model dropdown in AgentInput and check whether any '[1M]' variant exists; if yes, switch to it and send a large paste; if no, mark 5.2 BLOCKED with the dropdown's full model list captured (per BA spec note).",
+    "For 5.1, QA must pick a non-default model NOW (e.g. haiku 4.5) on this session, send 'ack', navigate away, return, and re-check chip/text/x-coord-vs-yolo per the 5.1 plan.",
+    "For 5.10, QA spawns a SEPARATE second session — do not use this seed session for the 3-min disconnect test, or it will pollute the rendering measurements for 5.1-5.9.",
+    "Bash popup test (5.3, 5.11): click on the Bash card e485/e486 to open the right-side detail panel and measure pathElement.right vs panelContainer.right at desktop AND mobile.",
+    "Mobile viewport pass (per CLAUDE.md dual-viewport rule): QA must resize browser to 390x844 and re-capture each in-scope item that has 'both' viewport_relevance.",
+    "CronList card (5.18) is rendered but NOT clicked yet — QA should click it to verify the sidebar shows Description / Input Parameters / Output sections.",
+    "Permission for Bash was already granted once via 'Yes' button click (single-use). Subsequent Bash calls in this session may re-prompt or auto-allow depending on the granted scope.",
+    "User-message rendering (the very first message containing the seed) ALSO renders the markdown primitives — QA can inspect that block too if the assistant reply isn't enough."
+  ],
+  "permissions_to_add": [],
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should script the model-dropdown enumeration into the 5.2 plan so that BLOCKED outcome captures the exact model list (per BA-QA objection #1).",
+    "When QA tests 5.10 in a separate session, capture WS frames in dev-tools to provide objective evidence of proactive reconnect (per BA-QA objection #4)."
+  ]
+}

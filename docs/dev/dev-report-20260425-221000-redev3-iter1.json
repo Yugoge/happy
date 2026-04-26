@@ -1,0 +1,114 @@
+{
+  "request_id": "dev-20260425-221000-redev3-iter1",
+  "timestamp": "2026-04-25T23:10:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260425-221000-redev3-iter1.json",
+  "status": "completed",
+  "task": "Drop file_lines comparison from metric_did_not_worsen + update docstring (Option 1 fix for AC-M6-1 contradiction)",
+  "registry_warning": "Registry file /root/.claude/dev-registry/dev-20260425-122518/dev.json does not exist. Per startup instructions, this is acceptable (sentinel was per-overnight-session, not per-/dev). Continued without registration.",
+  "pre_state": {
+    "file": "/root/.claude/hooks/pretool-quality-gate.py",
+    "line_count": 380,
+    "metric_did_not_worsen_compares_file_lines": true,
+    "post_block": "if post[\"file_lines\"] > pre[\"file_lines\"]: return False, ..."
+  },
+  "post_state": {
+    "file": "/root/.claude/hooks/pretool-quality-gate.py",
+    "line_count": 385,
+    "metric_did_not_worsen_compares_file_lines": false,
+    "file_lines_grep": [
+      "Line 271: docstring of compute_metrics (still computes file_lines)",
+      "Line 278: compute_metrics returns file_lines (still in metrics dict for violation reporting)",
+      "Line 308, 310: docstring rationale in metric_did_not_worsen (NOT a comparison)"
+    ],
+    "verification_grep": "file_lines comparison block absent from metric_did_not_worsen function body — confirmed via sed extract"
+  },
+  "ac_test_results": [
+    {
+      "ac": "AC-M6-1",
+      "scenario": "legacy 1000-line file + 1 logger.info line, function/nesting unchanged",
+      "expected": "ALLOW (exit 0)",
+      "actual_exit": 0,
+      "actual_stderr": "QUALITY GATE [grandfathered] — /tmp/qa-qg-redev3/legacy1000.tsx: pre-existing violations preserved, no metric worsened.",
+      "status": "PASS",
+      "note": "This was the FAIL case before the Option 1 fix; now passes — the whole point of this iteration."
+    },
+    {
+      "ac": "AC-M6-2",
+      "scenario": "Pre: function f at 30 lines; Post: function f grows to 33 lines",
+      "expected": "BLOCK (exit 2)",
+      "actual_exit": 2,
+      "actual_stderr": "QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/funcgrow.tsx:\n  - Function `f` (line 1) is 33 lines (max 30)\n  - Worsened: Function 'f' grew from 30 to 33 lines",
+      "status": "PASS"
+    },
+    {
+      "ac": "AC-M6-3",
+      "scenario": "New file (no pre-state) with 33-line function",
+      "expected": "BLOCK (exit 2)",
+      "actual_exit": 2,
+      "actual_stderr": "QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/new31.tsx:\n  - Function `g` (line 1) is 33 lines (max 30)",
+      "status": "PASS"
+    },
+    {
+      "ac": "AC-M6-4a",
+      "scenario": "atlimit800.tsx (800 lines) unchanged",
+      "expected": "ALLOW (exit 0) — no violations at threshold",
+      "actual_exit": 0,
+      "actual_stderr": "(empty)",
+      "status": "PASS"
+    },
+    {
+      "ac": "AC-M6-4b",
+      "scenario": "atlimit800.tsx grows 800 -> 801 lines, function/nesting unchanged",
+      "expected": "ALLOW (exit 0) — file_lines no longer worsening criterion (changed from previous BLOCK)",
+      "actual_exit": 0,
+      "actual_stderr": "QUALITY GATE [grandfathered] — /tmp/qa-qg-redev3/atlimit800.tsx: pre-existing violations preserved, no metric worsened.",
+      "status": "PASS",
+      "note": "Behavior intentionally CHANGED with Option 1 — file_lines violation still REPORTED in [grandfathered] message but no longer blocks."
+    },
+    {
+      "ac": "AC-M6-5",
+      "scenario": "legacy1000.tsx pure shrink to 500 lines",
+      "expected": "ALLOW (exit 0)",
+      "actual_exit": 0,
+      "actual_stderr": "(empty)",
+      "status": "PASS"
+    },
+    {
+      "ac": "AC-M6-6",
+      "scenario": "Hook self-check — apply Write of hook content to itself",
+      "expected": "exit 0 (hook does not block its own current state)",
+      "actual_exit": 0,
+      "actual_stderr": "(empty)",
+      "status": "PASS"
+    },
+    {
+      "ac": "AC-M6-7",
+      "scenario": "Pre: function A=25, B=25; Post: A=25, B=35 (B grew, hits MAX_FUNC_LINES)",
+      "expected": "BLOCK (exit 2) with reason naming B",
+      "actual_exit": 2,
+      "actual_stderr": "QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/perfunc_test.tsx:\n  - Function `B` (line 27) is 35 lines (max 30)\n  - Worsened: Function 'B' grew from 25 to 35 lines",
+      "status": "PASS"
+    }
+  ],
+  "git_diff_excerpt": "diff --git a/hooks/pretool-quality-gate.py b/hooks/pretool-quality-gate.py\n--- def metric_did_not_worsen(pre, post):\n----     \"\"\"Return (True, '') if no metric worsened, else (False, reason).\"\"\"\n----     if post[\"file_lines\"] > pre[\"file_lines\"]:\n----         r = \"file lines went from %d to %d\"\n----         return False, r % (pre[\"file_lines\"], post[\"file_lines\"])\n----     pf, qf = pre.get(\"per_function_lines\", {}), post.get(\"per_function_lines\", {})\n+++ def metric_did_not_worsen(pre, post):\n+++     \"\"\"Return (True, '') if no metric worsened, else (False, reason).\n+++ \n+++     NOTE: file_lines NOT compared - grandfathering allows legacy file growth\n+++     as long as no per-function metric or nesting depth worsens. Rationale:\n+++     file_lines is the weakest quality signal; the user's M6 goal (unblock\n+++     logger.info-style instrumentation in legacy files) requires this\n+++     relaxation. Per-function and nesting metrics still protect the actual\n+++     quality intent.\n+++     \"\"\"\n+++     pf, qf = pre.get(\"per_function_lines\", {}), post.get(\"per_function_lines\", {})\n(file-lines comparison block removed; ~5-line net addition due to docstring)",
+  "diff_stats": {
+    "files_changed": 1,
+    "lines_added_this_iter": 8,
+    "lines_removed_this_iter": 3,
+    "new_symbols_introduced": [],
+    "minimum_possible_lines_estimate": 5,
+    "justification_for_overage": null,
+    "note": "git diff for the file shows a much larger envelope because previous redev3 refactor changes are not yet committed; this iteration alone is the metric_did_not_worsen modification (3-line removal + 8-line docstring expansion)."
+  },
+  "fix_layer": "L3",
+  "scope_review_requested": false,
+  "self_verification": {
+    "build": "pass",
+    "smoke_check": "pass",
+    "notes": "All 8 ACs verified via fixtures at /tmp/qa-qg-redev3/. Hook self-check (AC-M6-6) confirms hook does not block its own current state. AC-M6-1 transitions BLOCK->ALLOW as required. AC-M6-4b correctly transitions BLOCK->ALLOW (expected with Option 1)."
+  },
+  "qa_ready": true,
+  "qa_notes": "AC-M6-1 contradiction resolved. file_lines is still computed (compute_metrics returns it) and still reported in [grandfathered] stderr context, but is no longer a worsening criterion. Per-function (name-keyed, symmetric) and max_nesting (symmetric) comparators preserve quality intent. M6 goal (unblock logger.info adds in legacy files) achieved.",
+  "permissions_to_add": [],
+  "verification_summary": "8/8 ACs PASS — Option 1 fix successfully resolves AC-M6-1 contradiction without breaking any other AC."
+}

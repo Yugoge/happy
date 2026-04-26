@@ -1,5 +1,6 @@
 import { sessionAliveEventsCounter, websocketEventsCounter } from "@/app/monitoring/metrics2";
 import { activityCache } from "@/app/presence/sessionCache";
+import { clearThinking, recordThinking } from "@/app/presence/thinkingCache";
 import { buildNewMessageUpdate, buildSessionActivityEphemeral, buildUpdateSessionUpdate, ClientConnection, eventRouter } from "@/app/events/eventRouter";
 import { db } from "@/storage/db";
 import { allocateSessionSeq, allocateUserSeq } from "@/storage/seq";
@@ -8,290 +9,208 @@ import { log } from "@/utils/log";
 import { randomKeyNaked } from "@/utils/randomKeyNaked";
 import { Socket } from "socket.io";
 
-export function sessionUpdateHandler(userId: string, socket: Socket, connection: ClientConnection) {
-    socket.on('update-metadata', async (data: any, callback: (response: any) => void) => {
-        try {
-            const { sid, metadata, expectedVersion, dataEncryptionKey } = data;
+function clampHeartbeatTime(t: number): number | null {
+    let v = t;
+    if (v > Date.now()) v = Date.now();
+    if (v < Date.now() - 1000 * 60 * 10) return null;
+    return v;
+}
 
-            // Validate input
-            if (!sid || typeof metadata !== 'string' || typeof expectedVersion !== 'number') {
-                if (callback) {
-                    callback({ result: 'error' });
-                }
-                return;
-            }
+function isValidUpdateMetadataInput(data: any): boolean {
+    return data && data.sid && typeof data.metadata === 'string' && typeof data.expectedVersion === 'number';
+}
 
-            // Resolve session
-            const session = await db.session.findUnique({
-                where: { id: sid, accountId: userId }
-            });
-            if (!session) {
-                if (callback) {
-                    callback({ result: 'error' });
-                }
-                return;
-            }
+function isValidUpdateStateInput(data: any): boolean {
+    if (!data || !data.sid) return false;
+    if (typeof data.agentState !== 'string' && data.agentState !== null) return false;
+    return typeof data.expectedVersion === 'number';
+}
 
-            // Check version
-            if (session.metadataVersion !== expectedVersion) {
-                callback({ result: 'version-mismatch', version: session.metadataVersion, metadata: session.metadata });
-                return null;
-            }
+async function emitMetadataUpdate(userId: string, sid: string, metadata: string, newVersion: number): Promise<void> {
+    const updSeq = await allocateUserSeq(userId);
+    const payload = buildUpdateSessionUpdate(sid, updSeq, randomKeyNaked(12), { value: metadata, version: newVersion });
+    eventRouter.emitUpdate({ userId, payload, recipientFilter: { type: 'all-interested-in-session', sessionId: sid } });
+}
 
-            // Update metadata (and optionally dataEncryptionKey for session recovery)
-            const updateData: Record<string, any> = {
-                metadata: metadata,
-                metadataVersion: expectedVersion + 1
-            };
-            if (dataEncryptionKey && typeof dataEncryptionKey === 'string') {
-                updateData.dataEncryptionKey = Buffer.from(dataEncryptionKey, 'base64');
-            }
-            const { count } = await db.session.updateMany({
-                where: { id: sid, metadataVersion: expectedVersion },
-                data: updateData
-            });
-            if (count === 0) {
-                callback({ result: 'version-mismatch', version: session.metadataVersion, metadata: session.metadata });
-                return null;
-            }
+async function emitAgentStateUpdate(userId: string, sid: string, agentState: string | null, newVersion: number): Promise<void> {
+    const updSeq = await allocateUserSeq(userId);
+    // agentState may be null; the wire-protocol field accepts null but the typed
+    // signature requires `string`. Mirror the original idiom (inferred local var)
+    // to preserve the pre-existing widening behavior.
+    const agentStateUpdate = { value: agentState, version: newVersion };
+    const payload = buildUpdateSessionUpdate(sid, updSeq, randomKeyNaked(12), undefined, agentStateUpdate as { value: string; version: number });
+    eventRouter.emitUpdate({ userId, payload, recipientFilter: { type: 'all-interested-in-session', sessionId: sid } });
+}
 
-            // Generate session metadata update
-            const updSeq = await allocateUserSeq(userId);
-            const metadataUpdate = {
-                value: metadata,
-                version: expectedVersion + 1
-            };
-            const updatePayload = buildUpdateSessionUpdate(sid, updSeq, randomKeyNaked(12), metadataUpdate);
-            eventRouter.emitUpdate({
-                userId,
-                payload: updatePayload,
-                recipientFilter: { type: 'all-interested-in-session', sessionId: sid }
-            });
+async function performUpdateMetadata(userId: string, data: any, callback: (response: any) => void): Promise<void> {
+    if (!isValidUpdateMetadataInput(data)) {
+        if (callback) callback({ result: 'error' });
+        return;
+    }
+    const { sid, metadata, expectedVersion, dataEncryptionKey } = data;
+    const session = await db.session.findUnique({ where: { id: sid, accountId: userId } });
+    if (!session) { if (callback) callback({ result: 'error' }); return; }
+    if (session.metadataVersion !== expectedVersion) {
+        callback({ result: 'version-mismatch', version: session.metadataVersion, metadata: session.metadata });
+        return;
+    }
+    const updateData: Record<string, any> = { metadata, metadataVersion: expectedVersion + 1 };
+    if (dataEncryptionKey && typeof dataEncryptionKey === 'string') {
+        updateData.dataEncryptionKey = Buffer.from(dataEncryptionKey, 'base64');
+    }
+    const { count } = await db.session.updateMany({ where: { id: sid, metadataVersion: expectedVersion }, data: updateData });
+    if (count === 0) {
+        callback({ result: 'version-mismatch', version: session.metadataVersion, metadata: session.metadata });
+        return;
+    }
+    await emitMetadataUpdate(userId, sid, metadata, expectedVersion + 1);
+    callback({ result: 'success', version: expectedVersion + 1, metadata });
+}
 
-            // Send success response with new version via callback
-            callback({ result: 'success', version: expectedVersion + 1, metadata: metadata });
-        } catch (error) {
-            log({ module: 'websocket', level: 'error' }, `Error in update-metadata: ${error}`);
-            if (callback) {
-                callback({ result: 'error' });
-            }
-        }
+async function handleUpdateMetadata(userId: string, data: any, callback: (response: any) => void): Promise<void> {
+    try {
+        await performUpdateMetadata(userId, data, callback);
+    } catch (error) {
+        log({ module: 'websocket', level: 'error' }, `Error in update-metadata: ${error}`);
+        if (callback) callback({ result: 'error' });
+    }
+}
+
+async function performUpdateState(userId: string, data: any, callback: (response: any) => void): Promise<void> {
+    if (!isValidUpdateStateInput(data)) {
+        if (callback) callback({ result: 'error' });
+        return;
+    }
+    const { sid, agentState, expectedVersion } = data;
+    const session = await db.session.findUnique({ where: { id: sid, accountId: userId } });
+    if (!session) { callback({ result: 'error' }); return; }
+    if (session.agentStateVersion !== expectedVersion) {
+        callback({ result: 'version-mismatch', version: session.agentStateVersion, agentState: session.agentState });
+        return;
+    }
+    const { count } = await db.session.updateMany({
+        where: { id: sid, agentStateVersion: expectedVersion },
+        data: { agentState, agentStateVersion: expectedVersion + 1 }
     });
+    if (count === 0) {
+        callback({ result: 'version-mismatch', version: session.agentStateVersion, agentState: session.agentState });
+        return;
+    }
+    await emitAgentStateUpdate(userId, sid, agentState, expectedVersion + 1);
+    callback({ result: 'success', version: expectedVersion + 1, agentState });
+}
 
-    socket.on('update-state', async (data: any, callback: (response: any) => void) => {
-        try {
-            const { sid, agentState, expectedVersion } = data;
+async function handleUpdateState(userId: string, data: any, callback: (response: any) => void): Promise<void> {
+    try {
+        await performUpdateState(userId, data, callback);
+    } catch (error) {
+        log({ module: 'websocket', level: 'error' }, `Error in update-state: ${error}`);
+        if (callback) callback({ result: 'error' });
+    }
+}
 
-            // Validate input
-            if (!sid || (typeof agentState !== 'string' && agentState !== null) || typeof expectedVersion !== 'number') {
-                if (callback) {
-                    callback({ result: 'error' });
-                }
-                return;
-            }
+async function performSessionAlive(userId: string, data: { sid: string; time: number; thinking?: boolean }): Promise<void> {
+    websocketEventsCounter.inc({ event_type: 'session-alive' });
+    sessionAliveEventsCounter.inc();
+    if (!data || typeof data.time !== 'number' || !data.sid) return;
+    const t = clampHeartbeatTime(data.time);
+    if (t === null) return;
+    const { sid, thinking } = data;
+    const isValid = await activityCache.isSessionValid(sid, userId);
+    if (!isValid) return;
+    activityCache.queueSessionUpdate(sid, t);
+    // Pipeline 7.2: cache the transient `thinking` flag so a freshly-connected
+    // socket can pick up the in-flight state without waiting for the next
+    // heartbeat. See thinkingCache.ts for full rationale.
+    recordThinking(sid, userId, thinking || false, t);
+    const sessionActivity = buildSessionActivityEphemeral(sid, true, t, thinking || false);
+    eventRouter.emitEphemeral({ userId, payload: sessionActivity, recipientFilter: { type: 'user-scoped-only' } });
+}
 
-            // Resolve session
-            const session = await db.session.findUnique({
-                where: {
-                    id: sid,
-                    accountId: userId
-                }
-            });
-            if (!session) {
-                callback({ result: 'error' });
-                return null;
-            }
+async function handleSessionAlive(userId: string, data: any): Promise<void> {
+    try {
+        await performSessionAlive(userId, data);
+    } catch (error) {
+        log({ module: 'websocket', level: 'error' }, `Error in session-alive: ${error}`);
+    }
+}
 
-            // Check version
-            if (session.agentStateVersion !== expectedVersion) {
-                callback({ result: 'version-mismatch', version: session.agentStateVersion, agentState: session.agentState });
-                return null;
-            }
+async function findExistingMessage(sid: string, localId: string | null): Promise<{ id: string } | null> {
+    if (!localId) return null;
+    return db.sessionMessage.findFirst({ where: { sessionId: sid, localId } });
+}
 
-            // Update agent state
-            const { count } = await db.session.updateMany({
-                where: { id: sid, agentStateVersion: expectedVersion },
-                data: {
-                    agentState: agentState,
-                    agentStateVersion: expectedVersion + 1
-                }
-            });
-            if (count === 0) {
-                callback({ result: 'version-mismatch', version: session.agentStateVersion, agentState: session.agentState });
-                return null;
-            }
-
-            // Generate session agent state update
-            const updSeq = await allocateUserSeq(userId);
-            const agentStateUpdate = {
-                value: agentState,
-                version: expectedVersion + 1
-            };
-            const updatePayload = buildUpdateSessionUpdate(sid, updSeq, randomKeyNaked(12), undefined, agentStateUpdate);
-            eventRouter.emitUpdate({
-                userId,
-                payload: updatePayload,
-                recipientFilter: { type: 'all-interested-in-session', sessionId: sid }
-            });
-
-            // Send success response with new version via callback
-            callback({ result: 'success', version: expectedVersion + 1, agentState: agentState });
-        } catch (error) {
-            log({ module: 'websocket', level: 'error' }, `Error in update-state: ${error}`);
-            if (callback) {
-                callback({ result: 'error' });
-            }
-        }
+async function persistAndEmitMessage(userId: string, sid: string, message: string, localId: string | null, connection: ClientConnection): Promise<void> {
+    const session = await db.session.findUnique({ where: { id: sid, accountId: userId } });
+    if (!session) return;
+    const existing = await findExistingMessage(sid, localId);
+    if (existing) return;
+    const msgContent: PrismaJson.SessionMessageContent = { t: 'encrypted', c: message };
+    const updSeq = await allocateUserSeq(userId);
+    const msgSeq = await allocateSessionSeq(sid);
+    const msg = await db.sessionMessage.create({ data: { sessionId: sid, seq: msgSeq, content: msgContent, localId } });
+    const payload = buildNewMessageUpdate(msg, sid, updSeq, randomKeyNaked(12));
+    eventRouter.emitUpdate({
+        userId,
+        payload,
+        recipientFilter: { type: 'all-interested-in-session', sessionId: sid },
+        skipSenderConnection: connection
     });
-    socket.on('session-alive', async (data: {
-        sid: string;
-        time: number;
-        thinking?: boolean;
-    }) => {
-        try {
-            // Track metrics
-            websocketEventsCounter.inc({ event_type: 'session-alive' });
-            sessionAliveEventsCounter.inc();
+}
 
-            // Basic validation
-            if (!data || typeof data.time !== 'number' || !data.sid) {
-                return;
-            }
+async function performMessage(userId: string, socket: Socket, connection: ClientConnection, data: any): Promise<void> {
+    websocketEventsCounter.inc({ event_type: 'message' });
+    const { sid, message, localId } = data;
+    const sessionTag = connection.connectionType === 'session-scoped' ? connection.sessionId : 'N/A';
+    log({ module: 'websocket' }, `Received message from socket ${socket.id}: sessionId=${sid}, messageLength=${message.length} bytes, connectionType=${connection.connectionType}, connectionSessionId=${sessionTag}`);
+    const useLocalId = typeof localId === 'string' ? localId : null;
+    await persistAndEmitMessage(userId, sid, message, useLocalId, connection);
+}
 
-            let t = data.time;
-            if (t > Date.now()) {
-                t = Date.now();
-            }
-            if (t < Date.now() - 1000 * 60 * 10) {
-                return;
-            }
+async function handleMessage(userId: string, socket: Socket, connection: ClientConnection, data: any): Promise<void> {
+    try {
+        await performMessage(userId, socket, connection, data);
+    } catch (error) {
+        log({ module: 'websocket', level: 'error' }, `Error in message handler: ${error}`);
+    }
+}
 
-            const { sid, thinking } = data;
+async function performSessionEnd(userId: string, data: { sid: string; time: number }): Promise<void> {
+    const { sid, time } = data;
+    if (typeof time !== 'number') return;
+    const t = clampHeartbeatTime(time);
+    if (t === null) return;
+    const session = await db.session.findUnique({ where: { id: sid, accountId: userId } });
+    if (!session) return;
+    await db.session.update({ where: { id: sid }, data: { lastActiveAt: new Date(t), active: false } });
+    clearThinking(sid);
+    const sessionActivity = buildSessionActivityEphemeral(sid, false, t, false);
+    eventRouter.emitEphemeral({ userId, payload: sessionActivity, recipientFilter: { type: 'user-scoped-only' } });
+}
 
-            // Check session validity using cache
-            const isValid = await activityCache.isSessionValid(sid, userId);
-            if (!isValid) {
-                return;
-            }
+async function handleSessionEnd(userId: string, data: any): Promise<void> {
+    try {
+        await performSessionEnd(userId, data);
+    } catch (error) {
+        log({ module: 'websocket', level: 'error' }, `Error in session-end: ${error}`);
+    }
+}
 
-            // Queue database update (will only update if time difference is significant)
-            activityCache.queueSessionUpdate(sid, t);
-
-            // Emit session activity update
-            const sessionActivity = buildSessionActivityEphemeral(sid, true, t, thinking || false);
-            eventRouter.emitEphemeral({
-                userId,
-                payload: sessionActivity,
-                recipientFilter: { type: 'user-scoped-only' }
-            });
-        } catch (error) {
-            log({ module: 'websocket', level: 'error' }, `Error in session-alive: ${error}`);
-        }
+export function sessionUpdateHandler(userId: string, socket: Socket, connection: ClientConnection): void {
+    socket.on('update-metadata', (data: any, callback: (response: any) => void) => {
+        handleUpdateMetadata(userId, data, callback);
     });
-
+    socket.on('update-state', (data: any, callback: (response: any) => void) => {
+        handleUpdateState(userId, data, callback);
+    });
+    socket.on('session-alive', (data: any) => {
+        handleSessionAlive(userId, data);
+    });
     const receiveMessageLock = new AsyncLock();
-    socket.on('message', async (data: any) => {
-        await receiveMessageLock.inLock(async () => {
-            try {
-                websocketEventsCounter.inc({ event_type: 'message' });
-                const { sid, message, localId } = data;
-
-                log({ module: 'websocket' }, `Received message from socket ${socket.id}: sessionId=${sid}, messageLength=${message.length} bytes, connectionType=${connection.connectionType}, connectionSessionId=${connection.connectionType === 'session-scoped' ? connection.sessionId : 'N/A'}`);
-
-                // Resolve session
-                const session = await db.session.findUnique({
-                    where: { id: sid, accountId: userId }
-                });
-                if (!session) {
-                    return;
-                }
-                let useLocalId = typeof localId === 'string' ? localId : null;
-
-                // Create encrypted message
-                const msgContent: PrismaJson.SessionMessageContent = {
-                    t: 'encrypted',
-                    c: message
-                };
-
-                // Resolve seq
-                const updSeq = await allocateUserSeq(userId);
-                const msgSeq = await allocateSessionSeq(sid);
-
-                // Check if message already exists
-                if (useLocalId) {
-                    const existing = await db.sessionMessage.findFirst({
-                        where: { sessionId: sid, localId: useLocalId }
-                    });
-                    if (existing) {
-                        return { msg: existing, update: null };
-                    }
-                }
-
-                // Create message
-                const msg = await db.sessionMessage.create({
-                    data: {
-                        sessionId: sid,
-                        seq: msgSeq,
-                        content: msgContent,
-                        localId: useLocalId
-                    }
-                });
-
-                // Emit new message update to relevant clients
-                const updatePayload = buildNewMessageUpdate(msg, sid, updSeq, randomKeyNaked(12));
-                eventRouter.emitUpdate({
-                    userId,
-                    payload: updatePayload,
-                    recipientFilter: { type: 'all-interested-in-session', sessionId: sid },
-                    skipSenderConnection: connection
-                });
-            } catch (error) {
-                log({ module: 'websocket', level: 'error' }, `Error in message handler: ${error}`);
-            }
-        });
+    socket.on('message', (data: any) => {
+        receiveMessageLock.inLock(() => handleMessage(userId, socket, connection, data));
     });
-
-    socket.on('session-end', async (data: {
-        sid: string;
-        time: number;
-    }) => {
-        try {
-            const { sid, time } = data;
-            let t = time;
-            if (typeof t !== 'number') {
-                return;
-            }
-            if (t > Date.now()) {
-                t = Date.now();
-            }
-            if (t < Date.now() - 1000 * 60 * 10) { // Ignore if time is in the past 10 minutes
-                return;
-            }
-
-            // Resolve session
-            const session = await db.session.findUnique({
-                where: { id: sid, accountId: userId }
-            });
-            if (!session) {
-                return;
-            }
-
-            // Update last active at
-            await db.session.update({
-                where: { id: sid },
-                data: { lastActiveAt: new Date(t), active: false }
-            });
-
-            // Emit session activity update
-            const sessionActivity = buildSessionActivityEphemeral(sid, false, t, false);
-            eventRouter.emitEphemeral({
-                userId,
-                payload: sessionActivity,
-                recipientFilter: { type: 'user-scoped-only' }
-            });
-        } catch (error) {
-            log({ module: 'websocket', level: 'error' }, `Error in session-end: ${error}`);
-        }
+    socket.on('session-end', (data: any) => {
+        handleSessionEnd(userId, data);
     });
-
 }

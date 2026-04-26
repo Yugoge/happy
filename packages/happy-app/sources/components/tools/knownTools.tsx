@@ -954,15 +954,14 @@ export const knownTools = {
         icon: ICON_CLOCK,
         minimal: true,
         input: z.object({}).partial().passthrough(),
-        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             const input = opts.tool.input || {};
             const keys = Object.keys(input);
             if (keys.length === 0) {
-                return t('tools.names.cronList') + ' {}';
+                return '{}';
             }
             const summary = JSON.stringify(input);
-            const truncated = summary.length > 40 ? summary.substring(0, 40) + '...' : summary;
-            return t('tools.names.cronList') + ' ' + truncated;
+            return summary.length > 40 ? summary.substring(0, 40) + '...' : summary;
         }
     },
     'web.search_query': {

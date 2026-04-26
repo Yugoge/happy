@@ -1,0 +1,82 @@
+{
+  "item": "5.16",
+  "request_id": "dev-20260425-201355-5-16",
+  "timestamp": "2026-04-25T20:13:55+00:00",
+  "status": "completed",
+  "fix_layer": "L4",
+  "files_modified": [
+    "packages/happy-app/sources/components/markdown/parseMarkdown.ts:48-54",
+    "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:3-6,70-84,94-112",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx:354-355"
+  ],
+  "edits_summary": [
+    "parseMarkdown.ts: Added optional `latexDisplay?: boolean` field to MarkdownSpan type (1-line additive, non-breaking).",
+    "parseMarkdownSpans.ts: Added higher-precedence `(\\$\\$([\\s\\S]+?)\\$\\$)` alternative as new groups 10-11 BEFORE the inline `$...$` alternative (now groups 12-13). Strikethrough renumbered 14-15, kbd renumbered 16-17. Added `handleLatexDisplayMatch` helper that pushes spans with `latex: true, latexDisplay: true`. Existing `handleLatexMatch` updated to read groups 12-13 instead of 10-11. Pre-existing guards (`isEscapedDollar`, `isPriceLikeDollar`) reused on the new display helper as well.",
+    "MarkdownView.tsx: Changed `<LatexRenderer ... inline />` to `<LatexRenderer ... inline={!props.span.latexDisplay} />` so display spans render with `displayMode:true` (KaTeX block typesetting) while inline spans keep `displayMode:false`."
+  ],
+  "rationale": "Per BA root cause: the cycle 1 inline `$...$` regex (commit 0ba2ddfc) consumes the inner `$E=mc^2$` of any mid-line `$$E=mc^2$$` because parseMarkdownBlock.ts:150 only handles `$$` when `trimmed.startsWith('$$')`. Net effect: stray outer `$` glyphs around an inline-typeset KaTeX render, which the user describes as 'block latex broken'. Fix is a regex-precedence resolution: add `\\$\\$([\\s\\S]+?)\\$\\$` as a HIGHER-precedence alternative BEFORE the inline `$...$` alternative. JavaScript's regex engine tries alternatives left-to-right at the same starting index, so when the source has `$$` at position N, the new `$$...$$` alternative matches before the engine ever tries `$...$`. The lazy quantifier `[\\s\\S]+?` ensures multiple `$$...$$` formulas on the same line each match independently. The new `latexDisplay` discriminant on MarkdownSpan flows through MarkdownView -> LatexRenderer to enable `displayMode:true` (block typesetting). Block-on-own-line path (parseMarkdownBlock.ts) is untouched per BA's `do_not_touch` directive — it remains the ONE true block path; the new span-level path handles only the mid-line case that was previously falling through.",
+  "type_check": "pass",
+  "type_check_notes": "yarn typecheck reports zero errors in the three modified markdown files. Pre-existing errors exist in unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx) but are out of scope for issue 5.16.",
+  "diff_stats": {
+    "files_changed": 3,
+    "lines_added": 21,
+    "lines_removed": 7,
+    "net_lines": 14,
+    "new_symbols_introduced": ["handleLatexDisplayMatch", "MarkdownSpan.latexDisplay"],
+    "minimum_possible_lines_estimate": 12,
+    "justification_for_overage": "Net +14 lines is within the 20-line minimum-diff budget. Two new symbols are required by the BA-specified approach: `latexDisplay` field on MarkdownSpan (BA-mandated discriminant) and `handleLatexDisplayMatch` helper (kept symmetric with the existing `handleLatexMatch` so both reuse the escape/price-like guards). Could compress by inlining the helper, but that hurts readability and reuse of guards."
+  },
+  "guards_respected": [
+    "parseMarkdownSpans.ts:56 isEscapedDollar — kept and re-used by handleLatexDisplayMatch (`removal_authorized: false`)",
+    "parseMarkdownSpans.ts:64 isPriceLikeDollar — kept and re-used by handleLatexDisplayMatch (`removal_authorized: false`)",
+    "parseMarkdownSpans.ts:6 inline `$...$` regex selector negation — kept verbatim (now in groups 12-13 due to renumbering, identical pattern; `removal_authorized: false`)",
+    "parseMarkdownBlock.ts:150 `if (!trimmed.startsWith('$$')) return false;` — NOT TOUCHED (`removal_authorized: false`, BA's `do_not_touch`)"
+  ],
+  "blast_radius": [
+    {
+      "modified": "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "imported_by": [
+        "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+        "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+        "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+      ]
+    },
+    {
+      "modified": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "imported_by": [
+        "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"
+      ]
+    },
+    {
+      "modified": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "imported_by": [
+        "consumed via expo-router screen tree; rendered in session message body"
+      ]
+    }
+  ],
+  "regex_precedence_verification_mental_test": [
+    "Input `Block: $$E=mc^2$$.` -> at position 7, regex tries alternatives left-to-right. Bold `**` no; italic `*` no; link `[` no; code `` ` `` no; group 10-11 `\\$\\$([\\s\\S]+?)\\$\\$` matches `$$E=mc^2$$` lazily -> dispatches to handleLatexDisplayMatch -> span with latex:true, latexDisplay:true.",
+    "Input `inline $a^2+b^2=c^2$` -> at position 7, group 10-11 requires `$$` (two consecutive `$`), source has only one `$` here -> no match. Falls through to group 12-13 `\\$([^\\s$][^$\\n]*?[^\\s$]|[^\\s$\\d\\\\])\\$` which matches `$a^2+b^2=c^2$` -> dispatches to handleLatexMatch -> span with latex:true (no latexDisplay).",
+    "Input `Inline: $a^2+b^2=c^2$. Block: $$E=mc^2$$.` -> group 10-11 (`$$...$$`) matches `$$E=mc^2$$` at position 30 (lazy, finds first closing `$$`). Group 12-13 (`$...$`) matches the inline at position 8 because groups are tried left-to-right at each position; at position 8 the source is `$a...$` (single `$` followed by content followed by single `$`) — group 10-11 needs `$$` so it fails; group 12-13 succeeds. Both matches occur in the same regex.exec loop iteration for distinct positions.",
+    "Input `Price: $100 USD` -> at position 7, group 10-11 needs `$$` -> no. Group 12-13 inline -> requires content not starting with digit (single-char case excludes digit via `[^\\s$\\d\\\\]`); even if multi-char content matched, requires closing `$` -> source has no closing `$` after `100 USD` -> no match. Stays plain text.",
+    "Input `Var: $name` -> at position 5, group 10-11 needs `$$` -> no. Group 12-13 requires closing `$` -> none -> no match. Stays plain text.",
+    "Input `Esc: \\$x` -> isEscapedDollar guard returns true (1 backslash precedes `$`) -> guard branch falls back to plain text via pushTextWithAutoLinks. Same guard reused on display path."
+  ],
+  "scope_review_requested": false,
+  "self_verification": {
+    "build": "pass (typecheck on modified files: 0 errors)",
+    "smoke_check": "skipped — runtime verification is QA's job per CLAUDE.md (Playwright on dev.life-ai.app desktop+mobile per AC1-AC5). My contract per orchestrator scope is parser-layer code edits; no Docker rebuild allowed.",
+    "notes": "Pre-existing typecheck errors exist in 4 unrelated files (SessionActionsNativeMenu.android.tsx, SidebarNavigator.tsx, SidebarAgentConversation.tsx, SidebarFileView.tsx) — none in markdown/. These are out of scope for 5.16 and not introduced by this change."
+  },
+  "qa_ready": true,
+  "qa_notes": "QA must (a) rebuild happy-app:dev from worktree with HAPPY_SERVER_URL=https://api-dev.life-ai.app and redeploy happy-web-dev; (b) on dev.life-ai.app session cmoedofgz86n5nz15xsldnk35 (or new test session), send via UI: `Inline: $a^2+b^2=c^2$. Block: $$E=mc^2$$.` and verify AC1 (mid-line $$ -> 1 .katex with annotation 'E = mc^2', no '$$E' in body innerText, no '$ E' stray); (c) verify AC2 own-line $$E=mc^2$$ -> .katex-display still works; (d) verify AC3 inline $a^2+b^2=c^2$ -> inline .katex still works; (e) verify AC5 false-positives ($100, $name, \\$x) stay plain text; (f) capture both desktop 1280x720 and mobile 390x844 screenshots per AC4. NOTE: pipeline 5.17 will modify MarkdownView.tsx after me (lines 176, 209, 545-582 owned by 5.17); my edit at 354-355 is small and self-contained.",
+  "files_to_create": [],
+  "permissions_to_add": [],
+  "blockers": [],
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should also probe edge case: TWO mid-line $$...$$ formulas on the same line (e.g. `One $$a$$ and two $$b$$.`). The lazy quantifier `[\\s\\S]+?` ensures each closes at its FIRST `$$` so both should match independently — but worth a screenshot to confirm.",
+    "QA should also probe the bold-containing-math edge case: `**bold $$E=mc^2$$ end**`. Current behaviour: bold alternative `**...**` is the FIRST alternative in the regex; it will match the entire `**bold $$E=mc^2$$ end**` greedy-up-to-`**` and consume it as a styled span. The math inside will NOT render as KaTeX. This is consistent with cycle 1 behaviour (bold-containing-inline-math also did not render math). Out of scope for 5.16; documenting for completeness.",
+    "Optional R7 unit tests in parseMarkdown.test.ts not added (Could-Have, not Must-Have). Recommend adding in a follow-up cycle if regression risk is a concern."
+  ]
+}

@@ -134,12 +134,12 @@ export async function claudeRemote(opts: {
     // Track thinking state
     let thinking = false;
     const updateThinking = (newThinking: boolean) => {
+        const prev = thinking;
+        logger.info(`[BGTASK-INSTR-7.1][REMOTE-THINKING] sid=${opts.sessionId} prev=${prev} next=${newThinking} ts=${Date.now()}`);
         if (thinking !== newThinking) {
             thinking = newThinking;
             logger.debug(`[claudeRemote] Thinking state changed to: ${thinking}`);
-            if (opts.onThinkingChange) {
-                opts.onThinkingChange(thinking);
-            }
+            if (opts.onThinkingChange) { opts.onThinkingChange(thinking); }
         }
     };
 

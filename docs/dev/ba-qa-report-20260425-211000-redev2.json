@@ -1,0 +1,85 @@
+{
+  "request_id": "dev-20260425-211000-redev2",
+  "timestamp": "2026-04-25T21:15:00Z",
+  "mode": "ba_validation",
+  "verdict": "pass",
+  "summary": "BA spec correctly identifies regex bug, prescribes sound .* -> \\S* fix at the right 8 line locations, ACs cover false-positive removal and write/append/commands regressions; Trap 11 wording adequate; minor objections logged as advisory.",
+  "verifications": {
+    "1_bug_existence": {
+      "status": "confirmed",
+      "evidence": "Read /root/.claude/hooks/pretool-claude-config-guard.py lines 46-63. _HOOK_PATTERNS lines 47, 48, 52, 53 each contain greedy '.*' between redirect/command tokens and '\\.claude/hooks/'. _CMD_PATTERNS lines 56, 57, 61, 62 mirror the same pattern for '\\.claude/commands/'. BA's line-number citations are exact."
+    },
+    "2_fix_soundness": {
+      "status": "sound",
+      "mental_trace_negative_case": "OLD r'>\\s*.*\\.claude/hooks/' on input 'ls /root/.claude/hooks/foo 2>&1; echo --- ; grep BLOCKED /root/.claude/hooks/bar' -- finds first '>' at '2>&1', '.*' is greedy and traverses '&1; echo --- ; grep BLOCKED /root/' (incl. spaces) up to the second '.claude/hooks/'. Match succeeds -> false positive. NEW r'>\\s*\\S*\\.claude/hooks/' -- '\\S*' starts at '&', extends to '&1;' (next char is space), cannot continue across whitespace, cannot reach '.claude/hooks/' (next non-ws chunk requires whitespace traversal). No match -> false positive eliminated.",
+      "mental_trace_positive_case": "NEW r'>\\s*\\S*\\.claude/hooks/' on input 'echo test > /root/.claude/hooks/evil.py' -- '>' matches, '\\s*' eats space, '\\S*' matches '/root/' (non-whitespace), then literal '\\.claude/hooks/' matches. Match -> still blocks. Same logic applies to '>>' (AC-M4-3) and to commands variant (AC-M4-4). Sandbox script /tmp/regex-validate.py cited by BA confirms this empirically.",
+      "edge_cases_considered": "Quoted whitespace paths (e.g., '> \"/path with space/.claude/hooks/x\"') would NOT match new pattern -- BA's Risk 2 acknowledges this acceptable. cp/mv/tee patterns left broad (Won't-Have C1) -- their '.*' between command and path is intentional since cp/mv/tee accept path argument without explicit redirect operator."
+    },
+    "3_ac_coverage": {
+      "status": "sufficient_with_minor_gap",
+      "ac_m4_1": "Read-only false-positive case covered with the exact reproducer the close-report observed.",
+      "ac_m4_2": "Write-to-hooks regression covered with 'echo test > /root/.claude/hooks/evil.py'. This exercises both line 47 (echo|printf pattern) AND line 52 (bare > pattern) -- either match suffices to block.",
+      "ac_m4_3": "Append-to-hooks covered with 'cat src.py >> /root/.claude/hooks/foo.py'. Exercises lines 48 and 53.",
+      "ac_m4_4": "Commands variant covered, plus an explicit read-only-allowed assertion for commands (good -- avoids one-side-only verification).",
+      "gap_minor_1": "No explicit AC asserts cp/mv/tee patterns (lines 49-51, 58-60) still block since they are NOT being modified. Dev is forbidden from touching them, so risk of regression is near-zero. Acceptable as implicit invariant.",
+      "gap_minor_2": "AC-M4-2 input form happens to match BOTH line 47 and line 52. If line 47 fix were broken silently, AC-M4-2 might still pass via line 52. Could be tightened by an AC that exercises line 47 specifically (e.g., 'printf %s > /root/.claude/hooks/x'), but acceptable since both lines receive the SAME mechanical substitution."
+    },
+    "4_anti_fabrication_trap_specificity": {
+      "status": "adequate",
+      "literal_phrase_required": "'independently re-verify' -- yes, M3 mandates this exact substring",
+      "how_specified": "M3 prescribes: 'requires re-running the hook against the exact failing command (or against a synthetic stdin) before the claim is accepted as a reason to skip a downstream step.' This names the verification action concretely (re-run the hook) and the trigger condition (any 'hook X is blocking Y' claim from a subagent).",
+      "minor_objection": "Trap text does not explicitly mandate capturing the exit code and stderr as evidence -- a future fabrication could re-run the hook and silently misreport its output. Recommend dev add 'and record the exit code and stderr verbatim' to the trap wording when implementing M3. Not a blocker; spec is acceptable as written.",
+      "ac_m1_1_check": "AC-M1-1 requires the literal phrase plus the prescriptive instruction. Match for M3."
+    },
+    "5_layer_contract_d": {
+      "status": "passes",
+      "layer": "L4 (logic/regex correction)",
+      "novelty": "Attempt 1 (R4.2 in spec-20260424-233926.md) CREATED the patterns. Attempt 2 (/redev cycle 1) edited a different file (privilege-guard). This cycle is the FIRST edit to lines 46-63 of pretool-claude-config-guard.py post-creation. File+line intersection with prior cycles = empty. Plus, M3+M4 add a process-trap edit at a different file (spec-20260424-233926.md Section 8) -- two distinct novel actions. Contract D satisfied."
+    },
+    "6_dev_time_hint_accuracy": {
+      "status": "accurate",
+      "hint_location": "BA spec Technical Hints section, line 172",
+      "hint_content": "'write the test JSON via the Write tool to a /tmp/ location, then cat /tmp/test.json | python3 /root/.claude/hooks/pretool-claude-config-guard.py. The cat /tmp/test.json command does not match any pattern.'",
+      "verification": "Confirmed: 'cat /tmp/test.json' has neither '.claude/hooks/' substring nor redirect operator. None of the 14 regex patterns match this string. Dev's own shell will NOT be blocked when running tests this way. Hint is correct and necessary."
+    }
+  },
+  "objections": [
+    {
+      "severity": "minor",
+      "category": "ac_specificity",
+      "issue": "AC-M4-2's input matches both line 47 and line 52 patterns. A silent regression in line 47 alone would not be caught.",
+      "recommendation": "Advisory only. Dev should mentally verify line 47 substitution is mechanically identical to line 52. No spec change required."
+    },
+    {
+      "severity": "minor",
+      "category": "trap_evidence_capture",
+      "issue": "Trap 11 wording prescribes re-running the hook but does not mandate capturing exit code + stderr as evidence. A fabrication could re-run silently.",
+      "recommendation": "Advisory: dev should consider adding 'record exit code and stderr verbatim' to the trap text when authoring it. Not a blocker."
+    },
+    {
+      "severity": "minor",
+      "category": "regression_invariant",
+      "issue": "No AC asserts cp/mv/tee patterns (lines 49-51, 58-60) remain functional. Dev is constrained to not touch them, so risk is near-zero, but the invariant is implicit not explicit.",
+      "recommendation": "Advisory: optional micro-AC running 'cp evil.py /root/.claude/hooks/foo.py' through the post-edit hook to confirm exit 2. Skipping is acceptable."
+    }
+  ],
+  "ba_strengths": [
+    "Correctly diagnoses greedy '.*' across whitespace as the root cause; '\\S*' is the textbook minimal fix.",
+    "Constrains dev to EXACTLY 8 lines, prevents scope creep into cp/mv/tee.",
+    "Acknowledges Risk 2 (quoted paths with spaces) explicitly rather than glossing over it.",
+    "Provides accurate dev-time bypass hint (cat /tmp/test.json | python3 ...) so dev does not deadlock against its own hook.",
+    "Trap 11 addresses Mystery 1 (Trap 7 anti-hallucination violation) with prescriptive re-verification, not just process exhortation.",
+    "Cycle 2 log entry (M4) ensures spec Section 4 stays current with both the L4 logic fix and the L4 process trap addition.",
+    "Conditional S1 (regression test only if tests/ dir exists) avoids creating new infrastructure surface area mid-cycle."
+  ],
+  "ba_weaknesses_non_blocking": [
+    "Counts the orchestrator's '5 + 5' as off-by-one without flagging it as worth user confirmation -- could be a misunderstanding rather than off-by-one. Acceptable since the analysis is sound on its own.",
+    "M3 trap wording leaves implementation language to dev. A more authoritative BA would supply the exact paragraph for the dev to insert verbatim.",
+    "AC-M1-1 does not include a test for the hook re-running command itself -- the trap is process-only, not enforced by automation."
+  ],
+  "files_validated": [
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260425-211000-redev2.md",
+    "/root/.claude/hooks/pretool-claude-config-guard.py (lines 46-63)",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/close-report-20260425-205822.md (motivating close NO verdict)"
+  ]
+}

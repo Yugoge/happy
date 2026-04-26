@@ -12,6 +12,7 @@ import { AgentEvent } from "@/sync/typesRaw";
 import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
 import { Ionicons } from '@expo/vector-icons';
+import { useMessageContentMaxWidth } from '@/hooks/useMessageContentMaxWidth';
 
 
 export type ToolContentPressData = {
@@ -28,9 +29,10 @@ export const MessageView = (props: {
   getMessageById?: (id: string) => Message | null;
   onContentPress?: (data: ToolContentPressData) => void;
 }) => {
+  const messageContentMaxWidth = useMessageContentMaxWidth();
   return (
     <View style={styles.messageContainer} renderToHardwareTextureAndroid={true}>
-      <View style={styles.messageContent}>
+      <View style={[styles.messageContent, { maxWidth: messageContentMaxWidth }]}>
         <RenderBlock
           message={props.message}
           metadata={props.metadata}
@@ -220,6 +222,7 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
     paddingHorizontal: 16,
+    overflow: 'hidden',
   },
   userMessageBubble: {
     backgroundColor: theme.colors.userMessageBackground,
@@ -228,6 +231,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 12,
     marginBottom: 12,
     maxWidth: '100%',
+    overflow: 'hidden',
   },
   agentMessageContainer: {
     marginHorizontal: 16,
@@ -248,6 +252,8 @@ const styles = StyleSheet.create((theme) => ({
   },
   toolContainer: {
     marginHorizontal: 8,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   debugText: {
     color: theme.colors.agentEventText,

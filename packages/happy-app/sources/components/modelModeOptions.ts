@@ -100,6 +100,27 @@ export function getModelContextWindow(modelKey: string | null | undefined): numb
     return 200_000;
 }
 
+// Default-picker context-window resolution (§5.2 cycle 6 L4 fix).
+//
+// When the picker key is 'default' (or absent), the underlying model
+// identity is not encoded in the picker. For Claude sessions in
+// happy-dev, the user has asserted the default model carries a 1M
+// context window (spec-20260424-084848.md line 2801). The Claude CLI
+// path does not write `metadata.currentModelCode`, so we cannot rely
+// on per-session model-id discovery — flavor is the authoritative
+// signal here.
+//
+// Mapping (per user product decision + Anthropic public docs):
+//   - claude  → 1_000_000  (default Claude in happy-dev is 1M)
+//   - gemini  → 1_000_000  (Gemini 2.5 series is ≥ 1M)
+//   - codex   →   200_000  (gpt-5 series effective context)
+//   - unknown → 1_000_000  (default to claude semantics)
+export function getDefaultModelContextWindow(flavor: AgentFlavor): number {
+    if (flavor === 'codex') return 200_000;
+    if (flavor === 'gemini') return 1_000_000;
+    return 1_000_000;
+}
+
 export function getCodexModelModes(): ModelMode[] {
     return [
         { key: 'default', name: 'default model', description: null },

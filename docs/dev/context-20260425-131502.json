@@ -1,0 +1,601 @@
+{
+  "request_id": "dev-20260425-131502",
+  "timestamp": "2026-04-25T13:15:02Z",
+  "request_type": "verification_pass",
+  "spec_path": "docs/dev/specs/spec-20260424-084848.md",
+  "view_paths": {
+    "ba_view": "docs/dev/specs/spec-20260424-084848/views/ba.md"
+  },
+  "ba_spec_path": "docs/dev/ba-spec-20260425-131502.md",
+
+  "summary": "Verification pass over 13 Claude-Code-related acceptance items (5.1, 5.2, 5.3, 5.4, 5.5, 5.8, 5.9, 5.10, 5.11, 5.12, 5.16, 5.17, 5.18) from spec-20260424-084848 Section 5. Skip 5 Codex-only items (5.6, 5.7, 5.13, 5.14, 5.15) per user (Codex rate-limited 2026-04-25). Single freshly-created dev session is the source for 12 of 13 items; item 5.10 spawns a second session for disconnect repro.",
+
+  "test_session_plan": {
+    "account_id": "cmi5mv9eh00wzpg14ph73jj3n",
+    "server_url_browser": "https://dev.life-ai.app",
+    "server_url_api": "https://api-dev.life-ai.app",
+    "machine_count": 1,
+    "machine_home_dir": "/root/.happy-dev",
+    "daemon_pid": 275490,
+    "daemon_http_port": 35607,
+    "working_dir": "/dev/shm/dev-workspace/happy-dev",
+    "creation_method": "UI click on + / Start New Session in sidebar header (NEVER curl/API)",
+    "opening_message": "Render the following demo content in your reply, exactly as a single markdown answer (no preamble, no explanation prose):\n\n## 一级标题 demo\n### 二级标题 demo\n\n**Bold**, *italic*, `inline code`, ~~strikethrough~~, [link to dev](https://dev.life-ai.app).\n\n> 这是一段引用 blockquote\n>> 嵌套引用 nested\n\n- 无序列表项 A\n  - 嵌套项 nested\n- 无序列表项 B\n\n1. 有序第一\n2. 有序第二\n\n- [x] 已完成任务\n- [ ] 待办任务\n\n<kbd>Ctrl</kbd> + <kbd>C</kbd>\n\nInline LaTeX: $a^2 + b^2 = c^2$. Block LaTeX:\n\n$$E = mc^2$$\n\nA wide table:\n\n| Path | Type | Description with extra-long content that should overflow | Notes |\n|---|---|---|---|\n| /home/用户/projects/源码/main.py | python脚本file源代码source | 主程序入口main entrypoint文件 with extra padding text 30+chars | 需要review代码质量check吧 |\n| /var/log/system.log | log文件超长路径名 should/wrap/or/scroll/horizontally | server日志输出logs production trace details record | append-only |\n\nAfter that table, run: please use the Bash tool to execute `ls /root/docs/dev/ba-spec-20260423-080000.md /root/docs/dev/context-20260423-080000.json /root/.claude/dev-registry/dev-20260425-131502/ba.json && echo FILES_OK`.\n\nThen call the CronList tool with empty input to demonstrate the cron tool card.",
+    "expected_session_count_before_note": "QA reads N_before from the visible session list at the moment of session creation (db has 189 historical sessions, but the sidebar typically renders only active+recent). The contract is N_after = N_before + 1, NOT a fixed numeric value.",
+    "expected_session_count_after_note": "Exactly +1 vs N_before. If QA spawns the second session for 5.10, the final count is N_before + 2.",
+    "absolute_session_creation_constraints": [
+      "MUST use https://dev.life-ai.app — never life-ai.app or localhost:8090",
+      "MUST use UI clicks — never curl, never daemon HTTP, never API",
+      "MUST NOT touch any of the 189 pre-existing user sessions",
+      "MUST preserve isolation: post-creation, count delta is exactly +1 (or +2 if 5.10 needs separate session)"
+    ]
+  },
+
+  "in_scope_items": [
+    {
+      "id": "5.1",
+      "title": "Per-session model persistence + model indicator in status bar",
+      "verification_mode": "active_interact",
+      "acceptance_points": [
+        "Per-session model persistence — model survives session leave/return",
+        "Model indicator displayed in status bar to LEFT of yolo chip",
+        "Manual-only changes — only GUI dropdown action changes the model"
+      ],
+      "seed_message": null,
+      "interaction_steps": [
+        "Open model dropdown in AgentInput",
+        "Pick a non-default model (e.g. haiku 4.5)",
+        "Send a short ack message",
+        "Navigate to home / sidebar root",
+        "Re-enter the same session",
+        "Inspect chip text and position vs yolo chip"
+      ],
+      "success_check": "Chip text after re-entry equals chip text before; localStorage 'mmkv.default\\\\session-model-modes' has entry keyed by session id with picked model value; on both viewports, model chip x-coord < yolo chip x-coord on same y-row.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1470-1481"
+    },
+    {
+      "id": "5.2",
+      "title": "1M-context Claude models — context-usage display",
+      "verification_mode": "active_interact",
+      "acceptance_points": [
+        "All 1M Claude variants must display non-degenerate context-usage %",
+        "Status bar 'N% left' must reflect real token usage (not 0%, not stuck 100%)",
+        "Behaviour parity with non-1M Claude models"
+      ],
+      "seed_message": null,
+      "interaction_steps": [
+        "Open model dropdown",
+        "Pick a 1M-context Claude variant if listed",
+        "Send a large message (paste Section 5 spec text + 'summarize each item')",
+        "Read the 'N% left' indicator on the left side of the status bar"
+      ],
+      "success_check": "Percentage is non-zero and non-stuck — decreases as more messages are sent. If no 1M variant is exposed in the dropdown, verdict is BLOCKED with full dropdown model list captured.",
+      "viewport_relevance": "desktop_primary_mobile_sanity",
+      "spec_section_lines": "1483-1494",
+      "note": "Spec Section 7 already flags this as 'Live-1M-model provisioning gap'. BLOCKED outcome is acceptable if no 1M model is currently exposed."
+    },
+    {
+      "id": "5.3",
+      "title": "Right-side Bash popup — command text overflow",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Command text must not overflow popup width",
+        "Acceptable: horizontal scroll, soft-wrap, or truncation with view-full affordance",
+        "Applies at all popup widths (desktop, narrow, tablet, mobile)"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "Wait for assistant Bash call to render in conversation",
+        "Click on Bash card to open right-side detail popup",
+        "Measure command line element rect vs popup container rect"
+      ],
+      "success_check": "rendered command line element.right <= popup container.right at every viewport. No visual bleed past popup frame on either viewport.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1496-1510"
+    },
+    {
+      "id": "5.4",
+      "title": "Top bar logo + avatar responsive",
+      "verification_mode": "active_interact",
+      "acceptance_points": [
+        "Top bar logo and avatar must track content-area resize",
+        "Positions function of layout container, NOT absolute/magic-number offsets",
+        "Applies across all viewport widths and content-panel resizings"
+      ],
+      "seed_message": null,
+      "interaction_steps": [
+        "Load seed session at desktop 1440x900; capture top-bar logo + avatar getBoundingClientRect",
+        "Resize to 1024x768 (narrow desktop); re-measure",
+        "Resize to 768x1024 (tablet); re-measure",
+        "Resize to 390x844 (mobile); re-measure"
+      ],
+      "success_check": "avatar.right shrinks monotonically as viewport shrinks; logo.left stays sane (not negative, not pushed off-screen). At no width does avatar overlap content column or render outside viewport. If positions are hardcoded (e.g. avatar at x=1380 on a 390-wide viewport), FAIL.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1512-1526"
+    },
+    {
+      "id": "5.5",
+      "title": "Top bar / layout — second non-adaptive case",
+      "verification_mode": "active_interact",
+      "acceptance_points": [
+        "Continuation of 5.4 — same class of bug, different concrete case",
+        "5.4 fix must resolve 5.5 too"
+      ],
+      "seed_message": null,
+      "interaction_steps": [
+        "While in seed session, toggle a sidebar / split-view / inspector control",
+        "Observe logo + avatar after toggle",
+        "Repeat at multiple viewport widths"
+      ],
+      "success_check": "Same as 5.4 — both elements re-flow with the toggle. Report 5.4 and 5.5 verdicts independently.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1528-1541"
+    },
+    {
+      "id": "5.8",
+      "title": "Wide markdown tables overflow",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Wide tables must be horizontally scrollable inside container",
+        "No bleed past card right edge",
+        "Match production behaviour (port from happy prod)"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "Wait for assistant reply containing the 4-col CN+EN wide table",
+        "Measure table.getBoundingClientRect() vs card.getBoundingClientRect() vs viewport.innerWidth",
+        "Check for horizontal scrollbar on table wrapper"
+      ],
+      "success_check": "table.right > card.right is allowed (table wider than card), but card.right <= viewport.innerWidth is REQUIRED. Horizontal scroll on table wrapper acceptable.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1567-1578"
+    },
+    {
+      "id": "5.9",
+      "title": "Stop hook feedback must not be shown to user",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Zero 'Stop hook feedback:' cards in user-facing conversation",
+        "All severity markers (✅, ❌, ⚠️) and all hook languages (python, shell, etc.) covered"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "After assistant completes reply to seed message, search conversation DOM for any element whose text contains 'Stop hook feedback'"
+      ],
+      "success_check": "Zero matches. If any visible 'Stop hook feedback:' card exists, FAIL.",
+      "viewport_relevance": "desktop_sufficient",
+      "spec_section_lines": "1580-1594",
+      "note": "Section 4 records PASS in cycle 2 (filter active in deployed CLI bundle). This pass should re-confirm easily."
+    },
+    {
+      "id": "5.10",
+      "title": "Long background-task disconnect → out-of-order delivery",
+      "verification_mode": "transport_observe",
+      "acceptance_points": [
+        "Reconnect must be proactive (not user-action-triggered)",
+        "After reconnect, messages forwarded to user MUST arrive in causal order",
+        "Background self-replies must not arrive AFTER user's later message but BEFORE that message's answer"
+      ],
+      "seed_message": null,
+      "interaction_steps": [
+        "Spawn a SECOND new session (do not pollute the seed session)",
+        "Send: 'Please run a Bash command that takes ~3 minutes: bash -c \"for i in $(seq 1 60); do echo step $i; sleep 3; done\". Report when complete.'",
+        "Wait until happy-claude WebSocket idle threshold exceeded (2 min per CLAUDE.md). Confirm disconnect via dev-tools Network/WS frames",
+        "Send a NEW user message: 'What is 2+2?'",
+        "Observe message arrival order in the UI"
+      ],
+      "success_check": "After reconnect, the visible message order is causal: either the long-task completion arrives first then the 2+2 answer, or just the 2+2 answer (if long task was discarded). FAIL if user sees long-task self-reply AFTER sending '2+2' AND BEFORE seeing the '2+2' answer. Capture WS frames if possible.",
+      "viewport_relevance": "desktop_sufficient",
+      "spec_section_lines": "1596-1612",
+      "note": "Hardest item to verify (timing-dependent repro). If repro fails twice, mark verdict BLOCKED — could not reproduce disconnect. Section 7 already lists this as carry-forward for dedicated cycle."
+    },
+    {
+      "id": "5.11",
+      "title": "Detail panel — long file path overflow",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Full path must remain accessible (tooltip / copy / tap-to-expand)",
+        "Visually constrained — truncate with ellipsis, wrap, or scroll inside bounded container",
+        "Zero horizontal overflow at any viewport width"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "Click Bash tool card to open right-side detail panel",
+        "Capture rendered path element getBoundingClientRect at desktop",
+        "Resize to mobile 390x844 and re-measure"
+      ],
+      "success_check": "At every viewport, pathElement.right <= panelContainer.right. Truncation/ellipsis/scroll/wrap all acceptable; visual bleed past panel frame is FAIL.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1614-1628"
+    },
+    {
+      "id": "5.12",
+      "title": "Attachment tray — width consistency + silent oversize-upload",
+      "verification_mode": "active_interact",
+      "acceptance_points": [
+        "File and image thumbnails share single shared layout primitive",
+        "Same padding, same gutter, same thumbnail box across attachment types",
+        "Oversize upload must surface a visible user-readable error (toast, badge, inline message)"
+      ],
+      "seed_message": null,
+      "interaction_steps": [
+        "Click attachment / + button in composer",
+        "Upload a small image (under 100KB png); note thumbnail padding box",
+        "Upload a small file (under limit); note its tile padding; compare to image",
+        "Upload an oversized file (200MB or whatever exceeds documented limit)",
+        "Observe whether ANY error surfaces (toast, badge, inline)"
+      ],
+      "success_check": "(a) image and file thumbnails share padding box dimensions within 1px; (b) on oversize upload, user-readable error appears within 5s. Silent UI success-but-transport-fail is FAIL.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1630-1658"
+    },
+    {
+      "id": "5.16",
+      "title": "Inline LaTeX $...$",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Inline math typeset (KaTeX/MathJax)",
+        "Inline with surrounding text flow (no block break)",
+        "No raw $...$ delimiters visible in DOM text"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "Wait for assistant reply with inline LaTeX",
+        "Query document.querySelectorAll('.katex') inside assistant message scope",
+        "Search rendered text for raw '$a^2 + b^2 = c^2$' substring"
+      ],
+      "success_check": "querySelectorAll('.katex') returns >= 1 inside assistant message; raw '$a^2 + b^2 = c^2$' substring NOT in any text node. Block math '$$E = mc^2$$' on its own line should also render as KaTeX (block).",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1767-1782"
+    },
+    {
+      "id": "5.17",
+      "title": "Markdown primitives (headings, strikethrough, task list, blockquote, kbd, etc.)",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Headings H1-H6 render with appropriate typography",
+        "Strikethrough renders as <del> or <s>",
+        "Task lists render as checkbox UI with checked / unchecked state",
+        "Nested unordered list with proper indentation",
+        "Ordered list with list-item styling",
+        "Blockquote with visual treatment, nested for >>",
+        "<kbd> renders as kbd element OR plain literal text — not broken hybrid",
+        "Bold/italic/inline code/links continue to render (no regression)"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "Inspect assistant reply DOM for each primitive"
+      ],
+      "success_check": "Composite — see acceptance_points list. h1/h2/del/s/checkbox/nested-ul/ol/blockquote elements present where expected; raw markdown source NOT visible as plain text.",
+      "viewport_relevance": "desktop_primary_mobile_sanity",
+      "spec_section_lines": "1784-1807"
+    },
+    {
+      "id": "5.18",
+      "title": "CronList compact inline card + sidebar detail",
+      "verification_mode": "passive_observe",
+      "acceptance_points": [
+        "Inline card: single header + single summary line (icon + tool name + compact input summary)",
+        "No INPUT or OUTPUT block inline",
+        "Full INPUT + OUTPUT visible only after clicking card to open right sidebar"
+      ],
+      "seed_message": "covered_by_main_seed",
+      "interaction_steps": [
+        "Observe inline CronList card rendered in conversation",
+        "Click the card; right sidebar opens",
+        "Inspect sidebar for Description + Input Parameters + Output sections"
+      ],
+      "success_check": "Inline card has zero text node containing 'INPUT' AND zero text node containing 'OUTPUT'. Sidebar after click contains both. Inline card is single-row with icon + 'CronList' text only.",
+      "viewport_relevance": "both",
+      "spec_section_lines": "1809-1827"
+    }
+  ],
+
+  "out_of_scope_with_reason": [
+    {
+      "id": "5.6",
+      "title": "Codex tool-call popup not aligned with Claude redesign",
+      "reason": "Codex rate-limited (user-confirmed 2026-04-25). No live Codex session can be created today. Revisit in a separate /dev cycle when limit clears.",
+      "spec_section_lines": "1543-1553"
+    },
+    {
+      "id": "5.7",
+      "title": "Codex tool-call popup — Description field content is wrong",
+      "reason": "Codex rate-limited (user-confirmed 2026-04-25). Revisit when limit clears.",
+      "spec_section_lines": "1555-1565"
+    },
+    {
+      "id": "5.13",
+      "title": "Codex subagent tasks not displayed",
+      "reason": "Codex rate-limited (user-confirmed 2026-04-25). Cycle 3 already shipped DORMANT renderers (PASS-WITH-WARNING source+bundle verification). Activation requires Codex protocol extension — separate cycle. Revisit when Codex availability is restored.",
+      "spec_section_lines": "1660-1670"
+    },
+    {
+      "id": "5.14",
+      "title": "Codex multi-file edit — no right-sidebar rendering",
+      "reason": "Codex rate-limited (user-confirmed 2026-04-25). Same DORMANT status as 5.13. Revisit when limit clears.",
+      "spec_section_lines": "1672-1682"
+    },
+    {
+      "id": "5.15",
+      "title": "Codex tool coverage — only exec_command renders",
+      "reason": "Codex rate-limited (user-confirmed 2026-04-25). Cycle 3 closed Phase A/B/C/D as DORMANT (source + bundle PASS, live render deferred). Protocol-activation cycle is the next step — separate /dev cycle. Revisit when Codex availability is restored.",
+      "spec_section_lines": "1684-1765"
+    }
+  ],
+
+  "qa_handoff_contract": {
+    "must_produce": [
+      "Single seed session ID + creation timestamp + N_before + N_after counts",
+      "Per-item Section 4 entry for each of the 13 in-scope items (existing Section 4 format: verdict, measured-values table, screenshot paths, report path)",
+      "Composite seed-session screenshots: qa-verify-13502-seed-desktop.png + qa-verify-13502-seed-mobile.png",
+      "Per-item screenshots: qa-verify-13502-<itemid>-<viewport>.png",
+      "Section 4 patch unified across 13 entries against docs/dev/specs/spec-20260424-084848.md",
+      "Single QA report: docs/dev/qa-report-20260425-131502.json with verdict per item"
+    ],
+    "must_not_do": [
+      "Touch any of the 189 pre-existing user sessions",
+      "Create sessions via curl, daemon HTTP, or API — UI clicks only",
+      "Navigate to life-ai.app, localhost:8090, or api.life-ai.app — production hook-blocked",
+      "Modify Section 5 of the spec (acceptance criteria are immutable user voice)",
+      "Inherit a prior PASS verdict without re-rendering against the new seed session",
+      "Use 'fallback_plan: source+bundle+typecheck' for any UI item — every UI item demands live browser evidence per CLAUDE.md and BA forbidden-patterns rule"
+    ],
+    "verdict_legend": {
+      "PASS": "All acceptance points measured and met against new seed session",
+      "FAIL": "At least one acceptance point measured and not met — capture exact gap",
+      "BLOCKED": "Could not measure (e.g. no 1M model in dropdown for 5.2; could not reproduce disconnect for 5.10) — document the blocker and what would unblock"
+    }
+  },
+
+  "specialists_assessed": {
+    "ui-specialist": "Not consulted in this BA pass — verification only, no design decisions. ui-specialist's prior cycle 3 design contracts for §5.13/§5.15 already encoded in the spec; out-of-scope here.",
+    "architect": "Not consulted — no architectural changes proposed.",
+    "product-owner": "Not consulted — scope explicitly defined by user (verbatim Chinese instruction). PO involvement would be needed to redefine scope, which is not happening here.",
+    "user": "Source of the verification request and the Codex skip authorization. User's verbatim instruction recorded under requirement.original."
+  },
+
+  "requirement": {
+    "original": "验证全部claude code session相关的内容（现在codex rate limit），并且需要新建一个Session验证，不要使用我的现有的session。开始吧，我盯着你的，你敢偷懒？",
+    "translated": "Verify all Claude Code session-related items (Codex is currently rate-limited, skip), and you need to create a NEW session for verification — do NOT use my existing sessions. Start now, I'm watching, you dare slack off?",
+    "clarified": "Run a complete current-state verification pass over the 13 Claude-Code-related acceptance items in spec-20260424-084848 Section 5 (5.1, 5.2, 5.3, 5.4, 5.5, 5.8, 5.9, 5.10, 5.11, 5.12, 5.16, 5.17, 5.18). Skip the 5 Codex-only items (5.6, 5.7, 5.13, 5.14, 5.15) because Codex is rate-limited. Use a freshly-created dev session (not the user's existing 189 sessions). Output measurements feed Section 4 of the monolith spec.",
+    "what": "Verification pass over 13 acceptance items + Section 4 measurements written by QA",
+    "why": "User wants a unified, fresh-session baseline rather than the heterogeneous prior-cycle measurements scattered across Section 4",
+    "where": [
+      "docs/dev/specs/spec-20260424-084848.md (Section 4 — QA writes here after this BA plan)",
+      "Live dev environment at https://dev.life-ai.app + https://api-dev.life-ai.app",
+      ".playwright-mcp/ for screenshot evidence"
+    ],
+    "scope": {
+      "included": [
+        "13 Claude Code-related items: 5.1, 5.2, 5.3, 5.4, 5.5, 5.8, 5.9, 5.10, 5.11, 5.12, 5.16, 5.17, 5.18",
+        "Single fresh dev session (plus a second for 5.10 if disconnect repro needed)",
+        "Per-item measurement against Section 5 acceptance points",
+        "Both desktop 1440x900 and mobile 390x844 for UI items"
+      ],
+      "excluded": [
+        "5 Codex-only items: 5.6, 5.7, 5.13, 5.14, 5.15 (Codex rate-limited)",
+        "Any code change — this is verification only, no fix",
+        "Modifying Section 5 of the spec",
+        "Re-running prior fix cycles or claiming new dev work"
+      ]
+    },
+    "success_criteria": [
+      "13 in-scope items each have a verdict (PASS / FAIL / BLOCKED) backed by browser-rendered evidence",
+      "5 out-of-scope items each documented with skip reason traceable to user's Codex rate-limit confirmation",
+      "Section 4 of the monolith spec gains 13 new entries timestamped 2026-04-25T13:15:02Z",
+      "No existing user session was modified",
+      "Exactly +1 (or +2 with 5.10's secondary session) net new sessions created"
+    ],
+    "constraints": [
+      "Production absolutely off-limits (life-ai.app, localhost:8090) — hook-enforced",
+      "Session creation via UI only — no curl, no API, no daemon HTTP",
+      "Both desktop AND mobile viewports for every UI item per CLAUDE.md",
+      "No source+bundle+typecheck fallback — UI items demand live browser evidence (BA forbidden-patterns rule)"
+    ]
+  },
+
+  "root_cause_analysis": {
+    "symptom": "N/A — this is a verification pass, no symptom-of-bug. The 'work' is producing baseline measurements.",
+    "root_cause": "N/A",
+    "root_cause_commit": "N/A",
+    "evidence_type": "N/A — BA produces no measurement; QA produces all measurements live.",
+    "diagnosis_completeness": "complete (verification-pass framing, no diagnosis required)",
+    "complaint_location_keywords": ["claude code session", "session", "新建一个Session", "verification"],
+    "localization_evidence": "N/A — verification scope already named by user (Section 5 items 5.1-5.18 minus the 5 Codex ones)",
+    "located_source": "docs/dev/specs/spec-20260424-084848.md Section 5 (lines 1464-1827)",
+    "localization_blocked": null
+  },
+
+  "diagnosis_layer": "N/A",
+
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "验证全部claude code session相关的内容",
+      "acceptance_criterion": "All 13 Claude-Code-related Section 5 items (5.1, 5.2, 5.3, 5.4, 5.5, 5.8, 5.9, 5.10, 5.11, 5.12, 5.16, 5.17, 5.18) get a fresh-session verdict backed by browser-rendered evidence."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "现在codex rate limit",
+      "acceptance_criterion": "5 Codex-only items (5.6, 5.7, 5.13, 5.14, 5.15) explicitly listed as out-of-scope with reason 'Codex rate-limited (user-confirmed 2026-04-25)' in both BA spec and context JSON."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "需要新建一个Session验证",
+      "acceptance_criterion": "Verification uses a freshly-created dev session (created via UI click on +/Start New Session at dev.life-ai.app), not any pre-existing session."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "不要使用我的现有的session",
+      "acceptance_criterion": "Zero of the 189 pre-existing user sessions in account cmi5mv9eh00wzpg14ph73jj3n are read, modified, or referenced for evidence. Net session count increases by exactly 1 (or 2 if 5.10 needs a separate session)."
+    }
+  ],
+
+  "component_chain": [
+    {
+      "file": "docs/dev/specs/spec-20260424-084848.md",
+      "line_range": "1464-1827",
+      "role": "Section 5 — verbatim user requirements (acceptance source of truth)",
+      "imports_from": "leaf",
+      "evidence": "Read of monolith spec; section starts at line 1464 ('## Section 5: User\\'s Acceptance Criterion')",
+      "verified_via": "Read"
+    },
+    {
+      "file": "docs/dev/specs/spec-20260424-084848.md",
+      "line_range": "1117-1462",
+      "role": "Section 4 — Current State (where QA writes new measurements after this plan executes)",
+      "imports_from": "docs/dev/specs/spec-20260424-084848.md (Section 5)",
+      "evidence": "Read of Section 4 lines 1117-1462; existing entries from cycles 1-3 establish the format QA must follow",
+      "verified_via": "Read"
+    },
+    {
+      "file": "docs/dev/specs/spec-20260424-084848/views/ba.md",
+      "line_range": "40-294",
+      "role": "BA-extracted view of Section 5 acceptance points (single-source-of-truth mirror used in this BA pass)",
+      "imports_from": "docs/dev/specs/spec-20260424-084848.md",
+      "evidence": "Read of view file confirms acceptance points 5.1-5.18 extracted verbatim",
+      "verified_via": "Read"
+    }
+  ],
+
+  "pre_existing_guards": [],
+
+  "regression_investigation_checklist": null,
+
+  "setup": {
+    "viewport": "BOTH desktop 1440x900 AND mobile 390x844 (per CLAUDE.md dual-viewport rule for any UI surface)",
+    "theme": "light",
+    "locale": "en (UI labels) but seed messages include Chinese for items 5.8/5.16/5.17",
+    "auth_state": "logged-in as dev account cmi5mv9eh00wzpg14ph73jj3n",
+    "data_state": "fresh empty session (zero pre-existing messages); rendering scenarios produced by seed messages we send",
+    "browser": "Chromium via Playwright MCP",
+    "url_path": "https://dev.life-ai.app (NEVER life-ai.app or localhost:8090 — production hook-blocked)"
+  },
+
+  "evidence": {
+    "observed": "User's Chinese instruction asking for verification of all Claude-Code-related Section 5 items, with Codex skipped due to rate-limiting and a fresh session required.",
+    "measured": {
+      "value": "N/A at BA stage — QA produces all measurements live in a fresh session",
+      "location": "future Section 4 entries in docs/dev/specs/spec-20260424-084848.md"
+    },
+    "expected": {
+      "value": "Per-item acceptance points already defined in Section 5 of the monolith spec",
+      "source": "docs/dev/specs/spec-20260424-084848.md lines 1464-1827"
+    },
+    "gap": "Closed by QA executing the per-item plan in this BA spec. No code-level gap because no fix is being proposed."
+  },
+
+  "scope_expansion": {
+    "search_pattern": "Section 5 headers 5.1 through 5.18 in spec-20260424-084848.md",
+    "search_scope": "docs/dev/specs/spec-20260424-084848.md only",
+    "user_reported": [
+      "5.1", "5.2", "5.3", "5.4", "5.5", "5.8", "5.9", "5.10", "5.11", "5.12", "5.16", "5.17", "5.18"
+    ],
+    "additional_found": [],
+    "all_occurrences": [
+      "5.1 (line 1470)",
+      "5.2 (line 1483)",
+      "5.3 (line 1496)",
+      "5.4 (line 1512)",
+      "5.5 (line 1528)",
+      "5.8 (line 1567)",
+      "5.9 (line 1580)",
+      "5.10 (line 1596)",
+      "5.11 (line 1614)",
+      "5.12 (line 1630)",
+      "5.16 (line 1767)",
+      "5.17 (line 1784)",
+      "5.18 (line 1809)"
+    ],
+    "not_applicable_reason": "Verification pass, no code change being expanded. user_reported set already equals all_occurrences for the in-scope subset."
+  },
+
+  "reference_source": {
+    "tier": "tier_1_external",
+    "description": "User's Section 5 acceptance points in the monolith spec (verbatim Chinese plus extracted points). The user's spec is the authoritative source.",
+    "url_or_location": "docs/dev/specs/spec-20260424-084848.md lines 1464-1827",
+    "copy_allowed": true
+  },
+
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing — verification request explicitly seeks fresh measurement against existing acceptance criteria",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/qa-report-20260424-143000-1.json",
+        "proposed_solution": "QA cycle 1: §5.16 inline LaTeX rendering",
+        "actual_change": "N/A (verification only)",
+        "outcome": "PASS — but on a different seeded session at a different time",
+        "failure_category": "other",
+        "target_layer": "verification"
+      },
+      {
+        "artifact_path": "docs/dev/qa-report-20260424-143000-5.json",
+        "proposed_solution": "QA cycle 2: §5.1 model persistence + status-bar chip",
+        "actual_change": "N/A",
+        "outcome": "PASS — different session",
+        "failure_category": "other",
+        "target_layer": "verification"
+      },
+      {
+        "artifact_path": "docs/dev/qa-report-20260424-202503.json",
+        "proposed_solution": "QA cycle 2: §5.18 CronList + §5.8 wide table + §5.9 stop-hook live",
+        "actual_change": "N/A",
+        "outcome": "PASS for all three — different sessions",
+        "failure_category": "other",
+        "target_layer": "verification"
+      },
+      {
+        "artifact_path": "docs/dev/qa-report-20260425-000300-0.json",
+        "proposed_solution": "QA cycle 3: §5.15 Phase B (Codex apply_patch)",
+        "actual_change": "N/A",
+        "outcome": "PASS-WITH-WARNING — no live Codex session",
+        "failure_category": "other",
+        "target_layer": "verification"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "verification (no fix layer applies)",
+      "differs_from_all_priors": true,
+      "rationale": "Prior attempts were per-item, per-cycle, heterogeneous-session verifications. This pass consolidates ALL 13 in-scope items into ONE fresh session, producing a unified Section 4 baseline at one timestamp. The work is observational (matches Contract D 'verification' shape, not 'fix' shape). Codex items deferred per user instruction."
+    }
+  },
+
+  "context": {
+    "codebase_state": "branch main; current dev daemon pid 275490 port 35607 home /root/.happy-dev; dev account cmi5mv9eh00wzpg14ph73jj3n has 189 historical sessions, 9 active in last 15min, 1 machine",
+    "recent_commits": "6eb52654 docs: session-recovery bugfix spec; bf590c4e cycle 3-4 PM2 alternate QA artifacts; 4381eaf5 cycle 2 codex protocol activation; 0ba2ddfc cycle 1 (14 pipelines)",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "dev_daemon_active": true,
+      "dev_web_image": "happy-app:dev (per Section 4 cycle 3 entry)",
+      "playwright_mcp": "available with anti-detection wrapper"
+    }
+  },
+
+  "development_approach": {
+    "strategy": "Verification only — no code change. BA produces a per-item plan; QA executes it in a fresh session. Section 4 of the spec gains 13 new entries, timestamped 2026-04-25T13:15:02Z, all referencing the same seed session.",
+    "files_to_create": [
+      ".playwright-mcp/qa-verify-13502-seed-desktop.png",
+      ".playwright-mcp/qa-verify-13502-seed-mobile.png",
+      ".playwright-mcp/qa-verify-13502-<itemid>-<viewport>.png (per item, per viewport)",
+      "docs/dev/qa-report-20260425-131502.json"
+    ],
+    "files_to_modify": [
+      "docs/dev/specs/spec-20260424-084848.md (Section 4 only — QA appends 13 entries)"
+    ],
+    "validation_approach": "Self-validating — each per-item success_check is a concrete, falsifiable browser-DOM measurement."
+  },
+
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+
+  "status": "ready"
+}

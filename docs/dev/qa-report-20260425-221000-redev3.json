@@ -1,0 +1,141 @@
+{
+  "request_id": "redev3-20260425-221000",
+  "timestamp": "2026-04-25T22:45:00Z",
+  "qa_agent": "qa (code-verification mode)",
+  "inputs_consumed": {
+    "dev_report": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260425-221000-redev3.json",
+    "ba_spec": "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260425-221000-redev3.md",
+    "hook_post_fix": "/root/.claude/hooks/pretool-quality-gate.py",
+    "spec_lifecycle": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"
+  },
+  "status": "warning",
+  "verdict_summary": "Partial PASS. 11/12 verifications PASS independently. AC-M6-1 fails by design due to internal BA-spec contradiction (AC-M6-1 demands ALLOW for +1 line on >800-line file vs technical hints demanding symmetric `post['file_lines'] <= pre['file_lines']`). Iteration required via Option 1 (drop file_lines comparison from metric_did_not_worsen).",
+  "ac_M6_1_arbitration": {
+    "dev_claim": "FAIL_BY_DESIGN",
+    "qa_verdict": "agree",
+    "evidence_of_contradiction": {
+      "ba_spec_ac_m6_1_at_line_166": "WHEN an Edit adds 1 line OUTSIDE any function ... making the file 1001 lines (still > 800) ... THEN the hook exits 0",
+      "ba_spec_technical_hints_at_line_273": "Compare `post['file_lines'] <= pre['file_lines']`. If False, return `(False, f\"file: {pre} → {post} grew\")`.",
+      "logical_consequence": "1001 > 1000 fails `post <= pre`, so symmetric comparator MUST block. AC-M6-1 cannot be satisfied without weakening file_lines comparator. Implementation correctly followed the more-precisely-specified technical-hints rule rather than the AC narrative."
+    },
+    "recommended_option": "1",
+    "option_1_description": "Drop file_lines from metric_did_not_worsen entirely. Keep symmetric per-function-name and max_nesting comparators (which are the quality signals that actually matter). One-line removal of the `if post['file_lines'] > pre['file_lines']: return False, ...` block in the hook.",
+    "option_1_rationale": "The hook's primary value is preventing huge functions and deep nesting (high cognitive load). File-level line count is the weakest signal — a 1000-line file with 30 small clean functions is fine; a 200-line file with one 100-line function is bad. The user's original motivating example for M6 was unblocking `logger.info` instrumentation in `AgentInput.tsx` (1393-line legacy file per BA spec line 101). Symmetric file_lines defeats this. Option 1 preserves the actual quality intent (no function or nesting regression) while honoring the legacy-instrumentation use case.",
+    "rejected_options": {
+      "option_2_keep_symmetric": "Defeats user-facing M6 goal (cannot add logger.info to legacy files). High risk.",
+      "option_3_growth_budget": "Adds magic number (10? 50?) without principle. Permits arbitrary growth in non-compliant files which is exactly what M6 was supposed to prevent. Lower clarity than Option 1."
+    },
+    "iteration_needed": true,
+    "iteration_target": "In /root/.claude/hooks/pretool-quality-gate.py, in `metric_did_not_worsen` (lines 305-317), remove the lines 307-309 block: `if post[\"file_lines\"] > pre[\"file_lines\"]: r = ...; return False, r % (...)`. Keep the per-function and max_nesting comparators unchanged. After the change, re-run AC-M6-1 — it should PASS (pre file_lines=1000, post=1001, but neither functions nor nesting worsened, so grandfather). All other ACs (M6-2, M6-3, M6-4a/b, M6-5, M6-7) continue to PASS because they trip on per-function or new-file paths."
+  },
+  "structural_verification": {
+    "file_lines": 380,
+    "file_lines_threshold": 800,
+    "file_lines_pass": true,
+    "function_count": 30,
+    "max_function_length": 21,
+    "function_length_threshold": 30,
+    "all_functions_under_threshold": true,
+    "longest_functions": [
+      {"name": "main", "line": 358, "length": 21},
+      {"name": "iter_python_functions", "line": 115, "length": 19},
+      {"name": "_grandfather_or_block", "line": 341, "length": 17}
+    ],
+    "new_helpers_present": {
+      "get_pre_content": "line 281, 11 lines",
+      "compute_metrics": "line 270, 11 lines",
+      "metric_did_not_worsen": "line 305, 15 lines",
+      "_grandfather_or_block": "line 341, 17 lines (decision wrapper invoking all three above)"
+    },
+    "main_invokes_grandfathering_path": "main() at line 358-376 calls _grandfather_or_block at line 372 when violations exist, which in turn calls get_pre_content + compute_metrics + metric_did_not_worsen.",
+    "diff_lines": 572,
+    "diff_stats": "1 file changed, 326 insertions(+), 197 deletions(-)"
+  },
+  "acceptance_criteria_results": [
+    {
+      "id": "AC-M6-2-qa",
+      "description": "Edit GROWS a non-compliant function (f1: 50 -> 55 lines) - independent re-test with FRESH fixture in /tmp/qa-qg-redev3/m62.tsx",
+      "expected": "BLOCK exit=2 with stderr naming f1 and Worsened reason",
+      "actual": "exit=2, stderr: `QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/m62.tsx: Function `f1` (line 1) is 55 lines (max 30). Worsened: file lines went from 50 to 55`",
+      "verdict": "PASS",
+      "evidence_path": "/tmp/qa-qg-redev3/m62.tsx (FRESH fixture, different from dev's)"
+    },
+    {
+      "id": "AC-M6-3-qa",
+      "description": "Brand-new file with 31-line function -> BLOCK (no grandfathering for new code) - FRESH fixture",
+      "expected": "BLOCK with `Function 'bar' (line 1) is 31 lines (max 30)`",
+      "actual": "exit=2, stderr: `QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/newfile_doesnotexist.tsx: Function `bar` (line 1) is 31 lines (max 30)`. NO `Worsened:` suffix (correct — pre_content was None).",
+      "verdict": "PASS",
+      "evidence_path": "/tmp/qa-qg-redev3/newfile_doesnotexist.tsx (does not exist on disk; Write to nonexistent path)"
+    },
+    {
+      "id": "AC-M6-4a-qa",
+      "description": "File at exactly 800 lines, edit replaces marker line with same-line-count content -> ALLOW with no message",
+      "expected": "exit=0, no violations (genuinely compliant pre and post)",
+      "actual": "exit=0, stderr empty. Genuinely compliant — not grandfathered.",
+      "verdict": "PASS",
+      "evidence_path": "/tmp/qa-qg-redev3/atlimit800.tsx (FRESH 800-line fixture)"
+    },
+    {
+      "id": "AC-M6-4b-qa",
+      "description": "Same 800-line file, edit pushes to 801 -> BLOCK",
+      "expected": "exit=2 with `File has 801 lines (max 800)` plus Worsened reason",
+      "actual": "exit=2, stderr: `QUALITY GATE BLOCKED — ... File has 801 lines (max 800). Worsened: file lines went from 800 to 801`",
+      "verdict": "PASS",
+      "evidence_path": "Same atlimit800.tsx, Edit changes marker to 2-line replacement"
+    },
+    {
+      "id": "AC-M6-5-qa",
+      "description": "Pre=1000-line non-compliant legacy file, Post=990-line (pure shrink) -> ALLOW with grandfathered note",
+      "expected": "exit=0 with optional grandfathered stderr message",
+      "actual": "exit=0, stderr: `QUALITY GATE [grandfathered] — /tmp/qa-qg-redev3/legacy1000.tsx: pre-existing violations preserved, no metric worsened.`",
+      "verdict": "PASS",
+      "evidence_path": "/tmp/qa-qg-redev3/legacy1000.tsx (FRESH 1000-line fixture)"
+    },
+    {
+      "id": "AC-M6-6-qa",
+      "description": "Hook self-check: modified hook reads itself via no-op Write of identical content",
+      "expected": "exit=0, no violations, no [grandfathered] message (proving genuine compliance, not exemption)",
+      "actual": "exit=0, stderr empty. NO `[grandfathered]` note — confirms post-refactor hook is GENUINELY compliant, not artificially passed via grandfathering.",
+      "verdict": "PASS",
+      "evidence_path": "/root/.claude/hooks/pretool-quality-gate.py (self-test via subprocess)"
+    },
+    {
+      "id": "AC-M6-7-qa",
+      "description": "Per-function regression: pre A=50/B=40, post A=40/B=50, aggregate sum=90 both sides -> BLOCK naming function B",
+      "expected": "exit=2 with stderr naming Function B specifically (aggregate-only check would PASS, only per-function-name check catches it)",
+      "actual": "exit=2, stderr: `QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/perfunc.tsx: Function `A` (line 1) is 40 lines (max 30). Function `B` (line 43) is 50 lines (max 30). Worsened: Function 'B' grew from 40 to 50 lines`. Function B explicitly named in Worsened reason.",
+      "verdict": "PASS",
+      "evidence_path": "/tmp/qa-qg-redev3/perfunc.tsx (FRESH fixture)"
+    }
+  ],
+  "ac_m6_1_test_record": {
+    "id": "AC-M6-1-qa",
+    "description": "Pre=1000-line legacy file (no functions), Post=1001-line (added top-level comment) -> AC text says ALLOW, technical hints say BLOCK",
+    "expected_per_ac_text": "ALLOW exit=0 with optional grandfathered note",
+    "expected_per_technical_hints": "BLOCK because post['file_lines']=1001 > pre['file_lines']=1000",
+    "actual": "exit=2, stderr: `QUALITY GATE BLOCKED — /tmp/qa-qg-redev3/legacy1000.tsx: File has 1001 lines (max 800). Worsened: file lines went from 1000 to 1001`",
+    "verdict": "FAIL_BY_DESIGN_CONFIRMED",
+    "interpretation": "Implementation correctly follows BA technical hints. AC-M6-1 narrative is unsatisfiable under symmetric file_lines comparator. QA confirms dev's diagnosis — this is a BA-spec contradiction, not a dev bug. Iteration via Option 1 will resolve it.",
+    "post_option1_predicted_outcome": "exit=0 with [grandfathered] message, because (a) per-function pre and post are both empty (file has no functions), so per-function comparator passes trivially, (b) max_nesting pre=0, post=0, comparator passes, (c) file_lines comparator no longer in metric_did_not_worsen. AC-M6-1 PASSES."
+  },
+  "anti_fabrication_check": {
+    "method": "QA built 7 FRESH fixtures in /tmp/qa-qg-redev3/ with paths and content distinct from dev's /tmp/qg-fix-* fixtures (dev path was 'pre-legacy.tsx' / 'newfile-doesnotexist.ts' / 'atlimit.tsx' / 'perfunc.tsx'; QA path was 'legacy1000.tsx' / 'newfile_doesnotexist.tsx' / 'atlimit800.tsx' / 'perfunc.tsx' / 'm62.tsx'). Each fixture was crafted by QA from scratch using a Python loop, not copied from dev report.",
+    "subprocess_invocation": "Hook ran via `python3 /root/.claude/hooks/pretool-quality-gate.py < <synthetic JSON>` via Python subprocess. Capture exit code + stderr.",
+    "diff_inspection": "Verified 572 diff lines exist in dot-claude repo — dev did actually modify the file, did not fabricate.",
+    "structural_inspection": "Independently re-implemented function-length scanner outside the hook to count function lengths in the modified hook. Confirmed all 30 functions ≤ 21 lines (longest is `main` at 21).",
+    "result": "Dev report is GENUINE. All 7 functional AC outcomes match dev's claims. Structural claims match. AC-M6-1 FAIL_BY_DESIGN classification is correct."
+  },
+  "iteration_needed": true,
+  "iteration_target": "Option 1: drop file_lines comparison from metric_did_not_worsen (lines 307-309 of /root/.claude/hooks/pretool-quality-gate.py). Keep per-function and max_nesting comparators symmetric. After change, AC-M6-1 PASSES while all other ACs continue to PASS. Estimated change: -3 lines, +0 lines. Single dev iteration should suffice.",
+  "follow_up_recommendations": [
+    "Apply Option 1 in next /redev iteration. The change is 3-line removal in metric_did_not_worsen — high-confidence, low-risk.",
+    "After Option 1 lands, BA spec must be amended: line 273 should be revised to read 'Skip file_lines comparison; per-function and max_nesting suffice for the no-net-worsening guarantee. The user's M6 motivating case (instrumentation in 1393-line legacy file) requires this asymmetry, and per-function/nesting metrics already prevent any worthwhile quality regression.'",
+    "Sentinel cleanup (`rm /root/.claude/.hook-refactor-allow`) should be deferred until AFTER Option 1 lands, so the next dev iteration can edit the hook without re-engaging M4 protection.",
+    "Consider adding a single new AC-M6-1-asymmetric AC to BA spec that explicitly states the asymmetric file_lines semantic, so the contradiction with the symmetric narrative is resolved at the spec level."
+  ],
+  "spec_section4_updated": true,
+  "spec_section4_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+  "spec_section4_anchor": "#### /redev3 (Mystery 6 + M8 refactor — partial PASS) (2026-04-25T22:30Z, qa-report-20260425-221000-redev3.json)",
+  "summary": "WARNING: 11/12 verifications PASS. AC-M6-1 fails by design (BA-spec internal contradiction); recommend Option 1 (drop file_lines from grandfathering) for one-line follow-up iteration."
+}

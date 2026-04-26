@@ -1,0 +1,130 @@
+{
+  "request_id": "dev-20260425-104643",
+  "timestamp": "2026-04-25T10:55:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260425-104643.json",
+  "dev": {
+    "status": "completed",
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Edit 1: Replace inline R4 block in Section 1 (lines 81-103, 23 lines) with one-line signpost pointing to Section 5.2.4",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M1 + close-report gap 1: R4 was structurally placed in Section 1 (Before) instead of Section 5 (single source of truth)."
+      },
+      {
+        "id": 2,
+        "description": "Edit 2: Replace inline '### 5.4: Investigation gap' block (lines 105-115, 11 lines) with one-line signpost pointing to Section 5.2.5",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M2 + close-report gap 1: investigation block had wrong section number (5.4 inside Section 1) and was structurally mis-placed."
+      },
+      {
+        "id": 3,
+        "description": "Edit 3: Lock 5.2.1.2 to option (d), add reconciliation paragraph (NOT touching refs/checkpoints/*), demote (a)/(b)/(c) to 'Considered alternatives', add R2 verification signal",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M3 + close-report gap 2: bridge option was unlocked option-menu. User selected option (d). Reconciliation paragraph added per BA M5 to address gap 4."
+      },
+      {
+        "id": 4,
+        "description": "Edit 4: Lock 5.2.1.3 to worktree-aware /spec + stash-aware /merge preflight, remove all 'either/or' option-menu language, add R3 verification signal",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M4 + close-report gap 3: /spec collision-handling was unlocked option-menu. User locked the chosen behavior."
+      },
+      {
+        "id": 5,
+        "description": "Edit 5: Reword 5.2.3 to align with 5.2.1.2(d) — explicitly states 'one orchestrator-blessed auto-bulk commit at /merge time is the only git commit permitted in the cycle and is by design, not manual surgery'",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M5 + close-report gap 4: 5.2.1.2(d) said 'auto-bulk-commit' but 5.2.3 said 'no manual git commit'. Reconciled at both ends — 5.2.1.2 has reconciliation paragraph, 5.2.3 reworded to clarify 'manual surgery' vs 'orchestrator-blessed bridge commit'."
+      },
+      {
+        "id": 6,
+        "description": "Edit 8 (out of order — applied before Edit 6 to keep line-number drift monotonic): Add R1-default-branch-detection verification signal under 5.2.1.1, including BA-QA OBJ-2 fix (signal confirms dynamic detection works for both main-default AND master-default repos)",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M8 (R1 portion) + close-report gap 7: per-requirement verification signals were missing. BA-QA OBJ-2 caveat addressed by adding the master-default repo dry-run check to confirm dynamic detection."
+      },
+      {
+        "id": 7,
+        "description": "Edit 6: Insert two new sub-sections 5.2.4 (anti-regression hooks, content preserved verbatim from original Section 1 R4 block + R4-hook and R5-anti-bulk verification signals) and 5.2.5 (b5d447e investigation deliverable, content preserved verbatim from original Section 1 '### 5.4' block + new PASS/FAIL signal block + R5-investigation verification signal)",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M6 + M7 + close-report gaps 6, 7: the moved content needs a new home in Section 5.2 + the investigation block needs an explicit PASS/FAIL block."
+      },
+      {
+        "id": 8,
+        "description": "Edit 7: Insert new sub-section 5.3.1 'Cross-repo scope' after existing 5.3, declaring BOTH project-repo paths AND global Claude config repo paths as in-scope authoritative edit targets for the underlying engineering",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "BA M6 + close-report gap 5: cross-repo scope was undeclared. Spec did not name /root/.claude/hooks/* or /root/.claude/commands/* as in-scope. New 5.3.1 declares both, with explanation that ~/.claude/ is a symlink to /dev/shm/dev-workspace/dot-claude/."
+      },
+      {
+        "id": 9,
+        "description": "Update spec Section 2 (What Was Attempted) Cycle 1: populated approach + rationale + edit-order justification",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "Overnight spec workflow rule: dev populates Section 2 on each cycle's implementation pass."
+      },
+      {
+        "id": 10,
+        "description": "Update spec Section 3 (What Was Changed) Cycle 1: populated per-edit file:line summary",
+        "type": "markdown_edit",
+        "files_modified": ["docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "Overnight spec workflow rule: dev populates Section 3 on each cycle's implementation pass."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {
+        "modified": "docs/dev/specs/spec-20260424-233926.md",
+        "imported_by": [],
+        "note": "Markdown spec file consumed by /close, /dev, /redev, /dev-overnight as a documentation reference. No code imports. Re-running /close on the edited file is the only downstream impact."
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A — this is a markdown structural defect in spec-20260424-233926.md itself, written 2026-04-24T23:39Z; not a code regression.",
+      "why_issue_occurred": "Original spec author placed forward-looking R4 and the investigation gap (mis-labeled 5.4) inside Section 1 (Before/observed-state) instead of Section 5 (User's Acceptance Criterion / authoritative source). Compounded by leaving 5.2.1.2 and 5.2.1.3 as unlocked option-menus.",
+      "how_fix_addresses_root": "Restructure-only single-file edit using 8 anchor-text Edit-tool replacements. R4 and the investigation block move from Section 1 to Section 5 as 5.2.4 and 5.2.5; option menus are locked to user-decided defaults (option d for bridge; worktree-aware /spec + stash-aware /merge preflight for collision); the 5.2.1.2(d) ↔ 5.2.3 contradiction is reconciled at both ends; cross-repo scope is declared in new 5.3.1; per-requirement verification signals are added to all of 5.2.x. All evidence and reasoning preserved verbatim — content does not change, only structural placement and decision-locking."
+    },
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 109,
+      "lines_removed": 39,
+      "new_symbols_introduced": [],
+      "minimum_possible_lines_estimate": 109,
+      "justification_for_overage": "The unusual task shape is markdown spec restructuring per a structured 8-edit plan from BA. The diff size is dictated by BA-specified content moves and decision-locking, not over-engineering: ~30 lines move from Section 1 into Section 5 sub-sections (must be preserved verbatim per BA W3 'Touching the original spec evidence — Section 1's commit-level evidence stays intact'), ~50 lines new locked-decision content + reconciliation paragraphs in 5.2.1.2 / 5.2.1.3 / 5.2.3, ~20 lines new verification signals (1 per 5.2.x sub-section per AC5 + R7), ~15 lines new 5.3.1 cross-repo-scope content (cannot be smaller without omitting either project-repo or global-config-repo paths). The minimum possible diff for this task is ~109 lines (BA estimated 115). Single-line fixes are not applicable when the task is 'restructure 7 markdown sections + lock 4 decisions + add 6 verification signals + declare cross-repo scope + add PASS/FAIL block'."
+    },
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "QA should re-run /close on docs/dev/specs/spec-20260424-233926.md and confirm CLOSE: YES (or at minimum, no objections raised on the original 7 close-report gaps). Falsifiable spot-checks: (1) grep -c '^### 5\\.2\\.4:' returns 1; (2) grep -c '^### 5\\.2\\.5:' returns 1; (3) grep -c '^### 5\\.3\\.1:' returns 1; (4) grep -c '^### 5\\.4:' returns 0 (the old mis-placed header is gone); (5) grep -c 'Chosen: option (d)' returns >=1 (locked decision); (6) grep -c 'Considered alternatives' returns >=1 (alternatives demoted to prose); (7) grep -nE 'Options: \\(a\\)' returns 0 (option-menu language gone); (8) grep -nE 'either stash, error clearly, or auto-resolve' returns 0; (9) grep -c 'untracked overlap detected:' returns >=1 (R3 stdout literal); (10) grep -c 'BLOCKED: agent git commit' returns >=1 (R4 hook stderr literal); (11) grep -c 'docs/dev/postmortems/b5d447e-checkpoint-regression.md' returns >=1 (R5 deliverable path); (12) grep -c '/root/.claude/hooks/' returns >=1 AND grep -c '/root/.claude/commands/' returns >=1 (cross-repo scope declared); (13) grep -c 'Verification signal' returns >=5 (per-requirement signals); (14) grep -nE '^### 5\\.' returns 5.1, 5.2, 5.2.4, 5.2.5, 5.3, 5.3.1 in that order (correct sub-section ordering). Section 1 commit-level evidence (lines 1-80) and Section 5.1 verbatim Chinese (line 144) both preserved untouched.",
+    "permissions_to_add": [],
+    "self_verification": {
+      "build": "skipped (markdown-only edit, no compile/build step applies)",
+      "smoke_check": "pass",
+      "notes": "Ran 14 grep checks against the edited spec. All required structural markers present: 5.2.4 (1 match), 5.2.5 (1 match), 5.3.1 (1 match), no '### 5.4:' header (0 matches — old mis-placed header gone), no 'Options: (a)' (0 matches), no 'either stash, error clearly, or auto-resolve' (0 matches), no '4. **Anti-regression' anywhere (0 matches — R4 removed from Section 1), 'Chosen: option (d)' present (2 matches: 5.2.1.2 + Section 3 changelog), 'Considered alternatives' present (2 matches: 5.2.1.2 + Section 3 changelog), 'untracked overlap detected:' present (3 matches), 'BLOCKED: agent git commit' present (1 match), postmortem path present (5 matches), all 4 postmortem section names present (User-prompt-recovered: 3, Agent-reasoning: 1, Hook-that-should-have-caught-it: 1, Concrete-hook-paths-to-add: 1), 'Reconciliation with 5.2.3' paragraph present (2 matches: 5.2.1.2 + Section 3 changelog), 'does NOT touch refs/checkpoints/*' present (2 matches), 'One orchestrator-blessed auto-bulk commit' present (2 matches: 5.2.3 + Section 3 changelog), '/root/.claude/hooks/' present (3 matches in 5.3.1 + 5.2.4), '/root/.claude/commands/' present (2 matches in 5.3.1), 'Verification signal' present (9 matches across 5.2.x sub-sections). Section structure verified: Sections 1-8 preserved with --- separators; Section 5 sub-sections in correct order (5.1, 5.2, 5.2.4, 5.2.5, 5.3, 5.3.1). One incidental EITHER...OR match at line 116 is inside Section 3 (changelog) where it documents the REMOVAL of that language — not in 5.2.1.3 itself. Single 'either' match at line 182 is unrelated ('OR update it to preserve hook semantics' inside 5.2.2 root-cause-decision tree, not the option-menu pattern)."
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "QA: re-run /close on the edited spec — verdict should be CLOSE: YES",
+    "After /close: YES, the next /dev (or /dev-overnight) cycle can be kicked off against the locked spec for the underlying engineering work (the actual hook + command edits described in 5.2.4)",
+    "Future cycle deliverable: write the postmortem at docs/dev/postmortems/b5d447e-checkpoint-regression.md per the Pass/Fail signal in 5.2.5"
+  ],
+  "grep_check_results": {
+    "check1_section_5_2_4_in_section_5": "pass (1 match — note: BA M1 places R4 at 5.2.4, not 5.4 as user prompt phrased; BA's authoritative plan supersedes user's section-number wording per Authority Chain rule)",
+    "check2_section_5_2_5_in_section_5": "pass (1 match — same note: BA M2 places investigation at 5.2.5, not 5.5)",
+    "check3_R4_not_in_section_1": "pass (0 matches for '^4. **Anti-regression' anywhere in file; original R4 block at lines 81-103 replaced with one-line signpost)",
+    "check4_bridge_locked_to_d": "pass ('Chosen: option (d)' present at line 162; (a)(b)(c) demoted to 'Considered alternatives (rejected)' prose at line 166)",
+    "check5_spec_collision_locked": "pass ('writes into the worktree IF a worktree is active' present at line 174; 'either/or' option-menu language removed)",
+    "check6_5_2_1_2d_5_2_3_reconciliation": "pass ('Reconciliation with 5.2.3' paragraph at line 164 + 'does NOT touch `refs/checkpoints/*`' clarification + 5.2.3 reworded at line 185 with 'One orchestrator-blessed auto-bulk commit at /merge time (per 5.2.1.2 option d) is the only git commit permitted')",
+    "check7_5_3_1_cross_repo_scope": "pass (line 245 '### 5.3.1: Cross-repo scope (in-scope edit targets for the underlying engineering)' + 3 occurrences of '/root/.claude/hooks/' + 2 occurrences of '/root/.claude/commands/' + symlink note '~/.claude/ which is a symlink to /dev/shm/dev-workspace/dot-claude/')",
+    "check8_5_2_5_postmortem_deliverable": "pass (postmortem path 'docs/dev/postmortems/b5d447e-checkpoint-regression.md' at lines 228, 231 + 4 named non-empty sections User-prompt-recovered/Agent-reasoning/Hook-that-should-have-caught-it/Concrete-hook-paths-to-add at line 231 + JSONL path or 'JSONL pruned' criterion at line 237)",
+    "check9_per_requirement_verification_signals": "pass (9 'Verification signal' matches across 5.2.1.1 (R1), 5.2.1.2 (R2), 5.2.1.3 (R3), 5.2.4 (R4-hook + R5-anti-bulk), 5.2.5 (R5-investigation) + 4 mentions in Section 3 changelog audit trail) — covers M8 fully and addresses BA-QA OBJ-2 by adding master-default repo dry-run check to R1 signal"
+  },
+  "modified_files": ["/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"],
+  "summary": "Applied 8 anchor-text edits (M1-M8) to docs/dev/specs/spec-20260424-233926.md per BA's plan, plus populated overnight spec Sections 2 and 3 for Cycle 1. All 7 close-report maturity gaps addressed: R4 + investigation block moved from Section 1 to Section 5 as 5.2.4 + 5.2.5 (R1-2 of close); 5.2.1.2 locked to option (d) (R3); 5.2.1.3 locked to worktree-aware /spec + stash-aware /merge preflight (R4); 5.2.1.2(d) ↔ 5.2.3 contradiction reconciled at both ends (R5); cross-repo scope declared in new 5.3.1 (R6); 5.2.5 has explicit Pass/Fail block (R7-from-close-gap-6); per-requirement verification signals added (R7-from-close-gap-7). BA-QA OBJ-2 minor caveat (default-branch-detection signal needed master-default coverage) addressed by adding `/merge --dry-run` check on master-default repo. Diff stats: 1 file changed, 109 lines added, 39 lines removed (net +70). All 9 user-specified verification grep checks pass."
+}

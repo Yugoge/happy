@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
 import { knownTools } from '@/components/tools/knownTools';
@@ -41,21 +41,14 @@ export const SidebarBashView = React.memo<SidebarBashViewProps>(({ tool }) => {
 
     return (
         <View style={styles.container}>
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={true}
-                contentContainerStyle={styles.scrollContent}
-            >
-                <View style={styles.commandWrapper}>
-                    <CommandView
-                        command={command}
-                        stdout={parsedResult?.stdout || unparsedOutput}
-                        stderr={parsedResult?.stderr}
-                        error={error}
-                        fullWidth
-                    />
-                </View>
-            </ScrollView>
+            <CommandView
+                command={command}
+                stdout={parsedResult?.stdout || unparsedOutput}
+                stderr={parsedResult?.stderr}
+                error={error}
+                fullWidth
+                wrap
+            />
         </View>
     );
 });
@@ -64,12 +57,5 @@ const styles = StyleSheet.create(() => ({
     container: {
         flex: 1,
         paddingTop: 12,
-    },
-    scrollContent: {
-        flexGrow: 1,
-    },
-    commandWrapper: {
-        flex: 1,
-        minWidth: '100%' as any,
     },
 }));

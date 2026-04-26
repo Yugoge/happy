@@ -1,0 +1,302 @@
+{
+  "request_id": "dev-20260425-201355-5-8",
+  "timestamp": "2026-04-25T20:18:00Z",
+  "spec_item": "5.8",
+  "no_multitask": true,
+  "requirement": {
+    "original": "检修 Spec Item 5.8 — Mobile (390×844 iPhone 14 viewport) message-card wrapper width mismatches actual content width. Even normal paragraph text overflows on narrow viewport.",
+    "clarified": "Replace the static layout.maxWidth used by MessageView.messageContent with a reactive hook (modeled on the in-tree useHeaderMaxWidth) AND add overflow:hidden + maxWidth:100% to the wrapper styles userMessageContainer, userMessageBubble, and toolContainer that were missed by the prior (a59b3795) fix. Mobile 390×844 must show no message-card surface bleeding past viewport.innerWidth; desktop 1440×900 wrapper must be reactive to sidebar toggles.",
+    "what": "Fix message-card wrapper width logic: (a) make messageContent.maxWidth reactive via a new useMessageContentMaxWidth() hook reusing the useHeaderMaxWidth formula; (b) add overflow:hidden/maxWidth:100% to userMessageContainer, userMessageBubble, and toolContainer styles in MessageView.tsx",
+    "why": "Cycle 5 PASS only verified the <table> sub-case; the wrapper-width logic that surrounds it was never touched. Mobile (390) shows inline Bash tool cards bleeding past the viewport right edge; desktop messageContent has scrollWidth>clientWidth with overflowX:visible (no clipping) — both prove the wrapper logic, not the table, is the deeper bug.",
+    "where": [
+      "packages/happy-app/sources/components/MessageView.tsx (lines 211, 215, 217-223, 224-231, 249-251)",
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (read-only reference; ADD a new sibling export OR a new file under hooks/)",
+      "packages/happy-app/sources/components/layout.ts (read-only; static layout.maxWidth field is preserved)"
+    ],
+    "scope": {
+      "included": [
+        "MessageView.messageContent reactive maxWidth via new hook",
+        "userMessageContainer overflow:hidden",
+        "userMessageBubble overflow:hidden",
+        "toolContainer maxWidth:100% + overflow:hidden",
+        "New hook useMessageContentMaxWidth() reusing useHeaderMaxWidth formula"
+      ],
+      "excluded": [
+        "Removing static layout.maxWidth (~25 other call sites still use it)",
+        "Modifying agentMessageContainer (already correct)",
+        "Modifying the <table> wrapper (Cycle 5 PASS stands)",
+        "Modifying MarkdownView block renderers (text/list/blockquote/etc.)",
+        "Reverting any prior commit (no destructive action)",
+        "Tool-card inline text wrapping/clamping (could-have, deferred to next cycle)"
+      ]
+    },
+    "success_criteria": [
+      "At viewport 390×844, every message-card surface (agent message, user message, tool inline card) has DOM right edge ≤ 390",
+      "At viewport 390×844, every paragraph/list-item/blockquote inside any message has right ≤ 390",
+      "At viewport 1440×900, messageContent.scrollWidth === messageContent.clientWidth for non-table content",
+      "messageContent.width recomputes on browser resize (no reload required)",
+      "Existing agentMessageContainer / minWidth:0 / table wrapper guards remain intact"
+    ],
+    "constraints": [
+      "Use existing useHeaderMaxWidth formula as the basis (do not invent a new viewport-detection mechanism)",
+      "Do not call Dimensions.get('window') in render bodies",
+      "Preserve static layout.maxWidth export for the other ~25 call sites",
+      "Preserve all pre-existing overflow:hidden / minWidth:0 guards"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "On mobile 390×844 viewport, normal paragraph text and inline tool-call cards (Bash command line, CronList output) extend past the right edge of the visible viewport / message-card; on desktop 1440×900 the messageContent wrapper has scrollWidth (816) > clientWidth (800) with overflowX:visible (no clipping at this layer).",
+    "root_cause": "Two co-conspirators: (1) MessageView.messageContent.maxWidth is bound to the static field layout.maxWidth (= 800 on web, evaluated once at module load via getMaxLayoutWidth() in layout.ts:6-21) — not reactive to window resize. (2) Three of the four message-wrapper style blocks in MessageView.tsx — userMessageContainer (217-223), userMessageBubble (224-231), and toolContainer (249-251) — lack the overflow:hidden + maxWidth:100% discipline that was added to agentMessageContainer in commit a59b3795. The prior fix only protected agent messages and the table; the rest of the family was missed.",
+    "root_cause_commit": "a59b3795 (2026-03-25, 'fix: table font mismatch and mobile overflow on web') is the prior partial fix that established the pattern but did not propagate it to all sibling wrappers; the static layout.maxWidth has been in tree since the project's initial layout.ts.",
+    "why_introduced": "a59b3795 was scoped narrowly to the user-reported table overflow. The author touched only the surfaces strictly needed for that bug: agentMessageContainer + the table block + minWidth:0 on messageContent. layout.ts's static getMaxLayoutWidth() predates a59b3795 and was not on the radar.",
+    "why_problematic": "On mobile (390 viewport), a non-clipping wrapper lets any child element with intrinsic width > 390 (a long inline-code span, a Bash command line, a long URL) bleed past the visible bounds. On desktop, scrollWidth (816) > clientWidth (800) at messageContent reveals that even the cap is being violated by 16px somewhere in children — but because messageContent.overflowX = visible, the 16px is not clipped and feeds upward until the depth-4 ancestor's overflow:hidden absorbs it. On a narrow desktop or with sidebar transitions, the static 800 cap doesn't shrink to fit the available column.",
+    "timeline": "a59b3795 (2026-03-25): partial fix landed. Cycles 1-4 (2026-04-24 to 2026-04-25): not investigated. Cycle 5 (2026-04-25): QA verified <table> only and PASSED 5.8; user pushed back the same day (spec line 2851-2856 correction-note added).",
+    "affected_files": [
+      "packages/happy-app/sources/components/MessageView.tsx",
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (read-only — model)",
+      "packages/happy-app/sources/components/layout.ts (read-only — preserve static field)"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "MessageView.tsx:211 'minWidth: 0' on messageContent (observed: Read tool, current source)",
+      "MessageView.tsx:215 'maxWidth: layout.maxWidth' on messageContent (observed: Read tool)",
+      "MessageView.tsx:217-223 userMessageContainer has paddingHorizontal:16, maxWidth:'100%' but NO overflow:hidden (observed: Read tool)",
+      "MessageView.tsx:224-231 userMessageBubble has maxWidth:'100%' but NO overflow:hidden (observed: Read tool)",
+      "MessageView.tsx:249-251 toolContainer has only marginHorizontal:8 — no maxWidth, no overflow (observed: Read tool)",
+      "layout.ts:6-21 getMaxLayoutWidth() returns literal 800 on web (observed: Read tool); evaluated once at module-load time, not reactive (inferred from absence of hook wrapping)",
+      "useHeaderMaxWidth.ts:60-76 is the existing reactive hook for the header (observed: Read tool); contains pure fn computeHeaderMaxWidth at lines 27-43 with formula 'windowWidth - leftDrawerWidth - rightSidebarWidth' capped at 800 web/tablet, infinite on Mac (observed: Read tool)",
+      "Live measurement at viewport 1440×900 via Playwright getComputedStyle on the messageContent element (depth 4 from a paragraph SPAN child): width=800, scrollWidth=816, clientWidth=800, overflowX='visible', maxWidth='800px', flexBasis='0px', minWidth='0px' (observed: Playwright browser_evaluate, this BA cycle)",
+      "Live screenshot at viewport 390×844 (Playwright browser_take_screenshot, this BA cycle, file docs/dev/evidence/ba-20260425-201355-5-8/mobile-conversation.png) shows: inline Bash tool card with command '$ ls /root/docs/dev/ba-spec-20260423-080' clipped at right edge; output 'ls: cannot access /root/.claude/dev-regist' clipped; user-message bubble for the long demo prompt is contained (because it has maxWidth:'100%' inherited from userMessageContainer + userMessageBubble flex layout) — but tool inline cards are NOT contained because toolContainer lacks the discipline (observed)",
+      "Live screenshot at viewport 390×844 also shows the wide table is correctly contained with horizontal scroll inside its wrapper (observed; matches Cycle 5 PASS); only Path + Type columns visible in the viewport, scroll affordance present"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": [
+      "message-card",
+      "wrapper",
+      "max-width",
+      "mobile",
+      "390px",
+      "paragraph text",
+      "Markdown container",
+      "narrow viewports",
+      "正文",
+      "card 自身宽度"
+    ],
+    "localization_evidence": "Reproduced via Playwright MCP on https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 with dev account auth + api-dev server URL. At viewport 390×844 captured screenshot showing inline Bash tool-call card with overflowing command text and clipped output line. At viewport 1440×900 captured DOM measurements via getComputedStyle() showing messageContent.scrollWidth (816) > clientWidth (800) with overflowX:visible.",
+    "located_source": "packages/happy-app/sources/components/MessageView.tsx:215 (the maxWidth: layout.maxWidth bind) AND packages/happy-app/sources/components/MessageView.tsx:249-251 (toolContainer style with no overflow protection)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "reason": "Not a regression bug. Symptom is partial-fix-coverage: a59b3795 (2026-03-25) addressed the table-and-agent-message subset only; user-message and tool-card wrappers were never protected. No 'used to work' phrasing in user complaint — the complaint is 'last cycle's fix was incomplete'."
+    }
+  },
+  "diagnosis_layer": "L2",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "message-card wrapper max-width mismatches actual content width (spec line 2854)",
+      "acceptance_criterion": "messageContent.scrollWidth === messageContent.clientWidth for non-table content at any viewport ≥ 320px; cap is computed reactively from window width via a hook, not statically at module load."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "Mobile viewport (390px) shows even normal paragraph text overflowing the card (spec line 2855)",
+      "acceptance_criterion": "At viewport 390×844, every paragraph SPAN, list-item DIV, blockquote DIV inside any agent or user message satisfies element.right ≤ 390."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "桌面端 message-card 自身宽度控制 / desktop card-self width control (spec line 2896)",
+      "acceptance_criterion": "At viewport 1440×900 with sidebar collapsed, messageContent.width adapts to available column bounded by 800 cap; when sidebar opens/closes, messageContent.width recomputes via the new hook (no reload)."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "手机端 390px 视口下普通正文段落也超宽 / mobile 390 normal paragraph also too wide (spec line 2896)",
+      "acceptance_criterion": "Inline tool-call cards (Bash, CronList) AND user message bubbles AND agent message containers ALL satisfy right ≤ viewport.innerWidth at 390×844."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/ChatList.tsx",
+      "line_range": "40-65",
+      "role": "FlatList host that renders MessageView for each message item; provides full-viewport-width parent for messageContainer",
+      "imports_from": ["packages/happy-app/sources/components/MessageView.tsx"],
+      "evidence": "Read tool: ChatList.tsx imports MessageView at line 7 and renders it at line 48 with width inherited from FlatList",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line_range": "205-216",
+      "role": "messageContainer (flex row, justifyContent center) and messageContent (flexGrow:1, flexBasis:0, minWidth:0, maxWidth:layout.maxWidth) — THE primary cap",
+      "imports_from": ["packages/happy-app/sources/components/layout.ts"],
+      "evidence": "Read tool: line 215 'maxWidth: layout.maxWidth' bind; line 9 'import { layout } from \"./layout\";'",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line_range": "217-251",
+      "role": "Three sibling wrappers: userMessageContainer/userMessageBubble (user msg), agentMessageContainer (agent msg, ALREADY GUARDED), toolContainer (tool inline card)",
+      "imports_from": ["leaf — render children from MarkdownView or ToolView"],
+      "evidence": "Read tool: lines 217-223 userMessageContainer style block; 224-231 userMessageBubble; 232-239 agentMessageContainer (already has overflow:hidden); 249-251 toolContainer (missing protection)",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/layout.ts",
+      "line_range": "1-25",
+      "role": "Static getMaxLayoutWidth() returning literal 800 on web; layout.maxWidth = getMaxLayoutWidth() at module load",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool: full file; line 20 'return 800'; line 24 'maxWidth: getMaxLayoutWidth()' — module-level eval",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts",
+      "line_range": "60-76",
+      "role": "Reference (read-only): existing reactive hook used by Header/ChatHeaderView; pure fn at 27-43 should be reused for the new useMessageContentMaxWidth() export",
+      "imports_from": ["leaf — pure formula, react-native useWindowDimensions, auth context, sidebar store"],
+      "evidence": "Read tool: full file; the formula at line 27-43 is exactly the kind of computation messageContent needs",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line": 211,
+      "type": "css-flex-shrink-enable",
+      "code_snippet": "minWidth: 0,",
+      "purpose": "Allows messageContent to shrink below intrinsic width inside flex parent; required for narrow-viewport reflow",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line": 237,
+      "type": "css-overflow-clip",
+      "code_snippet": "maxWidth: '100%',",
+      "purpose": "Constrains agentMessageContainer to its parent width, no horizontal expansion",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line": 238,
+      "type": "css-overflow-clip",
+      "code_snippet": "overflow: 'hidden',",
+      "purpose": "Clips child overflow at agentMessageContainer boundary; established by commit a59b3795",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line": 402,
+      "type": "css-max-width-viewport-relative",
+      "code_snippet": "maxWidth: 'min(100%, calc(100vw - 32px))'",
+      "purpose": "Web table wrapper viewport-relative cap (Cycle 5 PASS basis); must NOT be removed",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "viewport": "primary 390×844 mobile (iPhone 14); secondary 1440×900 desktop",
+    "theme": "light",
+    "locale": "zh+en mixed (test session has bilingual content)",
+    "auth_state": "logged-in (dev account cmi5mv9eh00wzpg14ph73jj3n via injected localStorage auth_credentials)",
+    "data_state": "with-data — live test session cmoedofgz86n5nz15xsldnk35 already contains markdown demo + Bash tool + CronList tool + LaTeX + wide table",
+    "browser": "Chromium via Playwright MCP",
+    "url_path": "/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "evidence": {
+    "observed": "message-card wrapper width mismatches actual content width; mobile 390px shows even normal paragraph text overflowing the card; markdown container layout logic incorrect for narrow viewports (verbatim from spec section 6 correction line 2851-2856 and section 7 correction line 2895-2896)",
+    "measured": {
+      "value": "messageContent at viewport 1440: width=800, scrollWidth=816, clientWidth=800, overflowX=visible, maxWidth=800px (16px child overflow not clipped); userMessageContainer/toolContainer styles missing overflow:hidden; layout.maxWidth returns 800 statically at module load",
+      "location": "MessageView.tsx:211,215,217-223,224-231,249-251 + layout.ts:6-24"
+    },
+    "expected": {
+      "value": "messageContent.scrollWidth === messageContent.clientWidth (no overflow at this layer for non-table content); all four wrapper-style blocks have overflow:hidden + maxWidth-discipline; messageContent.maxWidth reflows reactively via hook same as Header does",
+      "source": "Cycle 5 user feedback line 2851-2856 + section 7 correction line 2895-2896 + the existing useHeaderMaxWidth.ts pattern (tier_2_verified in-tree reference)"
+    },
+    "gap": "Three of four wrapper styles lack overflow:hidden; messageContent.maxWidth is statically 800 (not reactive); 16px child overflow at desktop messageContent is not clipped; mobile 390 shows visible bleed of inline tool-call cards (Bash command + output)"
+  },
+  "scope_expansion": {
+    "search_pattern": "layout\\.maxWidth (~25 call sites — only MessageView.messageContent migrated this cycle); plus visual inspection of all four wrapper style blocks in MessageView.tsx",
+    "search_scope": "packages/happy-app/sources/**",
+    "user_reported": [
+      "packages/happy-app/sources/components/MessageView.tsx (the message-card wrapper)"
+    ],
+    "additional_found": [
+      "packages/happy-app/sources/components/MessageView.tsx:217-223 (userMessageContainer)",
+      "packages/happy-app/sources/components/MessageView.tsx:224-231 (userMessageBubble)",
+      "packages/happy-app/sources/components/MessageView.tsx:249-251 (toolContainer)",
+      "packages/happy-app/sources/components/layout.ts (static getMaxLayoutWidth)",
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (reusable formula reference)"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/MessageView.tsx:211",
+      "packages/happy-app/sources/components/MessageView.tsx:215",
+      "packages/happy-app/sources/components/MessageView.tsx:217-223",
+      "packages/happy-app/sources/components/MessageView.tsx:224-231",
+      "packages/happy-app/sources/components/MessageView.tsx:232-239 (already correct — keep)",
+      "packages/happy-app/sources/components/MessageView.tsx:249-251",
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts:27-76 (reference)",
+      "packages/happy-app/sources/components/layout.ts:6-24 (preserve)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "In-tree useHeaderMaxWidth.ts hook (reactive maxWidth formula already used by Header/ChatHeaderView)",
+    "url_or_location": "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (lines 27-76)",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing+dedup_hit+git_log",
+    "attempts": [
+      {
+        "artifact_path": "git commit a59b3795 (2026-03-25, fix: table font mismatch and mobile overflow on web)",
+        "proposed_solution": "Replace RN View+ScrollView with HTML div overflow-x:auto + max-width:min(100%, calc(100vw - 32px)) on the table; minWidth:0 on messageContent; maxWidth:'100%' + overflow:'hidden' on agentMessageContainer",
+        "actual_change": "MessageView.tsx 3 lines (added minWidth:0 + agentMessageContainer overflow:hidden); MarkdownView.tsx 40 lines (table wrapper + min-width:auto bypass)",
+        "outcome": "PARTIAL — table contained on mobile; agentMessageContainer protected; but userMessageContainer, userMessageBubble, toolContainer NOT touched, layout.maxWidth still static 800. Mobile inline tool-card overflow persisted; desktop messageContent 16px child overflow unclipped",
+        "failure_category": "wrong_scope",
+        "target_layer": "L1+L3"
+      },
+      {
+        "artifact_path": "Cycle 5 of spec-20260424-084848 (2026-04-25, QA verification only)",
+        "proposed_solution": "Verify the existing table fix and accept",
+        "actual_change": "No code change; QA-only",
+        "outcome": "FAILED — QA declared 5.8 PASS based on table-only check; user rejected; correction-section added to spec (line 2851-2856, 2895-2896)",
+        "failure_category": "symptom_treatment",
+        "target_layer": "n/a (verification, not a fix)"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L2 (structural responsive layout) + L3 (data values on missing wrapper styles)",
+      "differs_from_all_priors": true,
+      "rationale": "Attempt 1 (a59b3795) was L1 + L3 on the <table> + agentMessageContainer only. This attempt addresses (a) the static-vs-reactive maxWidth mechanism (L2 — never previously touched) and (b) the THREE remaining wrapper-style blocks (userMessageContainer, userMessageBubble, toolContainer) that were not in a59b3795's scope. Different files-per-style + a new hook = different layer + different breadth than any prior attempt. No prior attempt has factored useHeaderMaxWidth's reactive formula into MessageView."
+    }
+  },
+  "context": {
+    "codebase_state": "main branch, working tree dirty (overnight worktree state per spec session); BA spec is read-only and writes new docs/dev artifacts only",
+    "recent_commits": "fcaaf4bb docs: spec layering re-architecture; 6eb52654 docs: session-recovery bugfix spec; 4381eaf5 feat: cycle 2 (codex protocol activation); 0ba2ddfc feat: cycle 1 (14 pipelines) — note: no app source modifications since a59b3795 (2026-03-25) for the wrapper-overflow surface area",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "node": "20",
+      "platform": "web (React Native + Expo + Unistyles)",
+      "deploy_target": "happy-app:dev (Docker image), accessed via dev.life-ai.app"
+    }
+  },
+  "development_approach": {
+    "strategy": "Add a sibling hook useMessageContentMaxWidth() that reuses computeHeaderMaxWidth's pure formula (factor it into a shared internal helper if needed; do NOT duplicate logic). Migrate MessageView.messageContent.maxWidth from layout.maxWidth (static) to the hook value (reactive). Add overflow:hidden + maxWidth:'100%' to userMessageContainer, userMessageBubble (already has maxWidth), and toolContainer style blocks — pattern-copy from the existing agentMessageContainer block. Preserve all pre-existing guards. Do NOT touch the table wrapper (Cycle 5 PASS stands), the markdown block renderers, or the static layout.maxWidth field used by ~25 other call sites.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/MessageView.tsx",
+      "packages/happy-app/sources/hooks/useHeaderMaxWidth.ts (add sibling export — OR — create new file useMessageContentMaxWidth.ts in the same dir)"
+    ],
+    "validation_approach": "QA must use Playwright MCP at BOTH 390×844 and 1440×900 viewports against test session cmoedofgz86n5nz15xsldnk35. Required measurements: (1) at 390 viewport, walk DOM and verify no message-card surface OR child paragraph/list/blockquote has right > 390; (2) at 1440 viewport, getComputedStyle() on messageContent must yield scrollWidth === clientWidth for non-table content; (3) browser-resize sequence 1440→800→390 must show messageContent.width recomputing without reload; (4) inline Bash tool card command line must NOT bleed past viewport.innerWidth at 390. Required screenshots: docs/dev/evidence/qa-<qa-ts>/5.8-cycle-after/{mobile-conversation.png, desktop-sidebar-toggle.png, mobile-bash-card.png, resize-reactive.png}."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward layout fix using an existing in-tree pattern (useHeaderMaxWidth). The mechanism (reactive viewport hook), the formula (windowWidth - drawer - sidebar capped at 800), and the missing-wrapper-style fix (overflow:hidden + maxWidth:100%) are all already proven inside this codebase. No external research needed."
+  }
+}

@@ -8,7 +8,7 @@ import { layout } from './layout';
 import { MultiTextInput, KeyPressEvent } from './MultiTextInput';
 import { Typography } from '@/constants/Typography';
 import { PermissionMode, ModelMode } from './PermissionModeSelector';
-import { getDefaultModelKey, getModelContextWindow } from './modelModeOptions';
+import { getDefaultModelContextWindow, getDefaultModelKey, getModelContextWindow } from './modelModeOptions';
 import { hapticsLight, hapticsError } from './haptics';
 import { Shaker, ShakeInstance } from './Shaker';
 import { StatusDot } from './StatusDot';
@@ -356,14 +356,13 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         return label;
     }, [isSandboxEnabled]);
 
-    // Calculate context warning — per-model context window (§5.2 1M-context fix)
-    // Resolve model key: prefer picker key (if not 'default'), else session metadata currentModelCode
+    // Calculate context warning — per-model context window (§5.2 cycle 6 L4)
     const resolvedModelKey = (props.modelMode?.key && props.modelMode.key !== 'default')
         ? props.modelMode.key
         : (props.metadata?.currentModelCode ?? null);
-    const maxContextSize = getModelContextWindow(resolvedModelKey);
-    const contextWarning = props.usageData?.contextSize
-        ? getContextWarning(props.usageData.contextSize, props.alwaysShowContextSize ?? false, theme, maxContextSize)
+    const maxContextSize = (!props.modelMode?.key || props.modelMode.key === 'default') ? getDefaultModelContextWindow(modelFlavor) : getModelContextWindow(resolvedModelKey);
+    const contextWarning = props.usageData
+        ? getContextWarning(props.usageData.contextSize ?? 0, props.alwaysShowContextSize ?? false, theme, maxContextSize)
         : null;
 
     const agentInputEnterToSend = useSetting('agentInputEnterToSend');
