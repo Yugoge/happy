@@ -1,7 +1,7 @@
 # hooks
 
-*Last updated: 2026-04-24T16:26:54Z*
-**Total entries**: 27
+*Last updated: 2026-04-25T20:40:22Z*
+**Total entries**: 28
 **Convention**: kebab
 
 ## Tree
@@ -24,6 +24,7 @@ hooks/
 ├── `useHappyAction.ts` - ts file
 ├── `useHeaderMaxWidth.ts` - ts file
 ├── `useInboxHasContent.ts` - ts file
+├── `useMessageContentMaxWidth.ts` - ts file
 ├── `useMultiClick.ts` - ts file
 ├── `useNativeUpdate.ts` - ts file
 ├── `useNavigateToSession.ts` - ts file

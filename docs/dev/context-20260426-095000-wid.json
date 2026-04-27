@@ -1,0 +1,424 @@
+{
+  "task_id": "20260426-095000-wid",
+  "request_id": "20260426-095000-wid",
+  "timestamp": "2026-04-26T09:50:00Z",
+  "saga": "spec-20260424-233926",
+  "cycle": "redev5",
+  "ba_spec_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260426-095000-wid.md",
+  "requirement": {
+    "original": "BA for /redev5 — fix 4 Workflow Integrity Dimension (WID) bullets that caused 7 consecutive /close NO verdicts on saga spec-20260424-233926. Acceptance criteria: AC-WID1 (subagent JSON templates produce /commit-consumable output: nested qa.status, bare-task-id request_id across ba/dev/qa/ui-specialist, completion H1 contains task-id, dev-report files_modified/files_created non-null lists), AC-WID2 (task-id chain consistency document explicitly), AC-WID3 (saga Section 6 Out-of-Scope text adds AC12 literal-E2E as known on-site-unreachable goal), AC-WID4 (/close template Bullet 4 N/A-with-reason exception for user-only physical filesystem actions like .hook-refactor-allow sentinel touch).",
+    "clarified": "Repair the producer-side schemas in 4 subagent prompt files + 2 slash-command templates so future cycles' artifacts satisfy the WID gate by construction; document AC12 literal-E2E as a known on-site-unreachable goal in saga §5.3; modify /close Bullet 4 to N/A-with-reason any sub-item requiring a user-only physical filesystem action.",
+    "what": "Edit 6 template/prompt files + 1 saga spec file to make WID gate satisfiable.",
+    "why": "Saga spec-20260424-233926 has had 7 consecutive CLOSE: NO verdicts. The latest /redev4 close-report (close-report-20260426-085000-ac12.md lines 13-29) records all 4 WID bullets failing in-session with concrete evidence. Prior cycles all targeted AC12 itself (L4 bash logic) and never the WID schema mismatches that make the close-debate gate unsatisfiable in any session. This is the first cycle to address L3 (data-shape templates) + L5 (policy-level definitions) instead.",
+    "where": [
+      "/root/.claude/agents/ba.md",
+      "/root/.claude/agents/dev.md",
+      "/root/.claude/agents/qa.md",
+      "/root/.claude/agents/ui-specialist.md",
+      "/root/.claude/commands/dev.md",
+      "/root/.claude/commands/close.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+      "/root/.claude/hooks/posttool-subagent-track.py"
+    ],
+    "scope": {
+      "included": [
+        "Update request_id template literals in ba.md, dev.md (agent), qa.md, ui-specialist.md to bare task-id form; add task_id sibling key.",
+        "Add ui-specialist.md top-level request_id and task_id fields (the canonical 6-channel schema does not currently bind a task-id).",
+        "Reinforce qa.md output-format prompt language so qa.status (nested) is the only status key emitted; top-level status is forbidden.",
+        "Update dev.md (agent) dev-report output template so dev.files_modified and dev.files_created are required top-level lists at the dev root (empty list acceptable for no-edit cycles).",
+        "Update /root/.claude/commands/dev.md completion-report H1 template (line 910) to include task-id literally.",
+        "Add an identical task-id convention paragraph to all five locations (ba.md, dev.md agent, qa.md, ui-specialist.md, /root/.claude/commands/dev.md).",
+        "Append a new paragraph to saga §5.3 (after line 457, before §5.3.1 at line 459) documenting AC12 literal-E2E as a known on-site-unreachable goal with engineering-equivalent evidence reference to /redev4 harness.",
+        "Modify /root/.claude/commands/close.md line 168 Bullet 4 text: keep PASS/FAIL evaluation for /commit consumability and push permissions, ADD an explicit N/A-with-reason clause for user-only physical filesystem actions like the .hook-refactor-allow sentinel touch.",
+      "Replace silent sys.exit(0) at /root/.claude/hooks/posttool-subagent-track.py lines 193-194 with a fall-through legacy bookkeeping path that records state.subagent_calls[str(in_progress_step_index)] = true and writes the bookmark when contract is None (the /dev / /redev case). Contract-runtime path for /dev-overnight cycles is preserved — only the contract is None branch is touched."
+      ],
+      "excluded": [
+        "AC12 literal end-to-end run on a real project (NS-1; cross-session by definition).",
+        "Modifying pretool-claude-config-guard.py to allow orchestrator self-creation of .hook-refactor-allow (NS-2; would regress Trap 11 anti-fab).",
+        "Push permission to remotes the orchestrator's git identity does not have write access to (NS-3).",
+        "Retroactive rewrite of past artifacts to use bare task-id (NS-4).",
+        "Re-running /dev-overnight smoke tests (NS-5).",
+        "Editing /root/.claude/hooks/commit.sh closure-detection logic (W6; producer-side fix only).",
+        "Changing /close Bullets 1, 2, or 3 text (W7).",
+        "Editing ~/.claude/skills/ui-shared/report-schema.json canonical 6-channel schema (W8; add metadata keys at prompt-template level only).",
+        "NS-6: Removing or weakening the contract-driven artifact validation that fires during /dev-overnight cycles. The AC-WID5 fix MUST preserve overnight-cycle strictness — only the `contract is None` branch in posttool-subagent-track.py falls through to legacy subagent_calls writing."
+      ]
+    },
+    "success_criteria": [
+      "AC-WID1a: qa.md prompt language explicitly states qa.status (nested) is the only status key; top-level status forbidden.",
+      "AC-WID1b: every request_id template literal in ba.md, dev.md (agent), qa.md, ui-specialist.md is bare task-id form (no dev-/qa-/ba-/ui- prefix); ui-specialist.md has new top-level request_id + task_id fields.",
+      "AC-WID1c: /root/.claude/commands/dev.md line 910 H1 template includes task-id substring (e.g. `# Development Completion Report — <task-id>`).",
+      "AC-WID1d: dev.md (agent) dev-report output template has dev.files_modified and dev.files_created as required top-level lists at the dev root, with empty list [] documented as acceptable for no-edit cycles.",
+      "AC-WID2: identical task-id convention paragraph in ba.md, dev.md (agent), qa.md, ui-specialist.md, and /root/.claude/commands/dev.md, listing the four locations of the task-id and stating no prefixed forms are permitted in NEW artifacts.",
+      "AC-WID3: saga spec-20260424-233926.md §5.3 has new paragraph (between line 457 and §5.3.1 at line 459) including the literal phrase 'on-site-unreachable goal' and references to /redev4 + harness path.",
+      "AC-WID4: close.md line 168 Bullet 4 text contains N/A-with-reason clause for user-only physical filesystem actions, identifies .hook-refactor-allow by name, cites Trap 11 anti-fabrication rationale, and preserves PASS/FAIL evaluation for /commit consumability + push permissions.",
+      "AC-WID5: /root/.claude/hooks/posttool-subagent-track.py lines 192-199 — replace the silent sys.exit(0) at lines 193-194 with a fall-through legacy bookkeeping path that records state.subagent_calls[str(in_progress_step_index)] = true and writes the workflow bookmark before exiting zero, so /dev and /redev cycles (no overnight contract present) pass pretool-todo-validate.py without orchestrator-side bookmark patching. Contract-runtime path for /dev-overnight cycles preserved (NS-6)."
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-WID1",
+        "title": "Subagent JSON templates produce /commit-consumable output",
+        "sub_items": [
+          "AC-WID1a: qa.status (nested) is the only status key; top-level status forbidden.",
+          "AC-WID1b: every request_id template literal in ba.md/dev.md(agent)/qa.md/ui-specialist.md is bare task-id form; ui-specialist.md has new top-level request_id + task_id fields.",
+          "AC-WID1c: /root/.claude/commands/dev.md line 910 H1 template includes task-id literally.",
+          "AC-WID1d: dev.md (agent) dev-report output template has dev.files_modified and dev.files_created as required top-level lists at the dev root."
+        ]
+      },
+      {
+        "id": "AC-WID2",
+        "title": "task-id chain consistency convention paragraph",
+        "summary": "Identical task-id convention paragraph in ba.md, dev.md (agent), qa.md, ui-specialist.md, and /root/.claude/commands/dev.md (5 locations), listing the four canonical locations of the task-id and stating no prefixed forms are permitted in NEW artifacts."
+      },
+      {
+        "id": "AC-WID3",
+        "title": "Saga §5.3 documents AC12 literal-E2E as on-site-unreachable goal",
+        "summary": "spec-20260424-233926.md §5.3 has new paragraph (between line 457 and §5.3.1 at line 459) including the literal phrase 'on-site-unreachable goal' and references to /redev4 + harness path /tmp/ac12-harness-20260426-091938/."
+      },
+      {
+        "id": "AC-WID4",
+        "title": "/close Bullet 4 N/A-with-reason exception for user-only physical filesystem actions",
+        "summary": "close.md line 168 Bullet 4 text contains N/A-with-reason clause for user-only physical filesystem actions, identifies .hook-refactor-allow by name, cites Trap 11 anti-fabrication rationale, and preserves PASS/FAIL evaluation for /commit consumability + push permissions as separate sub-items."
+      },
+      {
+        "id": "AC-WID5",
+        "title": "posttool-subagent-track.py records subagent_calls on non-overnight cycles",
+        "summary": "Replace the silent sys.exit(0) at posttool-subagent-track.py lines 193-194 with a fall-through legacy bookkeeping path. When contract is None (the /dev / /redev case), locate the in-progress canonical step's index, set state.subagent_calls[str(index)] = true on the bookmark state, write the bookmark, exit zero. Acceptance test: GIVEN a /dev or /redev invocation with no overnight contract; WHEN a canonical step with subagent_call schema entry sees its Agent tool call complete; THEN the workflow bookmark's subagent_calls[str(index)] equals true after the Agent posttool fires; AND the next TodoWrite that marks that step completed passes pretool-todo-validate.py without orchestrator-side bookmark patching. Scope guard (NS-6): contract-driven artifact validation for /dev-overnight cycles is preserved — only the contract is None branch falls through."
+      }
+    ],
+    "constraints": [
+      "Do NOT edit /root/.claude/hooks/commit.sh.",
+      "Do NOT edit ~/.claude/skills/ui-shared/report-schema.json.",
+      "Do NOT edit pretool-claude-config-guard.py or any hook.",
+      "Do NOT retroactively rewrite past artifacts.",
+      "Do NOT trigger /dev-overnight.",
+      "Two-repo edits required: edits to /root/.claude/* land in nested repo at /dev/shm/dev-workspace/dot-claude; saga spec edit lands in /dev/shm/dev-workspace/happy-dev/. Dev must verify both repos' git status."
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "7 consecutive /close debates on saga spec-20260424-233926 returned CLOSE: NO. /redev4's close-report at lines 13-29 records all 4 Workflow Integrity Dimension bullets failing in-session with concrete evidence: 3 manual jq/Edit patches required for /commit consumption, prefixed request_id forms in artifact JSON, saga §5.3 missing AC12-as-out-of-scope entry, and ship requiring user-only sentinel touch + CLAUDE_PROJECT_DIR override.",
+    "root_cause": "Producer-side schema mismatch with consumer (/commit) expectations: subagent prompt templates emit prefixed request_id (dev-/qa-/ba-) and place qa.status at unexpected positions; ui-specialist.md emits no task-id binding at all; completion-report H1 template lacks task-id substring; dev-report template lacks top-level files_modified/files_created. Compounding policy gap: saga §5.3 has no AC12 out-of-scope entry, so /close Bullet 3 clause (c) blocks any walkback; /close Bullet 4 classifies user-only filesystem actions as FAIL even though Trap 11 anti-fab discipline mandates that humans (not orchestrators) create such sentinels.",
+    "root_cause_commit": "N/A — not a single regression commit; the schemas have always been this way, and the WID gate was added recently (close.md lines 161-168 introduced the 4-bullet check). The two artifacts (producer schemas, gate spec) drifted in opposite directions.",
+    "why_introduced": "Subagent templates predate the WID gate. The gate was authored to enforce downstream consumability without coordinating an update to producer-side templates.",
+    "why_problematic": "Every cycle satisfies the AC-level criteria (e.g. /redev4 7/7 ACs PASS) but fails the WID gate, leading to perpetual CLOSE: NO with no actionable remediation path inside the cycle's own scope.",
+    "timeline": "/close template's WID gate added some time before /redev2 (gate text at close.md:161-168 is present in current head). 7 consecutive CLOSE: NO verdicts on the saga, all citing combinations of these 4 bullets.",
+    "affected_files": [
+      "/root/.claude/agents/ba.md",
+      "/root/.claude/agents/dev.md",
+      "/root/.claude/agents/qa.md",
+      "/root/.claude/agents/ui-specialist.md",
+      "/root/.claude/commands/dev.md",
+      "/root/.claude/commands/close.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+      "/root/.claude/hooks/posttool-subagent-track.py"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "observed: /redev4 close-report at docs/dev/close-report-20260426-085000-ac12.md lines 17-27 records all 4 WID bullets FAIL in-session with concrete jq/Edit patch evidence (in-session transcript)",
+      "observed: commit.sh lines 547-556 reads `data.get('qa', {}).get('status')` (Read at lines 540-560 confirmed)",
+      "observed: agents/ba.md:642 emits `\"request_id\": \"dev-<timestamp>\"` (Read confirmed)",
+      "observed: agents/dev.md:49 (input schema) and :462 (output schema) both emit `dev-<timestamp>` form (Read confirmed)",
+      "observed: agents/qa.md:983 + :1337 emit `\"request_id\": \"dev-YYYYMMDD-HHMMSS\"` (Grep confirmed)",
+      "observed: agents/qa.md:1198 emits `\"request_id\": \"same as input\"` (inherits prefixed form by reference) (Grep confirmed)",
+      "observed: agents/ui-specialist.md has zero matches for `request_id`, `task_id`, `task-id`, `completion-report` (Grep confirmed)",
+      "observed: commands/dev.md:910 H1 is `# Development Completion Report` (no task-id substring); :912 has Request-ID body line `**Request ID**: dev-<timestamp>` (Read confirmed)",
+      "observed: agents/dev.md:472 + :479 illustrate files_created/files_modified only inside per-task tasks_completed[]; no top-level dev-root requirement (Read confirmed)",
+      "observed: commands/close.md:168 Bullet 4 text classifies hook-sentinel toggle as FAIL (Read confirmed)",
+      "observed: saga spec-20260424-233926.md §5.3 lines 453-457 has 3 entries; none mention AC12 (Read confirmed)",
+      "inferred: dev-overnight.md and dev-command.md (other slash commands) MAY also reference request_id template literals (not searched this cycle; out of scope per orchestrator's enumerated file list)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": [
+      "Workflow Integrity Dimension",
+      "Bullet 1 Downstream consumability",
+      "Bullet 2 task-id chain consistency",
+      "Bullet 3 Pre-existing-defect rule",
+      "Bullet 4 Self-deployability",
+      "qa.status",
+      "request_id",
+      "files_modified",
+      "files_created",
+      ".hook-refactor-allow",
+      "Section 6 Out of Scope",
+      "AC12",
+      "on-site-unreachable goal"
+    ],
+    "localization_evidence": "Reproduced by reading the close-report at docs/dev/close-report-20260426-085000-ac12.md (the in-session transcript of the WID failure) plus reading each candidate edit file directly. The four-bullet failure is empirically anchored in the close-report's per-bullet evidence enumeration (lines 17-27). The producer-side schemas are anchored by Grep results (request_id matches per file) and Read confirmations (precise line numbers). The saga §5.3 and /close Bullet 4 texts are anchored by Read of the verbatim source.",
+    "located_source": "Six template files (/root/.claude/agents/{ba,dev,qa,ui-specialist}.md + /root/.claude/commands/{dev,close}.md) plus saga spec (/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md §5.3 lines 453-457). Each file is independently confirmed by Read or Grep in this BA session. Token overlap with complaint_location_keywords: complaint mentions `Workflow Integrity Dimension` Bullets 1-4; located sources are the templates that produce the artifacts the bullets evaluate plus the close.md file where the bullet text itself lives. Direct token match: `request_id`, `qa.status`, `files_modified`, `files_created`, `.hook-refactor-allow`, `Out of Scope`, `Workflow Integrity` all appear in either the located sources or the close-report evidence.",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": null,
+      "commit_message": null,
+      "confirmed_by": "not-applicable",
+      "bisect_blocked": "not a regression — the schemas have always been the current shape; the WID gate was added separately. There is no 'before' state to bisect to.",
+      "reproducibility_verified": true
+    }
+  },
+  "diagnosis_layer": "L3+L5",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "(a) qa-report has `qa.status` nested. /commit's closure detection at `commit.sh` reads the value of qa.status and accepts the report only when it equals \"pass\".",
+      "acceptance_criterion": "qa.md output prompt explicitly states top-level `status` MUST NOT be emitted; only nested `qa.status` is recognized; cite commit.sh lines 547-556."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "(b) `request_id` field in ba-report, dev-report, qa-report, and ui-specialist-report equals the bare task-id with no prefix.",
+      "acceptance_criterion": "Every `request_id` template literal across ba.md/dev.md/qa.md/ui-specialist.md is bare task-id form; ui-specialist.md gains `request_id` + `task_id` as new top-level keys."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "(c) completion report heading 1 contains the task-id literally.",
+      "acceptance_criterion": "/root/.claude/commands/dev.md line 910 H1 template includes the literal `<task-id>` substring."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "(d) dev-report `files_modified` and `files_created` are non-null lists. Empty list is acceptable for no-edit cycles.",
+      "acceptance_criterion": "dev.md agent output template adds `dev.files_modified: []` and `dev.files_created: []` at the `dev` root level as required fields."
+    },
+    {
+      "id": "R5",
+      "source_phrase": "AC-WID2: task-id chain consistency. Document explicitly that 'task-id' appears identically in: filename suffix, request_id field, completion heading 1, all artifact JSON files. No prefixed forms allowed anywhere in NEW artifacts. Past artifacts are not retroactively rewritten.",
+      "acceptance_criterion": "Identical convention paragraph added to ba.md / dev.md agent / qa.md / ui-specialist.md / completion-report template region in /root/.claude/commands/dev.md; the paragraph quotes the exact rule including 'past artifacts are not retroactively rewritten'."
+    },
+    {
+      "id": "R6",
+      "source_phrase": "AC-WID3: saga Section 6 Out-of-Scope text. Add a paragraph to saga spec Section 6 stating … AC12 literal end-to-end run … designated a known on-site-unreachable goal; the dry-run harness verification from /redev4 is accepted as engineering-equivalent evidence …",
+      "acceptance_criterion": "New paragraph appended at end of `spec-20260424-233926.md` §5.3 (the Out-of-Scope subsection); paragraph includes the verbatim phrase 'known on-site-unreachable goal' and references `/redev4` + the harness path `/tmp/ac12-harness-20260426-091938/`."
+    },
+    {
+      "id": "R7",
+      "source_phrase": "AC-WID4: /close template Bullet 4 sentinel exception. Modify /root/.claude/commands/close.md Workflow Integrity Dimension Bullet 4 definition so that any sub-item requiring the user to perform a physical filesystem action (touching the .hook-refactor-allow sentinel file is the canonical example) is evaluated as N/A-with-reason …, not FAIL. Other Bullet 4 sub-items (such as /commit consumability and push permissions) remain subject to PASS / FAIL evaluation.",
+      "acceptance_criterion": "/root/.claude/commands/close.md line 168 Bullet 4 text contains both: (a) PASS/FAIL evaluation for /commit consumability + push permissions, (b) explicit N/A-with-reason clause for user-only physical filesystem actions, citing the canonical .hook-refactor-allow example and the Trap 11 rationale verbatim."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "/root/.claude/agents/ba.md",
+      "line_range": "640-665",
+      "role": "BA JSON Context output template — the `request_id` literal here propagates through every downstream artifact via dev.md's `same as input` reference.",
+      "imports_from": "/root/.claude/agents/dev.md (consumer of context.json)",
+      "evidence": "Grep result: `642:  \"request_id\": \"dev-<timestamp>\",`",
+      "verified_via": "grep+Read"
+    },
+    {
+      "file": "/root/.claude/agents/dev.md",
+      "line_range": "40-70 + 460-520",
+      "role": "Dev agent reads context.json schema (lines 40-70) and writes dev-report.json (lines 460-520). Both reference `request_id`; the latter inherits via `same as input`.",
+      "imports_from": "/root/.claude/agents/ba.md (input) and /root/.claude/agents/qa.md (peer; same task-id chain)",
+      "evidence": "Grep results: `49:  \"request_id\": \"dev-<timestamp>\",` and `462:  \"request_id\": \"same as input\",`. Read confirmed lines 460-520 dev-report template.",
+      "verified_via": "grep+Read"
+    },
+    {
+      "file": "/root/.claude/agents/qa.md",
+      "line_range": "975-1000 + 1190-1210 + 1330-1345",
+      "role": "QA agent emits qa-report.json and generated_tests[]. `request_id` appears in three places per Grep. `qa.status` (nested) is the closure-detection key.",
+      "imports_from": "/root/.claude/agents/dev.md (peer) and /root/.claude/hooks/commit.sh (downstream consumer of qa.status)",
+      "evidence": "Grep results: lines 983, 1198, 1337 for request_id; line 1201 for `\"status\": \"pass|fail|warning\"` under qa.",
+      "verified_via": "grep+Read"
+    },
+    {
+      "file": "/root/.claude/agents/ui-specialist.md",
+      "line_range": "239-275",
+      "role": "ui-specialist Output Format section. Currently uses canonical 6-channel schema with no task-id binding. New top-level fields needed.",
+      "imports_from": "~/.claude/skills/ui-shared/report-schema.json (canonical schema; not edited this cycle).",
+      "evidence": "Grep result: zero matches for `request_id|task_id|task-id|completion-report` in ui-specialist.md. Read of lines 230-275 confirms 6-channel schema description.",
+      "verified_via": "grep+Read"
+    },
+    {
+      "file": "/root/.claude/commands/dev.md",
+      "line_range": "905-980",
+      "role": "Completion-report markdown template. H1 line 910, Request-ID body line 912.",
+      "imports_from": "leaf — produces the completion-<task-id>.md artifact consumed by commit.sh closure detection at lines 573-587.",
+      "evidence": "Read confirmed lines 905-980. Line 910: `# Development Completion Report`. Line 912: `**Request ID**: dev-<timestamp>`.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/commands/close.md",
+      "line_range": "161-168",
+      "role": "WID gate definition (4 bullets). Bullet 4 at line 168 is the single edit target.",
+      "imports_from": "leaf — the gate text is the contract every cycle is evaluated against.",
+      "evidence": "Read confirmed line 168 verbatim text.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+      "line_range": "453-459",
+      "role": "Saga §5.3 Out-of-Scope subsection. New paragraph appends after line 457 and before §5.3.1 header at line 459.",
+      "imports_from": "leaf — saga spec is consumed by every /close debate evaluating this saga.",
+      "evidence": "Read confirmed lines 453-459 verbatim.",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "/root/.claude/hooks/commit.sh",
+      "line": 547,
+      "type": "validator",
+      "code_snippet": "status = data.get('qa', {}).get('status') if isinstance(data, dict) else None\nsys.exit(0 if status == 'pass' else 1)",
+      "purpose": "Closure detection requires nested qa.status == 'pass' — top-level status is ignored. This is a producer-consumer contract; producer (qa.md template) must emit qa.status, not top-level status.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/commit.sh",
+      "line": 596,
+      "type": "validator",
+      "code_snippet": "task_id = sys.argv[2]\ndef matches(value, tid):\n    if value is None:\n        return False\n    if value == tid:\n        return True\n    if isinstance(value, str) and tid in value:\n        return True\n    return False",
+      "purpose": "Substring-match for task_id — accepts both bare and prefixed (`dev-<task-id>`, `qa-<task-id>`) forms. The cycle changes the producer convention to bare-only; the consumer's substring match still works for both.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-claude-config-guard.py",
+      "line": 0,
+      "type": "validator",
+      "code_snippet": "(not read this cycle; out of scope per NS-2)",
+      "purpose": "Trap 11 anti-fabrication: blocks orchestrator self-creation of /root/.claude/.hook-refactor-allow sentinel and similar bypasses. The cycle changes /close Bullet 4's classification of the sentinel as N/A-with-reason rather than FAIL, but does NOT modify this guard.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-git-privilege-guard.py",
+      "line": 0,
+      "type": "validator",
+      "code_snippet": "(not read this cycle; out of scope per NS-2)",
+      "purpose": "Blocks agent git commits except `auto-bulk: end-of-cycle commit for ...` pattern. Not modified.",
+      "removal_authorized": false
+    },
+    {
+      "file": "~/.claude/skills/ui-shared/report-schema.json",
+      "line": 0,
+      "type": "validator",
+      "code_snippet": "(canonical 6-channel schema; not read this cycle)",
+      "purpose": "Defines the 6 channels (app_understanding, live_testing, design_quality, quality_gate_results, issues, design_enhancements) for ui-specialist output. The cycle adds two new top-level keys (request_id, task_id) at the prompt-template level, NOT in this schema. The schema remains the rendered-content authority.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "viewport": "N/A (markdown templates + shell-style hook configuration; no UI surface)",
+    "theme": "N/A",
+    "locale": "en",
+    "auth_state": "N/A",
+    "data_state": "N/A",
+    "browser": "N/A",
+    "url_path": "N/A"
+  },
+  "evidence": {
+    "observed": "/redev4's /close debate at docs/dev/close-report-20260426-085000-ac12.md lines 17-27 records all four Workflow Integrity Dimension bullets failing in-session: 3 manual jq/Edit patches required for /commit consumption (Bullet 1); prefixed `request_id` forms `qa-…`/`dev-…` in artifact JSON (Bullet 2); saga §5.3 missing AC12-as-out-of-scope entry (Bullet 3); ship requires user-only sentinel touch + CLAUDE_PROJECT_DIR override (Bullet 4).",
+    "measured": {
+      "value": "ba.md:642 emits `\"request_id\": \"dev-<timestamp>\"`; dev.md:49+:462 same prefix form; qa.md:983+:1198+:1337 prefix form; ui-specialist.md has no request_id / task_id field at all (Grep zero matches); commands/dev.md:910 H1 is generic `# Development Completion Report` with task-id only in body line 912; agents/dev.md:472+:479 illustrates files_created/files_modified only inside per-task tasks_completed[]; commands/close.md:168 Bullet 4 classifies hook-sentinel toggle as FAIL; saga §5.3 lines 453-457 has 3 entries none mentioning AC12.",
+      "location": "Multiple — see component_chain and observations[] for per-file evidence."
+    },
+    "expected": {
+      "value": "Every artifact JSON's `request_id` equals the bare task-id; sibling `task_id` field also present; qa.status (nested) is the only status key; completion H1 contains task-id literally; dev.files_modified / dev.files_created are top-level non-null lists at the dev root; saga §5.3 has an explicit AC12-as-on-site-unreachable-goal paragraph; /close Bullet 4 N/A-with-reason any sub-item requiring user-only physical filesystem action.",
+      "source": "/close template /root/.claude/commands/close.md lines 161-168 (WID gate authoritative definition); /root/.claude/hooks/commit.sh lines 547-640 (consumer schema); user's orchestrator prompt for this cycle (verbatim AC1a-d, AC2, AC3, AC4 enumeration)."
+    },
+    "gap": "All 4 WID bullets are unsatisfiable from any cycle's scope as long as producer-side templates emit prefixed `request_id`, ui-specialist has no task-id binding, completion H1 lacks task-id substring, dev-report lacks top-level files_* lists, saga §5.3 lacks AC12 entry, and /close Bullet 4 classifies the sentinel as FAIL. This cycle removes those 6 producer-side gaps (and 1 policy gap) so future cycles' artifacts satisfy the WID gate by construction."
+  },
+  "scope_expansion": {
+    "search_pattern": "request_id|task_id|task-id|qa\\.status|files_modified|files_created|\\.hook-refactor-allow|Out of Scope|won't have|Workflow Integrity|Self-deployability",
+    "search_scope": "/root/.claude/agents/{ba,dev,qa,ui-specialist}.md, /root/.claude/commands/{dev,close}.md, /root/.claude/hooks/commit.sh (read-only), /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md §5.3-§6",
+    "user_reported": [
+      "/root/.claude/agents/ba.md",
+      "/root/.claude/agents/dev.md",
+      "/root/.claude/agents/qa.md",
+      "/root/.claude/agents/ui-specialist.md",
+      "/root/.claude/commands/dev.md",
+      "/root/.claude/commands/close.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"
+    ],
+    "additional_found": [
+      "/root/.claude/hooks/commit.sh — read-only reference (the consumer producer schemas must match); not edited this cycle"
+    ],
+    "all_occurrences": [
+      "/root/.claude/agents/ba.md:642",
+      "/root/.claude/agents/dev.md:49",
+      "/root/.claude/agents/dev.md:462",
+      "/root/.claude/agents/dev.md:472",
+      "/root/.claude/agents/dev.md:479",
+      "/root/.claude/agents/qa.md:983",
+      "/root/.claude/agents/qa.md:1198",
+      "/root/.claude/agents/qa.md:1201",
+      "/root/.claude/agents/qa.md:1337",
+      "/root/.claude/agents/ui-specialist.md:~239-275 (Output Format section; ADD new top-level fields)",
+      "/root/.claude/commands/dev.md:910 (H1)",
+      "/root/.claude/commands/dev.md:912 (Request ID body)",
+      "/root/.claude/commands/close.md:168 (Bullet 4)",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md:457 (append paragraph after this line, before §5.3.1 at line 459)",
+      "/root/.claude/hooks/posttool-subagent-track.py:192-199 (replace silent sys.exit(0) at lines 193-194 with fall-through legacy bookkeeping path; AC-WID5 only)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "/close template Bullet text + /commit closure-detection block + /redev4 close-report's in-session FAIL evidence + saga §5.3 verbatim + CLAUDE.md Production Catastrophe Lesson 11 + feedback_no_orchestrator_sentinel.md memory file. All sources Read or Grep-confirmed in this BA session.",
+    "url_or_location": "All paths cited in BA spec are reachable via Read/Grep in the orchestrator's session; no external URLs.",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "/dev/shm/dev-workspace/happy-dev/CLAUDE.md (no role-token map present — this is a non-UI cycle editing markdown templates and shell-style configuration; design tokens not applicable)"
+    }
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing+dedup_hit+git_log",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ba-spec-20260426-085000-ac12.md (and completion-20260426-085000-ac12.md, close-report-20260426-085000-ac12.md)",
+        "proposed_solution": "Build a /merge-half dry-run harness at /tmp/ac12-harness-20260426-091938/ with 3 synthetic post-/dev-overnight worktree states; declare 7/7 ACs PASS as engineering-equivalent evidence of /merge correctness.",
+        "actual_change": "10 harness scripts created under /tmp; ba/context/dev/qa reports + completion in docs/dev/. Zero changes to /close template, subagent JSON schemas, or saga §6.",
+        "outcome": "CLOSE: NO unanimous (7th consecutive). QA + codex both cited (a) saga AC12 literal E2E not run (Bullet 3 FAIL — saga §5.3 does not list AC12 as out-of-scope), and (b) the four WID bullets failing concretely in-session.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "docs/dev/close-report-* prior to 2026-04-26 (6 prior debates per close-report-20260426-085000-ac12.md line 34)",
+        "proposed_solution": "Various — all attempts to discharge AC12 (the literal E2E run) directly.",
+        "actual_change": "Per /redev4 close-report's recap, all 6 prior cycles were CLOSE: NO citing AC12-not-E2E reasons.",
+        "outcome": "6 consecutive CLOSE: NO before /redev4.",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L4 (logic) and L1 (cosmetic)"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L3+L5",
+      "differs_from_all_priors": true,
+      "rationale": "All 7 prior attempts targeted L4 (the actual /dev-overnight + /merge bash logic, or harness substitutes) or L1 (file naming cosmetics). None changed the contract that closes can satisfy. This cycle is the first to address L3 (data-shape templates: subagent JSON output schemas) and L5 (policy-level definitions: saga §5.3 + /close Bullet 4 classification rules). The novelty is structural — instead of trying yet another way to satisfy the WID gate against the current schema mismatch, the cycle removes the schema mismatch."
+    }
+  },
+  "context": {
+    "codebase_state": "Modified: CLAUDE.md, docs/INDEX.md, docs/dev/INDEX.md, etc. Many cycle artifacts in docs/dev/ (ba-spec-/context-/qa-report-/dev-report-/completion-* for several recent cycles). Saga spec at docs/dev/specs/spec-20260424-233926.md.",
+    "recent_commits": "Recent: 0151304 commit(20260426-000600); ff2a6f3 docs(spec) regenerate views; 61e3a94 docs+bin doc-sync; 5f1dcc5 docs(dev) final-pass; 1f3bccd chore: bulk commit. The 0151304 head is /redev3 work (T1 P1-1b Cross-Surface UA); /redev4 artifacts were not committed before /redev5 invocation.",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "two_repo_structure": "/root/.claude/* edits land in nested repo at /dev/shm/dev-workspace/dot-claude/.git (remote: claude-code-config). Saga spec edit lands in /dev/shm/dev-workspace/happy-dev/.git (project repo).",
+      "task_id_for_this_cycle": "20260426-095000-wid"
+    }
+  },
+  "development_approach": {
+    "strategy": "Producer-side schema repair (L3 data) + policy-level documentation (L5 infrastructure). Edit 6 template/prompt files + 1 saga spec file via targeted Edit operations (not Write — preserves surrounding template structure). No hook modifications. No retroactive artifact rewrites.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "/root/.claude/agents/ba.md",
+      "/root/.claude/agents/dev.md",
+      "/root/.claude/agents/qa.md",
+      "/root/.claude/agents/ui-specialist.md",
+      "/root/.claude/commands/dev.md",
+      "/root/.claude/commands/close.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+      "/root/.claude/hooks/posttool-subagent-track.py"
+    ],
+    "validation_approach": "QA verifies each AC with grep / Read against the post-edit file states. AC-WID1b is the most surface-area-extensive (zero matches for `\"request_id\":\\s*\"(dev|qa|ba|ui)-` in NEW template literals; ≥1 match per file for the bare-task-id form). AC-WID3 is anchored by the literal phrase 'on-site-unreachable goal' appearing between line 457 and §5.3.1 in the saga. AC-WID4 is anchored by `N/A-with-reason` + `.hook-refactor-allow` + `Trap 11` co-occurring in close.md Bullet 4 region."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Bug fix with clear root cause; existing template patterns established in codebase. The convention paragraph language mirrors /close template Bullet 2 wording (line 163) and saga §5.3 entry style. Industry research not warranted for an internal-template schema repair."
+  },
+  "ready_for_dev": true
+}

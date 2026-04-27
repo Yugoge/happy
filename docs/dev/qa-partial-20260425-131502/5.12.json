@@ -1,0 +1,106 @@
+{
+  "item_id": "5.12",
+  "verdict": "pass",
+  "verification_mode_executed": "active_interact",
+  "viewports_tested": ["desktop_1280", "desktop_1920", "mobile_390"],
+  "test_session_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35",
+  "user_verbatim_complaint": "文件和图片顶部宽度和左右宽度仍然不统一。此外文件太大了无法上传并且没有报错",
+  "verified_against_complaint": true,
+  "complaint_element_pointer": {
+    "selector": "div.css-g5y9jx.unistyles_dogvf0lktr (attachment thumbnail container)",
+    "how_located": "label child text content match (small-file.txt / small-image.png) then parent",
+    "found_in_dom": true,
+    "page_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "measured_state": {
+    "layout_consistency": {
+      "image_thumbnail": {
+        "outer_width_px": 64,
+        "outer_height_px": 77,
+        "outer_padding": "0px",
+        "outer_margin": "0px 8px 0px 0px",
+        "preview_width_px": 64,
+        "preview_height_px": 64,
+        "preview_padding": "0px",
+        "preview_margin": "0px",
+        "preview_border_radius": "8px",
+        "label_width_px": 64,
+        "close_button_offset_top_px": -4,
+        "close_button_offset_left_px": 50
+      },
+      "file_thumbnail": {
+        "outer_width_px": 64,
+        "outer_height_px": 77,
+        "outer_padding": "0px",
+        "outer_margin": "0px 8px 0px 0px",
+        "preview_width_px": 64,
+        "preview_height_px": 64,
+        "preview_padding": "0px",
+        "preview_margin": "0px",
+        "preview_border_radius": "8px",
+        "label_width_px": 64,
+        "close_button_offset_top_px": -4,
+        "close_button_offset_left_px": 50
+      },
+      "consistent": true,
+      "max_diff_px": 0,
+      "tolerance_px": 1,
+      "viewport_breakdown": {
+        "desktop_1280": {"file": "x=392,y=609,w=64,h=77,pw=64", "img": "x=464,y=609,w=64,h=77,pw=64"},
+        "desktop_1920": {"file": "x=440,y=609,w=64,h=77,pw=64", "img": "x=512,y=609,w=64,h=77,pw=64"},
+        "mobile_390": {"file": "x=28,y=653,w=64,h=77,pw=64", "img": "x=100,y=653,w=64,h=77,pw=64"}
+      }
+    },
+    "oversize_probe": [
+      {
+        "size": "10MB",
+        "size_bytes": 10485760,
+        "uploaded": true,
+        "error_visible": false,
+        "error_text": null,
+        "note": "10MB exact (10485760 bytes) is at boundary; check is `> MAX_UPLOAD_BYTES` so this passes. Claude received and processed the file — confirmed by tool call `ls -la /tmp/happy-attachments/...file-10mb.bin` showing the file."
+      },
+      {
+        "size": "50MB",
+        "size_bytes": 52428800,
+        "uploaded": false,
+        "error_visible": true,
+        "error_text": "Error: File exceeds 10 MB limit. Please choose a smaller file.",
+        "modal_dialog": true,
+        "ok_button_present": true
+      },
+      {
+        "size": "200MB",
+        "size_bytes": 209715200,
+        "uploaded": false,
+        "error_visible": true,
+        "error_text": "Error: File exceeds 10 MB limit. Please choose a smaller file.",
+        "modal_dialog": true,
+        "ok_button_present": true
+      }
+    ],
+    "discovered_size_limit_mb": 10,
+    "size_limit_source": "packages/happy-app/sources/hooks/useAttachments.ts:26 — MAX_UPLOAD_BYTES = 10 * 1024 * 1024",
+    "silent_failure_observed": false,
+    "error_handler_source": "packages/happy-app/sources/-session/SessionView.tsx:480-487 (Bug §5.12.2 fix) — Modal.alert wired via onRejected callback in useAttachments"
+  },
+  "expected_per_acceptance": "Consistent thumbnail layout (within 1px tolerance); visible error within 5s on oversize upload.",
+  "acceptance_results": {
+    "layout_uniform_within_1px": "PASS — all measured properties identical at 0px diff",
+    "visible_error_on_oversize_within_5s": "PASS — modal Error dialog appears immediately on file selection (synchronous size check before upload)"
+  },
+  "gap_analysis": null,
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.12/layout-desktop.png",
+    "docs/dev/evidence/qa-20260425-131502/5.12/layout-desktop-1280.png",
+    "docs/dev/evidence/qa-20260425-131502/5.12/after-file-attach.png",
+    "docs/dev/evidence/qa-20260425-131502/5.12/full-after-file.png",
+    "docs/dev/evidence/qa-20260425-131502/5.12/oversize-10mb.png",
+    "docs/dev/evidence/qa-20260425-131502/5.12/oversize-50mb-error.png",
+    "docs/dev/evidence/qa-20260425-131502/5.12/oversize-200mb-error.png"
+  ],
+  "section_4_entry": "### 5.12 — Attachment tray width consistency + oversize error\n\n**Verdict**: PASS\n**Layout consistent**: YES — image and file thumbnails are pixel-identical (outer 64x77, preview 64x64, padding 0px, margin 0 8px 0 0, border-radius 8px). Diff = 0px, well under 1px tolerance. Verified at desktop 1280, desktop 1920, mobile 390x844.\n**Discovered limit**: 10 MB (`MAX_UPLOAD_BYTES = 10 * 1024 * 1024` in `packages/happy-app/sources/hooks/useAttachments.ts:26`)\n**Silent failure**: NO — synchronous size check fires before upload. Modal.alert with text \"Error: File exceeds 10 MB limit. Please choose a smaller file.\" + OK button surfaces immediately. Wired in `SessionView.tsx:480-487` (Bug §5.12.2 fix) via `onRejected` callback in `useAttachments`.\n**Probe results**: 10MB exact (10485760 bytes, at boundary) → uploaded successfully (Claude received `/tmp/happy-attachments/...file-10mb.bin`). 50MB → error modal. 200MB → error modal.\n**Evidence**: `docs/dev/evidence/qa-20260425-131502/5.12/oversize-50mb-error.png`, `oversize-200mb-error.png`, `full-after-file.png`",
+  "section_6_entry": null,
+  "section_7_entry": null,
+  "qa_notes": "Used existing test session at /tmp/dev-verify-131502 (not /tmp/dev-verify-131502-512 as orchestrator suggested) — composer-level test; session content is irrelevant. Layout measurement done via DOM bounding-rect introspection (browser_evaluate). For 50MB/200MB which exceed Playwright MCP file_upload protocol limit (50MB cap), used JS File API: created Uint8Array, wrapped in File, dispatched via DataTransfer to hidden input[type=file]. Both paths (paperclip for files + image button) share the same useAttachments hook so the oversize handler covers both. Mobile screenshot was timing out repeatedly (Playwright MCP issue) but DOM measurements at 390x844 viewport confirm identical bounding boxes. The user's complaint of inconsistent widths is NOT reproducible — measurements show 0px diff between file and image thumbnails. The user's complaint of silent oversize failure is NOT reproducible — a modal error dialog surfaces immediately."
+}

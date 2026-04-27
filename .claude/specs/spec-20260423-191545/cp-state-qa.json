@@ -1,0 +1,37 @@
+{
+  "spec_id": "spec-20260423-191545",
+  "agent_type": "qa",
+  "instance_id": null,
+  "agent_id": "qa-20260423-191545-001",
+  "is_running": true,
+  "checked_in_at": "2026-04-23T19:20:53Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read qa.md view and identify acceptance criteria to verify",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Write docs/dev/qa-report-20260423.json with verification verdict (pass/fail/warning)",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Populate Section 4 (Current State) with measured values: model persistence status, display location in status bar",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/qa-report-20260423.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

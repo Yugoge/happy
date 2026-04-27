@@ -1,0 +1,32 @@
+{
+  "item_id": "5.10",
+  "verdict": "blocked",
+  "verification_mode_executed": "transport_observe",
+  "test_session_url": null,
+  "measured_state": {
+    "long_task_started": false,
+    "disconnect_observed": false,
+    "disconnect_timestamp": null,
+    "proactive_reconnect_observed": false,
+    "proactive_reconnect_timestamp": null,
+    "user_message_sent_at": null,
+    "first_visible_response": "none",
+    "order_violation": false,
+    "proactive_reconnect_check": "inconclusive",
+    "order_check": "inconclusive"
+  },
+  "expected_per_acceptance": "Proactive reconnect during idle; messages arrive in causal order. (BA spec lines 162-170)",
+  "gap_analysis": "Could not reproduce disconnect within timeboxed run. Concrete obstacles encountered: (1) Spawning a new clean session in /tmp/dev-verify-131502-510 was attempted via 'Start New Session' button, but clicking the path-selector field on the new-session form bounced the browser back to the existing seed session (route changed from /new to /session/<existing-id>) — the path selector did not open an editable text input, suggesting it is a fixed picker/dropdown. (2) Even if path selection succeeded, the BA-spec acceptance scenario requires sending a long-running task and waiting >2 minutes for the WebSocket idle threshold to be exceeded, plus additional time to send '2+2' and observe message ordering — total ~5-10 minutes per BA spec line 257-260 — well beyond the 8-minute timebox imposed on this re-run after rate-limit. (3) No prior partial JSON existed from the prior agent (per orchestrator note: '1 initial screenshot + network log but no JSON'), so no measurements could be inherited. (4) WebSocket frame timestamps are not exposed by mcp__playwright__browser_network_requests (it returns only HTTP REST entries), making direct WS-disconnect/reconnect observation harder than DevTools Network panel would allow. The BA spec at line 263 explicitly authorizes 'BLOCKED — could not reproduce disconnect within timeboxed run' as the correct verdict for this fragile scenario, and Section 7 of the spec already lists §5.10 as carry-forward for a dedicated cycle.",
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.10/01-initial.png",
+    "docs/dev/evidence/qa-20260425-131502/5.10/02-app-state.png",
+    "docs/dev/evidence/qa-20260425-131502/5.10/03-new-session-screen.png",
+    "docs/dev/evidence/qa-20260425-131502/5.10/04-final-state.png",
+    "docs/dev/evidence/qa-20260425-131502/5.10/network-pre-task.txt",
+    "docs/dev/evidence/qa-20260425-131502/5.10/network-after-load.txt"
+  ],
+  "section_4_entry": "### 5.10 — Long-task disconnect ordering\n\n**Verdict**: BLOCKED\n**Proactive reconnect**: inconclusive (not reproducible in timebox)\n**Order**: inconclusive (not reproducible in timebox)\n**First response after 2+2**: not measured (no 2+2 message sent because disconnect repro could not be set up)\n**Evidence**: docs/dev/evidence/qa-20260425-131502/5.10/01-initial.png, 02-app-state.png, 03-new-session-screen.png, 04-final-state.png, network-pre-task.txt, network-after-load.txt\n**Carry-forward**: Per BA spec line 263 + Section 7, §5.10 requires a dedicated cycle with a longer timebox to (a) reliably spawn a SECOND session in a fresh directory, (b) send a 5-10 minute long-task seed, (c) wait for >2-minute WS idle disconnect, (d) observe proactive reconnect during 60s idle, and (e) send '2+2' and inspect message ordering. Reattempt in a fresh cycle with at least 15 minutes of timebox.",
+  "section_6_entry": null,
+  "section_7_entry": "**§5.10 carry-forward (re-affirmed)**: this re-run with 8-minute timebox could not set up disconnect repro. Schedule a dedicated cycle with: (a) at least 15 minutes timebox, (b) explicit step to confirm path-selector behavior on /new screen (whether it accepts custom paths or is a fixed picker — may need to spawn via the per-folder '+' button on an existing folder card instead), (c) DevTools Network panel WebSocket frame inspection (Playwright MCP browser_network_requests does not expose WS frames; consider browser_evaluate with `performance.getEntries()` and `WebSocket` instrumentation, or rely on offline-indicator UI signal as proxy for disconnect), (d) prepare backup repro via temporarily stopping happy-cli session-alive heartbeat to force the 2-min server timeout deterministically.",
+  "qa_notes": "Timebox: 8 minutes total. Spent ~1 min: read registry/spec/prior evidence. ~2 min: navigate dev.life-ai.app, inject auth, reload — app loaded into existing seed session cmoedofgz86n5nz15xsldnk35 automatically. ~1 min: clicked Start New Session, opened /new screen showing fixed path /tmp/dev-verify-131502 (NOT the required -510 suffix). ~1 min: clicking the path field bounced back to the existing session, not an editable input. ~1 min: captured network log (HTTP REST only, no WS frames available). ~1 min: closed browser and wrote this JSON. Repro path obstacles documented in gap_analysis. Verdict: blocked is spec-sanctioned for this item (BA spec line 263). No production access occurred; only dev.life-ai.app + api-dev.life-ai.app touched. Existing seed session was NOT modified — no messages sent."
+}

@@ -1,0 +1,37 @@
+{
+  "spec_id": "spec-20260423-191545",
+  "agent_type": "dev",
+  "instance_id": null,
+  "agent_id": "dev-20260423-191545-001",
+  "is_running": true,
+  "checked_in_at": "2026-04-23T19:20:51Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read dev.md view and identify implementation tasks for session model persistence",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Implement session model storage mechanism to prevent default model reversion on session switch",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Write docs/dev/dev-report-20260423.json with implementation status",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/dev-report-20260423.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

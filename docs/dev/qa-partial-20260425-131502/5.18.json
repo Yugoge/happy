@@ -1,0 +1,54 @@
+{
+  "item_id": "5.18",
+  "verdict": "pass",
+  "verification_mode_executed": "passive_observe",
+  "user_verbatim_complaint": "cronlist工具调用渲染很烂。应该简化主页面的显示内容。学习bash + subagent的渲染模式展示input就行。现在的渲染模式保留但是只加入到右侧侧边栏",
+  "verified_against_complaint": true,
+  "verified_location_keywords": ["cronlist", "tool", "card", "inline", "sidebar"],
+  "location_overlap": ["cronlist", "inline", "sidebar"],
+  "complaint_resolution_evidence": "Inline CronList card was simplified to a single-line header showing only the tool name 'CronList' (8 chars). The full INPUT/OUTPUT verbose rendering is moved to the right-side detail sidebar, opened on click.",
+  "complaint_element_pointer": {
+    "selector": "div[cursor=pointer] containing direct text 'CronList' (the inline tool-call card)",
+    "how_located": "querySelectorAll('div') -> exact innerText match 'CronList' -> walk up 2 ancestors to clickable card with cursor:pointer",
+    "found_in_dom": true,
+    "page_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "element_screenshots": {
+    "before_selector": "div[cursor=pointer] (inline CronList card at top=223,left=368,w=444,h=48)",
+    "before_path": "docs/dev/evidence/qa-20260425-131502/5.18/inline.png",
+    "after_path": "docs/dev/evidence/qa-20260425-131502/5.18/sidebar.png",
+    "same_element_verified": true
+  },
+  "measured_state": {
+    "inline_card_text": "\nCronList",
+    "inline_text_length_chars": 10,
+    "inline_contains_INPUT_label": false,
+    "inline_contains_OUTPUT_label": false,
+    "inline_contains_verbose_json": false,
+    "inline_pass": true,
+    "sidebar_opened": true,
+    "sidebar_text": "Description: CronList call | Input Parameters: {} | Output: No scheduled jobs.",
+    "sidebar_contains_full_io": true,
+    "sidebar_pass": true,
+    "inline_card_dimensions": {
+      "width_px": 444,
+      "height_px": 48,
+      "cursor": "pointer"
+    },
+    "sidebar_panel_layout": {
+      "description_section": "CronList call",
+      "input_parameters_section": "{}",
+      "output_section": "No scheduled jobs."
+    }
+  },
+  "expected_per_acceptance": "Inline = single header + summary only (no INPUT/OUTPUT labels, no JSON); sidebar = full INPUT/OUTPUT.",
+  "gap_analysis": null,
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.18/inline.png",
+    "docs/dev/evidence/qa-20260425-131502/5.18/sidebar.png"
+  ],
+  "section_4_entry": "### 5.18 — CronList compact card\n\n**Verdict**: PASS\n**Inline text**: '\\nCronList' (10 chars total, just tool-name header) — width 444px, height 48px, cursor:pointer; no INPUT/OUTPUT labels, no JSON inline.\n**Sidebar (after click)**: Three-section detail panel — `Description: CronList call`, `Input Parameters: {}`, `Output: No scheduled jobs.` (matches the verbose pattern user wanted preserved in sidebar).\n**Pattern alignment**: Matches Bash/Subagent inline-compact + sidebar-detail rule.\n**Evidence**: `docs/dev/evidence/qa-20260425-131502/5.18/inline.png`, `docs/dev/evidence/qa-20260425-131502/5.18/sidebar.png`",
+  "section_6_entry": null,
+  "section_7_entry": null,
+  "qa_notes": "Verified at https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 desktop viewport (1280x720). Inline CronList card text is exactly '\\nCronList' (10 chars including newline; visible text is just 'CronList'). Click opens detail sidebar containing Description / Input Parameters / Output sections. Note: sidebar uses 'Input Parameters' and 'Output' as section labels (not literal 'INPUT' / 'OUTPUT' all-caps) — semantically equivalent to the spec's request and constitutes the full I/O detail. Acceptance points 1-5 from BA spec all satisfied: (1) verbose state addressed; (2) inline matches Bash/subagent compact pattern; (3) full I/O preserved in sidebar; (4) pattern generalization established; (5) success condition met."
+}

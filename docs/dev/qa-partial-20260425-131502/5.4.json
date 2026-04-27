@@ -1,0 +1,39 @@
+{
+  "item_id": "5.4",
+  "verdict": "fail",
+  "verification_mode_executed": "passive_observe_viewport_sweep",
+  "viewports_tested": ["1920", "1280", "768", "390"],
+  "user_verbatim_complaint": "顶部栏的happy logo和头像元素没有自适应窗口内容元素的伸缩（位置hardcoded）",
+  "verified_against_complaint": true,
+  "complaint_element_pointer": {
+    "logo_selector": "img[src*='logo-black']",
+    "logo_text_selector": "div with textContent === 'Happy' near top of viewport (sidebar header)",
+    "avatar_selector": "img[src*='/gradients/'] in top bar (top<60, left>200), parent class 'unistyles_1v5y47m2jxa' (top-bar inner container)",
+    "how_located": "img src substring matching",
+    "found_in_dom": true,
+    "page_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "measured_state": {
+    "1920": {"logo_left_px": 17, "logo_text_left_px": 57, "avatar_right_px": 1526, "viewport_w": 1920, "R_to_viewport_delta_px": 394, "L_delta_px": 17, "notes": "Top-bar content container has fixed width=800 centered (parent rect l=740, r=1540, w=800)"},
+    "1280": {"logo_left_px": 17, "logo_text_left_px": 57, "avatar_right_px": 1206, "viewport_w": 1280, "R_to_viewport_delta_px": 74, "L_delta_px": 17},
+    "768":  {"logo_left_px": null, "avatar_right_px": 754, "viewport_w": 768, "R_to_viewport_delta_px": 14, "L_delta_px": null, "notes": "Sidebar collapsed at this width — Happy logo not rendered. Top bar shows session header + avatar only."},
+    "390":  {"logo_left_px": null, "avatar_right_px": 376, "viewport_w": 390, "R_to_viewport_delta_px": 14, "L_delta_px": null, "notes": "Mobile portrait — sidebar fully collapsed, Happy logo and 'Happy' text not rendered. Avatar tracks right edge well."},
+    "L_delta_px_summary": "0 (logo stays at 17 on both desktop widths where it appears)",
+    "R_to_viewport_delta_px_summary": "max=394 at 1920, min=14 at 768/390",
+    "monotonic_decrease_avatar_right": true,
+    "avatar_right_sequence": "1920->1526, 1280->1206, 768->754, 390->376 (monotonically decreasing as viewport shrinks)"
+  },
+  "expected_per_acceptance": "Logo and avatar positions track layout container, not absolute hardcoded coords. Per QA prompt strict success: avatar.R_to_viewport_delta ≤ 4px AND logo.L_delta ≤ 4px, OR logo scales monotonically.",
+  "gap_analysis": "Avatar R_to_viewport_delta_px = 394 at 1920px viewport — far exceeds the ≤4px threshold. The avatar is anchored to the right edge of a fixed-width content container (~800px wide, centered), NOT to the viewport right edge. This means at wide viewports, the avatar appears centered with a 394px gap to the viewport right edge. This is the root of the user's complaint: elements don't track the viewport — they sit inside a centered max-width container. While avatar.right does decrease monotonically with viewport (1526->1206->754->376), the position is layout-container-bound, not viewport-bound. Logo.left is fixed at 17px and does NOT scale with viewport (stays constant at 17) — fails the optional 'logo scales monotonically' fallback condition. Therefore neither branch of the OR-clause in success_check passes.",
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.4/1920.png",
+    "docs/dev/evidence/qa-20260425-131502/5.4/1280.png",
+    "docs/dev/evidence/qa-20260425-131502/5.4/768.png",
+    "docs/dev/evidence/qa-20260425-131502/5.4/768-clean.png",
+    "docs/dev/evidence/qa-20260425-131502/5.4/390.png"
+  ],
+  "section_4_entry": "### 5.4 — Top-bar logo + avatar responsive\n\n**Verdict**: fail (baseline observation, no fix applied)\n**Per viewport** (avatar.right / R_to_viewport_delta):\n- 1920: avatar.right=1526, delta=394px (FAR from viewport edge)\n- 1280: avatar.right=1206, delta=74px\n- 768: avatar.right=754, delta=14px (sidebar collapsed, logo not rendered)\n- 390: avatar.right=376, delta=14px (mobile portrait, logo not rendered)\n**L_delta**: 0px (logo.left stays at 17 across 1920/1280; logo not rendered at 768/390)\n**R_to_viewport_delta**: max=394 at 1920, min=14 at 768/390\n**Avatar monotonic with viewport**: yes (1526 > 1206 > 754 > 376)\n**Layout root cause**: top-bar inner container has fixed width=800, centered. Avatar tracks container right edge, not viewport right edge.\n**Evidence**: docs/dev/evidence/qa-20260425-131502/5.4/{1920,1280,768,768-clean,390}.png",
+  "section_6_entry": "### 5.4 cycle N — Why not met\n\nUser complaint: 顶部栏的happy logo和头像元素没有自适应窗口内容元素的伸缩（位置hardcoded）.\n\nMeasurement: at 1920px viewport, avatar.right=1526px, leaving 394px gap to viewport right edge. The top-bar content container has fixed width 800px (centered). The avatar IS responsive within the container (decreases monotonically as viewport shrinks: 1526->1206->754->376), but the container itself caps at 800px so the avatar appears 'stranded' in the middle-right of wide viewports rather than glued to the viewport edge.\n\nQA strict success criterion (R_to_viewport_delta ≤ 4px) is NOT met at 1920 (394px) or 1280 (74px). Logo.left stays fixed at 17 and does NOT scale with viewport, so the 'logo scales monotonically' OR-fallback also fails.\n\nGap: top-bar's max-width container does not grow with viewport, leaving the avatar visibly disconnected from the right edge at wide screens.",
+  "section_7_entry": "### 5.4 cycle N — What must be done\n\n1. Locate the top-bar component containing the avatar (search for `unistyles_1v5y47m2jxa` class or the parent of the top-bar `<img src*='/gradients/'>` element). Likely candidates: `happy-app/sources/components/Header.tsx` or similar top-bar component.\n2. Remove or relax the fixed `maxWidth: 800` (or equivalent) constraint on the top-bar inner container so that it stretches to fill the available width between the sidebar and the viewport right edge.\n3. Alternative: keep the content max-width but POSITION the avatar in an outer flexbox row that spans the full top-bar width (e.g. `flexDirection:'row', justifyContent:'space-between'`), so the avatar sits flush right.\n4. Acceptance after fix: at 1920px viewport, avatar.right should be ≥ 1900 (R_to_viewport_delta ≤ 20px). At 1280, R_delta should remain ≤ 20px. Logo.left should remain stable at the layout-left edge (e.g. 17px) — no need to scale.\n5. Re-verify with the same QA viewport sweep [1920, 1280, 768, 390].",
+  "qa_notes": "Passive observation of baseline state — no dev change to verify. Avatar IS responsive within a fixed-width content container, but the user's complaint is valid: at wide viewports (1920), the avatar appears 394px from the viewport right edge because the top-bar content area is capped at ~800px. Logo position (left=17) is constant and tied to sidebar layout. Per strict success_check (R_delta ≤ 4px), this fails. At narrow viewports (768/390) the sidebar collapses and the avatar correctly tracks the right edge with delta=14px, but the logo and Happy text disappear with the sidebar. The root cause is the top-bar's max-width=800 centered container — not 'hardcoded position' in the literal sense (positions ARE responsive within the container) but the container itself doesn't scale with viewport, which produces the visual effect the user described."
+}

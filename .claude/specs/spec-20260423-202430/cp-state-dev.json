@@ -1,0 +1,58 @@
+{
+  "spec_id": "spec-20260423-202430",
+  "agent_type": "dev",
+  "instance_id": null,
+  "agent_id": "a86bcf7d3b879bf9e",
+  "is_running": true,
+  "checked_in_at": "2026-04-23T20:37:05Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read dev.md view and identify storage + rendering layers requiring change",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Implement per-session model persistence in storage layer (session metadata or local state)",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Implement status bar model display to the LEFT of yolo indicator",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Verify model does not auto-reset on session switch, tab close, or reconnect",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-05",
+      "action": "Write docs/dev/dev-report-spec-20260423.json with status=completed|blocked and exact file changes",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-06",
+      "action": "Populate Section 2 (What Was Attempted) and Section 3 (What Was Changed) in monolith",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/dev-report-spec-20260423.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

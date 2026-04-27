@@ -1,0 +1,58 @@
+{
+  "spec_id": "spec-20260423-202430",
+  "agent_type": "qa",
+  "instance_id": null,
+  "agent_id": "a86bcf7d3b879bf9e",
+  "is_running": true,
+  "checked_in_at": "2026-04-23T20:37:08Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read qa.md view and identify the three acceptance criteria to verify",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Verify per-session model persists after switching sessions and back",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Verify model name appears in status bar to the LEFT of yolo indicator",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Verify model only changes via explicit GUI action (radio button panel), not auto-reset",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-05",
+      "action": "Write docs/dev/qa-report-spec-20260423.json with verdict=pass|fail|warning and measured evidence",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    },
+    {
+      "id": "cp-06",
+      "action": "Populate Section 4 (Current State) and Section 6/7 (Why Not Met / What Must Be Done) if verdict is fail",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T20:35:39Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/qa-report-spec-20260423.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

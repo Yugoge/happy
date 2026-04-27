@@ -1,0 +1,84 @@
+{
+  "request_id": "20260426-095000-wid",
+  "task_id": "20260426-095000-wid",
+  "iteration": 1,
+  "timestamp": "2026-04-26T09:55:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260426-095000-wid-iter1.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "/root/.claude/hooks/posttool-subagent-track.py"
+    ],
+    "files_created": [],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Fix AC-WID5 key-mismatch: writer keyed on step label, validator reads array-index. Switched fall-through writer to use array-index (string-form) of the in_progress todo, matching pretool-todo-validate.py:238.",
+        "type": "hook_bugfix",
+        "files_modified": ["/root/.claude/hooks/posttool-subagent-track.py"],
+        "rationale": "iter0 invoked _record_subagent_call_legacy(bm_path, step) where step came from _current_step_label(state) — the literal label after 'Step ' (e.g., '6', '5a', '8'). Validator at pretool-todo-validate.py:229-240 keys subagent_calls on str(i) where i is the enumerate-index of the canonical todo list. For the 15-step /redev canonical, subagent_call entries are at array indices [2, 5, 7, 10] but their labels are ['3', '5a', '6', '8']. Mismatch on every entry where label != index. Fix: introduce _current_in_progress_index(state) returning the 0-indexed position from last_todos, pass str(ip_index) to the legacy recorder."
+      }
+    ],
+    "ac_results": [
+      {
+        "ac_id": "AC-WID5",
+        "status": "fixed",
+        "evidence": "Pre-edit code at line 236 called _record_subagent_call_legacy(bm_path, step) where `step` was the label string from _current_step_label. Post-edit code at lines 253-255 calls _record_subagent_call_legacy(bm_path, str(ip_index)) where ip_index comes from new helper _current_in_progress_index(state). Helper sanity-tested: state with Step 6 in_progress at array index 7 returns 7. Validator at pretool-todo-validate.py:238 reads state.get('subagent_calls', {}).get(str(i), False) where i is the enumerate-index — keys now match."
+      }
+    ],
+    "code_snippets": {
+      "pre_edit_writer_call": "    if contract is None:\n        # Fall-through: /dev / /redev (no overnight contract). Record the\n        # in_progress canonical step's index in the bookmark's subagent_calls\n        # map so pretool-todo-validate.py can authorize the next transition.\n        # Contract-driven path below is unreachable in this branch by design.\n        _record_subagent_call_legacy(bm_path, step)\n        sys.exit(0)\n    _enforce(stdin_data, contract, state, bm_path, step)",
+      "post_edit_writer_call": "    if contract is None:\n        # Fall-through: /dev / /redev (no overnight contract). Record the\n        # in_progress canonical step's ARRAY INDEX (string-form) in the\n        # bookmark's subagent_calls map so pretool-todo-validate.py can\n        # authorize the next transition. The validator keys on the canonical\n        # enumerate-index string form (see pretool-todo-validate.py:238),\n        # NOT the step label, so we use the array index here too.\n        # Contract-driven path below is unreachable in this branch by design.\n        ip_index = _current_in_progress_index(state)\n        if ip_index is not None:\n            _record_subagent_call_legacy(bm_path, str(ip_index))\n        sys.exit(0)\n    _enforce(stdin_data, contract, state, bm_path, step)",
+      "new_helper": "def _current_in_progress_index(state: dict) -> int | None:\n    \"\"\"Return the 0-indexed array position of the in_progress todo in last_todos.\n\n    The validator at pretool-todo-validate.py around line 238 keys\n    `subagent_calls` on the canonical enumerate-index string form, so this\n    writer must conform to the same indexing scheme (NOT the step label).\n    \"\"\"\n    last_todos = state.get('last_todos') or []\n    for idx, item in enumerate(last_todos):\n        if isinstance(item, dict) and item.get('status') == 'in_progress':\n            return idx\n    return None"
+    },
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 18,
+      "lines_removed": 1,
+      "new_symbols_introduced": ["_current_in_progress_index"],
+      "minimum_possible_lines_estimate": 14,
+      "justification_for_overage": "Single new helper (12 lines including docstring) + 6-line comment block expansion in fall-through branch documenting the reason for using array-index (validator conformance). Helper docstring is required for the cross-file invariant note (pretool-todo-validate.py:238). Could compress further by inlining the helper, but extraction matches the spec's request: 'introduce a helper that scans the workflow bookmark's last_todos list for the first item whose status equals in_progress and returns its 0-indexed position in the list'."
+    },
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "blast_radius": [
+      {
+        "modified": "/root/.claude/hooks/posttool-subagent-track.py",
+        "imported_by": ["registered as PostToolUse:Agent hook in settings.json — single in-process invocation per Agent posttool firing"]
+      }
+    ],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "py_compile OK. Module imports cleanly via importlib. Helper unit-tested against simulated state with Step 6 (label '6') at array index 7 — returns 7 as required. Canonical /redev enumeration via dev.get_todos() confirms 15 entries with subagent_call=True at indices [2, 5, 7, 10] (Steps 3, 5a, 6, 8). SHA256 changed from 2153508c00adb993b572756ffc27e3c4295c74ff7e123fde095b299e276e6924 to 5da1fd78cc3dd34ce629a75b2021ecab8dea870908efbc559b887f1eee48a5b2."
+    },
+    "shas": {
+      "pre_iter1": "2153508c00adb993b572756ffc27e3c4295c74ff7e123fde095b299e276e6924",
+      "post_iter1": "5da1fd78cc3dd34ce629a75b2021ecab8dea870908efbc559b887f1eee48a5b2"
+    },
+    "canonical_enumeration": {
+      "source": "/root/.claude/scripts/todo/dev.py via get_todos()",
+      "total_entries": 15,
+      "subagent_call_array_indices": [2, 5, 7, 10],
+      "subagent_call_labels": ["3", "5a", "6", "8"],
+      "label_index_mismatches": [
+        {"index": 5, "label": "5a", "delta": "label is alphanumeric, not equal to index"},
+        {"index": 7, "label": "6", "delta": "Step 5a/5b inserted earlier shift Step 6 from index 5 to index 7"},
+        {"index": 10, "label": "8", "delta": "Step 6.5 + Step 5a/5b shift Step 8 from index 7 to index 10"}
+      ]
+    },
+    "guards_respected": [
+      "Did NOT modify pretool-todo-validate.py (validator is authoritative reader; we conform to it)",
+      "Did NOT modify the contract-present branch (_enforce + _mark_step_done unchanged) — preserves NS-6 overnight strictness",
+      "Did NOT modify _current_step_label (still used by _enforce for contract path; iter0 left it correct for that path)",
+      "Did NOT touch any of the other 7 iter0 files (agents/*.md, commands/{dev,close}.md, saga spec)"
+    ],
+    "qa_ready": true,
+    "qa_notes": "Re-run AC-WID5 acceptance test: invoke /redev or /dev, observe Step 3/5a/6/8 transitions. After Agent posttool fires for Step 6 (Dev delegation) which is at array index 7, workflow-<sid>.json should have subagent_calls['7'] = true (NOT subagent_calls['6']). Then validator at pretool-todo-validate.py:238 will permit the in_progress->completed transition. To force a clean retest, delete the stale subagent_calls['6'] from any active bookmark file before retest.",
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Future-proofing: consider adding a unit test that asserts validator-reader and posttool-writer use the same key-derivation function. Today they're coupled by a comment cross-reference; a shared helper imported by both would make the invariant unforgeable."
+  ]
+}

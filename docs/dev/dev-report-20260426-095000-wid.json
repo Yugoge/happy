@@ -1,0 +1,193 @@
+{
+  "request_id": "20260426-095000-wid",
+  "task_id": "20260426-095000-wid",
+  "timestamp": "2026-04-26T10:30:00Z",
+  "saga": "spec-20260424-233926",
+  "cycle": "redev5",
+  "ba_spec_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260426-095000-wid.md",
+  "context_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/context-20260426-095000-wid.json",
+  "dev_report_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260426-095000-wid.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "/root/.claude/agents/ba.md",
+      "/root/.claude/agents/dev.md",
+      "/root/.claude/agents/qa.md",
+      "/root/.claude/agents/ui-specialist.md",
+      "/root/.claude/commands/dev.md",
+      "/root/.claude/commands/close.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+      "/root/.claude/hooks/posttool-subagent-track.py"
+    ],
+    "files_created": [],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "ac_id": "AC-WID1a + AC-WID1b + AC-WID2",
+        "description": "Edit /root/.claude/agents/qa.md: switch the 3 request_id template literals (lines 983, 1198→1202, 1337→1342) to bare task-id form; add task_id sibling key at the qa output root; add Task-ID Convention paragraph + Status placement (qa.status nested only) paragraph above the qa output schema.",
+        "type": "template",
+        "files_modified": ["/root/.claude/agents/qa.md"],
+        "rationale": "AC-WID1a (qa.status nested only) + AC-WID1b (bare task-id across 3 occurrences) + AC-WID2 (convention paragraph in qa.md). Status placement paragraph cites commit.sh lines 547-556 verbatim per BA spec evidence."
+      },
+      {
+        "id": 2,
+        "ac_id": "AC-WID1b + AC-WID2",
+        "description": "Edit /root/.claude/agents/ba.md line 642 region: switch request_id template to bare task-id, add task_id sibling key, prepend Task-ID Convention paragraph immediately before the JSON Context schema.",
+        "type": "template",
+        "files_modified": ["/root/.claude/agents/ba.md"],
+        "rationale": "AC-WID1b (bare task-id) + AC-WID2 (convention paragraph in ba.md). The request_id literal at the JSON Context root is the upstream source from which dev.md and qa.md inherit via 'same as input', so this is the canonical pivot."
+      },
+      {
+        "id": 3,
+        "ac_id": "AC-WID1b + AC-WID1d + AC-WID2",
+        "description": "Edit /root/.claude/agents/dev.md: switch input-schema request_id (line 49) and output-schema request_id (line 462) to bare task-id; add task_id sibling key in both locations; add top-level dev.files_modified and dev.files_created (empty list) at the dev root in the output template; prepend Task-ID Convention + Top-level non-null lists prose paragraphs immediately before the dev-report output schema.",
+        "type": "template",
+        "files_modified": ["/root/.claude/agents/dev.md"],
+        "rationale": "AC-WID1b (bare task-id, both occurrences in dev.md per Edge Case E5) + AC-WID1d (top-level files_modified/files_created at dev root, with prose stating they MUST be non-null) + AC-WID2 (convention paragraph)."
+      },
+      {
+        "id": 4,
+        "ac_id": "AC-WID1b + AC-WID2",
+        "description": "Edit /root/.claude/agents/ui-specialist.md Output Format section: prepend Task-ID Convention paragraph; append Required top-level metadata keys block specifying that request_id and task_id are sibling top-level keys to the canonical 6-channel schema (additive — schema unchanged) plus an example shape.",
+        "type": "template",
+        "files_modified": ["/root/.claude/agents/ui-specialist.md"],
+        "rationale": "AC-WID1b (ui-specialist gains request_id + task_id at top level — additive metadata, the canonical 6-channel schema is unchanged per W8) + AC-WID2 (convention paragraph). The example shape clarifies these are siblings to the 6 channels, not new channels."
+      },
+      {
+        "id": 5,
+        "ac_id": "AC-WID1c + AC-WID2",
+        "description": "Edit /root/.claude/commands/dev.md completion-report template region (lines 921-928): change H1 from `# Development Completion Report` to `# Development Completion Report — <task-id>`; switch Request ID body line to bare task-id; add Task ID body line; prepend Task-ID Convention paragraph immediately before the markdown template fence. Also fix line-663 parallel-dev aggregate JSON template to bare task-id form (Edge Case E5 mandate to update ALL occurrences).",
+        "type": "template",
+        "files_modified": ["/root/.claude/commands/dev.md"],
+        "rationale": "AC-WID1c (H1 contains task-id literal substring) + AC-WID2 (convention paragraph in commands/dev.md completion-report region). Parallel-dev aggregate JSON also fixed for consistency per Edge Case E5."
+      },
+      {
+        "id": 6,
+        "ac_id": "AC-WID4",
+        "description": "Edit /root/.claude/commands/close.md line 168 (Workflow Integrity Dimension Bullet 4): replace the single-paragraph Self-deployability text with a four-sub-item formulation. (i) /commit consumability PASS/FAIL; (ii) push permission PASS/FAIL; (iii) no commit-channel bypass PASS/FAIL covering manual git commit, CLAUDE_PROJECT_DIR override, and auto-bulk-pattern abuse; (iv) user-only physical filesystem actions evaluated as N/A-with-reason citing Trap 11 verbatim, with .hook-refactor-allow named as the canonical example. Bullet PASS rule clarified at end.",
+        "type": "policy",
+        "files_modified": ["/root/.claude/commands/close.md"],
+        "rationale": "AC-WID4: formalize the user-only-physical-action sentinel exception as N/A-with-reason while preserving FAIL classification for (i)/(ii)/(iii). QA's advisory on AC-WID4 was incorporated by explicitly listing manual git commit + CLAUDE_PROJECT_DIR override + auto-bulk-pattern abuse as remaining FAIL modes, so dev did not accidentally widen the N/A clause."
+      },
+      {
+        "id": 7,
+        "ac_id": "AC-WID3",
+        "description": "Edit /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md §5.3: append a fourth bullet between line 457 and the §5.3.1 header at line 459 declaring AC12 literal end-to-end run as a 'known on-site-unreachable goal' for this saga, with the /redev4 dry-run harness (`/tmp/ac12-harness-20260426-091938/`) accepted as engineering-equivalent evidence of /merge command correctness. Paragraph cites /close Bullet 3 clause (b) by name so the trigger fires correctly on future cycles.",
+        "type": "saga_spec",
+        "files_modified": ["/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md"],
+        "rationale": "AC-WID3: BA correctly identified saga §5.3 as the actual Out-of-Scope subsection (Section 6 of the saga is 'Why Not Met'). The new paragraph places AC12 literal-E2E inside §5.3 so /close Bullet 3 clause (b) ('BA spec EXPLICITLY documents the defect as a known non-goal') fires correctly on any future cycle that walks back AC12 to harness-equivalent evidence."
+      },
+      {
+        "id": 8,
+        "ac_id": "AC-WID5",
+        "description": "Edit /root/.claude/hooks/posttool-subagent-track.py: rewrite module docstring to document Path A (contract present, full validation, /dev-overnight) vs Path B (contract absent, fall-through bookkeeping, /dev and /redev). Add a new function _record_subagent_call_legacy(bm_path, step) that fresh-reads the bookmark, sets state.subagent_calls[str(step)] = True, and writes back atomically. Replace the silent sys.exit(0) at the `if contract is None:` branch in _main() with a call to _record_subagent_call_legacy() before exit zero. Contract-driven _enforce() path is preserved exactly as-is so /dev-overnight cycles continue to validate against cycle-contract.json (NS-6 satisfied).",
+        "type": "hook",
+        "files_modified": ["/root/.claude/hooks/posttool-subagent-track.py"],
+        "rationale": "AC-WID5: restore the legacy bookkeeping the working-tree refactor inadvertently removed. The new fall-through is the long-term design for /dev and /redev (per QA's verified origin-trace from efca767). Fresh-read-then-write semantic preserved per QA's hidden-coupling advisory. Function size kept at 30 lines per pretool-quality-gate.py."
+      }
+    ],
+    "ac_results": [
+      {
+        "ac_id": "AC-WID1a",
+        "status": "pass",
+        "evidence_quote": "**Status placement** (CRITICAL): place `pass` / `fail` / `warning` under `qa.status` ONLY (nested). Top-level `status` MUST NOT be emitted; `commit.sh` closure detection at lines 547-556 reads `data.get('qa', {}).get('status')` and ignores any top-level `status` key.",
+        "file": "/root/.claude/agents/qa.md",
+        "line_range": "1196 (Status placement paragraph)"
+      },
+      {
+        "ac_id": "AC-WID1b",
+        "status": "pass",
+        "evidence_quote": "Zero matches for `\"request_id\":\\s*\"(dev|qa|ba|ui)-` across the 5 edited template files. Bare-form occurrences confirmed: ba.md:644, dev.md:49, dev.md:467, qa.md:983, qa.md:1202, qa.md:1342, ui-specialist.md:249, commands/dev.md:663, commands/dev.md:928. ui-specialist.md gains new top-level request_id + task_id keys per Required top-level metadata keys block at line 245.",
+        "file": "/root/.claude/agents/{ba,dev,qa,ui-specialist}.md + /root/.claude/commands/dev.md",
+        "line_range": "ba.md:644-645; dev.md:49-50, 467-468; qa.md:983, 1202-1203, 1342; ui-specialist.md:245-256; commands/dev.md:663-664, 928-929"
+      },
+      {
+        "ac_id": "AC-WID1c",
+        "status": "pass",
+        "evidence_quote": "# Development Completion Report — <task-id>",
+        "file": "/root/.claude/commands/dev.md",
+        "line_range": "926"
+      },
+      {
+        "ac_id": "AC-WID1d",
+        "status": "pass",
+        "evidence_quote": "**Top-level non-null lists** (CRITICAL): `dev.files_modified` and `dev.files_created` MUST be non-null lists at the `dev` root level (in addition to any per-task `tasks_completed[].files_*` fields). Empty list `[]` is the documented acceptable value for no-edit cycles. `commit.sh` closure detection treats `null` as a missing field and refuses the report. … \"files_modified\": [], \"files_created\": [],",
+        "file": "/root/.claude/agents/dev.md",
+        "line_range": "459 (prose) + 473-474 (example block)"
+      },
+      {
+        "ac_id": "AC-WID2",
+        "status": "pass",
+        "evidence_quote": "**Task-ID Convention** (canonical from /redev5 onward): the `task-id` is a single literal string (e.g. `20260426-095000-wid`) that appears identically in (a) artifact filename suffix, (b) `request_id` field of every artifact JSON, (c) `task_id` field of every artifact JSON, (d) completion-report heading 1, (e) all artifact JSON files. No prefixed forms (`dev-`, `qa-`, `ba-`, `ui-`) are permitted in NEW artifacts. Past artifacts are not retroactively rewritten.",
+        "file": "5 locations: /root/.claude/agents/ba.md:638, /root/.claude/agents/dev.md:457, /root/.claude/agents/qa.md:1194, /root/.claude/agents/ui-specialist.md:241, /root/.claude/commands/dev.md:921",
+        "line_range": "ba.md:638; dev.md:457; qa.md:1194; ui-specialist.md:241; commands/dev.md:921"
+      },
+      {
+        "ac_id": "AC-WID3",
+        "status": "pass",
+        "evidence_quote": "AC12 literal end-to-end run on a real project is by definition cross-session work and is designated a **known on-site-unreachable goal** for this saga; the dry-run harness verification from /redev4 (`docs/dev/completion-20260426-085000-ac12.md`, harness at `/tmp/ac12-harness-20260426-091938/`) is accepted as **engineering-equivalent evidence** of /merge command correctness; the literal AC12 run remains as a future cross-session task and its completion is **not a precondition** for closing engineering work in this saga. /close Bullet 3 clause (b) (\"BA spec EXPLICITLY documents the defect as a known non-goal\") is satisfied by this entry for any future cycle that walks back AC12 literal-E2E to engineering-equivalent harness evidence.",
+        "file": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md",
+        "line_range": "458 (single new bullet inserted between original line 457 and §5.3.1 header which is now at line 460)"
+      },
+      {
+        "ac_id": "AC-WID4",
+        "status": "pass",
+        "evidence_quote": "(iv) **User-only physical filesystem actions** (N/A-with-reason — NEVER FAIL) — any sub-item that would require the user to perform a physical filesystem action the orchestrator structurally cannot perform itself is evaluated as N/A-with-reason, NOT FAIL. The canonical example is the user touching `.hook-refactor-allow` to authorize a hook-tree edit: human-in-the-loop is intentional anti-fabrication protection per Trap 11; orchestrator-creatable sentinels would defeat the protection's threat model. The N/A reason MUST cite Trap 11 verbatim. This clause covers ONLY user-only physical filesystem actions; it does NOT cover the bypasses listed in sub-item (iii), which remain FAIL.",
+        "file": "/root/.claude/commands/close.md",
+        "line_range": "168-173 (Bullet 4 four-sub-item formulation, with (iv) being the N/A-with-reason exception)"
+      },
+      {
+        "ac_id": "AC-WID5",
+        "status": "pass",
+        "evidence_quote": "if contract is None:\n        # Fall-through: /dev / /redev (no overnight contract). Record the\n        # in_progress canonical step's index in the bookmark's subagent_calls\n        # map so pretool-todo-validate.py can authorize the next transition.\n        # Contract-driven path below is unreachable in this branch by design.\n        _record_subagent_call_legacy(bm_path, step)\n        sys.exit(0)\n    _enforce(stdin_data, contract, state, bm_path, step)",
+        "file": "/root/.claude/hooks/posttool-subagent-track.py",
+        "line_range": "231-238 (fall-through call to _record_subagent_call_legacy); helper function defined at lines 173-196; module docstring updated at lines 2-31"
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A — not a single regression commit. The schemas have always been in their pre-/redev5 prefixed form; the WID gate at /root/.claude/commands/close.md lines 161-168 was added separately and the producer-side templates were never updated to match. AC-WID5's hook breakage is a half-applied refactor in working-tree-only edits relative to commit efca767 (Yugoge, 2026-04-05).",
+      "why_issue_occurred": "Subagent JSON output templates predate the WID gate. The gate was authored to enforce downstream consumability without coordinating an update to producer-side templates. Compounding policy gap: saga §5.3 had no AC12 out-of-scope entry so /close Bullet 3 clause (c) blocked any walkback; /close Bullet 4 classified user-only filesystem actions as FAIL even though Trap 11 anti-fab discipline mandates that humans (not orchestrators) create such sentinels.",
+      "how_fix_addresses_root": "Producer-side schema repair (L3 data-shape) eliminates 4 of the 4 WID Bullet failure modes from /redev4 by construction: bare task-id closes Bullet 2; nested qa.status closes Bullet 1's qa-report leg; dev.files_modified/files_created top-level closes Bullet 1's dev-report leg; H1 task-id closes Bullet 1's completion leg. Saga §5.3 paragraph closes Bullet 3 for any future AC12 walkback. /close Bullet 4 reformulation closes Bullet 4 for the .hook-refactor-allow case. AC-WID5 closes the latent /dev/redev cycle deadlock so future cycles do not need orchestrator-side bookmark patches."
+    },
+    "diff_stats": {
+      "files_changed": 8,
+      "lines_added": 70,
+      "lines_removed": 5,
+      "new_symbols_introduced": ["_record_subagent_call_legacy"],
+      "minimum_possible_lines_estimate": 60,
+      "justification_for_overage": "8-file edit spanning 5 ACs; the convention paragraph alone is ~5 lines × 5 locations = 25 lines (AC-WID2 mandates identical paragraph in 5 places); the close.md Bullet 4 four-sub-item rewording is ~6 lines (AC-WID4 mandates 4 sub-items); the AC-WID5 fall-through helper plus comment is ~25 lines bounded by quality-gate function-size limit. The 70-line additive total is the structural minimum implied by the 5 ACs, not over-engineering."
+    },
+    "fix_layer": "L3",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Verification harness for QA: (1) `grep -nE '\"request_id\":\\s*\"(dev|qa|ba|ui)-' /root/.claude/agents/{ba,dev,qa,ui-specialist}.md /root/.claude/commands/dev.md` MUST return zero matches. (2) `grep -nE '<task-id>' /root/.claude/agents/{ba,dev,qa,ui-specialist}.md /root/.claude/commands/dev.md` MUST return ≥1 match per file. (3) `grep -nE 'on-site-unreachable goal' /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md` MUST return ≥1 match. (4) `grep -nE 'N/A-with-reason' /root/.claude/commands/close.md` MUST return ≥2 matches in Bullet 4 region. (5) `grep -nE 'Trap 11' /root/.claude/commands/close.md` MUST return ≥1 match in Bullet 4 region. (6) `grep -nE '\\.hook-refactor-allow' /root/.claude/commands/close.md` MUST return ≥1 match in Bullet 4 region. (7) `python3 -m py_compile /root/.claude/hooks/posttool-subagent-track.py` MUST exit 0. (8) `grep -nE '_record_subagent_call_legacy' /root/.claude/hooks/posttool-subagent-track.py` MUST return ≥2 matches (definition + call site). (9) `grep -nE 'def _enforce' /root/.claude/hooks/posttool-subagent-track.py` MUST return exactly 1 match (the contract-driven path is preserved). (10) `grep -nE '# Development Completion Report — <task-id>' /root/.claude/commands/dev.md` MUST return exactly 1 match.",
+    "permissions_to_add": [],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "py_compile passes on the edited posttool-subagent-track.py. All other edits are markdown templates (no compile step). Each edited file was Read post-edit and the new content was confirmed via grep. The pretool-quality-gate hook initially blocked the new function for being 34 lines (max 30); fixed by trimming the docstring."
+    },
+    "deviations_from_ba_catalog": [
+      {
+        "deviation": "Edited /root/.claude/commands/dev.md line 663 (parallel-dev aggregate JSON template) in addition to the BA-named line 910 H1 region.",
+        "reason": "BA Edge Case E5 explicitly mandates: 'ba.md / dev.md / qa.md output templates appear in MULTIPLE places … Dev MUST update ALL occurrences in ALL four files, not stop at the first hit.' Line 663's prefixed `dev-<task-id>` was an additional occurrence in commands/dev.md that AC-WID1b would otherwise have left non-conforming. Fix is consistent with the AC's intent."
+      }
+    ]
+  },
+  "blast_radius": [
+    {"modified": "/root/.claude/agents/ba.md", "imported_by": "All future BA cycle invocations producing context-<task-id>.json."},
+    {"modified": "/root/.claude/agents/dev.md", "imported_by": "All future Dev cycle invocations producing dev-report-<task-id>.json."},
+    {"modified": "/root/.claude/agents/qa.md", "imported_by": "All future QA cycle invocations producing qa-report-<task-id>.json."},
+    {"modified": "/root/.claude/agents/ui-specialist.md", "imported_by": "All future ui-specialist cycle invocations producing the 6-channel report."},
+    {"modified": "/root/.claude/commands/dev.md", "imported_by": "/dev and /redev slash commands; downstream completion-<task-id>.md files."},
+    {"modified": "/root/.claude/commands/close.md", "imported_by": "/close slash command WID gate evaluation for all future close debates."},
+    {"modified": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260424-233926.md", "imported_by": "Future /close debates evaluating saga spec-20260424-233926; Bullet 3 clause (b) trigger."},
+    {"modified": "/root/.claude/hooks/posttool-subagent-track.py", "imported_by": "PostToolUse:Agent hook fires after every Agent tool call across ALL slash commands; /dev and /redev cycles benefit from fall-through; /dev-overnight contract-runtime path unchanged."}
+  ],
+  "blocking_issues": [],
+  "recommendations": [
+    "Future cycle: sweep dev-overnight.md and dev-command.md slash commands for any remaining prefixed `request_id` template literals (BA Edge Case E6 noted these were out of scope this cycle).",
+    "Future cycle: consider adding a small 'Convention enforcement' note at the bottom of /close template Step 2 prompt (BA spec S2; deferred — Should Have, not Must Have).",
+    "Future cycle: optionally update /root/.claude/hooks/commit.sh audit-log line format to record the new bare task-id without prefix (BA spec C1; not required since commit.sh already substring-matches both forms)."
+  ]
+}

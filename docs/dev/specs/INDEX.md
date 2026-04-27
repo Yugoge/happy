@@ -1,7 +1,7 @@
 # specs
 
-*Last updated: 2026-04-25T10:49:32Z*
-**Total entries**: 31
+*Last updated: 2026-04-26T22:54:21Z*
+**Total entries**: 38
 **Convention**: kebab
 
 ## Tree
@@ -37,7 +37,14 @@ specs/
 │       └── `ui-specialist.md` - ui-specialist view of spec-20260424-084848
 ├── `spec-20260423-191545.md` - Spec: Session model persistence + status bar display
 ├── `spec-20260423-202430.md` - Spec: Per-Session Model Persistence + Status Bar Model Display
-└── `spec-20260424-084848.md` - Spec: Per-session model persistence + model indicator in status bar
+├── `spec-20260424-084848-cycle6-corrections.md` - spec-20260424-084848 — Cycle 6 Corrections (Honest State After User Manual Verification)
+├── `spec-20260424-084848-section-5.19-bgtask.md` - spec-20260424-084848 — Section 5.19 Addendum (Cycle 6)
+├── `spec-20260424-084848.md` - Spec: Per-session model persistence + model indicator in status bar
+├── `spec-20260424-233926.md` - Spec: /dev-overnight → /merge promotion path is broken (3 unfixed gaps + regressing commit b5d447e)
+├── `spec-20260425-094312.md` - Spec: session-recovery 系统全部 bug 修复 (P0/P0-NEW/P1/P2)
+├── `spec-20260425-094312.md.bak-layering-20260425-1329` - bak-layering-20260425-1329 file
+├── `spec-20260425-094312.md.bak-redev-final` - bak-redev-final file
+└── `spec-20260425-094312.md.bak-redev-fix` - bak-redev-fix file
 ```
 
 ---

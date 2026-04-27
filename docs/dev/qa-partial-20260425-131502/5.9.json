@@ -1,0 +1,34 @@
+{
+  "item_id": "5.9",
+  "verdict": "pass",
+  "verification_mode_executed": "passive_observe",
+  "measured_state": {
+    "match_count": 0,
+    "matches_found": [],
+    "scanned_message_count": 5,
+    "body_text_length": 2454,
+    "conversation_text_length": 2021,
+    "scanned_signatures": [
+      "Stop hook feedback",
+      "SPEC COVERAGE ENFORCEMENT",
+      "spec-verify.py",
+      "stop-hook",
+      "blocked by hook",
+      "Stop hook",
+      "Stop Hook",
+      "line-start [Stop or Stop:"
+    ],
+    "hook_class_dom_elements": 0,
+    "a11y_snapshot_grep_matches": 0
+  },
+  "expected_per_acceptance": "Zero stop-hook feedback in visible conversation.",
+  "gap_analysis": null,
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.9/conversation.png",
+    "docs/dev/evidence/qa-20260425-131502/5.9/snapshot.md"
+  ],
+  "section_4_entry": "### 5.9 — Stop-hook feedback hidden\n\n**Verdict**: PASS\n**Match count**: 0\n**Sample matches**: none — zero stop-hook signatures detected\n**Scanned signatures**: 'Stop hook feedback', 'SPEC COVERAGE ENFORCEMENT', 'spec-verify.py', 'stop-hook', 'blocked by hook', 'Stop hook', '^[Stop', '^Stop:'\n**Verification scope**: full body innerText (2454 chars), full scrollable conversation innerText (2021 chars), full accessibility snapshot grep, DOM scan for any element with class containing 'hook' (0 matches)\n**Conversation contents observed**: 5 message blocks — user prompt (markdown render demo + Bash + CronList request), assistant Bash tool call card, assistant CronList tool card, assistant markdown render output, user follow-up. NO stop-hook feedback, NO SPEC COVERAGE banner, NO blocking hook output anywhere in the visible thread.\n**Evidence**: docs/dev/evidence/qa-20260425-131502/5.9/conversation.png (full-page screenshot), docs/dev/evidence/qa-20260425-131502/5.9/snapshot.md (a11y tree)",
+  "section_6_entry": null,
+  "section_7_entry": null,
+  "qa_notes": "Verified live in Playwright at https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35. Auth + custom server URL injected. Scrolled the message container top→bottom, height stable at 2292px (fully rendered, no virtualized off-screen content). Scanned body innerText, scrollable container innerText, full accessibility snapshot, and DOM class attributes for stop-hook signatures. Zero matches across all four scan surfaces. PASS."
+}

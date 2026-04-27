@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-04-07T20:08:45Z*
-**Total entries**: 842
+*Last updated: 2026-04-25T13:30:45Z*
+**Total entries**: 1135
 **Convention**: kebab
 
 ## Tree
@@ -15,8 +15,40 @@ happy-dev/
 │   │   ├── `AGENTS.md` - Competition Research
 │   │   └── `comparison-matrix.md` - Competitor Protocol Matrix
 │   ├── dev/
+│   │   ├── evidence/
 │   │   ├── overnight/
+│   │   ├── postmortems/
+│   │   ├── specs/
+│   │   ├── specs.pre-merge-backup/
+│   │   ├── `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
+│   │   ├── `ba-investigation-20260425-122518.md` - BA Re-Investigation Artifact — Cycle 2 Round 2
 │   │   ├── `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
+│   │   ├── `ba-qa-report-20260424-143000-0.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-1.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-10.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-11.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-12.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-13.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-2.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-3.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-4.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-5.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-6.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-7.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-8.json` - json config
+│   │   ├── `ba-qa-report-20260424-143000-9.json` - json config
+│   │   ├── `ba-qa-report-20260424-202503.json` - json config
+│   │   ├── `ba-qa-report-20260425-000300-0-iter2.json` - json config
+│   │   ├── `ba-qa-report-20260425-000300-0.json` - json config
+│   │   ├── `ba-qa-report-20260425-000300-1-iter2.json` - json config
+│   │   ├── `ba-qa-report-20260425-000300-1.json` - json config
+│   │   ├── `ba-qa-report-20260425-000300-2.json` - json config
+│   │   ├── `ba-qa-report-20260425-000300-9.json` - json config
+│   │   ├── `ba-qa-report-20260425-030000-0.json` - json config
+│   │   ├── `ba-qa-report-20260425-104643.json` - json config
+│   │   ├── `ba-qa-report-20260425-122518-iter1.json` - json config
+│   │   ├── `ba-qa-report-20260425-122518.json` - json config
+│   │   ├── `ba-qa-report-20260425-131502.json` - json config
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 │   │   ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
 │   │   ├── `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
@@ -47,6 +79,51 @@ happy-dev/
 │   │   ├── `ba-spec-20260406-tool-detail.md` - BA Specification: Unified Tool Detail View Layout
 │   │   ├── `ba-spec-20260407-0830.md` - BA Specification: AskUserQuestion Answer Persistence + Subagent Sidebar Data Flow
 │   │   ├── `ba-spec-20260407-sidebar-detail-coexist.md` - BA Specification: Right Sidebar Must Coexist with Tool Detail Page
+│   │   ├── `ba-spec-20260408-0010.md` - BA Specification: BashView Scrollbar and Corner Radius Fix
+│   │   ├── `ba-spec-20260408-0700.md` - BA Specification: Fix BashView Inline Preview CSS Bugs
+│   │   ├── `ba-spec-20260408-150000.md` - BA Specification: Revert Broken SidebarBashView Horizontal Scroll
+│   │   ├── `ba-spec-20260408-170000.md` - BA Specification: Fix BashView Scrollbar + Bottom Border-Radius Conflict
+│   │   ├── `ba-spec-20260409-120000.md` - BA Specification: Subagent Sidechain Envelope Visibility
+│   │   ├── `ba-spec-20260409-130000.md` - BA Specification: Sidechain Messages Not Rendering in Sidebar/Detail View
+│   │   ├── `ba-spec-20260409-160000.md` - BA Specification: Forward Subagent Sidechain Messages from JSONL to Server
+│   │   ├── `ba-spec-20260410-0750.md` - BA Specification: Sidechain Messages Not in Main JSONL -- Scanner Reads Wrong Location
+│   │   ├── `ba-spec-20260410-children.md` - BA Specification: Agent/Task Tool Detail View Missing Children
+│   │   ├── `ba-spec-20260424-143000-0.md` - BA Specification: Markdown Primitives — Missing Block and Span Rendering (§5.17)
+│   │   ├── `ba-spec-20260424-143000-1.md` - BA Specification: Inline LaTeX $...$ not rendered (§5.16)
+│   │   ├── `ba-spec-20260424-143000-10.md` - BA Specification: §5.9 Stop-Hook Feedback Suppression
+│   │   ├── `ba-spec-20260424-143000-11.md` - BA Specification: Top Bar — Header Max-Width and Right-Sidebar Reserved Width Not Responsive (§5.4 + §5.5)
+│   │   ├── `ba-spec-20260424-143000-12.md` - BA Specification: §5.5 — Top-Bar Non-Adaptive Layout (Second Case / Verification Scenario)
+│   │   ├── `ba-spec-20260424-143000-13.md` - BA Specification: Attachment Tray — Layout Inconsistency + Silent Upload Failure (§5.12)
+│   │   ├── `ba-spec-20260424-143000-2.md` - BA Specification: CronList Inline Card Simplification (§5.18)
+│   │   ├── `ba-spec-20260424-143000-3.md` - BA Specification: §5.6 — Unify CodexBashView with BashView/CommandView Primitives
+│   │   ├── `ba-spec-20260424-143000-4.md` - BA Specification: §5.3 Bash Popup — Command Text Overflows Popup Width
+│   │   ├── `ba-spec-20260424-143000-5.md` - BA Specification: Per-session model persistence + model indicator in status bar (§5.1)
+│   │   ├── `ba-spec-20260424-143000-6.md` - BA Specification: 1M-Context Claude Models — Context-Usage Display Fix
+│   │   ├── `ba-spec-20260424-143000-7.md` - BA Specification: §5.8 Markdown Table Horizontal Scroll — Port from Happy Prod
+│   │   ├── `ba-spec-20260424-143000-8.md` - BA Specification: Detail Panel — Long File Path Overflows Header
+│   │   ├── `ba-spec-20260424-143000-9.md` - BA Specification: Codex Tool-Call Popup — Description vs Command Separation (§5.7)
+│   │   ├── `ba-spec-20260424-202503.md` - BA Specification: Close CLOSE:NO Blockers — Cycle 1 Remediation
+│   │   ├── `ba-spec-20260425-000300-0.md` - BA Specification: §5.15 Phase B — Codex Tool Renderers (2 actionable: apply_patch + mcp__happy__change_title alias)
+│   │   ├── `ba-spec-20260425-000300-1.md` - BA Specification: §5.15 Phase C — Codex Subagent Delegation Tool Renderers (Rev 2)
+│   │   ├── `ba-spec-20260425-000300-2.md` - BA Specification: §5.15 Phase D — Codex Tool-suggest / Parallel Renderers
+│   │   ├── `ba-spec-20260425-000300-9.md` - BA Specification: §5.4 Cleanup — Remove dead `headerMaxWidth` export and `getMaxWidth()` helper
+│   │   ├── `ba-spec-20260425-030000-0.md` - BA Specification: Codex Protocol Extension (Path A) — Activate 14 Dormant Renderers
+│   │   ├── `ba-spec-20260425-104643.md` - BA Specification: Restructure spec-20260424-233926.md to close 7 maturity gaps
+│   │   ├── `ba-spec-20260425-122518.md` - BA Specification: Cycle 2 — Implement engineering for spec-20260424-233926 (R1–R5)
+│   │   ├── `ba-spec-20260425-131502.md` - BA Specification: Verification Pass — Claude Code items in spec-20260424-084848
+│   │   ├── `ba-spec-20260425-redev-final.md` - BA Specification: spec-20260425-094312 彻底修复 (final pass)
+│   │   ├── `ba-spec-20260425-redev-fix.md` - BA Spec: spec-20260425-094312 Redev Fix (9 Objections)
+│   │   ├── `ba-spec-20260425-redev-layering.md` - BA Spec: spec-20260425-094312 Re-Layering Design
+│   │   ├── `build-verification-20260409.json` - json config
+│   │   ├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
+│   │   ├── `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
+│   │   ├── `close-report-20260425-102054.md` - Close Debate Report
+│   │   ├── `close-report-20260425-105500.md` - Close Debate Report
+│   │   ├── `close-report-20260425-110000.md` - Close Debate Report
+│   │   ├── `close-report-20260425-110500.md` - /close debate report — spec maturity re-check after /redev cycle
+│   │   ├── `close-report-20260425-111000.md` - Close Debate Report (Re-check after /redev)
+│   │   ├── `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
+│   │   ├── `completion-20260425-104643.md` - Development Completion Report — Spec Maturity Remediation
 │   │   ├── `context-20260323-210000.json` - json config
 │   │   ├── `context-20260403-210447-0.json` - json config
 │   │   ├── `context-20260403-210447-1.json` - json config
@@ -77,6 +154,38 @@ happy-dev/
 │   │   ├── `context-20260406-tool-detail.json` - json config
 │   │   ├── `context-20260407-0830.json` - json config
 │   │   ├── `context-20260407-sidebar-detail-coexist.json` - json config
+│   │   ├── `context-20260408-0010.json` - json config
+│   │   ├── `context-20260408-0700.json` - json config
+│   │   ├── `context-20260408-150000.json` - json config
+│   │   ├── `context-20260408-170000.json` - json config
+│   │   ├── `context-20260409-120000.json` - json config
+│   │   ├── `context-20260409-130000.json` - json config
+│   │   ├── `context-20260409-160000.json` - json config
+│   │   ├── `context-20260410-0750.json` - json config
+│   │   ├── `context-20260410-children.json` - json config
+│   │   ├── `context-20260424-143000-0.json` - json config
+│   │   ├── `context-20260424-143000-1.json` - json config
+│   │   ├── `context-20260424-143000-10.json` - json config
+│   │   ├── `context-20260424-143000-11.json` - json config
+│   │   ├── `context-20260424-143000-12.json` - json config
+│   │   ├── `context-20260424-143000-13.json` - json config
+│   │   ├── `context-20260424-143000-2.json` - json config
+│   │   ├── `context-20260424-143000-3.json` - json config
+│   │   ├── `context-20260424-143000-4.json` - json config
+│   │   ├── `context-20260424-143000-5.json` - json config
+│   │   ├── `context-20260424-143000-6.json` - json config
+│   │   ├── `context-20260424-143000-7.json` - json config
+│   │   ├── `context-20260424-143000-8.json` - json config
+│   │   ├── `context-20260424-143000-9.json` - json config
+│   │   ├── `context-20260424-202503.json` - json config
+│   │   ├── `context-20260425-000300-0.json` - json config
+│   │   ├── `context-20260425-000300-1.json` - json config
+│   │   ├── `context-20260425-000300-2.json` - json config
+│   │   ├── `context-20260425-000300-9.json` - json config
+│   │   ├── `context-20260425-030000-0.json` - json config
+│   │   ├── `context-20260425-104643.json` - json config
+│   │   ├── `context-20260425-122518.json` - json config
+│   │   ├── `context-20260425-131502.json` - json config
 │   │   ├── `dev-report-20260403-210447-0.json` - json config
 │   │   ├── `dev-report-20260403-210447-1.json` - json config
 │   │   ├── `dev-report-20260403-210447-10.json` - json config
@@ -102,13 +211,48 @@ happy-dev/
 │   │   ├── `dev-report-20260406-tool-detail.json` - json config
 │   │   ├── `dev-report-20260407-0930.json` - json config
 │   │   ├── `dev-report-20260407-sidebar-detail-coexist.json` - json config
+│   │   ├── `dev-report-20260408-0700.json` - json config
+│   │   ├── `dev-report-20260408-170000.json` - json config
+│   │   ├── `dev-report-20260409-120000.json` - json config
+│   │   ├── `dev-report-20260409-130000.json` - json config
+│   │   ├── `dev-report-20260409-160000.json` - json config
+│   │   ├── `dev-report-20260424-143000-0.json` - json config
+│   │   ├── `dev-report-20260424-143000-1.json` - json config
+│   │   ├── `dev-report-20260424-143000-10.json` - json config
+│   │   ├── `dev-report-20260424-143000-11.json` - json config
+│   │   ├── `dev-report-20260424-143000-13.json` - json config
+│   │   ├── `dev-report-20260424-143000-2.json` - json config
+│   │   ├── `dev-report-20260424-143000-3.json` - json config
+│   │   ├── `dev-report-20260424-143000-4.json` - json config
+│   │   ├── `dev-report-20260424-143000-5.json` - json config
+│   │   ├── `dev-report-20260424-143000-6.json` - json config
+│   │   ├── `dev-report-20260424-143000-7.json` - json config
+│   │   ├── `dev-report-20260424-143000-8.json` - json config
+│   │   ├── `dev-report-20260424-143000-9.json` - json config
+│   │   ├── `dev-report-20260424-170900-extra.json` - json config
+│   │   ├── `dev-report-20260424-172000-extra2.json` - json config
+│   │   ├── `dev-report-20260424-202503.json` - json config
+│   │   ├── `dev-report-20260425-000300-0.json` - json config
+│   │   ├── `dev-report-20260425-000300-1.json` - json config
+│   │   ├── `dev-report-20260425-000300-2.json` - json config
+│   │   ├── `dev-report-20260425-000300-9.json` - json config
+│   │   ├── `dev-report-20260425-030000-0.json` - json config
+│   │   ├── `dev-report-20260425-104643.json` - json config
+│   │   ├── `dev-report-20260425-122518-G1.json` - json config
+│   │   ├── `dev-report-20260425-122518-G2.json` - json config
+│   │   ├── `dev-report-20260425-122518-G3.json` - json config
+│   │   ├── `dev-report-20260425-122518-G5.json` - json config
 │   │   ├── `dev-report-tools2-filter-fix.json` - json config
 │   │   ├── `e2e-verification-rendering.json` - json config
 │   │   ├── `e2e-verification-title.json` - json config
 │   │   ├── `e2e-verification-ui.json` - json config
 │   │   ├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 │   │   ├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
+│   │   ├── `overnight-log-20260424.md` - Overnight Log — 2026-04-24
+│   │   ├── `overnight-log-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - No description
 │   │   ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
+│   │   ├── `overnight-summary-20260424.md` - Overnight Development Summary — 2026-04-24
+│   │   ├── `overnight-summary-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - Overnight Development Summary — Session 21d24e89
 │   │   ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
 │   │   ├── `qa-audit-20260407.json` - json config
 │   │   ├── `qa-build-deploy-20260407.json` - json config
@@ -142,8 +286,39 @@ happy-dev/
 │   │   ├── `qa-report-20260406-sidebar.json` - json config
 │   │   ├── `qa-report-20260406-tool-detail.json` - json config
 │   │   ├── `qa-report-20260407-0930.json` - json config
+│   │   ├── `qa-report-20260408-0010.json` - json config
+│   │   ├── `qa-report-20260408-0700.json` - json config
+│   │   ├── `qa-report-20260408-170000.json` - json config
+│   │   ├── `qa-report-20260409-120000.json` - json config
+│   │   ├── `qa-report-20260409-130000.json` - json config
+│   │   ├── `qa-report-20260409-160000.json` - json config
+│   │   ├── `qa-report-20260424-143000-0.json` - json config
+│   │   ├── `qa-report-20260424-143000-1.json` - json config
+│   │   ├── `qa-report-20260424-143000-10.json` - json config
+│   │   ├── `qa-report-20260424-143000-11.json` - json config
+│   │   ├── `qa-report-20260424-143000-12.json` - json config
+│   │   ├── `qa-report-20260424-143000-13.json` - json config
+│   │   ├── `qa-report-20260424-143000-2.json` - json config
+│   │   ├── `qa-report-20260424-143000-3.json` - json config
+│   │   ├── `qa-report-20260424-143000-4.json` - json config
+│   │   ├── `qa-report-20260424-143000-5.json` - json config
+│   │   ├── `qa-report-20260424-143000-6.json` - json config
+│   │   ├── `qa-report-20260424-143000-7.json` - json config
+│   │   ├── `qa-report-20260424-143000-8.json` - json config
+│   │   ├── `qa-report-20260424-143000-9.json` - json config
+│   │   ├── `qa-report-20260424-174000-extras.json` - json config
+│   │   ├── `qa-report-20260424-202503-extras.json` - json config
+│   │   ├── `qa-report-20260424-202503.json` - json config
+│   │   ├── `qa-report-20260425-000300-0.json` - json config
+│   │   ├── `qa-report-20260425-000300-1.json` - json config
+│   │   ├── `qa-report-20260425-000300-2.json` - json config
+│   │   ├── `qa-report-20260425-000300-9.json` - json config
+│   │   ├── `qa-report-20260425-030000-0-pm2.json` - json config
+│   │   ├── `qa-report-20260425-030000-0.json` - json config
+│   │   ├── `qa-report-20260425-104643.json` - json config
 │   │   ├── `qa-review-20260407-0830.json` - json config
-│   │   └── `qa-site-isolation-verification.json` - json config
+│   │   ├── `qa-site-isolation-verification.json` - json config
+│   │   └── `qa-validation-20260410.json` - json config
 │   ├── e2e/
 │   │   ├── `console-initial.log` - log file
 │   │   ├── `download-desktop-codeblock-buttons.png` - png file
@@ -316,6 +491,8 @@ happy-dev/
 │   ├── `session-protocol.md` - Session Protocol
 │   └── `voice-architecture.md` - Voice Architecture
 ├── environments/
+│   ├── data/
+│   │   └── envs/
 │   ├── lab-rat-todo-project/
 │   │   ├── `agents.md` - Lab Rat Todo Project — Agent Instructions
 │   │   ├── `app.js` - js file
@@ -435,7 +612,19 @@ happy-dev/
 ├── `18-mermaid-rendered.png` - png file
 ├── `_test_notebook.ipynb` - ipynb file
 ├── `_tool_test.txt` - txt file
+├── `agent-sidebar-test.png` - png file
 ├── `arch-session-latex-test.png` - png file
+├── `bashview-82pct.png` - png file
+├── `bashview-94pct.png` - png file
+├── `bashview-cards.png` - png file
+├── `bashview-complete-card.png` - png file
+├── `bashview-deploy.png` - png file
+├── `bashview-mid-scroll.png` - png file
+├── `bashview-mobile.png` - png file
+├── `bashview-new-desktop.png` - png file
+├── `bashview-new-inline.png` - png file
+├── `bashview-new-v2.png` - png file
+├── `bashview-rebuild.png` - png file
 ├── `bug-hunt-01-initial-load.png` - png file
 ├── `bug-hunt-02-session-view.png` - png file
 ├── `bug-hunt-03-input-focused.png` - png file
@@ -465,6 +654,7 @@ happy-dev/
 ├── `bug-hunt-27-changelog.png` - png file
 ├── `bun.lock` - lock file
 ├── `CLAUDE.md` - CLAUDE.md
+├── `CLAUDE.md.bak-layering-20260425-1329` - bak-layering-20260425-1329 file
 ├── `cycle2-landing.png` - png file
 ├── `cycle2-session-open.png` - png file
 ├── `cycle2-session2.png` - png file
@@ -488,6 +678,13 @@ happy-dev/
 ├── `Dockerfile.server-slim` - server-slim file
 ├── `Dockerfile.webapp` - webapp file
 ├── `expo-env.d.ts` - ts file
+├── `find-agent-25pct.png` - png file
+├── `find-agent-60pct.png` - png file
+├── `find-agent-82pct.png` - png file
+├── `find-agent-93pct.png` - png file
+├── `find-agent-97pct.png` - png file
+├── `find-agent-985.png` - png file
+├── `find-agent-tool.png` - png file
 ├── `LICENCE` - unknown file
 ├── `logo.png` - png file
 ├── `mobile-home-375.png` - png file
@@ -505,6 +702,10 @@ happy-dev/
 ├── `mobile-taskview-found.png` - png file
 ├── `mobile-taskview-rocket.png` - png file
 ├── `mobile-taskview-scroll.png` - png file
+├── `p11-desktop-1440-sidebar-closed.png` - png file
+├── `p11-desktop-1440-sidebar-opened.png` - png file
+├── `p11-final-1440-closed.png` - png file
+├── `p11-narrow-1024.png` - png file
 ├── `package-lock.json` - json config
 ├── `package.json` - json config
 ├── `pipeline6-sessions-before.png` - png file
@@ -525,6 +726,7 @@ happy-dev/
 ├── `pm-desktop-session.png` - png file
 ├── `pm-desktop-terminals.png` - png file
 ├── `pm-files-page.png` - png file
+├── `pm-landing-2026-04-24.png` - png file
 ├── `pm-landing-authenticated.png` - png file
 ├── `pm-landing-connecting.png` - png file
 ├── `pm-landing-empty.png` - png file
@@ -617,7 +819,12 @@ happy-dev/
 ├── `po-settings-redirect.png` - png file
 ├── `po-step0-landing.png` - png file
 ├── `po-usage.png` - png file
+├── `qa-516-desktop-1280.png` - png file
+├── `qa-516-desktop.png` - png file
+├── `qa-516-mobile-390.png` - png file
+├── `qa-after-click-desktop.png` - png file
 ├── `qa-after-reload.png` - png file
+├── `qa-agent-card-click-desktop.png` - png file
 ├── `qa-agent-detail-desktop.png` - png file
 ├── `qa-agent-detail-mobile.png` - png file
 ├── `qa-agent-detail-scrolled.png` - png file
@@ -630,29 +837,71 @@ happy-dev/
 ├── `qa-agent-sidebar-tools.png` - png file
 ├── `qa-back-to-session.md` - No description
 ├── `qa-baseline-session-view.png` - png file
+├── `qa-bashview-desktop-bash-blocks.png` - png file
+├── `qa-bashview-desktop-closeup.png` - png file
+├── `qa-bashview-desktop-overview.png` - png file
+├── `qa-bashview-inline-1.png` - png file
+├── `qa-bashview-inline-short.png` - png file
+├── `qa-bashview-inline-short2.png` - png file
+├── `qa-bashview-mobile-65lines.png` - png file
+├── `qa-bashview-mobile-closeup.png` - png file
+├── `qa-bashview-mobile-long.png` - png file
+├── `qa-bashview-mobile-short.png` - png file
+├── `qa-bashview-session-overview.png` - png file
+├── `qa-bashview-sidebar-bash.png` - png file
 ├── `qa-before-enter.png` - png file
+├── `qa-blk2-cronlist-desktop-sidebar.png` - png file
+├── `qa-blk2-cronlist-desktop.png` - png file
+├── `qa-blk2-cronlist-mobile.png` - png file
+├── `qa-blk2-table-desktop.png` - png file
+├── `qa-blk2-table-mobile.png` - png file
 ├── `qa-bug64-conversation-view.png` - png file
 ├── `qa-bug64-detail-page-no-duplication.png` - png file
 ├── `qa-bug64-tool-calls-divider.png` - png file
 ├── `qa-code-block-area.png` - png file
+├── `qa-cycle2-desktop-baseline-1440x900.png` - png file
+├── `qa-cycle2-desktop-claude-session-regression.png` - png file
+├── `qa-cycle2-desktop-home.png` - png file
+├── `qa-cycle2-desktop-markdown-tables-1440x900.png` - png file
+├── `qa-cycle2-desktop-orchestra-session.png` - png file
+├── `qa-cycle2-desktop-session-renderers-1440x900.png` - png file
+├── `qa-cycle2-desktop-session.png` - png file
+├── `qa-cycle2-mobile-home.png` - png file
+├── `qa-cycle2-mobile-markdown-tables-390x844.png` - png file
+├── `qa-cycle2-mobile-session-renderers-390x844.png` - png file
+├── `qa-cycle2-mobile-session.png` - png file
 ├── `qa-cycle2-p0-sidebar.png` - png file
 ├── `qa-cycle2-p3-tools2.png` - png file
 ├── `qa-cycle2-p6-other-tools-filtered.png` - png file
 ├── `qa-cycle2-p6-other-tools.png` - png file
 ├── `qa-desktop-bash-truncation.png` - png file
+├── `qa-desktop-bashview-hover-scrollbar.png` - png file
+├── `qa-desktop-bashview-scrollbar.png` - png file
+├── `qa-desktop-bashview-sidebar.png` - png file
 ├── `qa-desktop-edit-sidebar.png` - png file
 ├── `qa-desktop-overview.png` - png file
+├── `qa-desktop-session-overview.png` - png file
 ├── `qa-desktop-session-view.png` - png file
+├── `qa-desktop-sidechain-agent-card.png` - png file
 ├── `qa-dev-agent-subtools.png` - png file
 ├── `qa-dev-app-state.png` - png file
 ├── `qa-find-agent-tools.png` - png file
+├── `qa-initial-session-view.png` - png file
 ├── `qa-inline-todo-overview.png` - png file
 ├── `qa-issue3-sidebar-ba-agent.png` - png file
 ├── `qa-latex-inline-closeup.png` - png file
 ├── `qa-latex-inline-rendering.png` - png file
 ├── `qa-mid-scroll.md` - No description
 ├── `qa-mobile-agent-detail.png` - png file
+├── `qa-mobile-bashview.png` - png file
 ├── `qa-mobile-session-view.jpeg` - jpeg file
+├── `qa-mobile-sidechain-agent-card.png` - png file
+├── `qa-mobile-viewport.png` - png file
+├── `qa-new-session.png` - png file
+├── `qa-p0-desktop-baseline.png` - png file
+├── `qa-p0-desktop-session-applio.png` - png file
+├── `qa-p0-mobile-changelog.png` - png file
+├── `qa-p0-mobile-session-applio.png` - png file
 ├── `qa-p10-1280.png` - png file
 ├── `qa-p10-root-session.png` - png file
 ├── `qa-p10-send-button-empty.png` - png file
@@ -660,7 +909,14 @@ happy-dev/
 ├── `qa-p12-after-collapse.png` - png file
 ├── `qa-p12-after-expand.png` - png file
 ├── `qa-p12-before-collapse.png` - png file
+├── `qa-p13-desktop-1280.png` - png file
+├── `qa-p13-desktop-tray.png` - png file
+├── `qa-p13-mixed-tray-mobile.png` - png file
+├── `qa-p13-oversize-modal-desktop.png` - png file
+├── `qa-p13-oversize-modal.png` - png file
 ├── `qa-p2-machine-card.png` - png file
+├── `qa-p2-regression-desktop.png` - png file
+├── `qa-p2-regression-mobile.png` - png file
 ├── `qa-p5-toolcalls.png` - png file
 ├── `qa-p5-toolview-divider.png` - png file
 ├── `qa-p5-toolview-scroll1.png` - png file
@@ -671,19 +927,33 @@ happy-dev/
 ├── `qa-pipeline3-enter-sent.png` - png file
 ├── `qa-pipeline3-new-session.png` - png file
 ├── `qa-root-session.png` - png file
+├── `qa-s5.1-both-chips-after-yolo.png` - png file
+├── `qa-s5.1-both-chips-desktop.png` - png file
+├── `qa-s5.1-chip-haiku-only.png` - png file
+├── `qa-s5.1-desktop-persisted.png` - png file
+├── `qa-s5.1-initial.png` - png file
+├── `qa-s5.1-mobile-persisted.png` - png file
+├── `qa-s5.1-reentered-session.png` - png file
 ├── `qa-scrolled-bottom.md` - No description
+├── `qa-session-autoreturn.png` - png file
+├── `qa-session-back.png` - png file
+├── `qa-session-desktop.png` - png file
 ├── `qa-session-latex-view.png` - png file
+├── `qa-session-orchestrator.png` - png file
 ├── `qa-session-overview.png` - png file
+├── `qa-session-view.png` - png file
 ├── `qa-sidebar-after-pop-scroll-preserved.png` - png file
 ├── `qa-sidebar-after-push.png` - png file
 ├── `qa-sidebar-before-subtool-click.png` - png file
 ├── `qa-sidebar-content-click-no-push.png` - png file
 ├── `qa-sidebar-content-interaction-test.png` - png file
+├── `qa-sidebar-opened.png` - png file
 ├── `qa-sidebar-scroll-15k.md` - No description
 ├── `qa-sidebar-scroll-4000.png` - png file
 ├── `qa-sidebar-scrolled-before-push.png` - png file
 ├── `qa-sidebar-snapshot.md` - No description
 ├── `qa-sidebar-subtool-area.png` - png file
+├── `qa-sidebar-subttools-desktop.png` - png file
 ├── `qa-sidebar-todo-colors.png` - png file
 ├── `qa-sidebar-todowrite-check.png` - png file
 ├── `qa-subtool-click-result.png` - png file
@@ -695,22 +965,45 @@ happy-dev/
 ├── `qa-todo-bash-inline.png` - png file
 ├── `qa-todo-sidebar.png` - png file
 ├── `screenshot-01-initial-state.png` - png file
+├── `screenshot-01-initial.png` - png file
 ├── `screenshot-02-loading.png` - png file
+├── `screenshot-02-session-opened.png` - png file
 ├── `screenshot-03-new-session-form.png` - png file
+├── `screenshot-03-session-click.png` - png file
+├── `screenshot-04-direct-nav.png` - png file
 ├── `screenshot-04-localhost8097.png` - png file
 ├── `screenshot-05-new-form-direct.png` - png file
+├── `screenshot-05-scrolled-top.png` - png file
+├── `screenshot-06-agent-card-clicked.png` - png file
 ├── `screenshot-06-before-redirect.png` - png file
+├── `screenshot-07-sidebar-scrolled.png` - png file
 ├── `screenshot-07-stable-happy-app.png` - png file
 ├── `screenshot-08-new-session-form.png` - png file
+├── `screenshot-08-sidebar-bottom.png` - png file
+├── `screenshot-09-back-to-session.png` - png file
 ├── `screenshot-09-production-sessions.png` - png file
+├── `screenshot-10-after-back.png` - png file
 ├── `screenshot-10-session-open.png` - png file
 ├── `screenshot-11-message-typed.png` - png file
+├── `screenshot-11-session-view.png` - png file
 ├── `screenshot-12-message-sent.png` - png file
+├── `screenshot-12-scrolled-up.png` - png file
+├── `screenshot-13-qa-card-clicked.png` - png file
 ├── `screenshot-13-task-detail-view.png` - png file
 ├── `screenshot-14-mobile-session.png` - png file
+├── `screenshot-14-qa-sidebar-bottom.png` - png file
+├── `screenshot-15-back-attempt.png` - png file
 ├── `screenshot-15-mobile-home-tabs.png` - png file
 ├── `screenshot-16-new-session-form-mobile.png` - png file
 ├── `screenshot-17-empty-send-test.png` - png file
+├── `session-scrolled-top.png` - png file
+├── `session-top.png` - png file
+├── `session-view-initial.png` - png file
+├── `sidebar-agent-card.png` - png file
+├── `sidebar-scrolled-bottom.png` - png file
+├── `sidechain-after-test.png` - png file
+├── `sidechain-before-test.png` - png file
+├── `sidechain-dialog-open.png` - png file
 ├── `step-01-landing-page.png` - png file
 ├── `step-02-sessions-list.png` - png file
 ├── `step-03-session-deleted.png` - png file

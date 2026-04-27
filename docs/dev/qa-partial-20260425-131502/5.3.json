@@ -1,0 +1,46 @@
+{
+  "item_id": "5.3",
+  "verdict": "pass",
+  "verification_mode_executed": "passive_observe",
+  "viewports_tested": ["desktop_1280", "mobile_blocked"],
+  "measured_state": {
+    "desktop": {
+      "viewport_w": 1280,
+      "popup_container_left_px": 830,
+      "popup_container_right_px": 1280,
+      "popup_container_width_px": 450,
+      "command_element_left_px": 859,
+      "command_element_right_px": 1924,
+      "command_element_width_px": 1065,
+      "command_overflow_x": "visible",
+      "scroll_ancestor_overflow_x": "auto",
+      "scroll_ancestor_left_px": 831,
+      "scroll_ancestor_right_px": 1280,
+      "scroll_ancestor_width_px": 449,
+      "scroll_ancestor_scrollWidth_px": 1109,
+      "scroll_ancestor_clientWidth_px": 449,
+      "bleeds_past_popup": false,
+      "bleeds_past_viewport": false,
+      "horizontal_scrollbar_visible_in_screenshot": true,
+      "popup_anchored_to_viewport_right_edge": true,
+      "interpretation": "Command text (1065px wide) is wider than popup container (450px), but is wrapped inside a depth-5 ancestor with overflowX:auto whose clientWidth=449 and scrollWidth=1109. That scroll ancestor's right edge (1280) equals popup right edge (1280). Per acceptance rule, this is PASS — horizontal scroll affordance is present and properly bounded by the popup container."
+    },
+    "mobile": {
+      "viewport_w": "unable_to_apply",
+      "note": "browser_resize to 390x844 returned but window.innerWidth remained 1280 in JS. Per prompt instructions ('do not loop trying to force 1280'), accepted desktop-only measurement. Screenshot at smaller render-width was captured (mobile.png, mobile-attempt2.png) showing sidebar layout adapts visually, but DOM measurements report 1280px viewport throughout. Mobile structural verification could not be completed.",
+      "screenshots_captured": ["mobile.png", "mobile-attempt2.png"]
+    }
+  },
+  "expected_per_acceptance": "Command text must not overflow popup width; horizontal scroll inside code block is acceptable.",
+  "acceptance_check_detail": "Acceptance rule: PASS = command_right <= popup_right (within 1px) OR a wrapping ancestor has overflow-x:auto/scroll AND that ancestor's right <= popup_right. Desktop: scroll ancestor with overflowX:auto exists at depth 5 (right=1280); popup_right=1280; 1280<=1280 satisfies the OR clause.",
+  "gap_analysis": "None — desktop verification passed per literal acceptance rule. Mobile blocked by viewport lock issue (Playwright browser_resize did not propagate to window.innerWidth on this React Native Web app). Visual screenshot rendering DID change at narrower viewport, suggesting CSS media queries respond, but JS measurements stayed at 1280. Mobile-specific overflow behavior is therefore unverified at the structural level. Recommend re-test if mobile-only regression is suspected.",
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.3/desktop.png",
+    "docs/dev/evidence/qa-20260425-131502/5.3/mobile.png",
+    "docs/dev/evidence/qa-20260425-131502/5.3/mobile-attempt2.png"
+  ],
+  "section_4_entry": "### 5.3 — Bash popup overflow\n\n**Verdict**: PASS (desktop) / BLOCKED (mobile structural verification)\n\n**Desktop (1280×720)**: Popup container right=1280px (anchored to viewport right edge), width=450px. Command element width=1065px (longer than popup), but wrapped inside depth-5 ancestor with `overflow-x: auto` (clientWidth=449, scrollWidth=1109, right=1280). Horizontal scrollbar visible inside the popup at y~437. Per acceptance rule (PASS = wrapping ancestor has overflow-x:auto/scroll AND that ancestor's right ≤ popup_right), the scroll ancestor right (1280) ≤ popup right (1280) — satisfied.\n\n**Mobile (390 attempted)**: `browser_resize(390, 844)` did not propagate to `window.innerWidth` (remained 1280). Per prompt guidance, did not loop. Screenshot at narrower render width DID show responsive sidebar, but DOM measurements stayed at 1280px viewport. Structural mobile verification not completed.\n\n**Evidence**: docs/dev/evidence/qa-20260425-131502/5.3/desktop.png, mobile.png, mobile-attempt2.png",
+  "section_6_entry": null,
+  "section_7_entry": null,
+  "qa_notes": "Verification completed on desktop viewport. Two important observations: (1) The popup is anchored flush against the viewport right edge with R=1280 = viewport_w, leaving no margin/padding to the right. This is structurally fine but means any UI content past column 1280 is offscreen. (2) Inside the popup, the command text DOES exceed the popup's visible width but is correctly wrapped in a horizontal scroll container (overflowX:auto), which presents a small visible scrollbar in the screenshot. This matches the spec's acceptable pattern. Mobile structural testing could not be completed due to a browser viewport lock issue (the same issue the previous agent flagged) — the screenshot rendering responded to resize but JS innerWidth did not, so DOM-based PASS/FAIL on mobile could not be measured. If mobile regression is suspected, re-test in a fresh browser session."
+}

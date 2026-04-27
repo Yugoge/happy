@@ -61,3 +61,39 @@ progress*.txt
 
 # OpenCode trace output (script is committed, output is not)
 docs/competition/opencode/traces/
+
+# Playwright MCP debug output (transient browser session logs, regenerated every Playwright run)
+.playwright-mcp/
+
+# QA upload staging directories (transient — files are processed then promoted to docs/dev/visual-evidence-*/)
+.qa-uploads-*/
+
+# Visual artifacts dropped at repo root (must live under docs/dev/visual-evidence-*/, not /). Catches qa-*.png,
+# ba-*.png, composer-*.png, pm-*.png, bg-task-*.png, cron-*.png, numbered tester PNGs (5.3-*.png, 12-*.png, etc.).
+# Project has zero legitimate root-level images today; force-add (`git add -f`) if a future exception arises.
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+
+# Overnight worktree runtime state — regenerated per cycle, never load-bearing across sessions
+.claude/worktrees/
+.claude/overnight-state-*.json
+.claude/workflow-*.json
+
+# Per-cycle dev-registry sentinels — orchestrator-emitted JSONs the subagents read on first action
+# (regenerated each /dev cycle; checking them in pollutes diff with no semantic value)
+.claude/dev-registry/
+
+# Hook refactor authorization sentinel — created+deleted within a single human-authorized refactor session
+.claude/.hook-refactor-allow*
+
+# Claude Code session-recovery transient state (per-session JSONLs, never share across machines)
+.claude/projects/
+
+# cp-state flock files — created by spec-subagent flock-discipline writes, transient
+.claude/specs/*/cp-state-*.json.lock
+
+# (docs/* under docs/dev/ — ALL tracked per project policy; including evidence/, specs.pre-merge-backup/,
+#  qa-partial-*/, etc. The whole audit trail is project-canonical history. Use docs/notes/ — already
+#  ignored above — for personal scratch that should NOT enter the record.)

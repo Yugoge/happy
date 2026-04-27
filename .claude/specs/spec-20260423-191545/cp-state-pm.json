@@ -1,0 +1,30 @@
+{
+  "spec_id": "spec-20260423-191545",
+  "agent_type": "pm",
+  "instance_id": null,
+  "agent_id": "pm-20260423-191545-001",
+  "is_running": true,
+  "checked_in_at": "2026-04-23T19:20:57Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read pm.md view and review attention notes",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Monitor cycle progression and coordinate between BA, dev, QA phases",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-04-23T19:21:08Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/pm-report-20260423.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

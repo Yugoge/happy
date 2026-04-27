@@ -1,0 +1,59 @@
+{
+  "item_id": "5.8",
+  "verdict": "pass",
+  "verification_mode_executed": "passive_observe",
+  "viewports_tested": ["desktop_1280", "mobile_390"],
+  "user_verbatim_complaint": "表格内容太多会超宽。这点在happy prod已经解决。直接去学习",
+  "verified_against_complaint": true,
+  "complaint_element_pointer": {
+    "selector": "TABLE element ancestor of column header text 'Path' (4-col CN+EN wide table); scroll wrapper at depth 3 above the TABLE",
+    "how_located": "querySelectorAll('*') filtered for leaf node textContent==='Path', then walk parentElement up to find TABLE and the first ancestor with overflow-x in {auto,scroll}",
+    "found_in_dom": true,
+    "page_url": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "measured_state": {
+    "desktop": {
+      "viewport_width_actual_px": 1920,
+      "viewport_width_requested_px": 1280,
+      "scroll_wrapper": {
+        "left_px": 526,
+        "right_px": 1328,
+        "client_width_px": 800,
+        "scroll_width_px": 1402,
+        "overflow_x": "auto",
+        "can_scroll": true
+      },
+      "table_natural_right_px": 1779,
+      "card_right_px": 1326,
+      "bleeds_past_card": false,
+      "card_within_viewport": true,
+      "wrapper_overflow_x": "auto"
+    },
+    "mobile": {
+      "viewport_width_px": 390,
+      "scroll_wrapper": {
+        "left_px": 16,
+        "right_px": 376,
+        "client_width_px": 358,
+        "scroll_width_px": 1402,
+        "overflow_x": "auto",
+        "can_scroll": true
+      },
+      "table_natural_right_px": 1419,
+      "card_right_px": 376,
+      "bleeds_past_card": false,
+      "card_within_viewport": true,
+      "wrapper_overflow_x": "auto"
+    }
+  },
+  "expected_per_acceptance": "Wide table is horizontally scrollable in container; no bleed past card edge. card.right <= viewport.innerWidth must hold; table.right > card.right is allowed when wrapper has overflow-x: auto/scroll.",
+  "gap_analysis": null,
+  "evidence_files": [
+    "docs/dev/evidence/qa-20260425-131502/5.8/desktop.png",
+    "docs/dev/evidence/qa-20260425-131502/5.8/mobile.png"
+  ],
+  "section_4_entry": "### 5.8 — Wide markdown tables overflow\n\n**Verdict**: PASS\n\n**Desktop (viewport 1920 actual / 1280 requested)**: scroll wrapper at depth 3 above TABLE has computed `overflow-x: auto`, `clientWidth=800`, `scrollWidth=1402`, `canScroll=true`. Card right=1326 (≤ viewport 1920). Table natural width 1402 px is contained inside the scrollable wrapper; no bleed past the card edge.\n\n**Mobile (viewport 390×844)**: scroll wrapper has `overflow-x: auto`, `clientWidth=358`, `scrollWidth=1402`, `canScroll=true`, wrapper.right=376 ≤ 390 viewport. Table natural width 1402 px is fully scrollable inside the wrapper; no horizontal page-level overflow.\n\n**Evidence**: docs/dev/evidence/qa-20260425-131502/5.8/desktop.png, docs/dev/evidence/qa-20260425-131502/5.8/mobile.png\n\n**Acceptance**: matches BA spec line 236 — `card.right <= viewport.innerWidth` holds at both viewports; table can be wider than card because wrapper provides horizontal scroll. Behavior matches the production happy port.",
+  "section_6_entry": null,
+  "section_7_entry": null,
+  "qa_notes": "Browser viewport resize did not always stick (Playwright rendered desktop at 1920 actual width despite resize call) but the per-viewport measurements at the requested 390px on mobile were correctly captured by window.innerWidth and computed boundingClientRects. The structural finding is identical at both widths: a sole overflow-x:auto wrapper at depth 3 above the TABLE constrains horizontal scroll, and the card boundary stays inside the viewport. RN web renders the table as native <table> tags (TR/THEAD/TABLE) so document.querySelectorAll('table') initially returned [] when run from a context that traversed in a different order; the working approach was to find a leaf 'Path' text node and walk up its parents."
+}
