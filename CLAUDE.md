@@ -30,19 +30,7 @@ All data encrypted client-side before transmission. Server stores only encrypted
 
 ## Repository Structure
 
-```
-/root/happy/
-├── packages/
-│   ├── happy-server/    # Backend API (Fastify + Prisma + PostgreSQL)
-│   ├── happy-cli/       # CLI + Daemon (wraps Claude Code)
-│   ├── happy-app/       # React Native mobile + web UI (Expo SDK 54)
-│   ├── happy-wire/      # Shared protocol types & Zod schemas
-│   └── happy-agent/     # Standalone agent library (ACP compatible)
-├── Dockerfile           # Standalone happy-server (PGlite, no external deps)
-├── Dockerfile.server-slim  # Production happy-server (external PG/Redis/MinIO)
-├── Dockerfile.webapp    # Production happy-web (Expo web export -> nginx)
-└── docker-compose.yml   # Not used directly; see /root/deploy/docker-compose.yml
-```
+Monorepo layout mirrors `/root/happy`: packages `happy-server` (Fastify/Prisma/Postgres), `happy-cli` (daemon/CLI), `happy-app` (Expo web/mobile), `happy-wire` (protocol/Zod), `happy-agent` (ACP library); Dockerfiles: standalone server, server-slim, webapp; deployment compose lives in `/root/deploy/docker-compose.yml`.
 
 ## Shared Conventions
 
@@ -69,23 +57,7 @@ All Docker services managed via `/root/deploy/docker-compose.yml`.
 
 ### Deploy Commands
 
-```bash
-# Rebuild and deploy server
-cd /root/deploy && docker compose build happy-server && docker compose up -d happy-server
-
-# Rebuild and deploy web PRODUCTION (must build image manually, compose has no build: section)
-cd /root/happy && docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api.life-ai.app -t happy-app:message-fixes .
-cd /root/deploy && docker compose up -d happy-web
-
-# Rebuild and deploy web DEV (safe to do during dev-overnight, doesn't affect production)
-# Source: THIS repo (happy-dev or worktree) | Dockerfile: Dockerfile.webapp | URL: api-dev
-# NEVER build dev from /root/happy. NEVER use api.life-ai.app for dev.
-docker build -f Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev .
-cd /root/deploy && docker compose up -d happy-web-dev
-
-# CLI update (daemon auto-restarts on version mismatch via heartbeat)
-npm install -g happy-coder@latest
-```
+`bash scripts/deploy-services.sh <server|web-prod|web-dev|cli-latest>` — server/prod web still target production paths, while `web-dev` builds `happy-app:dev` from this happy-dev repo with `HAPPY_SERVER_URL=https://api-dev.life-ai.app` and restarts `happy-web-dev` in `/root/deploy`.
 
 ### Docker Image Tags
 
@@ -147,14 +119,7 @@ docker exec -it happy-postgres psql -U yuge -d happydb
 
 ### Key Derivation Chain
 
-```
-browser localStorage['auth_credentials'].secret (base64url masterSecret)
-  -> masterSecret (32 bytes)
-  -> deriveKey(masterSecret, 'Happy EnCoder', ['content'])  // HMAC-SHA512 tree
-  -> contentDataKey (32 bytes)
-  -> sodium.crypto_box_seed_keypair(contentDataKey)
-  -> contentKeyPair = { publicKey, privateKey }
-```
+Key derivation: browser `localStorage['auth_credentials'].secret` (base64url masterSecret) → HMAC-SHA512 tree `deriveKey(masterSecret, 'Happy EnCoder', ['content'])` → 32-byte contentDataKey → libsodium Curve25519 `contentKeyPair`.
 
 ### deriveKey Implementation
 
@@ -167,15 +132,7 @@ deriveKey(master, usage, path):
 
 ### access.key File Structure
 
-```json
-{
-  "encryption": {
-    "publicKey": "base64 Curve25519 box public key",
-    "machineKey": "base64 AES-256 key"
-  },
-  "token": "privacy-kit token (NOT standard JWT)"
-}
-```
+`access.key` schema: `encryption.publicKey` = base64 Curve25519 box public key, `encryption.machineKey` = base64 AES-256 key, `token` = privacy-kit token (NOT standard JWT).
 
 ### Key Source Files
 
@@ -246,30 +203,11 @@ happy claude [--resume UUID]
 
 ### Startup Flow
 
-```
-happy daemon start
-  -> daemon/run.ts:startDaemon()
-  -> acquire lock (~/.happy/daemon.lock)
-  -> authAndSetupMachineIfNeeded() -> read access.key -> encrypt machineKey -> write to server
-  -> connect WebSocket (apiMachine)
-  -> start HTTP control service (127.0.0.1:random port)
-  -> register RPC handlers (spawn-happy-session, stop-session)
-  -> write daemon.state.json { pid, httpPort, startTime, ... }
-  -> start heartbeat loop (every 60s)
-```
+Startup flow: `happy daemon start` → `daemon/run.ts:startDaemon()` → lock `~/.happy/daemon.lock` → read `access.key` + encrypt machineKey → connect `apiMachine` WebSocket → start localhost HTTP control service → register `spawn-happy-session`/`stop-session` RPCs → write `daemon.state.json` → heartbeat every 60s.
 
 ### daemon.state.json
 
-```json
-{
-  "pid": 12345,
-  "httpPort": 50097,
-  "startTime": "2026-03-19T10:00:00.000Z",
-  "startedWithCliVersion": "0.14.0",
-  "lastHeartbeat": "...",
-  "daemonLogPath": "/root/.happy-jade/logs/daemon.log"
-}
-```
+`daemon.state.json` stores `pid`, `httpPort`, `startTime`, `startedWithCliVersion`, `lastHeartbeat`, and `daemonLogPath` (example path `/root/.happy-jade/logs/daemon.log`).
 
 ### Triple Daemon Architecture
 
@@ -392,72 +330,14 @@ AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMH
 
 **IMPORTANT**: You must also set the server URL in MMKV, otherwise all API calls go to the wrong server (`api.cluster-fluster.com`).
 
-```javascript
-// 1. Navigate to the DEV app domain first (localStorage is domain-scoped) — NEVER use life-ai.app (production)
-await page.goto('https://dev.life-ai.app');
-
-// 2. Inject auth credentials AND server URL
-await page.evaluate(() => {
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
-    // Server URL in MMKV (id='server-config', NOT 'default')
-    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api-dev.life-ai.app');
-});
-
-// 3. Reload to trigger auth flow
-await page.reload();
-// App reads localStorage, derives keys, connects WebSocket to DEV API, shows dev sessions
-```
+`scripts/playwright-login-dev.js` — Playwright helper for `https://dev.life-ai.app`; injects `AUTH_CREDENTIALS_JSON` above and MMKV `server-config\custom-server-url=https://api-dev.life-ai.app`, then reloads so sessions come from the DEV API.
 
 #### Alternative: Generate Fresh Token for CLI access.key
 
 If you need to connect a daemon to an existing account (not browser):
 
-```bash
-# Step 1: Get masterSecret from browser
-# In DevTools: JSON.parse(localStorage.getItem('auth_credentials')).secret
+`bash scripts/generate-access-key-material.sh <masterSecret-base64url> <account-id>` — derives the base64 Curve25519 publicKey with libsodium and mints a privacy-kit token using the `handy` seed; it does not edit `access.key` or restart daemons. Full guide: `/root/docs/ACCOUNT-MIGRATION.md` Section 11.3
 
-# Step 2: Derive contentKeyPair.publicKey from masterSecret
-cd /root/happy && node << 'SCRIPT'
-const sodium = require('libsodium-wrappers');
-const crypto = require('crypto');
-const MASTER_SECRET_B64URL = 'YOUR_SECRET_HERE';  // <- replace
-
-function decodeBase64Url(str) {
-    let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    while (b64.length % 4 !== 0) b64 += '=';
-    return Buffer.from(b64, 'base64');
-}
-function hmacSha512(key, data) { return crypto.createHmac('sha512', key).update(data).digest(); }
-function deriveKey(master, usage, path) {
-    let I = hmacSha512(Buffer.from(usage + ' Master Seed'), master);
-    let state = { key: I.subarray(0, 32), chainCode: I.subarray(32) };
-    for (const index of path) {
-        I = hmacSha512(state.chainCode, Buffer.concat([Buffer.from([0x00]), Buffer.from(index, 'utf-8')]));
-        state = { key: I.subarray(0, 32), chainCode: I.subarray(32) };
-    }
-    return state.key;
-}
-(async () => {
-    await sodium.ready;
-    const masterSecret = decodeBase64Url(MASTER_SECRET_B64URL);
-    const contentDataKey = deriveKey(masterSecret, 'Happy EnCoder', ['content']);
-    const keypair = sodium.crypto_box_seed_keypair(contentDataKey);
-    console.log('publicKey (base64):', Buffer.from(keypair.publicKey).toString('base64'));
-})();
-SCRIPT
-
-# Step 3: Generate privacy-kit token
-docker exec happy-server node -e "
-const { createPersistentTokenGenerator } = require('privacy-kit');
-const gen = createPersistentTokenGenerator({ service: 'handy', seed: 'adocKlifsn8A09BTADtSPpb+F0F6Z9atZC5GciycNt0=' });
-console.log(gen.new({ user: 'YOUR_ACCOUNT_ID' }));
-"
-
-# Step 4: Update access.key with new publicKey and token
-# Step 5: Restart daemon -> auto re-encrypts machineKey with new publicKey
-```
-
-Full guide: `/root/docs/ACCOUNT-MIGRATION.md` Section 11.3
 
 ---
 
@@ -546,25 +426,7 @@ The `happy-dev` instance is dedicated for autonomous development and testing. Se
 
 **Problem**: `docker-compose.yml` hardcodes `build.context: /root/happy` for `happy-server-dev`. Worktree changes are NOT picked up by `docker compose build`. You MUST use `docker build` directly with the worktree path as context.
 
-**Frontend (happy-web-dev) — rebuild from worktree:**
-```bash
-# WORKTREE_PATH must be the absolute path to the overnight worktree
-docker build -f ${WORKTREE_PATH}/Dockerfile.webapp \
-  --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app \
-  -t happy-app:dev \
-  ${WORKTREE_PATH}
-
-cd /root/deploy && docker compose up -d happy-web-dev
-```
-
-**Backend (happy-server-dev) — rebuild from worktree:**
-```bash
-docker build -f ${WORKTREE_PATH}/Dockerfile.server-slim \
-  -t happy-server-dev:latest \
-  ${WORKTREE_PATH}
-
-cd /root/deploy && docker compose up -d happy-server-dev
-```
+**Frontend/backend from worktree**: `bash scripts/dev-overnight-build-deploy.sh <worktree-path> [frontend|backend|all]` — builds `happy-app:dev` with `HAPPY_SERVER_URL=https://api-dev.life-ai.app` and/or `happy-server-dev:latest` from the absolute worktree context, then restarts only `happy-web-dev`/`happy-server-dev`.
 
 **Rules:**
 - NEVER use `docker compose build` for dev services during overnight — it reads from `/root/happy` not the worktree
@@ -628,23 +490,14 @@ Hooks are **execution artifacts** — they are configuration that enforces rules
 
 ### Playwright Debug for Dev Web
 
+DEV_AUTH_CREDENTIALS_JSON='{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}'
+
 **CRITICAL**: The web app needs THREE localStorage entries to work properly:
 1. `auth_credentials` -- token + masterSecret for authentication and encryption
 2. `mmkv.server-config\custom-server-url` -- API server URL (without this, app defaults to `api.cluster-fluster.com` which is WRONG)
 3. Sessions must exist for machine cards to appear (empty account shows "Ready to code?" even if machine is online)
 
-```javascript
-// Complete Playwright login flow (all 3 entries required)
-await page.goto('https://dev.life-ai.app');
-await page.evaluate(() => {
-    // 1. Auth credentials (dev bot account)
-    localStorage.setItem('auth_credentials', '{"token":"eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJjbWk1bXY5ZWgwMHd6cGcxNHBoNzNqajNuIiwiaWF0IjoxNzczNDc4MzIwLCJuYmYiOjE3NzM0NzgzMjAsImlzcyI6ImhhbmR5IiwianRpIjoiOGE2MTRjNDAtMWVhNS00ZGRjLWFiYjgtYmI2NDdhZjNhNDVlIn0.qtK1jZFkprfJXyJ_DzuDX5yAXgUWVPzxRKLGdQSENueFC3u7xPwBT0Y9fsntDCJD5Q4eg2JZXMriqyBRx6lCBw","secret":"gWwKFlcU7I3OixXUE-aiUEEEZyzRCQSL583hd3WgALs"}');
-    // 2. Server URL (MMKV id='server-config', NOT 'default') — MUST be api-dev, NEVER api.life-ai.app (production)
-    localStorage.setItem('mmkv.server-config\\custom-server-url', 'https://api-dev.life-ai.app');
-});
-await page.reload();
-// App loads with dev account, connects to DEV API (14 sessions, not 1494 production sessions)
-```
+`scripts/playwright-login-dev.js` — Playwright helper for `https://dev.life-ai.app`; injects `DEV_AUTH_CREDENTIALS_JSON`, MMKV `server-config\custom-server-url=https://api-dev.life-ai.app` (never production API), then reloads.
 
 ### Web App Server URL Architecture
 
@@ -768,34 +621,16 @@ Machine cards are rendered as part of the session list, NOT independently. So a 
 
 ### Spawning a Test Session via Daemon HTTP
 
-```bash
-# Get dev daemon port
-DEV_PORT=$(python3 -c "import json; d=json.load(open('/root/.happy-dev/daemon.state.json')); print(d['httpPort'])")
-
-# Spawn a session (creates Claude process in /root/happy)
-curl -s -X POST "http://127.0.0.1:$DEV_PORT/spawn-session" \
-  -H "Content-Type: application/json" \
-  -d '{"directory": "/root/happy"}'
-```
+Use the dev web UI at https://dev.life-ai.app to create test sessions; do not create sessions through daemon HTTP/API helpers because the safety hook forbids code-created sessions.
 
 ## Critical Build & Recovery Rules (from 2026-03-26 postmortem)
 
 ### Build: ALWAYS from /root/happy, NEVER from /root/happy-dev
 
-```bash
-# CORRECT — production source
-cd /root/happy/packages/happy-cli && yarn build
-cd /root/happy && npm install -g .
-
-# WRONG — dev branch may have regressions from overnight worktrees
-cd /root/happy-dev/packages/happy-cli && yarn build  # NEVER DO THIS
-```
+`bash scripts/build-cli-production.sh` — builds `packages/happy-cli` and globally installs from `/root/happy` only; **NEVER** build/install from `/root/happy-dev` because dev worktrees can contaminate production binary.
 
 After every build, verify the `sendExisting` variable exists in the compiled output:
-```bash
-grep -c "sendExisting" /usr/lib/node_modules/happy-coder/dist/index-*.mjs
-# At least one file MUST return > 0. If all return 0, the build is broken.
-```
+`bash scripts/verify-cli-build.sh` — checks installed `happy-coder` for `sendExisting > 0`; fail if missing because resumed session history upload is broken.
 
 **Why**: `sendExisting` in `sessionScanner.ts` controls whether .jsonl history is uploaded to server on session resume. Without it, resumed sessions appear empty in the app. This was lost once when building from happy-dev where an overnight worktree commit (`1612a409`) rewrote the file without this parameter.
 
