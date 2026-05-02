@@ -1,0 +1,59 @@
+USER REQUIREMENT: Re-debate /close for cycle 20260429-192017 — confirm whether the now-implemented M-REWRITE.5 post-sed diff verifier in tests/lib/rewrite.sh satisfies BA spec line 202.
+SCOPE: Bugs that prevent or threaten satisfaction of M-REWRITE.5 (BA spec line 202: post-sed diff verifier asserting only named-line changes happened with body-line count equal to expected count). Workflow integrity bullets that block /close.
+OUT OF SCOPE: Adjacent threat models (e.g., GNU vs BSD diff portability is documented in BA L10), style preferences, hypothetical attacks, defensive hardening user did not request.
+
+CONTEXT: Cycle 20260429-192017 is a sandbox test harness for production scripts/deploy.sh + scripts/rollback.sh. The first /close debate (2026-04-30) returned CLOSE: NO with this single dissent (your verbatim words from Round 2 of the prior debate):
+
+> "CODEX: YES — your updated CLOSE: NO is correct. M-REWRITE.4 is weaker/orthogonal to M-REWRITE.5, not stronger: it proves the intended pre-sed patterns are uniquely present, but not that the resulting file changed only the intended hunks. Post-QA authorization for artifacts does not implicitly waive an explicit Must-Have unless the BA spec is revised or the user explicitly accepts the defect as deferred. The harness may be functionally adequate in practice, and the gap may be low-risk, but adequacy is not the same as satisfying all acceptance criteria. M-REWRITE.5 is materially significant because it detects accidental extra edits that M-REWRITE.4 and path scanning can miss. Therefore close requires implementing M-REWRITE.5 or formally demoting it, then re-running /close."
+
+WHAT CHANGED (verified by QA in this re-debate):
+
+1. tests/lib/rewrite.sh now has function verify_rewrite_diff(file, expected) at lines 51-61:
+```
+verify_rewrite_diff() {
+  local file="$1" expected="$2" actual
+  actual=$(diff -u "$file.orig" "$file" 2>/dev/null \
+    | awk '/^---/||/^\+\+\+/{next} /^[-+]/{c++} END{print c+0}' || true)
+  if [ "$actual" -ne "$expected" ]; then
+    echo "[REWRITE FAIL] $file: expected $expected diff body lines, got $actual (M-REWRITE.5)" >&2
+    diff -u "$file.orig" "$file" >&2 || true
+    return 2
+  fi
+  return 0
+}
+```
+The awk skips ---/+++ headers and counts only body lines starting with - or +.
+
+2. Line 145: verify_rewrite_diff "$dst" 14 invoked at end of rewrite_deploy_sh. Comment: M-REWRITE.5: 4 single-line subs (8 body lines) + 3 daemon-entry changes (6) = 14
+3. Line 223: verify_rewrite_diff "$dst" 18 invoked at end of rewrite_rollback_sh. Comment: M-REWRITE.5: 6 single-line subs (12 body lines) + 3 daemon-entry changes (6) = 18
+4. cp "$src" "$dst.orig" at lines 67 and 153 (pre-existing infrastructure).
+
+QA EVIDENCE JUST CAPTURED:
+a) bash tests/run-all.sh -> 24 PASS / 0 FAIL / 0 SETUP-FAIL / 0 SKIP / total 24 (26s).
+b) Empirical diff body counts: deploy=14 (matches), rollback=18 (matches).
+c) Mutation harness: injected 2 unrelated line replacements into rewritten deploy.sh -> verifier rejected with "expected 14 diff body lines, got 18". Same with rollback (1 injection -> "expected 18, got 20"). Verifier is not vacuous; it actively catches accidental wildcard substitutions.
+d) md5(scripts/deploy.sh)=60aef6b76891af97023b7592ead33082 unchanged. md5(scripts/rollback.sh)=d81003f557ee660af6874fbc9168a0a3 unchanged.
+
+ADVERSARIAL QUESTIONS:
+
+Q1 (PRIMARY): With this evidence, do you reverse your prior dissent? Is M-REWRITE.5 now SATISFIED per BA spec line 202?
+
+Q2: Subtle defects:
+   (a) Hardcoded counts 14 and 18 — band-aid pattern or acceptable invariant?
+   (b) awk filter /^---/||/^\+\+\+/{next} — safe regex generally?
+   (c) 2>/dev/null on diff — could it mask a real failure (.orig missing)?
+   (d) || true at end of awk pipeline — necessary for set -e or hides errors?
+
+Q3: Other acceptance gates — anything else to downgrade YES verdict on? With M-REWRITE.5 resolved, can the QA "warning" verdict be PASS-equivalent for /close consumption?
+
+Q4: Workflow Integrity — same 4 bullets:
+   (i) close-report exists from prior debate; this re-debate APPENDS new section per /close spec. Acceptable?
+   (ii) task-id chain consistent. PASS.
+   (iii) Pre-existing-defect rule no longer applies. PASS.
+   (iv) Self-deployability: /commit OK; Push N/A (Trap 11); no commit-channel bypass.
+   Concerns?
+
+Reply format (use the literal token VERDICT not CODEX to avoid downstream parsing collision):
+- VERDICT: YES (M-REWRITE.5 satisfied, no new dissent) — or
+- VERDICT: NO — with substantive objection naming the specific defect.
+- Plus 1-2 paragraphs of substantive justification covering Q1-Q4.

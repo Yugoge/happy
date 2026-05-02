@@ -1,0 +1,368 @@
+{
+  "request_id": "20260429-192017",
+  "task_id": "20260429-192017",
+  "timestamp": "2026-04-30T06:55:00+00:00",
+  "dev_report_path": "docs/dev/dev-report-20260429-192017.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [],
+    "files_created": [
+      "tests/run-all.sh",
+      "tests/lib/sandbox.sh",
+      "tests/lib/assert.sh",
+      "tests/lib/git-helpers.sh",
+      "tests/lib/daemon-mock.sh",
+      "tests/lib/rewrite.sh",
+      "tests/lib/path-scan.sh",
+      "tests/lib/static-audit.sh",
+      "tests/bin/npm",
+      "tests/bin/yarn",
+      "tests/bin/recovery-stub.sh",
+      "tests/scenarios/S01-deploy-happy-path.sh",
+      "tests/scenarios/S02-deploy-aborts-same-version.sh",
+      "tests/scenarios/S03-deploy-restores-protected-paths.sh",
+      "tests/scenarios/S03b-deploy-aborts-unreachable-dev-sha.sh",
+      "tests/scenarios/S04-deploy-aborts-wrong-cwd.sh",
+      "tests/scenarios/S05-deploy-aborts-dirty-tree.sh",
+      "tests/scenarios/S06-deploy-aborts-on-test-gate-failure.sh",
+      "tests/scenarios/S06b-deploy-aborts-on-frozen-lockfile-install-failure.sh",
+      "tests/scenarios/S07-deploy-aborts-on-install-failure-and-restores.sh",
+      "tests/scenarios/S08-deploy-no-tag-leak.sh",
+      "tests/scenarios/S09-deploy-push-fails-local-still-good.sh",
+      "tests/scenarios/S10-rollback-happy-path.sh",
+      "tests/scenarios/S11-rollback-aborts-same-version.sh",
+      "tests/scenarios/S11b-rollback-bad-argv-exits-2.sh",
+      "tests/scenarios/S12-rollback-aborts-partial-daemon-migration.sh",
+      "tests/scenarios/S12b-rollback-stale-daemon-emits-safe-daemon-restart-hint.sh",
+      "tests/scenarios/S13-rollback-safety-tag-collision-suffix.sh",
+      "tests/scenarios/S14-rollback-aborts-on-recovery-snapshot-fail.sh",
+      "tests/scenarios/S14b-rollback-aborts-on-install-failure-P2.sh",
+      "tests/scenarios/S15-rollback-aborts-on-active-merge.sh",
+      "tests/scenarios/S15b-rollback-aborts-on-unreachable-tag.sh",
+      "tests/scenarios/S15c-rollback-aborts-on-sensitive-untracked.sh",
+      "tests/scenarios/S16-rollback-fork-divergence-and-missing-fork-main.sh",
+      "tests/scenarios/S17-static-audit-no-network-no-shell-state.sh"
+    ],
+    "files_NOT_modified": [
+      "scripts/deploy.sh",
+      "scripts/rollback.sh"
+    ],
+    "verification_md5": {
+      "scripts/deploy.sh": "60aef6b76891af97023b7592ead33082",
+      "scripts/rollback.sh": "d81003f557ee660af6874fbc9168a0a3",
+      "verified_pre_and_post_session_match": true
+    },
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Phase 1 foundation: sandbox.sh + assert.sh + git-helpers.sh + daemon-mock.sh + rewrite.sh + path-scan.sh + bin/{npm,yarn,recovery-stub.sh} + run-all.sh + S01",
+        "type": "harness",
+        "files_created": [
+          "tests/lib/sandbox.sh",
+          "tests/lib/assert.sh",
+          "tests/lib/git-helpers.sh",
+          "tests/lib/daemon-mock.sh",
+          "tests/lib/rewrite.sh",
+          "tests/lib/path-scan.sh",
+          "tests/bin/npm",
+          "tests/bin/yarn",
+          "tests/bin/recovery-stub.sh",
+          "tests/run-all.sh",
+          "tests/scenarios/S01-deploy-happy-path.sh"
+        ],
+        "rationale": "BLOCKING gate per BA spec § Phase 1. AC1 self-check (bash tests/run-all.sh --filter S01) passes in <1s.",
+        "ac_satisfied": ["AC1"]
+      },
+      {
+        "id": 2,
+        "description": "Phase 2 deploy coverage: S02 same-version, S03 protected paths, S03b unreachable dev-SHA (Pass 2 #2), S04 wrong cwd, S05 dirty tree, S06 test-gate failure, S06b frozen-lockfile install fail (Pass 2 #1), S07 install fail+auto-rollback, S08 no tag leak, S09 push fails / local good",
+        "type": "scenarios",
+        "files_created": [
+          "tests/scenarios/S02-deploy-aborts-same-version.sh",
+          "tests/scenarios/S03-deploy-restores-protected-paths.sh",
+          "tests/scenarios/S03b-deploy-aborts-unreachable-dev-sha.sh",
+          "tests/scenarios/S04-deploy-aborts-wrong-cwd.sh",
+          "tests/scenarios/S05-deploy-aborts-dirty-tree.sh",
+          "tests/scenarios/S06-deploy-aborts-on-test-gate-failure.sh",
+          "tests/scenarios/S06b-deploy-aborts-on-frozen-lockfile-install-failure.sh",
+          "tests/scenarios/S07-deploy-aborts-on-install-failure-and-restores.sh",
+          "tests/scenarios/S08-deploy-no-tag-leak.sh",
+          "tests/scenarios/S09-deploy-push-fails-local-still-good.sh"
+        ],
+        "rationale": "BA spec § Phase 2 ship-partial set (full Phase 2 = 'all deploy critical findings covered' — codex Pass 3 #2 finding).",
+        "ac_satisfied": ["AC3 partial", "AC4"]
+      },
+      {
+        "id": 3,
+        "description": "Phase 3 rollback coverage: S10 happy, S11 same-version, S11b bad-argv exit 2 (Pass 2 #6), S12 partial-daemon-migration P3 systemctl, S12b SOP branch (Pass 2 #5), S13 safety-tag collision (deterministic via date stub), S14 recovery snapshot fail, S14b install fail P2 (Pass 2 #7), S15 active merge, S15b unreachable tag (Pass 2 #4), S15c sensitive untracked (Pass 2 #4), S16 fork-divergence variants A+B (Pass 2 #10), S17 static audit (S17.1-S17.11 incl. iter3 OBJ-3 helper exit-status sub-tests)",
+        "type": "scenarios",
+        "files_created": [
+          "tests/lib/static-audit.sh",
+          "tests/scenarios/S10-rollback-happy-path.sh",
+          "tests/scenarios/S11-rollback-aborts-same-version.sh",
+          "tests/scenarios/S11b-rollback-bad-argv-exits-2.sh",
+          "tests/scenarios/S12-rollback-aborts-partial-daemon-migration.sh",
+          "tests/scenarios/S12b-rollback-stale-daemon-emits-safe-daemon-restart-hint.sh",
+          "tests/scenarios/S13-rollback-safety-tag-collision-suffix.sh",
+          "tests/scenarios/S14-rollback-aborts-on-recovery-snapshot-fail.sh",
+          "tests/scenarios/S14b-rollback-aborts-on-install-failure-P2.sh",
+          "tests/scenarios/S15-rollback-aborts-on-active-merge.sh",
+          "tests/scenarios/S15b-rollback-aborts-on-unreachable-tag.sh",
+          "tests/scenarios/S15c-rollback-aborts-on-sensitive-untracked.sh",
+          "tests/scenarios/S16-rollback-fork-divergence-and-missing-fork-main.sh",
+          "tests/scenarios/S17-static-audit-no-network-no-shell-state.sh"
+        ],
+        "rationale": "BA spec § Phase 3. audit_no_executable() helper implements iter3 OBJ-3 fix (pipefail-safe via { ... || true; } + [ -r file ] precheck). S13 deterministically forces collision via in-sandbox date stub (codex iter3 global review Q4/Q5#4 fix).",
+        "ac_satisfied": ["AC3", "AC4", "AC6"]
+      }
+    ],
+    "scripts_created": [
+      {
+        "path": "tests/run-all.sh",
+        "purpose": "Single-entrypoint test runner",
+        "parameters": ["--list", "--filter <regex>", "--scenario <exact>", "--keep-sandbox", "--parallel"],
+        "usage": "bash tests/run-all.sh                  (run all)\nbash tests/run-all.sh --filter S01     (run only S01)\nbash tests/run-all.sh --list           (list scenarios)\nbash tests/run-all.sh --scenario S04-deploy-aborts-wrong-cwd  (exact name)\nKEEP_SANDBOX=1 bash tests/run-all.sh   (preserve sandbox dirs for debug)",
+        "exit_codes": {
+          "0": "All selected scenarios PASS",
+          "1": "At least one scenario FAILed (assertion failure)",
+          "2": "Harness setup failure: --filter zero-match, dependency missing, rewriter pattern mismatch, path-scan caught a leak"
+        }
+      }
+    ],
+    "scenarios_passed": 24,
+    "scenarios_failed": 0,
+    "total_runtime_seconds": 31,
+    "runtime_under_60s_target": true,
+    "ac_verification_matrix": [
+      {"ac": "AC1", "name": "Phase 1 self-check", "status": "PASS", "evidence": "bash tests/run-all.sh --filter S01 -> [PASS] S01-deploy-happy-path; total 1s"},
+      {"ac": "AC2", "name": "Path-scan defense", "status": "PASS", "evidence": "Manually appended `echo /root/leaked-path` to scratch deploy.sh; path_scan_rewritten flagged it as a survivor and returned exit 1 with `[PATHSCAN FAIL] /tmp/.../leaked.sh: leaked path(s) outside allowlist:` then `388:echo /root/leaked-path`"},
+      {"ac": "AC3", "name": "Full-suite green", "status": "PASS", "evidence": "bash tests/run-all.sh -> 24/24 PASS / 0 FAIL / total 31s; exit 0"},
+      {"ac": "AC4", "name": "Failure detection", "status": "PASS", "evidence": "Disabled deploy.sh:111-112 abort via awk in /tmp/ac4-broken/scripts/deploy.sh; ran S04 with REPO_ROOT=/tmp/ac4-broken; scenario FAILed with `wrong-cwd guard message: 'Must run from' not found in deploy.log` — proving harness exercises real gates"},
+      {"ac": "AC5", "name": "Sandbox isolation", "status": "PASS", "evidence": "scripts/deploy.sh + scripts/rollback.sh md5 unchanged before/after session (60aef6b... / d81003f...); /root/happy/ untouched; only tests/ tree + auto-regenerated INDEX.md/README.md siblings (doc-sync hook, not by dev) appear in git status"},
+      {"ac": "AC6", "name": "Codex consultation traceability", "status": "PASS", "evidence": "BA spec § Codex Consultation enumerates 28 iter1 + 5 iter2 + 5 iter3 findings with disposition; this dev report records 3 codex passes (Phase 1 review, S17 verification, global review) — see codex_consult below"}
+    ],
+    "scenario_coverage_matrix": {
+      "deploy_codex_findings_named_in_script_header": ["#1", "#2", "#3", "#5", "#8", "#9", "#11", "#14", "#15"],
+      "deploy_codex_findings_covered_by_scenarios": {
+        "#1 protected paths": ["S03"],
+        "#2 .gitattributes glob": ["S03"],
+        "#3 same-version trap": ["S02 (deploy)", "S11 (rollback symmetric)"],
+        "#5 wrong-cwd": ["S04"],
+        "#8 push-before-validate": ["S09"],
+        "#9 dirty tree": ["S05"],
+        "#10 dev-SHA reachability": ["S03b"],
+        "#11 --tags push": ["S08"],
+        "#14 yarn.lock untested / install fail": ["S06 (test gate)", "S06b (frozen-lockfile)", "S07 (install fail)"],
+        "#15 same-minute tag collision": ["S08 (no leak)", "S13 (rollback safety-tag collision)"]
+      },
+      "rollback_M_sections_covered": {
+        "M3 cwd guard": ["S15 (M3b active merge)"],
+        "M3b active-merge / detached HEAD / rebase": ["S15"],
+        "M4 unreachable tag": ["S15b"],
+        "M5 strict untracked policy": ["S15c"],
+        "M6 mandatory recovery snapshot": ["S14"],
+        "M8 same-version trap": ["S11"],
+        "M14 P2 (post-reset install fail)": ["S14b"],
+        "M14 P3 (daemon migration incomplete)": ["S12 (systemctl branch)", "S12b (SOP branch)"],
+        "M14b runtime test-and-degrade": ["S12 (SOP absent)", "S12b (SOP present)"],
+        "M15 no remote push + advisory": ["S16 variant A + B (fork divergence)"],
+        "M16 out-of-scope no-docker no-DB": ["S17.4", "S17.4b"],
+        "M17 no-network": ["S17.2", "S17.3", "S17.4", "S17.4b"],
+        "M19 exit code 2 distinct from 1": ["S11b"],
+        "S2 safety-tag collision": ["S13 (deterministic via date stub)"],
+        "AC16 daemon_restart_hint both branches": ["S12 + S12b + S17.7 (static)"]
+      },
+      "rollback_M_sections_NOT_explicitly_covered_by_scenarios": {
+        "_rationale": "BA spec § S17 + Phase 3 enumerated specific scenarios. The following M-sections are exercised INDIRECTLY by scenarios that pass through them but lack a dedicated mutation test. Documented per codex iter3 global review Q2 — flagged as in_scope_minor follow-up cycle items, not blockers (BA spec did not call them out as required scenarios).",
+        "M1 arity (zero-arg, two-arg)": "Only 1-arg invalid is exercised in S11b. Future cycle: S11c, S11d.",
+        "M2 lightweight-tag rejection": "Annotated-tag path covered by S10/S13/S14/etc; no scenario plants a lightweight tag and asserts rejection.",
+        "M7 capture-before-reset": "Captures are exercised by every successful rollback (S10/S12/S12b/S13/S14b) but order 'before reset' is not mutation-asserted.",
+        "M9 confirm decline before reset": "All scenarios feed `y`. Future cycle: S10b feeds `n` and asserts no-op.",
+        "M10 post-reset HEAD verification": "Exercised by every successful rollback but no scenario forges a verification mismatch.",
+        "M11 npm install ordering": "S10 asserts npm shim called once but does not mutation-prove 'after reset' ordering.",
+        "M12 absent daemon state during polling": "M-DAEMONMOCK.3 omit_daemon helper exists but no scenario invokes it for rollback.",
+        "M13 log writability + timestamp format": "Not exercised; scenarios always use writable /tmp.",
+        "M14 P0/P1 hint text": "P0 hint lines 100-107 not asserted; P1 hint not asserted in a happy path that aborts after snapshot.",
+        "S1 verbatim helper port from deploy.sh": "Not exercised; would require character-by-character comparison."
+      }
+    },
+    "blast_radius": [
+      {"modified": "tests/run-all.sh", "imported_by": ["(none — entry point)"]},
+      {"modified": "tests/lib/sandbox.sh", "imported_by": ["tests/run-all.sh", "all 24 scenarios"]},
+      {"modified": "tests/lib/assert.sh", "imported_by": ["tests/run-all.sh", "all 24 scenarios"]},
+      {"modified": "tests/lib/git-helpers.sh", "imported_by": ["tests/run-all.sh", "all 24 scenarios"]},
+      {"modified": "tests/lib/daemon-mock.sh", "imported_by": ["tests/run-all.sh", "all 24 scenarios"]},
+      {"modified": "tests/lib/rewrite.sh", "imported_by": ["tests/run-all.sh", "all 24 scenarios"]},
+      {"modified": "tests/lib/path-scan.sh", "imported_by": ["tests/run-all.sh", "all 24 scenarios"]},
+      {"modified": "tests/lib/static-audit.sh", "imported_by": ["tests/run-all.sh", "tests/scenarios/S17-*.sh"]},
+      {"modified": "tests/bin/npm", "imported_by": ["all scenarios via PATH shim — no source-text imports"]},
+      {"modified": "tests/bin/yarn", "imported_by": ["all scenarios via PATH shim"]},
+      {"modified": "tests/bin/recovery-stub.sh", "imported_by": ["all scenarios via rewriter substitution into RECOVERY_SCRIPT"]}
+    ],
+    "self_verification": {
+      "build": "pass",
+      "build_evidence": "bash -n clean for every shell file under tests/ (run-all.sh + 7 lib + 3 bin + 24 scenarios = 35 files)",
+      "shellcheck": "pass",
+      "shellcheck_evidence": "shellcheck -x -S warning clean for every shell file under tests/ (after fixing 2 unused-var warnings: PRE_ROLLBACK_HEAD in S10, GROUND_TRUTH_AHEAD in S16)",
+      "smoke_check": "pass",
+      "smoke_check_evidence": "bash tests/run-all.sh -> 24 PASS / 0 FAIL / 0 SETUP-FAIL / 0 SKIP / total 24 (31s); exit code 0; runtime under 60s target",
+      "ac1_runtime": "1s for --filter S01 (target was <10s)",
+      "ac3_runtime": "31s for full suite (target was <60s)",
+      "notes": "All hard contracts satisfied: scripts/deploy.sh + scripts/rollback.sh untouched (md5 verified); no real Docker/systemd/network/global-npm; no /root or /var or /usr touched outside operator-copy log strings (path-scan would have flagged any leak)."
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "ok",
+      "passes": [
+        {
+          "pass": 1,
+          "topic": "Phase 1 foundation review (sandbox/assert/git/rewrite/path-scan/runner/S01)",
+          "model": "gpt-5.5",
+          "reasoning_effort": "xhigh",
+          "transcript_path": "/root/.claude/projects/-dev-shm-dev-workspace-happy-dev/b82e6260-8892-49e2-8040-a77eebb0e66a/tool-results/bsq6k34df.txt",
+          "session_id": "019ddd0c-3ecb-7273-bfe9-096fdc15e473",
+          "key_findings": [
+            "Setup failures collapsed to FAIL exit 1 instead of harness-setup exit 2 (real bug)",
+            "S01 over-fed 3 confirms when only 1 needed (real bug — could mask new prompts)",
+            "Shim assertions too weak — needed exact ARGV/PWD assertions",
+            "Q1 abort allowlist OK but discriminator should reject command-substitution / chained commands (real bug — counterexamples possible)",
+            "Q2 awk block-replacement should add closing-brace assertion (in_scope_minor)",
+            "Q3 yarn.lock placeholder OK if shim short-circuits",
+            "Q4 copy shims is correct",
+            "Q5 extract setup_baseline_*_fixture invariant only — keep mutations local"
+          ],
+          "feedback_incorporated": "All 4 'must-fix' items addressed: (1) _run_one_scenario propagates exit 2 -> setup_fail_count -> runner exit 2; (2) S01 trimmed to single confirm; (3) shim ARGV/PWD assertions added to S01; (4) path-scan rewritten with awk discriminator that excludes lines containing $( or backticks. Plus: setup_baseline_deploy_fixture + setup_baseline_rollback_fixture extracted into git-helpers.sh."
+        },
+        {
+          "pass": 2,
+          "topic": "S17 static-audit / audit_no_executable helper verification",
+          "model": "gpt-5.5",
+          "reasoning_effort": "xhigh",
+          "transcript_path": "/root/.claude/projects/-dev-shm-dev-workspace-happy-dev/b82e6260-8892-49e2-8040-a77eebb0e66a/tool-results/bdt3qxf5a.txt",
+          "session_id": "019ddd26-8682-7a00-a6b0-ef539e0619c1",
+          "key_findings": [
+            "Q1 PASS: { grep -vE PATTERN || true; } correctly normalizes both grep exit 0 and grep exit 1 to outer 0",
+            "Q2 PASS with nuance: case_A_rc=$? AFTER $(audit_no_executable...) reliably captures the helper's exit code",
+            "Q3 PASS at runtime: shell-time token concatenation produces correct file content for grep",
+            "Q4 PASS for stated negative-control purpose (raw count = 3 catches accidental advisory removal)",
+            "Q5 in_scope_minor: M17 audit could also test prisma migrate / psql / pg_restore (added as S17.4b); audit regex is literal-only and doesn't catch `git -C ... push` (documented as L19)"
+          ],
+          "feedback_incorporated": "Added S17.4b for prisma migrate / psql / pg_restore audits. Added L19 to Known Coverage Limitations footer documenting the audit-regex literal-only limitation."
+        },
+        {
+          "pass": 3,
+          "topic": "Global review — coverage gaps + hard blockers",
+          "model": "gpt-5.5",
+          "reasoning_effort": "xhigh",
+          "transcript_path": "/root/.claude/projects/-dev-shm-dev-workspace-happy-dev/b82e6260-8892-49e2-8040-a77eebb0e66a/tool-results/b2hwbb9m2.txt",
+          "session_id": "019ddd2e-a55a-70c0-ac54-ce0fa6fe6560",
+          "key_findings": [
+            "Q1 deploy #1-#15 traceability inconsistent: deploy.sh header names #1/2/3/5/8/9/11/14/15 (9 findings, not 15). The '1-15' phrasing in some places is BA imprecision (out_of_scope for dev — cannot edit BA spec)",
+            "Q2 rollback M-section coverage incomplete: M1 zero/two-arg, M2 lightweight-tag, M7 ordering, M9 decline, M10 mismatch, M11 ordering, M12 absent-daemon, M13 log-writability, M14 P0/P1, S1 verbatim — all in_scope_minor follow-up (BA spec did not require these as scenarios)",
+            "Q3 awk block-replacement should assert closing-brace seen (in_scope_minor — added)",
+            "Q4 AC4 mutation detection has indirect gaps for M1/M9/M10/M13 + S2 (S13 was non-deterministic)",
+            "Q5 #1-#4 Hard blockers: (1) runner exits 0 with declared uncovered gates [REQUIREMENT WINS — BA spec § Known Coverage Limitations explicitly enumerates these as deferred follow-up]; (2) deploy #1-#15 traceability [BA spec text issue, not dev]; (3) M coverage incomplete [scope expansion beyond BA spec § Phase 3]; (4) S13 non-deterministic [REAL BUG — fixed]; (5) --list annotations broken [REAL BUG — fixed]"
+          ],
+          "feedback_incorporated": "Real bugs fixed: (a) S13 now deterministically forces collision via in-sandbox date stub; (b) --list annotation lookup now strips the suffix from the full scenario name; (c) rewriter awk block adds closing-brace seen assertion. Scope-expansion findings (Q1, Q2, Q4 partial) classified as in_scope_minor and documented in scenario_coverage_matrix.rollback_M_sections_NOT_explicitly_covered_by_scenarios — not blockers per BA spec § Phase 3 phasing and § Known Coverage Limitations."
+        }
+      ],
+      "feedback_summary": "3 codex passes, 19 substantive findings total. 7 in_scope_real_bug (all fixed: setup-fail propagation, S01 over-confirm, shim ARGV assertions, path-scan command-substitution rejection, S13 non-determinism, --list annotation, rewriter closing-brace). 7 in_scope_minor (4 incorporated: extract fixture helper, S17.4b DB-verb audit, L19 documentation, awk closing-brace; 3 documented as follow-up: rollback M-section gaps M1/M2/M7/M9/M10/M11/M12/M13/M14-P0-P1/S1). 5 out_of_scope (deploy #4/#6/#7/#12/#13 nonexistent in deploy.sh header; runner exits 0 with documented limitations is per BA spec design).",
+      "feedback_incorporated": "Per codex calling protocol Rule 4 (when in doubt the requirement wins), I prioritized BA spec § Phase 3 + § Known Coverage Limitations as authoritative scope. Real bugs fixed; scope-expansion documentation captured."
+    },
+    "git_rationale": {
+      "root_cause_commit": "N/A — new feature (W6 phase per BA spec § Prior Attempts)",
+      "why_issue_occurred": "Architect designed virtual-repo testing harness; W6 phase deferred from prior cycle. User directive '按照之前和codex的计划全面实施' invokes the deferred phase.",
+      "how_fix_addresses_root": "Implemented all 6 architect decisions (Q-A through Q-F) with the 11 BA-override adjustments per BA spec § codex_consult.passes[]. 24 scenarios cover all 9 explicitly-named codex findings in deploy.sh header + 11 M-section + AC16 + AC17 + S2 in rollback.sh."
+    },
+    "diff_stats": {
+      "files_changed": 35,
+      "lines_added": 3359,
+      "lines_removed": 0,
+      "new_symbols_introduced": [
+        "mk_sandbox", "cleanup_sandbox", "set_env",
+        "pass", "fail", "skip",
+        "assert_exit_code", "assert_log_contains", "assert_log_not_contains", "assert_file_eq", "assert_count", "assert_file_exists", "assert_file_absent", "assert_str_match", "assert_str_eq",
+        "init_bare_fork", "init_dev_clone", "init_prod_clone",
+        "seed_baseline", "commit_in_dev_clone", "bump_version_in_dev_clone", "bump_version_in_prod", "add_dev_file",
+        "push_dev_to_fork", "fetch_in_prod", "dev_head_sha", "prod_head_sha",
+        "assert_fork_tags_exact", "find_fork_tag_matching", "find_local_tag_matching",
+        "setup_baseline_deploy_fixture", "setup_baseline_rollback_fixture",
+        "pre_stage_daemon", "pre_stage_all_daemons", "omit_daemon",
+        "rewrite_deploy_sh", "rewrite_rollback_sh", "rewrite_both",
+        "path_scan_rewritten", "path_scan_or_die",
+        "audit_no_executable"
+      ],
+      "minimum_possible_lines_estimate": 3000,
+      "justification_for_overage": "BA spec required ~25 files / 1200-1800 lines. Final 35 files / 3359 lines includes: 24 scenario files (each ~80-150 lines including BDD-style comment headers, fixture authoring, multi-step deploy+rollback chains, and assertion blocks), 7 lib files (averaging 90 lines each), 3 PATH shims, 1 runner. The overage is dominated by (a) BA spec's iter1+iter2+iter3 expansion to 24 scenarios from architect's original 16; (b) S10+S11+S12+S12b+S13+S14+S14b+S15c+S16 each requiring 2-step deploy chains to produce real PRE_TAGs; (c) explanatory comments per BA spec contract C7 and codex iter3 review Q3 (in-line caveats for codex-flagged trade-offs). Each line is functional or directly traceable to a BA spec requirement; no boilerplate."
+    },
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "QA acceptance test: `bash tests/run-all.sh` MUST emit 24 PASS lines + exit 0 + total runtime < 60s. Spot-check: AC4 — break a production gate in a scratch copy (e.g., disable deploy.sh:111-112 abort via awk into /tmp/ac4-broken/scripts/deploy.sh), set REPO_ROOT=/tmp/ac4-broken, run S04, expect FAIL. Already verified by dev. Sandbox locations: /tmp/happy-test-XXXXXX (auto-cleaned unless KEEP_SANDBOX=1).",
+    "permissions_to_add": [
+      {
+        "section": "allow",
+        "pattern": "Bash(bash tests/run-all.sh:*)",
+        "reason": "Allow QA + future cycles to invoke the test harness without permission prompts"
+      }
+    ]
+  },
+  "blocking_issues": [],
+  "deferred_to_followup_cycle": [
+    {
+      "id": "M1-zero-two-arg",
+      "description": "S11c, S11d for rollback bad-argv variants (zero args; two args) — codex iter3 global review Q2",
+      "scope": "1 scenario file each, ~30 lines"
+    },
+    {
+      "id": "M2-lightweight-tag",
+      "description": "S15d for rollback rejection of lightweight tag — codex iter3 global review Q2",
+      "scope": "1 scenario file, ~50 lines"
+    },
+    {
+      "id": "M9-confirm-decline",
+      "description": "S10b: rollback decline-before-reset (operator types n) — codex iter3 global review Q2",
+      "scope": "1 scenario file, ~80 lines"
+    },
+    {
+      "id": "M10-post-reset-mismatch",
+      "description": "S10c: rollback post-reset HEAD verification mismatch fixture — codex iter3 global review Q2",
+      "scope": "1 scenario file, ~80 lines (requires synthesizing reset-failure mid-flight)"
+    },
+    {
+      "id": "M12-absent-daemon",
+      "description": "S12c: rollback with daemon home but no daemon.state.json — codex iter3 global review Q2 (omit_daemon helper exists, no scenario uses it)",
+      "scope": "1 scenario file, ~80 lines"
+    },
+    {
+      "id": "M13-log-writability",
+      "description": "S15d: rollback abort on non-writable log path — codex iter3 global review Q2",
+      "scope": "1 scenario file, ~40 lines"
+    },
+    {
+      "id": "M14-P0-P1-hints",
+      "description": "Strengthen S15/S14 to assert P0/P1 hint text verbatim — codex iter3 global review Q2",
+      "scope": "extend existing scenarios, ~10 lines each"
+    },
+    {
+      "id": "S1-verbatim-helper",
+      "description": "Static comparison test asserting log/abort/confirm bodies in rollback.sh match deploy.sh — codex iter3 global review Q2",
+      "scope": "extend S17, ~30 lines"
+    },
+    {
+      "id": "L1-L18-deploy-gaps",
+      "description": "Production-script gate gaps L1-L5 + L15-L18 from BA spec § Known Coverage Limitations (deploy bad-argv table, untracked-y-confirm, missing-remote, merge-failure, install-decline, recovery-script-missing, recovery-snapshot-fail, stale-daemons-y/n, missing-daemon.state)",
+      "scope": "9 scenario files, BA spec defers explicitly to follow-up"
+    },
+    {
+      "id": "tighter-audit-regex-L19",
+      "description": "audit_no_executable should catch `git -C ... push` and `git -c x=y fetch` forms — codex iter2 review Q5",
+      "scope": "extend pattern to `\\bgit\\b[^\\n]*\\b(push|fetch)\\b`, validate against current scripts (would need to verify no false-positive on existing log-call lines)"
+    }
+  ],
+  "recommendations": [
+    "After QA acceptance, follow-up cycle should land L1-L18 deploy-gap scenarios per BA spec Known Coverage Limitations. Estimated effort: 9 scenarios * ~80 lines = ~720 lines.",
+    "After QA, consider promoting tests/run-all.sh into CI (e.g., GitHub Actions matrix) — runtime <60s fits even tight CI budgets.",
+    "audit_no_executable regex tightening (L19) should land alongside any future cycle that adds a new git network-verb construct in deploy.sh / rollback.sh."
+  ]
+}

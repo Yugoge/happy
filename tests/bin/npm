@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# tests/bin/npm — M-NPMSHIM
+# Recording PATH shim. Records argv to NPM_SHIM_LOG; default exit 0.
+# Failure injection knobs:
+#   NPM_SHIM_FAIL=1                 - every call exits 1
+#   NPM_SHIM_FAIL_FIRST_N=<N>       - first N calls exit 1, then succeed (Pass 2 #11)
+#
+# IMPORTANT: NEVER actually invokes the system npm. The shim short-circuits
+# before reaching the bash-safety hook's grep on `npm install -g`. This is
+# the W2 isolation guarantee.
+
+set -u
+
+: "${NPM_SHIM_LOG:?NPM_SHIM_LOG must be set; harness sandbox.sh::set_env exports it}"
+
+echo "$(date -Iseconds) PWD=$PWD ARGV=$*" >> "$NPM_SHIM_LOG"
+
+if [ "${NPM_SHIM_FAIL:-0}" = "1" ]; then
+  echo "npm shim: NPM_SHIM_FAIL=1, exiting 1" >&2
+  exit 1
+fi
+
+if [ -n "${NPM_SHIM_FAIL_FIRST_N:-}" ]; then
+  counter_file="${NPM_SHIM_LOG}.counter"
+  n=$(cat "$counter_file" 2>/dev/null || echo 0)
+  n=$((n + 1))
+  echo "$n" > "$counter_file"
+  if [ "$n" -le "$NPM_SHIM_FAIL_FIRST_N" ]; then
+    echo "npm shim: NPM_SHIM_FAIL_FIRST_N=$NPM_SHIM_FAIL_FIRST_N call#=$n -> failing" >&2
+    exit 1
+  fi
+fi
+
+exit 0

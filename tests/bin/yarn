@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# tests/bin/yarn — M-YARNSHIM
+# Recording PATH shim. Records argv to YARN_SHIM_LOG; default exit 0.
+# Failure injection knobs:
+#   YARN_SHIM_FAIL=1     - every call exits 1
+#   YARN_TEST_FAIL=1     - exits 1 ONLY when argv contains 'test'
+#                          (lets install + build pass) - used by S06
+#   YARN_INSTALL_FAIL=1  - exits 1 ONLY when argv contains 'install'
+#                          (lets test + build pass) - used by S06b
+#   YARN_BUILD_FAIL=1    - exits 1 ONLY when argv contains 'build'
+
+set -u
+
+: "${YARN_SHIM_LOG:?YARN_SHIM_LOG must be set; harness sandbox.sh::set_env exports it}"
+
+echo "$(date -Iseconds) PWD=$PWD ARGV=$*" >> "$YARN_SHIM_LOG"
+
+if [ "${YARN_SHIM_FAIL:-0}" = "1" ]; then
+  echo "yarn shim: YARN_SHIM_FAIL=1, exiting 1" >&2
+  exit 1
+fi
+
+argv_str="$*"
+
+if [ "${YARN_TEST_FAIL:-0}" = "1" ] && [[ "$argv_str" == *test* ]]; then
+  echo "yarn shim: YARN_TEST_FAIL=1 + argv contains 'test' -> exiting 1" >&2
+  exit 1
+fi
+
+if [ "${YARN_INSTALL_FAIL:-0}" = "1" ] && [[ "$argv_str" == *install* ]]; then
+  echo "yarn shim: YARN_INSTALL_FAIL=1 + argv contains 'install' -> exiting 1" >&2
+  exit 1
+fi
+
+if [ "${YARN_BUILD_FAIL:-0}" = "1" ] && [[ "$argv_str" == *build* ]]; then
+  echo "yarn shim: YARN_BUILD_FAIL=1 + argv contains 'build' -> exiting 1" >&2
+  exit 1
+fi
+
+exit 0
