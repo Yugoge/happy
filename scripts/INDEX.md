@@ -1,18 +1,25 @@
 # scripts
 
-*Last updated: 2026-04-30T17:55:45Z*
-**Total entries**: 6
+*Last updated: 2026-05-07T17:52:54Z*
+**Total entries**: 13
 **Convention**: kebab
 
 ## Tree
 ```
 scripts/
+├── `build-cli-production.sh` - Build and globally install production happy-cli from /root/happy only.
+├── `deploy-services.sh` - happy-dev service deployment helper. Keeps the existing promotion deploy.sh separate.
 ├── `deploy.sh` - deploy.sh — Foolproof dev → prod patch promotion for happy monorepo
 ├── `DEPLOYMENT.md` - DEPLOYMENT.md — happy dev → prod patch promotion runbook
+├── `derive-content-public-key.js` - js file
+├── `dev-overnight-build-deploy.sh` - Build and deploy happy-dev frontend/backend directly from a worktree context.
+├── `generate-access-key-material.sh` - Derive content publicKey and mint a privacy-kit token for access.key material.
+├── `playwright-login-dev.js` - js file
 ├── `postinstall.cjs` - cjs file
 ├── `pretool-block-production.sh` - Hook: PreToolUse (mcp__playwright__browser_navigate, mcp__playwright__browser_run_code, WebFetch)
 ├── `release.cjs` - cjs file
-└── `rollback.sh` - rollback.sh — Symmetric companion to deploy.sh
+├── `rollback.sh` - rollback.sh — Symmetric companion to deploy.sh
+└── `verify-cli-build.sh` - Verify installed happy-coder binary after a CLI build.
 ```
 
 ---
