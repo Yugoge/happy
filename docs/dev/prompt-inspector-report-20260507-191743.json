@@ -1,0 +1,89 @@
+{
+  "task_id": "20260507-191743",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "filtering_contract": "tagged",
+  "changed_files": [
+    "/root/.claude/agents/ba.md",
+    "/root/.claude/agents/dev.md",
+    "/root/.claude/agents/qa.md"
+  ],
+  "out_of_jurisdiction_skipped": [
+    "/root/.claude/hooks/pretool-cp-state-write-guard.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/*.py",
+    "happy-dev workflow artifacts (.md/.json — workflow not prompt)"
+  ],
+  "scope_focus": "NEW 'cp-state lifecycle: SOP' block added in this cycle (~17-line table + PROHIBITED list + 5 op-step rules), audited against rules-not-stories.",
+  "findings": [
+    {
+      "file": "/root/.claude/agents/ba.md",
+      "introduced_in_diff": true,
+      "scope": "cp-state SOP block (lines 1161-1205 — 'cp-state lifecycle SOP' through 'Why this exists')",
+      "severity": "none",
+      "total_lines": 1326,
+      "verbose_lines": 0,
+      "verbosity_percentage": 0,
+      "verbose_sections": [],
+      "structural_audit": {
+        "subcommand_table_lines": 7,
+        "prohibited_clause_lines": 1,
+        "op_step_rules_lines": 4,
+        "bash_examples_lines": 14,
+        "rationale_one_liner": true,
+        "narrative_or_storytelling_detected": false
+      },
+      "verdict": "CONFORMS to rules-not-stories. The new SOP is structured as a 5-row subcommand table + PROHIBITED list + four terse on-entry/during/on-exit/non-spec rules. The minimal bash mark/waive example (~7 lines each) is operationally load-bearing, not tutorial fluff. The 'Why this exists' tail is a single-sentence rationale citing commit hashes, not narrative. The cross-role HARD RULE sub-block (lines 1199-1205, BA-only) adds ~5 lines of unconditional-rule statements + a 1-line escalation-path rule + a 1-sentence historical rationale citing cycle 'harness-bugfix-20260427' — borderline but qualifies as rule + brief justification, not story.",
+      "recommendation": "No action. New addition adheres to rules-not-stories. The cycle-name citation in cross-role rationale is the only borderline item; left in place because it pins the rule to a concrete past failure (audit-trail justification, not narrative)."
+    },
+    {
+      "file": "/root/.claude/agents/dev.md",
+      "introduced_in_diff": true,
+      "scope": "cp-state SOP block (lines 914-952)",
+      "severity": "none",
+      "total_lines": 952,
+      "verbose_lines": 0,
+      "verbosity_percentage": 0,
+      "verbose_sections": [],
+      "structural_audit": {
+        "subcommand_table_lines": 7,
+        "prohibited_clause_lines": 1,
+        "op_step_rules_lines": 4,
+        "bash_examples_lines": 14,
+        "rationale_one_liner": true,
+        "narrative_or_storytelling_detected": false
+      },
+      "verdict": "CONFORMS to rules-not-stories. Identical structural pattern to ba.md (sans cross-role sub-block). 5-row table + PROHIBITED + 4 terse rules + 1-sentence rationale citing commits 0ffc308 / 9d78786 / e086ccb. Bash blocks are the canonical mark/waive invocations — operational, not example-padding.",
+      "recommendation": "No action."
+    },
+    {
+      "file": "/root/.claude/agents/qa.md",
+      "introduced_in_diff": true,
+      "scope": "cp-state SOP block (lines 1727-1765)",
+      "severity": "none",
+      "total_lines": 1765,
+      "verbose_lines": 0,
+      "verbosity_percentage": 0,
+      "verbose_sections": [],
+      "structural_audit": {
+        "subcommand_table_lines": 7,
+        "prohibited_clause_lines": 1,
+        "op_step_rules_lines": 4,
+        "bash_examples_lines": 14,
+        "rationale_one_liner": true,
+        "narrative_or_storytelling_detected": false
+      },
+      "verdict": "CONFORMS to rules-not-stories. Same structural pattern as dev.md. No drift toward narrative form.",
+      "recommendation": "No action."
+    }
+  ],
+  "notes": "Audit limited to the NEW cp-state lifecycle SOP block per orchestrator instructions. The three agent files individually have pre-existing verbose sections (e.g., ba.md 'Tone, mission, GitHub-praise aspiration' ~48 lines, qa.md verdict-differentiation prose, dev.md Example Execution ~52 lines) but these are PRE-EXISTING (introduced_in_diff: false) and out of scope for this --changed-files cleanliness audit per AC-12.1 / Section 5.4 rule 3. The new SOP additions are uniform across all three files (table-driven, rule-form, ~38-42 lines including bash examples), well under the 50-line minor threshold, and contain zero Philosophy/Overview/Quality-Standards/Helper-Scripts narrative patterns. close.md may treat all three findings as NEW per AC-2.6 (b) NEW-positive marker rule (introduced_in_diff: true on every finding); zero blocking violations.",
+  "summary": {
+    "total_findings": 3,
+    "new_in_diff": 3,
+    "pre_existing_or_untagged": 0,
+    "blocking_violations": 0,
+    "advisory_only": 0,
+    "conform_to_rules_not_stories": 3,
+    "recommendation": "CLOSE eligible — no prompt-verbosity blockers in the cp-state SOP additions."
+  }
+}

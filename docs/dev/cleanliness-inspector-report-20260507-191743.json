@@ -1,0 +1,114 @@
+{
+  "task_id": "20260507-191743",
+  "inspector": "cleanliness-inspector",
+  "mode": "changed-files",
+  "filtering_contract": "tagged",
+  "timestamp": "2026-05-08T00:45:00Z",
+  "scope_note": "Diff-aware mode per AC-12.1 Mechanism (ii). Each file-level finding tagged with introduced_in_diff:true|false. close.md applies default-safe rule: untagged/null/unknown -> ignore.",
+  "changed_files": [
+    "/root/.claude/hooks/pretool-cp-state-write-guard.py",
+    "/root/.claude/agents/ba.md",
+    "/root/.claude/agents/dev.md",
+    "/root/.claude/agents/qa.md",
+    "/dev/shm/dev-workspace/dot-claude/tests/cp-state-bypass-test-20260507-191743.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/realpath_audit.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/run_ac1.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/run_ac1_v2.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/run_ac2.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/run_ac3.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/setup_fixtures.py",
+    "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/symlink_test.py",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260507-191743.md",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/context-20260507-191743.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260507-191743.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-qa-report-20260507-191743.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/qa-report-20260507-191743.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/completion-20260507-191743.md",
+    "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-ba.json",
+    "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-ba-2.json",
+    "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-dev.json"
+  ],
+  "findings": [
+    {
+      "category": "non_functional_files",
+      "file": "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-ba.json.lock",
+      "introduced_in_diff": false,
+      "severity": "minor",
+      "advisory": true,
+      "reason": "Empty .lock file present alongside cp-state-ba.json. Lock files are runtime artifacts produced by pretool-cp-checkin.py / spec-check.py — not part of this diff explicitly but co-located with new spec files. Confirmed unrelated to changed-files manifest, so flagged informationally only. No action required (locks are managed by tooling).",
+      "recommendation": "no_action"
+    },
+    {
+      "category": "non_functional_files",
+      "file": "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-ba-2.json.lock",
+      "introduced_in_diff": false,
+      "severity": "minor",
+      "advisory": true,
+      "reason": "Empty .lock file (runtime artifact from cp-checkin tooling). Not explicitly listed in --changed-files manifest, default-safe ignored.",
+      "recommendation": "no_action"
+    },
+    {
+      "category": "non_functional_files",
+      "file": "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-dev.json.lock",
+      "introduced_in_diff": false,
+      "severity": "minor",
+      "advisory": true,
+      "reason": "Empty .lock file (runtime artifact from cp-checkin tooling). Not explicitly listed in --changed-files manifest, default-safe ignored.",
+      "recommendation": "no_action"
+    }
+  ],
+  "passing_files": {
+    "hook_and_agents": {
+      "files": [
+        "/root/.claude/hooks/pretool-cp-state-write-guard.py",
+        "/root/.claude/agents/ba.md",
+        "/root/.claude/agents/dev.md",
+        "/root/.claude/agents/qa.md"
+      ],
+      "status": "clean",
+      "introduced_in_diff": true,
+      "reason": "Hook and agent docs in correct locations (~/.claude/hooks/, ~/.claude/agents/) per established convention. No misplacement, naming violation, or duplication."
+    },
+    "test_files_relocated": {
+      "files": [
+        "/dev/shm/dev-workspace/dot-claude/tests/cp-state-bypass-test-20260507-191743.py",
+        "/dev/shm/dev-workspace/dot-claude/tests/cycle1-baseline-20260507-142952/*.py"
+      ],
+      "status": "clean",
+      "introduced_in_diff": true,
+      "reason": "Test files correctly relocated FROM /tmp INTO /dev/shm/dev-workspace/dot-claude/tests/ — this is a cleanliness IMPROVEMENT not violation. The cp-state-bypass test follows test-<task-id>.py convention. The cycle1-baseline-<task-id>/ subdirectory groups related baseline scripts coherently. No misplacement, no temp/build artifacts, no orphan-test (functional regression coverage for cp-state hook)."
+    },
+    "workflow_artifacts": {
+      "files": [
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260507-191743.md",
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/context-20260507-191743.json",
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260507-191743.json",
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-qa-report-20260507-191743.json",
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/qa-report-20260507-191743.json",
+        "/dev/shm/dev-workspace/happy-dev/docs/dev/completion-20260507-191743.md"
+      ],
+      "status": "clean",
+      "introduced_in_diff": true,
+      "reason": "All six workflow artifacts conform to the established docs/dev/ naming convention (<role>-<kind>-<task-id>.{md,json}) — see existing siblings ba-qa-report-20260424-*, ba-spec-*, dev-report-*. Correctly placed in docs/dev/ (not project root). Active cycle (modified <7 days), so NOT archive candidates per Section 3 dev-context rules. Not duplicates."
+    },
+    "spec_cp_state_files": {
+      "files": [
+        "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-ba.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-ba-2.json",
+        "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-191743/cp-state-dev.json"
+      ],
+      "status": "clean",
+      "introduced_in_diff": true,
+      "reason": "cp-state JSON files correctly placed in .claude/specs/spec-<task-id>/ per /spec checkpoint contract. Naming follows cp-state-<role>[-<slot>].json convention. Active checkpoint state, not archivable."
+    }
+  },
+  "summary": {
+    "total_findings": 3,
+    "new_in_diff": 0,
+    "pre_existing_or_untagged": 3,
+    "blocking_findings": 0,
+    "advisory_findings": 3,
+    "verdict": "CLEAN"
+  },
+  "verdict_explanation": "All 21 files in the --changed-files manifest pass cleanliness inspection. The 3 advisory findings are pre-existing runtime .lock artifacts (introduced_in_diff:false) co-located with new cp-state files — managed by tooling, no action required. Test relocation from /tmp into dot-claude/tests/ is a cleanliness improvement. Workflow artifacts in docs/dev/ and cp-state files in .claude/specs/ both conform to established naming conventions. No misplaced docs, no duplicates, no temp files, no build artifacts, no evidence/working files leaked into the repo. Diff is clean for /close cleanliness gate."
+}
