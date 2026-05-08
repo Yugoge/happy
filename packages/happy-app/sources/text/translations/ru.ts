@@ -559,6 +559,9 @@ export const ru: TranslationStructure = {
             other: 'Другое',
             otherDescription: 'Введите свой ответ',
             otherPlaceholder: 'Введите ваш ответ...',
+        },
+        attachment: {
+            staleAdvisory: 'Повторите запрос в этой или новой сессии, чтобы увидеть встроенный предпросмотр.',
         }
     },
 

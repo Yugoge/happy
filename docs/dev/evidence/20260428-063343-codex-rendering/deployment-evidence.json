@@ -1,0 +1,15 @@
+{
+  "timestampUtc": "2026-04-28T13:49:00Z",
+  "repository": "/dev/shm/dev-workspace/happy-dev",
+  "service": "happy-web-dev",
+  "imageTag": "happy-app:dev",
+  "imageId": "sha256:33d0b8f6863e536fda2869c1ff7dfdc30c4506fc16cf987b080fbf52b635b351",
+  "imageCreated": "2026-04-28T13:42:23.732449384Z",
+  "containerImageId": "sha256:33d0b8f6863e536fda2869c1ff7dfdc30c4506fc16cf987b080fbf52b635b351",
+  "containerConfigImage": "happy-app:dev",
+  "containerStatus": "running 2026-04-28T13:48:41.380021506Z",
+  "imageIdsMatch": "YES",
+  "devWebUrl": "http://localhost:8097/",
+  "htmlServed": true,
+  "htmlHeadSample": "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta httpEquiv=\"X-UA-Compatible\" content=\"IE=edge\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1"
+}

@@ -362,6 +362,77 @@ describe('CodexAppServerClient sandbox integration', () => {
         await client.disconnect();
     });
 
+    it('forwards explicit input items when starting a turn', async () => {
+        const requests: MockRpcMessage[] = [];
+        const proc = createMockProcess({
+            pid: 2501,
+            onRequest: (msg, stdout) => {
+                requests.push(msg);
+
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: {
+                                    id: 'thread-input-items',
+                                    path: '/tmp/thread-input-items',
+                                },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                turn: {
+                                    id: 'turn-input-items',
+                                    items: [],
+                                    status: 'inProgress',
+                                    error: null,
+                                },
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const inputItems = [
+            { type: 'text' as const, text: 'see attached image' },
+            { type: 'localImage' as const, path: '/tmp/happy-attachments/image.png' },
+        ];
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+        await client.sendTurn('fallback prompt', { inputItems });
+
+        const turnRequest = requests.find((msg) => msg.method === 'turn/start');
+        expect(turnRequest?.params).toEqual(expect.objectContaining({
+            threadId: 'thread-input-items',
+            input: inputItems,
+        }));
+
+        await client.disconnect();
+    });
+
     it('maps raw item notifications into legacy events and deduplicates turn completion', async () => {
         const requests: MockRpcMessage[] = [];
         const proc = createMockProcess({
@@ -486,10 +557,158 @@ describe('CodexAppServerClient sandbox integration', () => {
 
         expect(events).toEqual(expect.arrayContaining([
             expect.objectContaining({ type: 'task_started', turn_id: 'turn-raw-1' }),
-            expect.objectContaining({ type: 'exec_command_begin', callId: 'call-1' }),
-            expect.objectContaining({ type: 'exec_command_end', callId: 'call-1', output: '/tmp/project\n' }),
-            expect.objectContaining({ type: 'agent_message', message: 'done' }),
+            expect.objectContaining({ type: 'exec_command_begin', callId: 'call-1', threadId: 'thread-raw-1', turnId: 'turn-raw-1' }),
+            expect.objectContaining({ type: 'exec_command_end', callId: 'call-1', output: '/tmp/project\n', threadId: 'thread-raw-1', turnId: 'turn-raw-1' }),
+            expect.objectContaining({ type: 'agent_message', message: 'done', threadId: 'thread-raw-1', turnId: 'turn-raw-1' }),
         ]));
+        expect(events.filter((event) => event.type === 'task_complete')).toHaveLength(1);
+
+        await client.disconnect();
+    });
+
+    it('keeps child final answers from completing the root turn', async () => {
+        let releaseRootCompletion!: () => void;
+        const rootCompletionAllowed = new Promise<void>((resolve) => {
+            releaseRootCompletion = resolve;
+        });
+        const proc = createMockProcess({
+            pid: 3007,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'root-thread', path: '/tmp/root-thread' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                turn: { id: 'root-turn', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'turn/started',
+                            params: {
+                                threadId: 'root-thread',
+                                turn: { id: 'root-turn', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: 'root-thread',
+                                turnId: 'root-turn',
+                                item: {
+                                    type: 'collabAgentToolCall',
+                                    id: 'spawn-1',
+                                    tool: 'spawnAgent',
+                                    prompt: 'inspect files',
+                                    senderThreadId: 'root-thread',
+                                    receiverThreadIds: ['child-thread'],
+                                    agentsStates: {},
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'child-thread',
+                                turnId: 'child-turn',
+                                item: {
+                                    type: 'agentMessage',
+                                    id: 'child-final',
+                                    text: 'child answer',
+                                    phase: 'final_answer',
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'root-thread',
+                                turnId: 'root-turn',
+                                item: {
+                                    type: 'collabAgentToolCall',
+                                    id: 'spawn-1',
+                                    tool: 'spawnAgent',
+                                    status: 'completed',
+                                    senderThreadId: 'root-thread',
+                                    receiverThreadIds: ['child-thread'],
+                                },
+                            },
+                        });
+                        rootCompletionAllowed.then(() => {
+                            pushJsonLine(stdout, {
+                                method: 'item/completed',
+                                params: {
+                                    threadId: 'root-thread',
+                                    turnId: 'root-turn',
+                                    item: {
+                                        type: 'agentMessage',
+                                        id: 'root-final',
+                                        text: 'root answer',
+                                        phase: 'final_answer',
+                                    },
+                                },
+                            });
+                        });
+                    }, 0);
+                }
+            },
+        });
+
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const events: Array<Record<string, unknown>> = [];
+        client.setEventHandler((msg) => {
+            events.push(msg as Record<string, unknown>);
+        });
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+
+        const turn = client.sendTurnAndWait('spawn helper');
+        await waitFor(() => events.some((event) => event.type === 'agent_message' && event.message === 'child answer'));
+        expect(events.filter((event) => event.type === 'task_complete')).toHaveLength(0);
+        expect(events).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                type: 'collab_agent_call_begin',
+                callId: 'spawn-1',
+                threadId: 'root-thread',
+                turnId: 'root-turn',
+                receiverThreadIds: ['child-thread'],
+            }),
+            expect.objectContaining({
+                type: 'agent_message',
+                message: 'child answer',
+                threadId: 'child-thread',
+                turnId: 'child-turn',
+                phase: 'final_answer',
+            }),
+        ]));
+
+        releaseRootCompletion();
+        await expect(turn).resolves.toEqual({ aborted: false });
         expect(events.filter((event) => event.type === 'task_complete')).toHaveLength(1);
 
         await client.disconnect();
@@ -705,6 +924,198 @@ describe('CodexAppServerClient sandbox integration', () => {
             },
             reason: null,
         }));
+
+        await client.disconnect();
+    });
+
+    it('routes MCP tool-call elicitations through the approval handler', async () => {
+        const writes: any[] = [];
+        const approvals: Array<Record<string, unknown>> = [];
+        const proc = createMockProcess({
+            pid: 3005,
+            onRequest: (msg, stdout) => {
+                writes.push(msg);
+
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-mcp-approval', path: '/tmp/thread-mcp' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'on-failure',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        client.setApprovalHandler(async (params) => {
+            approvals.push(params as Record<string, unknown>);
+            return 'approved';
+        });
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'on-failure',
+            sandbox: 'danger-full-access',
+        });
+
+        pushJsonLine(proc.stdout as NodeJS.ReadableStream & { push: (chunk: string) => void }, {
+            id: 0,
+            method: 'mcpServer/elicitation/request',
+            params: {
+                threadId: 'thread-mcp-approval',
+                turnId: 'turn-mcp-approval',
+                serverName: 'playwright',
+                mode: 'form',
+                _meta: {
+                    codex_approval_kind: 'mcp_tool_call',
+                    tool_description: 'List, create, close, or select a browser tab.',
+                    tool_params: { action: 'list' },
+                },
+                message: 'Allow the playwright MCP server to run tool "browser_tabs"?',
+                requestedSchema: { type: 'object', properties: {} },
+            },
+        });
+
+        await waitFor(() => approvals.length === 1);
+        await waitFor(() => writes.some((msg) => msg.id === 0 && msg.result));
+
+        expect(approvals[0]).toEqual(expect.objectContaining({
+            type: 'mcp_elicitation',
+            callId: 'mcp:playwright:0',
+            serverName: 'playwright',
+            toolName: 'browser_tabs',
+            toolDescription: 'List, create, close, or select a browser tab.',
+            toolArguments: { action: 'list' },
+            message: 'Allow the playwright MCP server to run tool "browser_tabs"?',
+        }));
+        expect(writes.find((msg) => msg.id === 0 && msg.result)?.result).toEqual({
+            action: 'accept',
+            content: {},
+            _meta: null,
+        });
+
+        await client.disconnect();
+    });
+
+    it('routes form-mode elicitations without codex_approval_kind through the approval handler (Playwright MCP shape variant)', async () => {
+        const writes: any[] = [];
+        const approvals: Array<Record<string, unknown>> = [];
+        const proc = createMockProcess({
+            pid: 3006,
+            onRequest: (msg) => {
+                writes.push(msg);
+            },
+        });
+
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        client.setApprovalHandler(async (params) => {
+            approvals.push(params as Record<string, unknown>);
+            return 'approved';
+        });
+
+        await client.connect();
+        pushJsonLine(proc.stdout as NodeJS.ReadableStream & { push: (chunk: string) => void }, {
+            id: 0,
+            method: 'mcpServer/elicitation/request',
+            params: {
+                threadId: 'thread-mcp-form-no-meta',
+                turnId: null,
+                serverName: 'playwright',
+                mode: 'form',
+                _meta: null,
+                message: 'Allow the playwright MCP server to run tool "browser_navigate"?',
+                requestedSchema: {
+                    type: 'object',
+                    properties: { answer: { type: 'string' } },
+                    required: ['answer'],
+                },
+            },
+        });
+
+        await waitFor(() => approvals.length === 1);
+        await waitFor(() => writes.some((msg) => msg.id === 0 && msg.result));
+
+        expect(approvals[0]).toEqual(expect.objectContaining({
+            type: 'mcp_elicitation',
+            serverName: 'playwright',
+            mode: 'form',
+            toolName: 'browser_navigate',
+        }));
+        expect(writes.find((msg) => msg.id === 0 && msg.result)?.result).toEqual({
+            action: 'accept',
+            content: {},
+            _meta: null,
+        });
+
+        await client.disconnect();
+    });
+
+    it('routes url-mode elicitations through the approval handler (Codex 0.125 url shape)', async () => {
+        const writes: any[] = [];
+        const approvals: Array<Record<string, unknown>> = [];
+        const proc = createMockProcess({
+            pid: 3007,
+            onRequest: (msg) => {
+                writes.push(msg);
+            },
+        });
+
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        client.setApprovalHandler(async (params) => {
+            approvals.push(params as Record<string, unknown>);
+            return 'denied';
+        });
+
+        await client.connect();
+        pushJsonLine(proc.stdout as NodeJS.ReadableStream & { push: (chunk: string) => void }, {
+            id: 0,
+            method: 'mcpServer/elicitation/request',
+            params: {
+                threadId: 'thread-mcp-url',
+                turnId: null,
+                serverName: 'playwright',
+                mode: 'url',
+                _meta: null,
+                message: 'Allow tool "browser_navigate" to open https://example.com?',
+                url: 'https://example.com',
+                elicitationId: 'elic-001',
+            },
+        });
+
+        await waitFor(() => approvals.length === 1);
+        await waitFor(() => writes.some((msg) => msg.id === 0 && msg.result));
+
+        expect(approvals[0]).toEqual(expect.objectContaining({
+            type: 'mcp_elicitation',
+            serverName: 'playwright',
+            mode: 'url',
+            toolName: 'browser_navigate',
+        }));
+        expect(writes.find((msg) => msg.id === 0 && msg.result)?.result).toEqual({
+            action: 'decline',
+            content: null,
+            _meta: null,
+        });
 
         await client.disconnect();
     });

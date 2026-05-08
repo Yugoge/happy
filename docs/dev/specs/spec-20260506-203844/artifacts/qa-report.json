@@ -1,0 +1,166 @@
+{
+  "request_id": "20260507-060647",
+  "task_id": "20260507-060647",
+  "timestamp": "2026-05-07T06:28:22Z",
+  "mode": "ba_validation",
+  "verdict": "fail",
+  "qa": {
+    "status": "fail",
+    "analysis_quality_validation": true,
+    "live_ui_verification_performed": false,
+    "live_ui_verification_skip_reason": "BA-validation mode explicitly instructed: do not perform live UI verification.",
+    "artifacts_read": [
+      "/dev/shm/dev-workspace/happy-dev/.claude/dev-registry/dev-20260507-055629/qa.json",
+      "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203844/cp-state-qa.json",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/ticket-20260507-060647.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/context-20260507-060647.json",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844/views/qa.md"
+    ],
+    "binding_user_acceptance_words_checked": [
+      "/dev 修复以上渲染问题",
+      "真正的图片内联预览",
+      "image_gen.imagegen",
+      "mcp__playwright__.browser_take_screenshot",
+      "functions.view_image",
+      "Patch/diff 渲染",
+      "apply_patch",
+      "子代理生命周期渲染",
+      "spawn_agent",
+      "wait_agent",
+      "close_agent",
+      "我只看到了这些和mcp。subagent显示有大问题，同时view image和update file也有重叠显示的问题",
+      "还有个问题就是subagent运行时使用后的工具好像会直接展示在主agent面板。你试试",
+      "好的我确认我看不到，但是你的三个subagent的command被分别展示到了不同的地方"
+    ],
+    "dimension_results": {
+      "evidence_quality": "fail",
+      "scope_alignment": "fail",
+      "investigation_completeness": "pass_with_objections",
+      "affected_file_accuracy": "pass_with_minor_objection",
+      "spec_text_vs_execution_drift": "fail"
+    },
+    "objections": [
+      {
+        "id": "OBJ-1",
+        "dimension": "evidence_quality",
+        "severity": "major",
+        "blocking": true,
+        "claim_under_review": "BA states that live Playwright inspection found 10 running subagent-control cards with durations 274.0s..518.0s and that fixture/fallback rows expose raw JSON.",
+        "where_ba_claims_it": [
+          "docs/dev/ticket-20260507-060647.md:12",
+          "docs/dev/ticket-20260507-060647.md:24-29",
+          "docs/dev/context-20260507-060647.json:113-121",
+          "docs/dev/context-20260507-060647.json:269-279"
+        ],
+        "evidence_seen_by_qa": "BA provides text assertions and code localization, but no saved Playwright snapshot, screenshot, DOM dump, console transcript, or trace artifact for the live UI measurement.",
+        "why_this_matters": "The claim is central to root cause and acceptance scope. In BA-validation mode QA was instructed not to perform live UI verification, so the BA artifact itself must carry reproducible browser evidence instead of asking downstream agents to trust BA's assertion.",
+        "required_ba_fix": "Attach or cite concrete live-evidence artifacts for the measured UI claims, e.g. a saved Playwright snapshot/screenshot path showing the running subagent cards and a fixture snapshot showing raw JSON fallback; otherwise downgrade the measurement wording to unverified and add a hard AC requiring QA to capture it."
+      },
+      {
+        "id": "OBJ-2",
+        "dimension": "scope_alignment",
+        "severity": "major",
+        "blocking": true,
+        "claim_under_review": "BA compresses Section 5.3K safety into generic dev-only/no-production restart wording.",
+        "where_ba_claims_it": [
+          "docs/dev/ticket-20260507-060647.md:87",
+          "docs/dev/ticket-20260507-060647.md:147-151",
+          "docs/dev/context-20260507-060647.json:156-157"
+        ],
+        "source_requirement": [
+          "docs/dev/specs/spec-20260506-203844.md:417-422"
+        ],
+        "gap": "The global spec explicitly requires: do not assume `/root/bin/safe-daemon-restart.sh` exists and verify scripts before citing them. BA's R9/AC5 covers dev-only endpoints and avoiding production restart paths, but omits an acceptance check for the specific safe-daemon script-existence failure that the user challenged.",
+        "required_ba_fix": "Add a distinct safety acceptance criterion: any restart/reload instruction must first verify the script/path exists in the current environment, must not name `/root/bin/safe-daemon-restart.sh` unless verified, and must preserve the no-production/full-restart rule."
+      },
+      {
+        "id": "OBJ-3",
+        "dimension": "spec_text_vs_execution_drift",
+        "severity": "major",
+        "blocking": true,
+        "claim_under_review": "The user/spec literal tool name is `mcp__playwright__.browser_take_screenshot`, while BA search/context and app renderer use normalized `mcp__playwright__browser_take_screenshot`.",
+        "where_ba_claims_it": [
+          "docs/dev/ticket-20260507-060647.md:33",
+          "docs/dev/ticket-20260507-060647.md:136-140",
+          "docs/dev/context-20260507-060647.json:281-283",
+          "docs/dev/context-20260507-060647.json:352-354"
+        ],
+        "source_requirement": [
+          "docs/dev/specs/spec-20260506-203844.md:346"
+        ],
+        "qa_verification_evidence": [
+          "packages/happy-app/sources/components/tools/views/_all.tsx:46 uses `mcp__playwright__browser_take_screenshot`",
+          "rg found no screenshot fixture row in packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"
+        ],
+        "gap": "The AC and search recipe do not explicitly define the dotted-tool-name to normalized-renderer-key mapping. A literal grep or fixture assertion against the user's dotted name can miss the code path, while a normalized-only search can look misaligned with the user's complaint.",
+        "required_ba_fix": "Add an explicit crosswalk in the BA spec and context: user-facing tool token `mcp__playwright__.browser_take_screenshot` maps to Happy renderer key `mcp__playwright__browser_take_screenshot`; require fixture/live matrix rows to record both names."
+      },
+      {
+        "id": "OBJ-4",
+        "dimension": "affected_file_accuracy",
+        "severity": "minor",
+        "blocking": false,
+        "claim_under_review": "Context JSON field `scope_expansion.all_occurrences` implies complete occurrence coverage.",
+        "where_ba_claims_it": [
+          "docs/dev/context-20260507-060647.json:281-305"
+        ],
+        "qa_verification_evidence": [
+          "rg found additional relevant hits: packages/happy-app/sources/components/tools/knownTools.tsx:961 (`web.search_query`), :1237 (`functions.write_stdin`), :1278 (`functions.request_user_input`), :1296 (`functions.list_mcp_resources`), :1328 (`functions.read_mcp_resource`).",
+          "docs/dev/ticket-20260507-060647.md:37 correctly says representative hits, but context JSON names the array `all_occurrences`."
+        ],
+        "gap": "The affected file list is broadly accurate, but the context field label overstates completeness and could cause dev to skip knownTools rows for Web/input/MCP/PT​Y fallback labels.",
+        "required_ba_fix": "Rename the context field to `representative_occurrences` or add the omitted knownTools occurrences to the list."
+      }
+    ],
+    "positive_findings": [
+      {
+        "dimension": "affected_file_accuracy",
+        "finding": "Core root-cause file references are accurate: sessionProtocolMapper lines 638-706 show collab-agent begin/end mapping and spawn end suppression; reducer lines 886-908 complete tools only on matching tool_use_id; ToolView lines 115-119 render elapsed duration for running tools."
+      },
+      {
+        "dimension": "scope_alignment",
+        "finding": "BA covers the main binding user-visible families: image inline preview, image_gen, browser screenshot, view_image, apply_patch/patch, spawn/wait/close subagent lifecycle, subagent child-tool leakage/default detail behavior, and view-image/update-file overlap."
+      },
+      {
+        "dimension": "investigation_completeness",
+        "finding": "BA includes a plausible component chain from CLI mapper through session protocol normalization, reducer matching, ToolView gating, specialized renderers, and fixture data."
+      }
+    ],
+    "summary": {
+      "verdict_reason": "FAIL: BA is broadly aligned and many file references are accurate, but the deliverables are not yet safe to hand to dev as-is because central live UI measurements lack attached browser evidence, Section 5.3K's specific safe-daemon/script-existence lesson is omitted from ACs, and the Playwright screenshot tool-name normalization drift is not documented.",
+      "release_recommendation": "reject_ba_deliverables_until_revised",
+      "required_next_action": "Revise BA spec/context to add browser evidence artifact citations, restore the omitted safe-daemon existence check as an AC, and add a dotted-to-normalized screenshot tool-name crosswalk."
+    },
+    "codex_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_dimensions": [
+      "evidence_quality",
+      "scope_alignment",
+      "spec_text_vs_execution_drift"
+    ],
+    "recommended_ba_updates": [
+      "Add saved Playwright/DOM evidence artifact paths for the live-measured subagent and fixture claims or mark them as unverified preconditions.",
+      "Add a safety AC requiring script/path existence verification before naming restart/reload commands, specifically covering `/root/bin/safe-daemon-restart.sh`.",
+      "Document `mcp__playwright__.browser_take_screenshot` -> `mcp__playwright__browser_take_screenshot` mapping in requirements, search pattern, and fixture matrix rows.",
+      "Correct `all_occurrences` to be truly complete or explicitly representative."
+    ]
+  },
+  "checkpoint_handling": {
+    "cp_state_file": "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203844/cp-state-qa.json",
+    "planned_actions": {
+      "cp-01": "waive: BA-validation mode forbids live UI measurement.",
+      "cp-02": "waive: BA-validation mode forbids live UI state verification.",
+      "cp-03": "waive: BA-validation mode forbids live desktop screenshot capture.",
+      "cp-04": "waive: BA-validation mode forbids live mobile screenshot capture.",
+      "cp-05": "done: QA used only local files/source inspection and no production endpoints or restart scripts."
+    }
+  }
+}

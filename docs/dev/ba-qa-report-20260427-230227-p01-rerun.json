@@ -1,0 +1,223 @@
+{
+  "request_id": "20260427-230227-p01-rerun",
+  "task_id": "20260427-230227-p01-rerun",
+  "timestamp": "2026-04-28T00:00:00Z",
+  "verdict": "fail",
+  "qa": {
+    "status": "fail",
+    "mode": "ba-validation-only",
+    "pipeline": "p01 / core-flow session surface gap",
+    "validated_artifacts": {
+      "ba_spec": "docs/dev/ba-spec-20260427-230227-p01.md",
+      "context": "docs/dev/context-20260427-230227-p01.json",
+      "global_spec_source": "docs/dev/specs/spec-20260424-084848.md Section 5"
+    },
+    "scope_controls_observed": {
+      "implementation_tested": false,
+      "build_attempted": false,
+      "deploy_attempted": false,
+      "browser_or_production_access_attempted": false,
+      "daemon_or_session_mutation_attempted": false,
+      "source_code_modified": false
+    },
+    "checkpoint_state": {
+      "registry_consulted": "/dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260427-019dd0f1/.claude/dev-registry/019dd0f1-dc85-70f0-9ca2-c789c3578c31/qa.json",
+      "cp_state_consulted": "/dev/shm/dev-workspace/happy-dev/.claude/worktrees/overnight-20260427-019dd0f1/.claude/specs/spec-20260424-084848/cp-state-qa.json",
+      "pending_mandatory_checkpoints": [],
+      "note": "cp-01 and cp-02 were already done; cp-03 through cp-05 were already waived with reasons. No pending checkpoint remained for this BA-validation run."
+    },
+    "overall_assessment": "The corrected BA artifact is materially better than a source/bundle fallback: it enumerates all §5.1-§5.18 rows, requires dev-only desktop and mobile evidence, demands screenshots or accessibility snapshots and console summaries, adds Codex-flavored evidence gates, and preserves the no-daemon-restart/no-production boundary. However, it still shrinks several authoritative Section 5 acceptance criteria into coarse row labels. Because the global spec is the highest authority, the BA artifact is not yet safe as a closure gate.",
+    "correction_summary_validation": [
+      {
+        "claim": "BA enumerates §5.1 through §5.18",
+        "result": "pass",
+        "evidence": "Route / Evidence Matrix contains rows for §5.1 through §5.18."
+      },
+      {
+        "claim": "Per-section surfaces and route/sample prerequisites are present",
+        "result": "warning",
+        "evidence": "Every row has a Surface and Route / target prerequisite column, but many prerequisites are generic rather than deterministic sample/card identifiers."
+      },
+      {
+        "claim": "Desktop and mobile requirements are present",
+        "result": "pass",
+        "evidence": "The BA spec states each row must be verified at desktop 1440x900 and mobile 390x844."
+      },
+      {
+        "claim": "Screenshot or accessibility snapshot requirements and console summaries are present",
+        "result": "pass",
+        "evidence": "The BA spec requires screenshot or accessibility snapshot path plus console-error summary for every PASS and FAIL."
+      },
+      {
+        "claim": "Codex-specific evidence gates are present",
+        "result": "warning",
+        "evidence": "False-PASS rules correctly forbid using Claude-tool evidence for Codex items, but §5.15 does not enumerate every individual Codex tool from the user spec."
+      },
+      {
+        "claim": "Sidebar/detail/renderer surfaces are included",
+        "result": "pass",
+        "evidence": "Affected flows include transcript rendering, tool inline cards, right-side detail panel, sidebar file/path/detail surfaces, markdown renderer, and Codex tool renderers."
+      },
+      {
+        "claim": "Failure classes are defined",
+        "result": "pass",
+        "evidence": "Acceptance Criteria require product, navigation, sample_missing, deferred_to_user, or documentation_gap classification."
+      },
+      {
+        "claim": "Work remains dev-only with no daemon restart",
+        "result": "pass",
+        "evidence": "Acceptance Criteria forbid production domain/port use and daemon restart/stop/signal/mutation; Notes require deferred_to_user for daemon-restart requirements."
+      }
+    ],
+    "objections": [
+      {
+        "id": "OBJ-1",
+        "severity": "critical",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:38",
+        "issue": "§5.17 markdown primitives are narrowed.",
+        "details": "Global §5.17 requires H1-H6, strikethrough, task lists, nested unordered lists, ordered lists, blockquote and nested blockquote, kbd handling, HTML entity decoding, and non-regression for bold/italic/code/links. The BA row only lists H2, H3, list, ordered list, quote, code, table, link, and emphasis.",
+        "recommendation": "Expand §5.17 into explicit primitive-level checks matching the global spec, including negative/raw-delimiter checks and no-regression checks."
+      },
+      {
+        "id": "OBJ-2",
+        "severity": "critical",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:23",
+        "issue": "§5.2 weakens the 'all 1M Claude variants' requirement.",
+        "details": "Global §5.2 requires every Claude 1M-context variant to display a correct non-degenerate percentage consistent with token usage. The corrected BA row says '[1m] or 1M model sessions with usage data if available', which permits sample absence and does not require all variants.",
+        "recommendation": "Require an inventory of all surfaced 1M model keys and evidence per key, or classify each missing key explicitly as sample_missing/documentation_gap with no PASS."
+      },
+      {
+        "id": "OBJ-3",
+        "severity": "major",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:22",
+        "issue": "§5.1 omits manual-only model-change verification.",
+        "details": "The global spec says the model changes only when the user manually changes it in the GUI. The BA row covers selected model text, status chip screenshot, and reload persistence, but not implicit changes after re-entry/reload/reconnect/app restart.",
+        "recommendation": "Add explicit assertions that non-manual events do not alter the per-session model."
+      },
+      {
+        "id": "OBJ-4",
+        "severity": "major",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:25-26",
+        "issue": "§5.4/§5.5 viewport and layout-state coverage is incomplete.",
+        "details": "Global §5.4/§5.5 require responsiveness across wide desktop, narrow desktop, tablet, mobile, sidebar collapse/expand, split view, and inspector/detail toggles; §5.5 specifically references a second non-adaptive case. The BA matrix only requires desktop and mobile session routes.",
+        "recommendation": "Add narrow desktop/tablet and right-sidebar/TodoList/detail-open states, or explicitly classify missing states."
+      },
+      {
+        "id": "OBJ-5",
+        "severity": "critical",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:36",
+        "issue": "§5.15 does not enumerate the user-listed Codex tool inventory.",
+        "details": "Global §5.15 lists individual tools across web/realtime, local engineering, subagent/delegation, and plugin/parallel categories. The BA row says 'each Codex tool category present', which can false-pass one sample per category instead of every listed tool.",
+        "recommendation": "Add a tool-by-tool evidence matrix covering every named web.*, functions.*, subagent, tool_suggest, and multi_tool_use.parallel item."
+      },
+      {
+        "id": "OBJ-6",
+        "severity": "major",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:20-39",
+        "issue": "Route and sample prerequisites are not deterministic enough for closure.",
+        "details": "Rows use phrases such as 'existing dev session', 'if available', 'sample', or 'evidence' without requiring a concrete route pattern, session id, message id, tool-call id, or card identifier before PASS.",
+        "recommendation": "Require stable route plus sample/card/message/tool identifiers for every row. If no sample exists, classify sample_missing and fail that row rather than allowing PASS."
+      },
+      {
+        "id": "OBJ-7",
+        "severity": "major",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:31",
+        "issue": "§5.10 deferral is under-specified.",
+        "details": "Global §5.10 requires proactive reconnect and causal ordering. The BA row allows deferred_to_user if daemon restart/live daemon change is required, but does not require existing-log/order evidence before deferral and does not define what evidence would prove causal ordering without daemon mutation.",
+        "recommendation": "Define a non-mutating evidence path, and require deferral to include the exact blocked precondition and user-owned restart/request boundary."
+      }
+    ],
+    "success_criteria_results": [
+      {
+        "criterion": "Each §5.1-§5.18 row has desktop and mobile evidence artifact paths.",
+        "status": "pass",
+        "details": "The corrected BA spec requires both viewports and artifact paths for future QA evidence."
+      },
+      {
+        "criterion": "Every Codex row is verified with Codex-flavored evidence, not Claude-only evidence.",
+        "status": "warning",
+        "details": "The false-PASS rule exists, but §5.15 must enumerate every individual Codex tool to prevent category-level false-pass."
+      },
+      {
+        "criterion": "Every PASS includes route, sample/card id, viewport, screenshot/snapshot, and console summary.",
+        "status": "fail",
+        "details": "The BA spec requires these fields in principle but does not force concrete sample/card identifiers per row and still uses non-deterministic prerequisites."
+      },
+      {
+        "criterion": "Failures are classified as product, navigation, sample_missing, deferred_to_user, or documentation_gap.",
+        "status": "pass",
+        "details": "The failure taxonomy is explicitly required."
+      }
+    ],
+    "root_cause_verification": {
+      "addressed": false,
+      "confidence": "high",
+      "rationale": "The route/sample evidence-contract gap is partially addressed, but generic prerequisites and narrowed global acceptance criteria still permit false PASS outcomes."
+    },
+    "all_findings": [
+      {
+        "severity": "critical",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:38",
+        "issue": "Global §5.17 markdown acceptance criteria are missing from the BA matrix.",
+        "recommendation": "Expand §5.17 to all primitives named in the global spec.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:23",
+        "issue": "Global §5.2 all-1M-model coverage is weakened by 'if available'.",
+        "recommendation": "Require per-1M-variant evidence or explicit sample_missing failures.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "docs/dev/ba-spec-20260427-230227-p01.md:36",
+        "issue": "Global §5.15 individual Codex tool coverage can false-pass at category level.",
+        "recommendation": "Replace category-level language with a named tool inventory and evidence row per tool.",
+        "blocks_release": true
+      }
+    ],
+    "summary": {
+      "critical_issues": 3,
+      "major_issues": 4,
+      "minor_issues": 0,
+      "total_findings": 7,
+      "release_recommendation": "reject"
+    },
+    "self_verification": {
+      "claims_total": 12,
+      "claims_with_evidence": 12,
+      "claims_superficial": 0,
+      "confidence": "high",
+      "notes": "This was BA-validation only. Evidence consists of the corrected BA spec, corrected context JSON, and global spec Section 5 excerpt; no implementation verification was in scope."
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "failed_parse",
+      "feedback_summary": "Codex Skill invocation was not available in this runtime; attempts to inspect/use the local codex skill path were blocked by the orchestrator Bash streak gate before any Codex feedback could be obtained.",
+      "feedback_incorporated": "Self-review substituted. Adversarial checks asked whether the BA spec covered every global §5 item, whether category-level Codex evidence could false-pass, whether sample_missing was hard-fail, whether mobile-only/desktop-only evidence was blocked, and whether daemon/prod boundaries were preserved."
+    },
+    "process_notes": {
+      "hook_rejections_reported": [
+        {
+          "command": "python3 - <<'PY' ... base.rglob('*spec-20260424-084848*') ... PY",
+          "hook_output": "[Orchestrator Gate] BLOCKED: Bash used consecutively beyond limit (4/3). Delegate to a subagent (Agent tool) or ask the user to run /do to unlock."
+        },
+        {
+          "command": "sed -n '1,220p' /root/.agents/skills/claude-codex/SKILL.md",
+          "hook_output": "[Orchestrator Gate] BLOCKED: Bash used consecutively beyond limit (4/3 and later 5/3). Delegate to a subagent (Agent tool) or ask the user to run /do to unlock."
+        }
+      ]
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_criteria": [
+      "Full global §5.17 primitive coverage",
+      "Full global §5.2 all-1M-model coverage",
+      "Full global §5.15 per-tool Codex coverage",
+      "Deterministic route/sample/card identifiers for every row"
+    ],
+    "recommended_approach": "Revise the BA matrix to preserve every global Section 5 acceptance point verbatim or as a one-to-one checklist item. Avoid category-level or if-available wording for PASS paths; use explicit sample_missing/documentation_gap failures when evidence cannot be obtained."
+  }
+}

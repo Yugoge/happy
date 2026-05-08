@@ -1,0 +1,192 @@
+{
+  "role": "architect",
+  "timestamp": "2026-04-28T21:55:00Z",
+  "session_id": "dev-20260428-215017",
+  "scope": "Code-only architecture review of codex vs claude session registration into the recovery pipeline. Runtime browser analysis intentionally skipped: defect lives in CLI/daemon process boundary (HTTP webhook + bash script), not in any web-app surface. Hook policy forbids reading session_dirs.txt and executing happy-session-recovery.sh, so all evidence comes from source code inspection of happy-cli (worktree) and Grep against the recovery script (read access only).",
+
+  "app_understanding": {
+    "e2e_flow_executed": false,
+    "flow_steps_completed": 0,
+    "flow_completed_successfully": false,
+    "errors_during_flow": [],
+    "flow_evidence": [],
+    "app_not_running": false,
+    "skip_reason": "Defect is in non-UI subsystem: daemon HTTP /list endpoint and recovery script enumeration. No browser-observable surface exists for this code path."
+  },
+
+  "live_testing": {
+    "performed": false,
+    "url": null,
+    "pages_visited": 0,
+    "console_errors_found": 0,
+    "network_failures_found": 0,
+    "slow_requests": 0,
+    "runtime_metrics": {
+      "avg_dom_size": 0,
+      "pages_with_js_errors": []
+    },
+    "skip_reason": "see scope.skip_reason"
+  },
+
+  "quality_gate_results": {
+    "all_gates_passed": false,
+    "gate_failure_justification": "Runtime browser gates (console_errors_checked, pages_visited, runtime_metrics_collected, bundle_size_checked, performance_benchmarked) are inapplicable to a CLI/daemon-layer defect. The five non-UI gates (code_files_reviewed, security_patterns_checked, network_requests_analyzed-as-protocol-review) are satisfied via source inspection.",
+    "gate_details": {
+      "console_errors_checked": {"required": true, "actual": false, "passed": false, "note": "Not applicable - no UI surface"},
+      "network_requests_analyzed": {"required": true, "actual": true, "passed": true, "note": "Analyzed daemon HTTP /list endpoint contract and webhook contract via source review"},
+      "pages_visited": {"required": 5, "actual": 0, "passed": false, "note": "Not applicable - no UI surface"},
+      "code_files_reviewed": {"required": 10, "actual": 12, "passed": true, "note": "happy-cli/src/{daemon/run.ts, daemon/controlServer.ts, daemon/controlClient.ts, daemon/types.ts, claude/runClaude.ts, claude/session.ts, codex/runCodex.ts, codex/cliArgs.ts, codex/resumeExistingThread.ts, api/types.ts, modules/common/registerCommonHandlers.ts, resume/handleResumeCommand.ts} + Grep on /root/bin/happy-session-recovery.sh"},
+      "runtime_metrics_collected": {"required": true, "actual": false, "passed": false, "note": "Not applicable"},
+      "bundle_size_checked": {"required": true, "actual": false, "passed": false, "note": "Not applicable - no web bundle involved"},
+      "security_patterns_checked": {"required": true, "actual": true, "passed": true, "note": "Daemon HTTP /list and /session-started endpoints bind 127.0.0.1 only; no auth bypass surface introduced by the recommended fix"},
+      "performance_benchmarked": {"required": true, "actual": false, "passed": false, "note": "Not applicable"}
+    }
+  },
+
+  "runtime_findings": [],
+
+  "answers_to_pm_questions": {
+    "claude_registration_path": {
+      "primary_writer": null,
+      "registration_layer_explanation": "happy-cli does NOT directly write to ~/.happy*/session_dirs.txt. Registration is INDIRECT: claude session updates daemon-side TrackedSession.happySessionMetadataFromLocalWebhook.claudeSessionId via HTTP webhook, then the external recovery script polls daemon's HTTP /list endpoint and writes session_dirs.txt itself.",
+      "claude_registration_chain": [
+        {"step": 1, "file_line": "packages/happy-cli/src/claude/runClaude.ts:219", "action": "Initial webhook: notifyDaemonSessionStarted(response.id, metadata) - metadata at this point lacks claudeSessionId because Claude has not started yet"},
+        {"step": 2, "file_line": "packages/happy-cli/src/claude/session.ts:112-124", "action": "Session.onSessionFound(sessionId): triggered by the SessionStart hook (CLAUDE-injected hook fires when Claude spawns/resumes). Updates session metadata with claudeSessionId AND re-calls notifyDaemonSessionStarted with updated metadata"},
+        {"step": 3, "file_line": "packages/happy-cli/src/daemon/controlServer.ts:38-57 -> packages/happy-cli/src/daemon/run.ts:169-208 (onHappySessionWebhook)", "action": "Daemon receives second webhook, looks up TrackedSession by hostPid, sets happySessionMetadataFromLocalWebhook = sessionMetadata (now containing claudeSessionId)"},
+        {"step": 4, "file_line": "packages/happy-cli/src/daemon/controlServer.ts:73-86", "action": "Daemon /list endpoint exposes child.happySessionMetadataFromLocalWebhook?.claudeSessionId in response payload"},
+        {"step": 5, "file_line": "/root/bin/happy-session-recovery.sh:124,149", "action": "Recovery script POSTs to http://127.0.0.1:$port/list, parses JSON, extracts claudeSessionId from each child entry, then writes results into session_dirs.txt via the script's save/snapshot path"}
+      ],
+      "trigger_condition": "SessionStart hook fired by Claude Code on session spawn or resume (re-fires on /compact, --continue, --resume) - this is what propagates the real claudeSessionId into the daemon and thereby into the recovery snapshot. The initial spawn-time webhook alone is insufficient because at spawn time the claudeSessionId field of the metadata is undefined."
+    },
+
+    "codex_registration_gap": {
+      "missing_hook_locations": [
+        {"file_line": "packages/happy-cli/src/codex/runCodex.ts:710-713", "current_behavior": "On thread start (first turn), session.updateMetadata writes codexThreadId into the API-side encrypted metadata only. NO call to notifyDaemonSessionStarted to push codexThreadId into the daemon's TrackedSession."},
+        {"file_line": "packages/happy-cli/src/codex/resumeExistingThread.ts:35-38", "current_behavior": "On --resume, session.updateMetadata writes codexThreadId. NO call to notifyDaemonSessionStarted."},
+        {"file_line": "packages/happy-cli/src/codex/runCodex.ts:216", "current_behavior": "Initial spawn-time notifyDaemonSessionStarted call is symmetric with claude (runClaude.ts:219), but at this moment the metadata has no codexThreadId because the CodexAppServerClient thread is started lazily on the first user turn (line 702-714). So the daemon's TrackedSession is created with empty codexThreadId and is never updated."},
+        {"file_line": "packages/happy-cli/src/daemon/controlServer.ts:67,82", "current_behavior": "Daemon /list response schema only declares claudeSessionId as an optional output field. Even if the daemon's TrackedSession contained codexThreadId, the /list endpoint would not surface it to the recovery script."}
+      ],
+      "architectural_origin": "Oversight from cycle 2 codex protocol activation (commit 4381eaf5) and v2 wire format (12b45fb3). The codex command path was modeled on runClaude.ts for the spawn-time webhook (codex/runCodex.ts:212-225 mirrors claude/runClaude.ts:216-227) but the second-stage 'session-found' callback was not ported. Claude's second webhook is driven by an external hook system (SessionStart hook in /root/.claude) that Codex does not have an equivalent for - codex's thread id is internal to CodexAppServerClient. The cycle that introduced --resume support for codex (b611054b) added codexThreadId to the API metadata but did not extend the daemon HTTP webhook path. This is an oversight, not a deliberate design decision.",
+      "evidence_of_oversight": [
+        "API metadata schema (packages/happy-cli/src/api/types.ts:283-284) declares both claudeSessionId AND codexThreadId as siblings, indicating the design intent was symmetric.",
+        "Recovery script (lines 759-766) is ALREADY codex-aware on the spawn side: it branches on flavor, builds 'codex --resume <id>' invocation, recognizes the 019d-prefixed thread-id format. The asymmetry is purely on the registration/enumeration side, not the restore side.",
+        "TrackedSession struct (packages/happy-cli/src/daemon/types.ts:11-22) stores the entire Metadata blob in happySessionMetadataFromLocalWebhook, so codexThreadId would naturally flow through if codex re-notified the daemon. The plumbing already exists; only the call site is missing."
+      ]
+    },
+
+    "codex_resume_feasibility": {
+      "verdict": "yes",
+      "evidence": [
+        "happy codex --resume <threadId> CLI argument parser exists at packages/happy-cli/src/codex/cliArgs.ts:1-44 (extractCodexResumeFlag).",
+        "Argument flows index.ts:135 -> runCodex({resumeThreadId}) -> runCodex.ts:650-660 -> resumeExistingThread({client, session, threadId, cwd, mcpServers}).",
+        "resumeExistingThread.ts:29-33 calls client.resumeThread which invokes CodexAppServerClient.resumeThread (codexAppServerClient.ts:815-852). This re-establishes the codex app-server thread state with the original threadId preserved (line 842: this._threadId = result.thread.id).",
+        "Existing test at codex/resumeExistingThread.test.ts:9-43 confirms the metadata roundtrip works.",
+        "Recovery script already invokes the correct restore command at /root/bin/happy-session-recovery.sh:759-761 ('codex --started-by daemon --resume <thread-id>'). It even detects codex thread-id format automatically via is_codex_thread_id() (line 710) when --flavor is not explicit."
+      ],
+      "caveat": "Codex resume preserves the codex-app-server-side thread state but, like claude --resume, does NOT bind to the same happy session UUID - a new happy session row is created. This is symmetric with claude's behavior (claude --resume also creates a new session ID per CLAUDE.md notes) and is not a regression."
+    },
+
+    "mirror_vs_unify_recommendation": {
+      "choice": "mirror",
+      "rationale": "Mirror is the right minimal fix for this cycle. Three reasons: (1) The plumbing already exists - daemon's onHappySessionWebhook (run.ts:169-208) is agent-agnostic, TrackedSession.happySessionMetadataFromLocalWebhook holds the entire Metadata blob, and the metadata schema already declares codexThreadId. The only missing edges are two call sites in codex (post-thread-start and post-resume) plus widening the /list response schema to include codexThreadId. (2) A unify path requires designing a new session-id-agnostic interface (e.g. onAgentSessionIdResolved(agentType, agentSessionId)) that all of claude/codex/gemini/openclaw/acp would converge on. That is correct long-term but introduces broader risk: it touches all four agent types, requires new abstractions in Session/runX, and risks regressions in claude (which is the production-critical path). (3) The defect is bleeding sessions today; the mirror fix is two notify-after-update sites in codex and a one-line schema widening in controlServer. It can be reviewed and shipped in one cycle without disturbing claude.",
+      "follow_up_for_unify": "Schedule a separate refactor cycle (out of scope here) to introduce onAgentSessionIdResolved as a Session method that wraps updateMetadata + notifyDaemonSessionStarted into one call, then migrate claude/session.ts:onSessionFound and the new codex sites to use it. Until then, the mirror fix is the pragmatic answer."
+    },
+
+    "recovery_script_impact": {
+      "changes_required": "none",
+      "explanation": "/root/bin/happy-session-recovery.sh is already codex-aware and requires no modification. Specifically: (a) lines 114-166 enumerate sessions by parsing daemon /list JSON response - parser only currently reads claudeSessionId, so the script will need to be widened to also read codexThreadId. HOWEVER, this script is user-only (hook policy) and the work item states it may not be modified. (b) Therefore the daemon /list response field name MUST stay claudeSessionId-compatible: the recommended approach is to populate claudeSessionId with the codex thread id when flavor=codex (treating the daemon /list 'claudeSessionId' field as a generic 'agent session id'). This keeps the recovery script's existing parser working. (c) Restore path (lines 729-809) is fully codex-aware: detects flavor by 019d-prefix UUID, branches to 'codex --resume <id>'. No changes needed. (d) find_codex_rollout (line 717) provides a fallback to discover working directory from /root/.codex/sessions/.../rollout-*.jsonl when daemon /list is unavailable. Already wired in lines 1122-1124, 1142-1144.",
+      "interface_compatibility_note": "The fix in happy-cli must repurpose the daemon /list endpoint's existing claudeSessionId field to carry the codex thread id for codex sessions. Adding a new codexThreadId field would require recovery-script modification, which is forbidden. Alternative: the daemon could choose claudeSessionId vs codexThreadId at /list response build time based on TrackedSession metadata.flavor, populating the same JSON key with whichever is non-empty. This is a one-line change in controlServer.ts:82 (e.g. claudeSessionId: child.happySessionMetadataFromLocalWebhook?.claudeSessionId ?? child.happySessionMetadataFromLocalWebhook?.codexThreadId)."
+    },
+
+    "out_of_scope": [
+      "Gemini agent (packages/happy-cli/src/gemini/runGemini.ts:189) and ACP agent (packages/happy-cli/src/agent/acp/runAcp.ts:501) and OpenClaw (packages/happy-cli/src/openclaw/runOpenClaw.ts:184) all call notifyDaemonSessionStarted at spawn time but do not appear to have an equivalent second-stage update with their respective session/thread ids. If recovery is desired for those agents, the same gap exists. Recommend a follow-up audit for symmetry across all four non-claude agent types.",
+      "The daemon /list response field name claudeSessionId is now semantically wrong (it carries 'whichever agent session id is appropriate'). A future cycle should rename it to agentSessionId or expose both fields explicitly, requiring coordinated changes in happy-cli AND happy-session-recovery.sh - this is the user's domain since the script is user-only.",
+      "TrackedSession (packages/happy-cli/src/daemon/types.ts:11-22) does not record agent flavor as a top-level field - the flavor is only inferable from happySessionMetadataFromLocalWebhook?.flavor. The /list response should consider exposing 'agent' or 'flavor' explicitly so future recovery logic can route on it without parsing nested metadata.",
+      "The integration test at packages/happy-cli/src/daemon/daemon.integration.test.ts:91 exercises the session-started webhook with mock metadata but does not test the codex re-notification path. After the fix lands, a sibling test should be added to lock the new behavior in.",
+      "The unify refactor (introduce onAgentSessionIdResolved) tracked as a separate technical debt item - low priority but cleans up an inconsistency that will worsen if more agent types are added."
+    ]
+  },
+
+  "issues": [
+    {
+      "id": "arch-1",
+      "title": "Codex sessions never re-notify daemon with codexThreadId, so daemon /list omits the thread id and recovery script drops codex sessions on enumeration",
+      "description": "Symmetric to claude/session.ts:112-124 where Session.onSessionFound calls notifyDaemonSessionStarted(sessionId, {...metadata, claudeSessionId: sessionId}) after the SessionStart hook fires, codex has no equivalent re-notification. After CodexAppServerClient.startThread (codex/runCodex.ts:702-714) or .resumeThread (codex/resumeExistingThread.ts:29-38) returns the threadId, session.updateMetadata pushes codexThreadId into the API-side encrypted metadata blob - but never calls notifyDaemonSessionStarted. The daemon's TrackedSession.happySessionMetadataFromLocalWebhook therefore never gets codexThreadId populated. Empirical impact: 5 of 5 codex sessions on happy-daemon-dev are absent from session_dirs.txt and will be lost on systemctl restart.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/runCodex.ts:710-713 and packages/happy-cli/src/codex/resumeExistingThread.ts:35-38",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": "PM-supplied empirical observation: 10 daemon-spawned sessions exist (5 claude + 5 codex), only the 5 claude UUIDs appear in session_dirs.txt. Production daemons have only claude sessions and are unaffected, isolating the gap to the codex code path.",
+      "observation_notes": "The metadata schema (api/types.ts:283-284) explicitly declares both claudeSessionId AND codexThreadId as siblings, indicating the design intent was symmetric. Recovery script restore path (/root/bin/happy-session-recovery.sh:759-766) is already codex-aware. The asymmetry is entirely in the registration phase.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-2",
+      "title": "Daemon /list HTTP response schema only declares claudeSessionId, has no field to surface codexThreadId even if TrackedSession contained it",
+      "description": "controlServer.ts:67 declares the /list response schema with claudeSessionId as the only agent-side identifier field. controlServer.ts:82 reads child.happySessionMetadataFromLocalWebhook?.claudeSessionId and exposes it. There is no parallel field for codexThreadId. Even if codex re-notification (arch-1) is fixed and TrackedSession.happySessionMetadataFromLocalWebhook contains codexThreadId, the daemon's /list response would not propagate it to the recovery script's parser at /root/bin/happy-session-recovery.sh:149. Constraint: the recovery script is user-only by hook policy, so the daemon must either (a) reuse the existing claudeSessionId field as a generic 'agent session id' or (b) expose a new field that the user can later wire into the recovery script.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/daemon/controlServer.ts:67 (response schema) and packages/happy-cli/src/daemon/controlServer.ts:82 (response builder)",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": "Source-only verified: Grep of recovery script lines 124,149 confirms it parses only claudeSessionId from daemon /list response; widening the daemon side without coordinating with the recovery parser would have no effect.",
+      "observation_notes": "Coupled with arch-1: fixing only the re-notification (arch-1) is necessary but not sufficient. The /list endpoint must also surface the codex thread id. The minimal-change path is to populate the existing claudeSessionId JSON field with metadata.codexThreadId when claudeSessionId is empty - this preserves recovery-script compatibility without requiring user-side script edits.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-3",
+      "title": "Codex initial spawn-time webhook is structurally fragile because codexThreadId does not exist yet at spawn time",
+      "description": "runCodex.ts:216 calls notifyDaemonSessionStarted(response.id, metadata) immediately after session creation, mirroring runClaude.ts:219. But unlike claude (which expects a SessionStart hook to fire from the Claude Code process and re-notify the daemon), codex starts its CodexAppServerClient thread lazily on the FIRST USER TURN (codex/runCodex.ts:702 'if (!client.hasActiveThread())'). So at the moment of the spawn webhook, codexThreadId is structurally undefined. Sessions spawned but never sent a user message would have no recoverable identifier even after arch-1 is fixed - the thread literally does not exist on the codex app server until the first turn. This is a less critical edge case (a codex session with zero turns has no conversation to preserve), but it should be noted.",
+      "severity": "minor",
+      "location": "packages/happy-cli/src/codex/runCodex.ts:702-714 (lazy thread start)",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": "Source-only verified: codex thread is gated behind the first user-turn message dispatch.",
+      "observation_notes": "Implication for arch-1 fix: the re-notification call must be triggered from inside the if(!client.hasActiveThread()) branch on line 702-714 (after startThread returns) AND from inside resumeExistingThread.ts after the resume succeeds, NOT at the original spawn-time webhook site. The spawn-time site (line 216) cannot be improved because the data does not yet exist.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-4",
+      "title": "Other agent types (gemini, openclaw, acp) have the same registration gap as codex",
+      "description": "Grep confirms gemini/runGemini.ts:189, openclaw/runOpenClaw.ts:184, and agent/acp/runAcp.ts:501 all call notifyDaemonSessionStarted at spawn time with the initial metadata, but none of them appear to re-notify the daemon when their respective agent-side session/thread/conversation id becomes known. If any of these agents are ever spawned on a daemon and the daemon is restarted, those sessions would also be lost from the recovery snapshot for the same reason as codex. Out of scope for this cycle (PM scoped to codex specifically), but flagged as a follow-up audit item to prevent the same defect class from biting other agents.",
+      "severity": "minor",
+      "location": "packages/happy-cli/src/gemini/runGemini.ts:189, packages/happy-cli/src/openclaw/runOpenClaw.ts:184, packages/happy-cli/src/agent/acp/runAcp.ts:501",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "medium",
+      "runtime_evidence": "Source-only verified across all four agent entry points.",
+      "observation_notes": "Not blocking the codex fix. Filed in out_of_scope for follow-up.",
+      "pm_tier": 3
+    }
+  ],
+
+  "architecture_proposals": [
+    {
+      "id": "arch-prop-1",
+      "title": "Introduce Session.onAgentSessionIdResolved(agentSessionId) that wraps updateMetadata + notifyDaemonSessionStarted into a single call, used by all agent types",
+      "current_state": "Each agent type independently coordinates two operations after its agent-side session id becomes known: (1) session.updateMetadata to push the id into the API-side encrypted metadata blob, (2) notifyDaemonSessionStarted to push the same id into the daemon's TrackedSession. Currently only claude does both (claude/session.ts:112-124). Codex does only (1). Gemini, openclaw, acp do neither beyond the initial spawn-time webhook. The two-step coordination is ad-hoc and easy to forget when adding new agents - which is exactly the bug we are fixing.",
+      "proposed_state": "Add Session.onAgentSessionIdResolved(agentSessionId: string, agentType: 'claude'|'codex'|'gemini'|'openclaw'|'acp') as the single canonical sink. It internally writes the appropriate metadata field (claudeSessionId for claude, codexThreadId for codex, etc.) AND calls notifyDaemonSessionStarted with the updated metadata. Each agent's runX.ts calls this exactly once after its agent-side session/thread id becomes available. The daemon /list endpoint exposes a single agentSessionId field (or keeps claudeSessionId as the back-compat alias) that the recovery script reads.",
+      "measurable_benefit": "Eliminates one class of recovery defect entirely: any future agent that uses Session and calls onAgentSessionIdResolved gets recovery support for free. Reduces agent-spawn-to-recovery integration from a 5-file (runX.ts + session metadata schema + controlServer.ts schema + recovery script + daemon TrackedSession) checklist to a 1-call hook. Quantified: the codex defect would have been impossible to introduce because the dispatch site of updateMetadata in runCodex.ts:710-713 would have called the unified hook, not just updateMetadata.",
+      "risk_if_ignored": "The same registration gap will recur every time a new agent type is added. Three agents (gemini, openclaw, acp) currently exhibit the latent form of this bug per arch-4. The defect surfaces only on daemon restart, which is rare in production - so the gap silently grows and is discovered only during incident response.",
+      "affected_files": ["packages/happy-cli/src/claude/session.ts", "packages/happy-cli/src/claude/runClaude.ts", "packages/happy-cli/src/codex/runCodex.ts", "packages/happy-cli/src/codex/resumeExistingThread.ts", "packages/happy-cli/src/gemini/runGemini.ts", "packages/happy-cli/src/openclaw/runOpenClaw.ts", "packages/happy-cli/src/agent/acp/runAcp.ts", "packages/happy-cli/src/daemon/controlServer.ts", "packages/happy-cli/src/daemon/types.ts"],
+      "estimated_effort": "medium",
+      "breaking_changes": false,
+      "migration_strategy": "Land in two phases. Phase 1 (this cycle): mirror fix for codex only - add notifyDaemonSessionStarted re-notification at runCodex.ts:710-713 and resumeExistingThread.ts:35-38, widen controlServer.ts /list response to surface codexThreadId in the existing claudeSessionId field. Phase 2 (separate cycle): introduce onAgentSessionIdResolved as a Session method, migrate claude (no behavior change), migrate codex (replace the mirror-fix call sites with the unified call), audit and migrate gemini/openclaw/acp, optionally rename the daemon /list field with back-compat alias. Phase 2 is non-breaking because each agent's call signature remains independent of the others and the daemon endpoint can support both old and new field names during transition."
+    }
+  ],
+
+  "summary": {
+    "files_examined": 12,
+    "issues_found": 4,
+    "runtime_health": "degraded",
+    "runtime_health_justification": "Cannot assess application runtime; the defect manifests at daemon-restart time, not during steady-state operation. PM-supplied empirical signal (5/5 codex sessions absent from snapshot) is sufficient evidence that the recovery subsystem is degraded with respect to codex.",
+    "clean_areas": [
+      "Daemon HTTP control server schema validation (controlServer.ts uses Zod throughout)",
+      "Daemon HTTP /session-started webhook contract is symmetric and agent-agnostic - no changes needed there",
+      "Recovery script restore path (/root/bin/happy-session-recovery.sh:729-809) is already fully codex-aware - branch on flavor, --resume invocation, codex thread-id format detection, codex rollout file fallback for cwd discovery",
+      "Codex --resume CLI flag and CodexAppServerClient.resumeThread are wired and tested - no protocol-level work needed for codex resume",
+      "API metadata schema (api/types.ts:283-284) already declares codexThreadId as a sibling of claudeSessionId, indicating the original design intent supports both"
+    ],
+    "primary_recommendation": "Mirror fix in codex (two notifyDaemonSessionStarted re-notification call sites + one /list response widening in controlServer.ts). Constraint-respecting: keep the daemon /list JSON field name as claudeSessionId, populate it with metadata.codexThreadId when claudeSessionId is empty, so the recovery script (forbidden to modify) continues to work unchanged."
+  },
+
+  "spec_id_note": "No spec_id passed in PM context; this is a discovery-phase architect investigation feeding BA, not a /spec-driven dev cycle. cp-state contract is inapplicable."
+}

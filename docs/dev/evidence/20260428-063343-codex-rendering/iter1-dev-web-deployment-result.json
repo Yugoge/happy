@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-04-28T12:33:17Z",
+  "task_id": "20260428-063343-codex-rendering",
+  "scope": "dev-only happy-web-dev deployment",
+  "blocker_determined": {
+    "exact_blocker": "The freshly built happy-app:dev image existed, but the running happy-web-dev container still referenced the previous image ID. The prior QA redeploy attempt was blocked by the safety hook because the operation was parsed as service 'set' instead of the allowed dev service happy-web-dev.",
+    "new_built_image_id": "sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd",
+    "stale_running_image_id_before_deploy": "sha256:0cfaad196caad28966f7c76a92929b34965fa4026be266c9ffbe87c2cd6ec584"
+  },
+  "deployment": {
+    "policy_assessment": "Permitted by existing happy-dev safety policy because the action targets only docker compose service happy-web-dev, an explicitly allowed dev service, and does not touch production services, images, ports, databases, or any Happy daemon.",
+    "action": "Recreated docker compose service happy-web-dev from /root/deploy using the already-built happy-app:dev image.",
+    "hook_rejected": false
+  },
+  "verification": {
+    "happy_app_dev_image_id": "sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd",
+    "happy_app_dev_created": "2026-04-28T12:24:45.684205533Z",
+    "happy_web_dev_container_image_id_after_deploy": "sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd",
+    "happy_web_dev_container_status": "running",
+    "happy_web_dev_started_at": "2026-04-28T12:33:00.691562576Z",
+    "localhost_8097_probe": {
+      "status_code": 200,
+      "content_type": "text/html",
+      "bytes": 1603
+    },
+    "stale_image_still_served": false,
+    "result": "happy-web-dev is now running the newly built happy-app:dev image. Live desktop/mobile QA verification can be rerun against dev web."
+  }
+}

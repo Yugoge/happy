@@ -548,6 +548,14 @@ export const en = {
             modifyingFiles: ({ count }: { count: number }) => `Modifying ${count} files`,
             modifyingMultipleFiles: ({ file, count }: { file: string; count: number }) => `${file} and ${count} more`,
             showingDiff: 'Showing changes',
+        },
+        attachment: {
+            // B.7 (cycle 4): user-actionable advisory shown when an image attachment
+            // result has neither a preview_uri nor a mapper-supplied
+            // preview_unavailable_reason — i.e., older messages persisted before
+            // the cycle-1 mapper fix. Keep the literal substrings "new session"
+            // and "inline preview" — verified by acceptance criterion AC4.
+            staleAdvisory: 'Trigger again in this or a new session to view the inline preview.',
         }
     },
 

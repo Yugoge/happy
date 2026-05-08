@@ -1,0 +1,5 @@
+timestamp_utc=2026-04-28T14:22:47Z
+-- container inspect --
+"happy-app:dev" "sha256:33d0b8f6863e536fda2869c1ff7dfdc30c4506fc16cf987b080fbf52b635b351" "running" "2026-04-28T13:48:41.380021506Z"
+-- image inspect --
+"sha256:33d0b8f6863e536fda2869c1ff7dfdc30c4506fc16cf987b080fbf52b635b351" "2026-04-28T13:42:23.732449384Z"

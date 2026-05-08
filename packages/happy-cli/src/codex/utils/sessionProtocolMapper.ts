@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync, statSync } from 'node:fs';
 import { createId } from '@paralleldrive/cuid2';
 import type { ReasoningOutput } from './reasoningProcessor';
 import type { DiffToolCall, DiffToolResult } from './diffProcessor';
@@ -31,6 +32,59 @@ type LegacyToolLikeMessage = {
 };
 
 type TurnEndStatus = 'completed' | 'failed' | 'cancelled';
+const CALL_SUBAGENT_PREFIX = 'call:';
+const OWNER_SUBAGENT_PREFIX = 'owner:';
+const IMAGE_PREVIEW_MAX_BYTES = 5 * 1024 * 1024;
+const IMAGE_MIME_BY_EXTENSION: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseRecord(value: unknown): Record<string, unknown> | null {
+    if (isRecord(value)) return value;
+    if (typeof value !== 'string' || !value.trim().startsWith('{')) return null;
+    try {
+        const parsed = JSON.parse(value);
+        return isRecord(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function readStringByKey(value: unknown, keys: Set<string>, depth = 0): string | null {
+    if (depth > 4) return null;
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            const found = readStringByKey(item, keys, depth + 1);
+            if (found) return found;
+        }
+        return null;
+    }
+    if (!isRecord(value)) return null;
+    for (const [key, nested] of Object.entries(value)) {
+        if (keys.has(key) && typeof nested === 'string' && nested.length > 0) return nested;
+    }
+    for (const nested of Object.values(value)) {
+        const found = readStringByKey(nested, keys, depth + 1);
+        if (found) return found;
+    }
+    return null;
+}
+
+const IMAGE_URI_KEYS = new Set(['previewUri', 'preview_uri', 'url', 'uri']);
+const IMAGE_PATH_KEYS = new Set(['path', 'filePath', 'file_path', 'outputPath', 'output_path']);
+const IMAGE_BASE64_KEYS = new Set(['base64', 'imageBase64', 'image_base64', 'b64_json', 'data']);
+const IMAGE_MIME_KEYS = new Set(['mimeType', 'mime_type', 'mediaType', 'media_type']);
+const MARKDOWN_LINK_TARGET_REGEX = /!?\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const IMAGE_PATH_IN_TEXT_REGEX = /(?:file:\/\/)?(?:\/[^\s"'<>()[\]]+|[A-Za-z]:[\\/][^\s"'<>()[\]]+|[^\s"'<>()[\]]+)\.(?:png|jpe?g|gif|webp|svg)\b/gi;
 
 function getStartedSubagents(state: CodexTurnState): Set<string> {
     return state.startedSubagents ?? new Set<string>();
@@ -74,44 +128,81 @@ function emitSubagentStops(
     return envelopes;
 }
 
-function buildEnvelopeOptions(currentTurnId: string | null, subagent?: string): CreateEnvelopeOptions {
+function maybeEmitSubagentStop(
+    subagent: string | undefined,
+    opts: CreateEnvelopeOptions,
+    activeSubagents: Set<string>,
+    envelopes: SessionEnvelope[],
+): void {
+    if (!subagent || !activeSubagents.has(subagent)) {
+        return;
+    }
+
+    envelopes.push(createEnvelope('agent', { t: 'stop' }, { ...opts, subagent }));
+    activeSubagents.delete(subagent);
+}
+
+function pickWrapperTurnId(message?: Record<string, unknown>): string | null {
+    const turnId = message?.turn_id ?? message?.turnId;
+    return typeof turnId === 'string' && turnId.length > 0 ? turnId : null;
+}
+
+function pickWrapperThreadId(message: Record<string, unknown>): string | undefined {
+    const threadId = message.thread_id ?? message.threadId;
+    return typeof threadId === 'string' && threadId.length > 0 ? threadId : undefined;
+}
+
+function buildEnvelopeOptions(
+    currentTurnId: string | null,
+    subagent?: string,
+    message?: Record<string, unknown>,
+): CreateEnvelopeOptions {
+    const turn = pickWrapperTurnId(message) ?? currentTurnId;
     return {
-        ...(currentTurnId ? { turn: currentTurnId } : {}),
+        ...(turn ? { turn } : {}),
         ...(subagent ? { subagent } : {}),
     };
 }
 
-function pickProviderSubagent(message: Record<string, unknown>): string | undefined {
-    const candidates = [message.subagent, message.parent_call_id, message.parentCallId];
-    for (const candidate of candidates) {
-        if (typeof candidate === 'string' && candidate.length > 0) {
-            return candidate;
-        }
-    }
-    return undefined;
+function firstReceiverThreadId(message: Record<string, unknown>): string | undefined {
+    const receiverThreadIds = message.receiverThreadIds;
+    if (!Array.isArray(receiverThreadIds)) return undefined;
+    return receiverThreadIds.find((value): value is string => typeof value === 'string' && value.length > 0);
 }
 
 function resolveSessionSubagent(
     message: Record<string, unknown>,
     providerSubagentToSessionSubagent: Map<string, string>,
 ): string | undefined {
-    const providerSubagent = pickProviderSubagent(message);
-    if (!providerSubagent) {
+    const providerThreadId = pickWrapperThreadId(message);
+    if (!providerThreadId) {
         return undefined;
     }
 
-    const existing = providerSubagentToSessionSubagent.get(providerSubagent);
-    if (existing) {
-        return existing;
-    }
+    return providerSubagentToSessionSubagent.get(providerThreadId);
+}
 
+function ensureReceiverSessionSubagent(
+    providerThreadId: string,
+    providerSubagentToSessionSubagent: Map<string, string>,
+): string {
+    const existing = providerSubagentToSessionSubagent.get(providerThreadId);
+    if (existing) return existing;
     const created = createId();
-    providerSubagentToSessionSubagent.set(providerSubagent, created);
+    providerSubagentToSessionSubagent.set(providerThreadId, created);
     return created;
 }
 
+function callSubagentKey(callId: string): string {
+    return `${CALL_SUBAGENT_PREFIX}${callId}`;
+}
+
+function ownerSubagentKey(sessionSubagent: string): string {
+    return `${OWNER_SUBAGENT_PREFIX}${sessionSubagent}`;
+}
+
 function pickCallId(message: Record<string, unknown>): string {
-    const callId = message.call_id ?? message.callId;
+    const callId = message.call_id ?? message.callId ?? message.id;
     if (typeof callId === 'string' && callId.length > 0) {
         return callId;
     }
@@ -176,6 +267,152 @@ function pickTurnEndStatus(message: Record<string, unknown>, type: unknown): Tur
     return 'completed';
 }
 
+const TOOL_END_OMIT_KEYS = new Set([
+    'type',
+    'call_id',
+    'callId',
+    'parent_call_id',
+    'parentCallId',
+    'subagent',
+    'threadId',
+    'thread_id',
+    'turnId',
+    'turn_id',
+    'id',
+]);
+
+function buildToolEndOutput(message: Record<string, unknown>): string | undefined {
+    const payload: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(message)) {
+        if (!TOOL_END_OMIT_KEYS.has(key) && value !== undefined) {
+            payload[key] = value;
+        }
+    }
+    const keys = Object.keys(payload);
+    if (keys.length === 0) return undefined;
+    if (keys.length === 1 && typeof payload.output === 'string') return payload.output;
+    return JSON.stringify(payload);
+}
+
+function buildCodexCommandResult(message: Record<string, unknown>): Record<string, unknown> | undefined {
+    if (message.type !== 'exec_command_end') return undefined;
+    const output = typeof message.output === 'string' ? message.output : '';
+    return {
+        output,
+        stdout: typeof message.stdout === 'string' ? message.stdout : output,
+        stderr: typeof message.stderr === 'string' ? message.stderr : null,
+        exit_code: typeof message.exit_code === 'number' ? message.exit_code : null,
+        status: typeof message.status === 'string' ? message.status : null,
+        duration_ms: typeof message.duration_ms === 'number' ? message.duration_ms : null,
+        cwd: typeof message.cwd === 'string' ? message.cwd : null,
+        command: message.command ?? null,
+        empty_output: output.length === 0,
+        source: 'codex.exec_command_end',
+    };
+}
+
+function imageMimeForPath(path: string): string | null {
+    const extension = path.split('.').pop()?.toLowerCase() ?? '';
+    return IMAGE_MIME_BY_EXTENSION[extension] ?? null;
+}
+
+function browserLoadableImageUri(uri: string): boolean {
+    return /^data:image\//i.test(uri) || /^https?:\/\//i.test(uri);
+}
+
+function pathFromImageString(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('file://')) {
+        try {
+            return decodeURIComponent(new URL(trimmed).pathname);
+        } catch {
+            return decodeURIComponent(trimmed.slice('file://'.length));
+        }
+    }
+    if (trimmed.startsWith('/') || /^[A-Za-z]:[\\/]/.test(trimmed) || !!imageMimeForPath(trimmed)) {
+        return trimmed;
+    }
+    return null;
+}
+
+function firstImagePathFromText(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+
+    for (const match of value.matchAll(MARKDOWN_LINK_TARGET_REGEX)) {
+        const path = pathFromImageString(match[1]);
+        if (path) return path;
+    }
+
+    for (const match of value.matchAll(IMAGE_PATH_IN_TEXT_REGEX)) {
+        const path = pathFromImageString(match[0]);
+        if (path) return path;
+    }
+
+    return null;
+}
+
+function buildPathImagePreview(path: string): Record<string, unknown> {
+    const mime = imageMimeForPath(path);
+    if (!mime) return { path, preview_unavailable_reason: 'unsupported image type' };
+    try {
+        const stat = statSync(path);
+        if (!stat.isFile()) return { path, preview_unavailable_reason: 'image path is not a file' };
+        if (stat.size > IMAGE_PREVIEW_MAX_BYTES) {
+            return { path, size: stat.size, preview_unavailable_reason: 'image file is too large to preview inline' };
+        }
+        const base64 = readFileSync(path).toString('base64');
+        return { path, size: stat.size, preview_uri: `data:${mime};base64,${base64}` };
+    } catch {
+        return { path, preview_unavailable_reason: 'image file unavailable' };
+    }
+}
+
+function buildBase64ImagePreview(value: string, mime: string): Record<string, unknown> {
+    return { preview_uri: browserLoadableImageUri(value) ? value : `data:${mime};base64,${value}` };
+}
+
+function buildImageToolResult(message: Record<string, unknown>): Record<string, unknown> | undefined {
+    const type = typeof message.type === 'string' ? message.type : '';
+    const name = `${type} ${message.server ?? ''} ${message.namespace ?? ''} ${message.tool ?? ''}`.toLowerCase();
+    if (type !== 'image_view_end' && !/(screenshot|image)/.test(name)) return undefined;
+    const source = parseRecord(message.result) ?? parseRecord(message.output) ?? message;
+    const resultUri = typeof message.result === 'string' && browserLoadableImageUri(message.result) ? message.result : null;
+    const outputUri = typeof message.output === 'string' && browserLoadableImageUri(message.output) ? message.output : null;
+    const uri = readStringByKey(source, IMAGE_URI_KEYS) ?? readStringByKey(message, IMAGE_URI_KEYS)
+        ?? resultUri ?? outputUri;
+    const path = pathFromImageString(uri)
+        ?? readStringByKey(source, IMAGE_PATH_KEYS)
+        ?? readStringByKey(message, IMAGE_PATH_KEYS)
+        ?? pathFromImageString(message.result)
+        ?? pathFromImageString(message.output)
+        ?? firstImagePathFromText(message.result)
+        ?? firstImagePathFromText(message.output);
+    const base64 = readStringByKey(source, IMAGE_BASE64_KEYS) ?? readStringByKey(message, IMAGE_BASE64_KEYS);
+    const mime = readStringByKey(source, IMAGE_MIME_KEYS) ?? (path ? imageMimeForPath(path) : null) ?? 'image/png';
+    const preview = uri && browserLoadableImageUri(uri) ? { preview_uri: uri }
+        : base64 ? buildBase64ImagePreview(base64, mime)
+            : path ? buildPathImagePreview(path)
+                : { preview_unavailable_reason: 'image preview data unavailable' };
+    return { ...source, ...preview };
+}
+
+function toolEndEnvelope(
+    call: string,
+    message: Record<string, unknown>,
+    opts: CreateEnvelopeOptions,
+): SessionEnvelope {
+    const output = buildToolEndOutput(message);
+    const result = buildCodexCommandResult(message) ?? buildImageToolResult(message);
+    return createEnvelope('agent', {
+        t: 'tool-call-end',
+        call,
+        ...(output !== undefined ? { output } : {}),
+        ...(result !== undefined ? { result } : {}),
+    }, opts);
+}
+
 export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unknown>, state: CodexTurnState): CodexMapperResult {
     const type = message.type;
     const startedSubagents = getStartedSubagents(state);
@@ -183,7 +420,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     const providerSubagentToSessionSubagent = getProviderSubagentToSessionSubagent(state);
 
     if (type === 'task_started') {
-        const turnId = createId();
+        const turnId = pickWrapperTurnId(message) ?? createId();
         const turnStart = createEnvelope('agent', { t: 'turn-start' }, { turn: turnId });
         startedSubagents.clear();
         activeSubagents.clear();
@@ -236,7 +473,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     }
 
     const subagent = resolveSessionSubagent(message, providerSubagentToSessionSubagent);
-    const opts = buildEnvelopeOptions(state.currentTurnId, subagent);
+    const opts = buildEnvelopeOptions(state.currentTurnId, subagent, message);
 
     if (type === 'agent_message') {
         if (typeof message.message !== 'string') {
@@ -252,6 +489,18 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
         envelopes.push(createEnvelope('agent', { t: 'text', text: message.message }, opts));
+        if (subagent && message.phase === 'final_answer') {
+            maybeEmitSubagentStop(subagent, opts, activeSubagents, envelopes);
+            envelopes.push(createEnvelope('agent', {
+                t: 'tool-call-end',
+                call: subagent,
+                output: message.message,
+            }, buildEnvelopeOptions(
+                state.currentTurnId,
+                providerSubagentToSessionSubagent.get(ownerSubagentKey(subagent)),
+                message,
+            )));
+        }
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -325,7 +574,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -368,7 +617,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -399,6 +648,17 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const tool = typeof message.tool === 'string' ? message.tool : '';
         const verb = COLLAB_VERB_MAP[tool] ?? tool;
         const name = `functions.${verb}`;
+        const receiverThreadId = firstReceiverThreadId(message);
+        const sessionSubagent = receiverThreadId
+            ? ensureReceiverSessionSubagent(receiverThreadId, providerSubagentToSessionSubagent)
+            : undefined;
+        if (sessionSubagent) {
+            providerSubagentToSessionSubagent.set(callSubagentKey(call), sessionSubagent);
+            if (subagent) {
+                providerSubagentToSessionSubagent.set(ownerSubagentKey(sessionSubagent), subagent);
+            }
+        }
+        const visibleCall = verb === 'spawn_agent' && sessionSubagent ? sessionSubagent : call;
         const prompt = typeof message.prompt === 'string' ? message.prompt : '';
         const description = prompt.length > 0
             ? (prompt.length > 80 ? `${prompt.slice(0, 77)}...` : prompt)
@@ -410,7 +670,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         envelopes.push(
             createEnvelope('agent', {
                 t: 'tool-call-start',
-                call,
+                call: visibleCall,
                 name,
                 title,
                 description,
@@ -421,6 +681,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
                     senderThreadId: message.senderThreadId ?? null,
                     receiverThreadIds: message.receiverThreadIds ?? [],
                     agentsStates: message.agentsStates ?? {},
+                    ...(sessionSubagent ? { sessionSubagent } : {}),
                 },
             }, opts)
         );
@@ -435,9 +696,13 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
 
     if (type === 'collab_agent_call_end') {
         const call = pickCallId(message);
+        const tool = typeof message.tool === 'string' ? message.tool : '';
+        const verb = COLLAB_VERB_MAP[tool] ?? tool;
+        const sessionSubagent = providerSubagentToSessionSubagent.get(callSubagentKey(call));
+        const visibleCall = verb === 'spawn_agent' && sessionSubagent ? sessionSubagent : call;
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(visibleCall, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -483,7 +748,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -530,7 +795,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -543,6 +808,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     if (type === 'plan_update_begin') {
         const call = pickCallId(message);
         const text = typeof message.text === 'string' ? message.text : '';
+        const plan = message.plan ?? message.steps ?? message.items ?? text;
         const description = text.length > 0
             ? (text.length > 80 ? `${text.slice(0, 77)}...` : text)
             : 'Update plan';
@@ -556,7 +822,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
                 name: 'functions.update_plan',
                 title: 'Update plan',
                 description,
-                args: { plan: text, text },
+                args: { plan, text },
             }, opts)
         );
         return {
@@ -572,7 +838,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -614,7 +880,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-end', call }, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts));
         return {
             currentTurnId: state.currentTurnId,
             startedSubagents,
@@ -675,9 +941,11 @@ export function mapCodexProcessorMessageToSessionEnvelopes(
                 thinking: true,
             }, opts));
         }
+        const output = buildToolEndOutput(toolLikeMessage as unknown as Record<string, unknown>);
         envelopes.push(createEnvelope('agent', {
             t: 'tool-call-end',
             call: toolLikeMessage.callId,
+            ...(output !== undefined ? { output } : {}),
         }, opts));
         return envelopes;
     }

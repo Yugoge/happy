@@ -1,0 +1,943 @@
+{
+  "request_id": "20260507-055611",
+  "task_id": "20260507-055611",
+  "timestamp": "2026-05-07T07:32:41Z",
+  "qa": {
+    "status": "pass",
+    "user_verbatim_complaint": "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": true,
+    "cycle_scope_verdict": "PASS for BA-narrowed #5/#5b/#12 slice only; original P0 parser group is PARTIALLY ADDRESSED with #10/#11/#13 still deferred.",
+    "out_of_scope_observations": [
+      {
+        "ts": "2026-05-07T07:32:41Z",
+        "file": "working tree",
+        "line": null,
+        "observation": "git status contains many unrelated dirty files outside the dev report's markdown parser/rendering file list (for example AgentInput, ToolView, modelModeOptions, typesRaw). QA did not revert or attribute those files to this cycle; current-cycle scope evidence is based on the dev-reported markdown files plus deferred-scope probes.",
+        "in_user_path": false,
+        "security_relevant": false
+      },
+      {
+        "ts": "2026-05-07T07:32:41Z",
+        "file": "Dockerfile.webapp",
+        "line": null,
+        "observation": "frontend Docker build emitted a build-time warning about ARG/ENV POSTHOG_API_KEY. No secret value was observed and this Dockerfile was not part of the reported parser/rendering diff; logged for follow-up only.",
+        "in_user_path": false,
+        "security_relevant": false
+      }
+    ],
+    "spec_section_updates": {
+      "section_4": "Cycle 1 QA current-state measurement on 2026-05-07: rebuilt/deployed happy-web-dev from /dev/shm/dev-workspace/happy-dev using scripts/dev-overnight-build-deploy.sh frontend; happy-web-dev image sha256:c9c130535cfb560eafe9d5860f3f130b7a87aa78548763d401f61c932a9a03e7 created 2026-05-07T07:19:19Z and served HTTP 200 on localhost:8097. Live dev UI session http://localhost:8097/session/cmov5t4bq3bdrqj15q2dyi0i4 contains exact AC1 and AC2 probe messages created through the normal UI. Desktop 1440x900 and mobile 390x844 screenshots: docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png and docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png. AC1 computed DOM styles: bold italic fontWeight=700/fontStyle=italic, following text fontWeight=400/fontStyle=normal, strike textDecorationLine=line-through, link role=link with href=https://example.com and underline/cursor pointer, code fontFamily=IBMPlexMono-Regular, escaped *literal* rendered as plain text. AC2 measurements: two rendered echo tables found; representative data row has 3 cells with third cell present and empty. Desktop table overflow containers measured overflowX=auto with scrollWidth/clientWidth 1935/800 and 1935/744; mobile measured overflowX=auto with scrollWidth/clientWidth 1935/358 and 1935/334; document/body widths matched viewport (1440/1440 and 390/390), so no page-level sibling widening was observed. Parser/static checks passed: focused parseMarkdown Vitest 7/7, happy-app full Vitest 460 passed/57 skipped, typecheck tsc --noEmit passed, hardcode/role-token scans found no blocking violations, and deferred #10/#11/#13 probes stayed deferred. Evidence: docs/dev/evidence/20260507-055611/ui-measurements.json plus trace docs/dev/evidence/20260507-055611/qa-20260507-055611-trace.zip.",
+      "section_6": null,
+      "section_7": null
+    },
+    "verified_location_keywords": [
+      "表格",
+      "markdown",
+      "粗体",
+      "删除线",
+      "超链接",
+      "转义",
+      "斜体",
+      "MarkdownView",
+      "parseMarkdownSpans",
+      "WIDE_TABLE_SENTINEL"
+    ],
+    "location_overlap": [
+      "markdown"
+    ],
+    "strict_token_location_overlap": {
+      "tokenizer": "lowercase and split only on / . - _",
+      "intersection": [],
+      "status": "localization_overlap_blocked_as_recorded_in_BA_spec",
+      "qa_mitigation": "QA verified the exact user complaint behavior using the AC1/AC2 fixtures in the live DOM and measured the actual table/link/strike/escape elements rather than relying on tokenizer overlap."
+    },
+    "complaint_resolution_evidence": "The exact AC1 complaint fixture rendered bold+italic without leaking style, struck-through ~~strike~~, a clickable https://example.com link, monospace code, and plain escaped *literal*. The exact AC2 table fixture rendered inline bold/strike/link/code inside table cells while preserving the empty third cell and horizontal scroll at desktop and mobile.",
+    "complaint_element_pointer": {
+      "selector": "MarkdownView message content containing AC1 text and table:has(td:nth-child(2)) with WIDE_TABLE_SENTINEL plus span[role=\"link\"] descendants",
+      "how_located": "Playwright DOM text search for WIDE_TABLE_SENTINEL and AC1 fixture text, then computed style/role measurements on descendant spans, links, code spans, table cells, and scroll containers.",
+      "found_in_dom": true,
+      "page_url": "http://localhost:8097/session/cmov5t4bq3bdrqj15q2dyi0i4"
+    },
+    "element_screenshots": {
+      "before_selector": "MarkdownView message content containing the same AC1/AC2 fixtures",
+      "before_path": null,
+      "before_reason": "No pre-fix browser screenshot was captured in this QA cycle; spec Section 1 documents the baseline raw-delimiter symptoms. QA captured post-deploy same-fixture screenshots and DOM measurements.",
+      "after_path": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+      "after_mobile_path": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+      "same_element_verified": true
+    },
+    "overall_assessment": "PASS for the current BA-narrowed #5/#5b/#12 slice. Static parser tests, full app tests, typecheck, worktree frontend deploy, live desktop/mobile rendering, and table overflow measurements all support the fix. This does not close deferred #10/#11/#13 or other original-spec subsystems.",
+    "acceptance_criteria_results": [
+      {
+        "id": "AC1",
+        "criterion": "Inline leakage fixed for exact ***bold italic*** then ~~strike~~ and [link](https://example.com) and `code` and \\*literal\\* fixture, with parser regression and desktop/mobile screenshots.",
+        "status": "pass",
+        "verification_method": "Executed focused parser Vitest and rendered exact fixture in UI-created dev session on localhost:8097 at 1440x900 and 390x844; measured computed styles/roles for each inline primitive.",
+        "evidence": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/ui-measurements.json",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png"
+        ],
+        "details": "bold italic=700/italic; later plain text=400/normal; strike=line-through; link role=link href=https://example.com; code monospace; escaped literal plain with no inherited italic/bold."
+      },
+      {
+        "id": "AC2",
+        "criterion": "Super-wide table cells parse inline Markdown while preserving scroll and empty cells for WIDE_TABLE_SENTINEL fixture.",
+        "status": "pass",
+        "verification_method": "Rendered exact table fixture in same UI-created dev session; measured table rows/cell count, empty third cell, inline cell styles, scrollWidth/clientWidth, overflow-x, and page width on desktop/mobile.",
+        "evidence": [
+          "docs/dev/evidence/20260507-055611/ui-measurements.json",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-trace.zip"
+        ],
+        "details": "3 cells preserved; third data cell present empty; table cell bold/strike/link/code rendered; desktop overflow 1935>800 and 1935>744 with overflowX=auto; mobile overflow 1935>358 and 1935>334 with overflowX=auto; no body/document overflow."
+      },
+      {
+        "id": "AC3",
+        "criterion": "Existing LaTeX, kbd, autolink, code-precedence, and escape fixtures remain bounded and explicit.",
+        "status": "pass",
+        "verification_method": "Executed packages/happy-app parser regression file and full happy-app Vitest suite.",
+        "evidence": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/vitest-happy-app-all.md"
+        ],
+        "details": "Focused parseMarkdown test file passed 7/7; full happy-app Vitest passed 31 files with 460 tests passed and 57 skipped."
+      },
+      {
+        "id": "AC4",
+        "criterion": "Shared parser call-site probes for header/list/task-list/numbered-list block types remain correct.",
+        "status": "pass",
+        "verification_method": "Executed focused parseMarkdown regression file covering the exact AC4 fixtures and full happy-app Vitest suite.",
+        "evidence": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/vitest-happy-app-all.md"
+        ],
+        "details": "Header, unordered list, task-list checked state, and numbered-list probes passed in parser tests; no raw *** leakage observed in those fixtures."
+      }
+    ],
+    "success_criteria_results": [
+      {
+        "requirement_id": "R1",
+        "source_phrase": "表格内部没有markdown字体格式渲染，比如粗体等",
+        "criterion": "Table cells/headers render inline Markdown spans instead of raw delimiters.",
+        "verification_method": "Live AC2 table render plus DOM computed-style measurement in desktop/mobile and parser/table data-shape test.",
+        "status": "pass",
+        "result": "pass",
+        "details": "Table first-cell leaves render bold/strike/link/code; raw delimiters are not visible in the rendered table cell text; third empty cell remains present.",
+        "evidence": "docs/dev/evidence/20260507-055611/ui-measurements.json"
+      },
+      {
+        "requirement_id": "R2",
+        "source_phrase": "删除线为什么这么显示失败？...超链接也显示失败了？",
+        "criterion": "~~strike~~, [link](url), and `code` parse/render correctly after adjacent emphasis.",
+        "verification_method": "Live AC1 exact fixture plus parser Vitest.",
+        "status": "pass",
+        "result": "pass",
+        "details": "Strike measured line-through; link measured role=link/href=https://example.com; code measured IBMPlexMono; following styles normal.",
+        "evidence": "docs/dev/evidence/20260507-055611/ui-measurements.json"
+      },
+      {
+        "requirement_id": "R3",
+        "source_phrase": "是因为被转义成了斜体？",
+        "criterion": "Backslash-escaped punctuation and adjacent emphasis cannot leak italic into following tokens.",
+        "verification_method": "Live AC1 escaped literal style measurement plus AC3 escape parser fixture.",
+        "status": "pass",
+        "result": "pass",
+        "details": "Escaped *literal* rendered as plain non-italic/non-bold text; escaped link fixture remains non-clickable in parser regression.",
+        "evidence": "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md"
+      },
+      {
+        "requirement_id": "R4",
+        "source_phrase": "#10/#11/#13 same P0 parser group",
+        "criterion": "Deferred and ledgered; current cycle must not claim full P0 parser closure.",
+        "verification_method": "Static/deferred parser probes for reference links, footnotes, and nested ordered list; reviewed dev report scope and spec ledger.",
+        "status": "pass",
+        "result": "pass",
+        "details": "Reference links and footnotes remain literal/plain; nested ordered list repair not implemented; report explicitly states cycle scope only.",
+        "evidence": "docs/dev/evidence/20260507-055611/deferred-probes.md"
+      }
+    ],
+    "_success_criteria_rule": "BA Requirements Decomposition has 4 rows; QA produced 4 success_criteria_results entries.",
+    "root_cause_verification": {
+      "addressed": true,
+      "confidence": "high",
+      "rationale": "Dev kept string[]/string[][] table data shape while routing table strings through RenderSpans(parseMarkdownSpans(...)) at render time, restoring inline rendering without losing empty cells. The span scanner now requires bounded unescaped delimiters, and live AC1/AC2 evidence confirms no emphasis leak into strike/link/code/escaped literal."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend",
+      "deploy_command": "same script built happy-app:dev and restarted only happy-web-dev via /root/deploy compose",
+      "build_output_summary": "Docker frontend build/export completed; happy-web-dev serving image sha256:c9c130535cfb560eafe9d5860f3f130b7a87aa78548763d401f61c932a9a03e7; localhost:8097 returned HTTP 200; localhost:3005/health returned status ok.",
+      "service_healthy": true,
+      "changes_verified_live": true,
+      "skip_reason": null,
+      "evidence": [
+        "docs/dev/evidence/20260507-055611/build-deploy-frontend.md",
+        "docs/dev/evidence/20260507-055611/dev-service-health.md"
+      ]
+    },
+    "script_quality_results": [],
+    "regression_test_results": [
+      {
+        "test": "Focused parseMarkdown regression suite",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-app vitest sources/components/markdown/parseMarkdown.test.ts --run => 7 tests passed; exit 0."
+      },
+      {
+        "test": "happy-app typecheck",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-app typecheck => tsc --noEmit completed; exit 0."
+      },
+      {
+        "test": "Full happy-app Vitest suite",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-app vitest --run => 31 files passed, 1 skipped; 460 tests passed, 57 skipped; exit 0."
+      },
+      {
+        "test": "Deferred #10/#11/#13 parser probes",
+        "result": "pass",
+        "details": "Reference link and footnote syntax stayed plain/literal; nested ordered list structure remains unrepaired/flat, confirming no scope broadening."
+      },
+      {
+        "test": "Browser console warning/error check",
+        "result": "pass",
+        "details": "browser_console_messages(level=warning) after render returned 0 errors and 0 warnings."
+      },
+      {
+        "test": "UI evidence audit strict",
+        "result": "pass",
+        "details": "/root/bin/ui-evidence-audit.py docs/dev/qa-report-20260507-055611.json --strict => FP-1..FP-13 all PASS, exit 0."
+      }
+    ],
+    "code_quality_findings": [],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 6,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      },
+      "evidence": "docs/dev/evidence/20260507-055611/hardcode-scan.md",
+      "allowlist_notes": "Flagged https://example.com URLs are parser/test fixtures or documentation examples; flagged @/tmp path is spec text from a different subsystem, not executable code in this cycle."
+    },
+    "standards_compliance": {
+      "checked": true,
+      "role_table_source": "No role-token table found in project/package CLAUDE.md files relevant to happy-app markdown slice.",
+      "role_table": "absent",
+      "violations": [],
+      "evidence": "docs/dev/evidence/20260507-055611/standards-role-table.md"
+    },
+    "band_aid_scan": {
+      "checked": true,
+      "target_files": [
+        "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+        "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+        "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+      ],
+      "patterns_detected": [],
+      "verdict": "pass",
+      "evidence": "docs/dev/evidence/20260507-055611/static-scope.md"
+    },
+    "scope_narrowing_verification": {
+      "current_cycle_scope": [
+        "#5 emphasis leakage",
+        "#5b table-cell inline rendering",
+        "#12 selected escapes"
+      ],
+      "deferred": [
+        "#10 reference links",
+        "#11 footnotes",
+        "#13 nested ordered-list repair",
+        "Mermaid",
+        "context-capacity UI",
+        "tool-card rendering",
+        "mhchem",
+        "broad HTML inline"
+      ],
+      "status": "pass",
+      "details": "Dev-reported implementation files are the parser/span renderer/test files named by BA. Probe outputs confirm reference links/footnotes/nested ordered-list repair are not implemented or claimed in this cycle. Dirty unrelated worktree files are logged as out-of-scope observations, not current-cycle deliverables.",
+      "evidence": [
+        "docs/dev/evidence/20260507-055611/deferred-scope-grep.md",
+        "docs/dev/evidence/20260507-055611/deferred-probes.md"
+      ]
+    },
+    "app_understanding_flow": {
+      "executed": true,
+      "core_flow_completed": true,
+      "steps_completed": 5,
+      "baseline_screenshots": [
+        "docs/dev/evidence/20260507-055611/qa-20260507-055611-desktop-initial.png"
+      ],
+      "errors_found_during_flow": [],
+      "app_not_running": false,
+      "details": "Authenticated dev-only web via browser localStorage/MMKV server config, navigated to dev session, used Start New Session UI and message input to create/send AC1 and AC2 probe content, then measured rendered content."
+    },
+    "live_verification_setup_attempt": {
+      "attempted_create_via_ui": true,
+      "ui_action_taken": "Opened http://localhost:8097, injected dev auth/server-config, clicked Start New Session, typed AC1 fixture into 'What would you like to work on?' input and pressed Enter; then typed AC2 WIDE_TABLE_SENTINEL fixture into the current session input and pressed Enter.",
+      "result": "Session cmov5t4bq3bdrqj15q2dyi0i4 created/used via normal UI; fixtures rendered as user/agent message content and were measured live.",
+      "screenshots_of_attempt": [
+        "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+        "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png"
+      ]
+    },
+    "ui_test_results": [
+      {
+        "scenario": "AC1 exact inline fixture renders correctly without leakage",
+        "url": "http://localhost:8097/session/cmov5t4bq3bdrqj15q2dyi0i4",
+        "status": "pass",
+        "reason": null,
+        "steps_performed": [
+          "browser_navigate to localhost:8097 dev web",
+          "inject dev auth and api-dev server config",
+          "click Start New Session",
+          "type AC1 fixture and press Enter",
+          "measure desktop DOM styles at 1440x900",
+          "resize to 390x844 and remeasure mobile DOM styles",
+          "capture screenshots and trace"
+        ],
+        "assertions": [
+          {
+            "expected": "bold italic is bold+italic",
+            "actual": "fontWeight=700 and fontStyle=italic",
+            "passed": true
+          },
+          {
+            "expected": "later text does not inherit italic/bold",
+            "actual": "following plain spans fontWeight=400 fontStyle=normal",
+            "passed": true
+          },
+          {
+            "expected": "strike is struck through",
+            "actual": "textDecorationLine=line-through",
+            "passed": true
+          },
+          {
+            "expected": "link is clickable to https://example.com",
+            "actual": "role=link, href=https://example.com, underline/cursor pointer",
+            "passed": true
+          },
+          {
+            "expected": "code is monospace",
+            "actual": "fontFamily=IBMPlexMono-Regular",
+            "passed": true
+          },
+          {
+            "expected": "escaped *literal* is plain",
+            "actual": "rendered as *, literal, * with normal font and no decoration",
+            "passed": true
+          }
+        ],
+        "evidence": "docs/dev/evidence/20260507-055611/ui-measurements.json",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "mobile_after_screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "AC2 WIDE_TABLE_SENTINEL table preserves inline formatting, empty cell, and horizontal overflow",
+        "url": "http://localhost:8097/session/cmov5t4bq3bdrqj15q2dyi0i4",
+        "status": "pass",
+        "reason": null,
+        "steps_performed": [
+          "type AC2 exact table fixture via dev UI session input",
+          "measure table rows/cells and inline leaves",
+          "measure scrollWidth/clientWidth and overflowX at 1440x900",
+          "resize to 390x844 and remeasure",
+          "capture desktop/mobile screenshots"
+        ],
+        "assertions": [
+          {
+            "expected": "3 table cells with empty third data cell present",
+            "actual": "row text array has third item '' and DOM empty cell childCount=0",
+            "passed": true
+          },
+          {
+            "expected": "bold/strike/link/code render inside table first cell",
+            "actual": "bold fontWeight=700, strike line-through, link role=link underline cursor pointer, code IBMPlexMono-Regular",
+            "passed": true
+          },
+          {
+            "expected": "desktop table scrollWidth > clientWidth with overflow-x auto/scroll",
+            "actual": "1935>800 and 1935>744, overflowX=auto",
+            "passed": true
+          },
+          {
+            "expected": "mobile table scrollWidth > clientWidth with overflow-x auto/scroll",
+            "actual": "1935>358 and 1935>334, overflowX=auto",
+            "passed": true
+          },
+          {
+            "expected": "table remains within message/page width without sibling page overflow",
+            "actual": "document/body widths equal viewport: desktop 1440/1440, mobile 390/390",
+            "passed": true
+          }
+        ],
+        "evidence": "docs/dev/evidence/20260507-055611/ui-measurements.json",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "mobile_after_screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "user_visible_change_confirmed": true
+        }
+      }
+    ],
+    "ui_evidence": {
+      "target_route": "/session/:id",
+      "target_element": "MarkdownView rendered message containing AC1 inline fixture and AC2 WIDE_TABLE_SENTINEL table; RenderTableBlockWeb table cells and RenderSpans descendants",
+      "viewports": {
+        "desktop": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "dom_measurement": {
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+            "document": {
+              "documentWidth": 1440,
+              "bodyWidth": 1440,
+              "pageLevelOverflow": false
+            },
+            "ac1": {
+              "boldItalic": {
+                "fontWeight": "700",
+                "fontStyle": "italic",
+                "textDecorationLine": "none"
+              },
+              "plainAfterBoldItalic": {
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              },
+              "strike": {
+                "textDecorationLine": "line-through",
+                "fontWeight": "400",
+                "fontStyle": "normal"
+              },
+              "link": {
+                "role": "link",
+                "href": "https://example.com",
+                "textDecorationLine": "underline",
+                "cursor": "pointer"
+              },
+              "code": {
+                "fontFamily": "IBMPlexMono-Regular"
+              },
+              "escapedLiteral": {
+                "renderedParts": [
+                  "*",
+                  "literal",
+                  "*"
+                ],
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              }
+            },
+            "ac2": {
+              "tablesFound": 2,
+              "representativeRows": [
+                [
+                  "Format",
+                  "SuperWide",
+                  "Empty"
+                ],
+                [
+                  "bold strike link code",
+                  "WIDE_TABLE_SENTINEL_ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                  ""
+                ]
+              ],
+              "thirdEmptyCell": {
+                "present": true,
+                "text": "",
+                "childCount": 0,
+                "rectWidth": 64.83
+              },
+              "firstCellInline": {
+                "bold": {
+                  "fontWeight": "700"
+                },
+                "strike": {
+                  "textDecorationLine": "line-through"
+                },
+                "link": {
+                  "role": "link",
+                  "textDecorationLine": "underline",
+                  "cursor": "pointer"
+                },
+                "code": {
+                  "fontFamily": "IBMPlexMono-Regular"
+                }
+              },
+              "overflowContainers": [
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 800,
+                  "hasHorizontalOverflow": true
+                },
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 744,
+                  "hasHorizontalOverflow": true
+                }
+              ]
+            }
+          }
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "dom_measurement": {
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+            "document": {
+              "documentWidth": 390,
+              "bodyWidth": 390,
+              "pageLevelOverflow": false
+            },
+            "ac1": {
+              "boldItalic": {
+                "fontWeight": "700",
+                "fontStyle": "italic",
+                "textDecorationLine": "none"
+              },
+              "plainAfterBoldItalic": {
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              },
+              "strike": {
+                "textDecorationLine": "line-through",
+                "fontWeight": "400",
+                "fontStyle": "normal"
+              },
+              "link": {
+                "role": "link",
+                "href": "https://example.com",
+                "textDecorationLine": "underline",
+                "cursor": "pointer"
+              },
+              "code": {
+                "fontFamily": "IBMPlexMono-Regular"
+              },
+              "escapedLiteral": {
+                "renderedParts": [
+                  "*",
+                  "literal",
+                  "*"
+                ],
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              }
+            },
+            "ac2": {
+              "tablesFound": 2,
+              "representativeRows": [
+                [
+                  "Format",
+                  "SuperWide",
+                  "Empty"
+                ],
+                [
+                  "bold strike link code",
+                  "WIDE_TABLE_SENTINEL_ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                  ""
+                ]
+              ],
+              "thirdEmptyCell": {
+                "present": true,
+                "text": "",
+                "childCount": 0,
+                "rectWidth": 64.83
+              },
+              "firstCellInline": {
+                "bold": {
+                  "fontWeight": "700"
+                },
+                "strike": {
+                  "textDecorationLine": "line-through"
+                },
+                "link": {
+                  "role": "link",
+                  "textDecorationLine": "underline",
+                  "cursor": "pointer"
+                },
+                "code": {
+                  "fontFamily": "IBMPlexMono-Regular"
+                }
+              },
+              "overflowContainers": [
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 358,
+                  "hasHorizontalOverflow": true
+                },
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 334,
+                  "hasHorizontalOverflow": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      "evidence_map": {
+        "AC-1": [
+          "docs/dev/evidence/20260507-055611/ui-measurements.json",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md"
+        ],
+        "AC-2": [
+          "docs/dev/evidence/20260507-055611/ui-measurements.json",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-trace.zip"
+        ],
+        "AC-3": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/vitest-happy-app-all.md"
+        ],
+        "AC-4": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/vitest-happy-app-all.md"
+        ]
+      },
+      "trace": "docs/dev/evidence/20260507-055611/qa-20260507-055611-trace.zip",
+      "captured_at": "2026-05-07T07:28:27Z"
+    },
+    "output_quality_verification": {
+      "checked": true,
+      "output_type": "rendered_markdown_ui",
+      "completeness": "all required inline primitives and table cells populated/preserved",
+      "quality_assessment": "good",
+      "specific_checks": [
+        {
+          "check": "no raw delimiters visible for selected inline primitives",
+          "result": "pass",
+          "details": "Rendered text shows styled content for bold/strike/link/code and plain escaped literal."
+        },
+        {
+          "check": "table keeps structural integrity",
+          "result": "pass",
+          "details": "Three columns, empty third cell present, horizontal scroll localized to table container."
+        },
+        {
+          "check": "desktop/mobile visual fit",
+          "result": "pass",
+          "details": "Screenshots at 1440x900 and 390x844 show message-width table with horizontal scroll; document width equals viewport."
+        }
+      ],
+      "verdict": "pass"
+    },
+    "generated_tests": [],
+    "generated_tests_skip_reason": "QA did not write new code/test files because this QA role is restricted to .md/.json outputs; instead QA executed the dev-created exact parser Vitest coverage, full happy-app Vitest, typecheck, deferred probes, and live browser tests.",
+    "all_findings": [],
+    "blocking_issues": [],
+    "refined_context": null,
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 0,
+      "total_findings": 0,
+      "release_recommendation": "approve current-cycle #5/#5b/#12 slice; do not mark original P0 parser group fully closed until #10/#11/#13 receive separate cycles"
+    },
+    "self_verification": {
+      "claims_total": 19,
+      "claims_with_evidence": 19,
+      "claims_superficial": 0,
+      "superficial_details": [],
+      "confidence": "high"
+    },
+    "codex_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    },
+    "evidence_artifacts": [
+      "docs/dev/evidence/20260507-055611/ui-evidence-audit.json",
+      "docs/dev/evidence/20260507-055611/ui-evidence-audit-strict.md",
+      "docs/dev/evidence/20260507-055611/browser-console.md"
+    ]
+  },
+  "iteration_needed": false,
+  "refined_context": null,
+  "ui_pipeline": true,
+  "captured_at": "2026-05-07T07:32:41Z",
+  "evidence_summary": {
+    "ui_evidence": {
+      "target_route": "/session/:id",
+      "target_element": "MarkdownView rendered message containing AC1 inline fixture and AC2 WIDE_TABLE_SENTINEL table; RenderTableBlockWeb table cells and RenderSpans descendants",
+      "viewports": {
+        "desktop": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "dom_measurement": {
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+            "document": {
+              "documentWidth": 1440,
+              "bodyWidth": 1440,
+              "pageLevelOverflow": false
+            },
+            "ac1": {
+              "boldItalic": {
+                "fontWeight": "700",
+                "fontStyle": "italic",
+                "textDecorationLine": "none"
+              },
+              "plainAfterBoldItalic": {
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              },
+              "strike": {
+                "textDecorationLine": "line-through",
+                "fontWeight": "400",
+                "fontStyle": "normal"
+              },
+              "link": {
+                "role": "link",
+                "href": "https://example.com",
+                "textDecorationLine": "underline",
+                "cursor": "pointer"
+              },
+              "code": {
+                "fontFamily": "IBMPlexMono-Regular"
+              },
+              "escapedLiteral": {
+                "renderedParts": [
+                  "*",
+                  "literal",
+                  "*"
+                ],
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              }
+            },
+            "ac2": {
+              "tablesFound": 2,
+              "representativeRows": [
+                [
+                  "Format",
+                  "SuperWide",
+                  "Empty"
+                ],
+                [
+                  "bold strike link code",
+                  "WIDE_TABLE_SENTINEL_ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                  ""
+                ]
+              ],
+              "thirdEmptyCell": {
+                "present": true,
+                "text": "",
+                "childCount": 0,
+                "rectWidth": 64.83
+              },
+              "firstCellInline": {
+                "bold": {
+                  "fontWeight": "700"
+                },
+                "strike": {
+                  "textDecorationLine": "line-through"
+                },
+                "link": {
+                  "role": "link",
+                  "textDecorationLine": "underline",
+                  "cursor": "pointer"
+                },
+                "code": {
+                  "fontFamily": "IBMPlexMono-Regular"
+                }
+              },
+              "overflowContainers": [
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 800,
+                  "hasHorizontalOverflow": true
+                },
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 744,
+                  "hasHorizontalOverflow": true
+                }
+              ]
+            }
+          }
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "dom_measurement": {
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "screenshot": "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+            "document": {
+              "documentWidth": 390,
+              "bodyWidth": 390,
+              "pageLevelOverflow": false
+            },
+            "ac1": {
+              "boldItalic": {
+                "fontWeight": "700",
+                "fontStyle": "italic",
+                "textDecorationLine": "none"
+              },
+              "plainAfterBoldItalic": {
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              },
+              "strike": {
+                "textDecorationLine": "line-through",
+                "fontWeight": "400",
+                "fontStyle": "normal"
+              },
+              "link": {
+                "role": "link",
+                "href": "https://example.com",
+                "textDecorationLine": "underline",
+                "cursor": "pointer"
+              },
+              "code": {
+                "fontFamily": "IBMPlexMono-Regular"
+              },
+              "escapedLiteral": {
+                "renderedParts": [
+                  "*",
+                  "literal",
+                  "*"
+                ],
+                "fontWeight": "400",
+                "fontStyle": "normal",
+                "textDecorationLine": "none"
+              }
+            },
+            "ac2": {
+              "tablesFound": 2,
+              "representativeRows": [
+                [
+                  "Format",
+                  "SuperWide",
+                  "Empty"
+                ],
+                [
+                  "bold strike link code",
+                  "WIDE_TABLE_SENTINEL_ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                  ""
+                ]
+              ],
+              "thirdEmptyCell": {
+                "present": true,
+                "text": "",
+                "childCount": 0,
+                "rectWidth": 64.83
+              },
+              "firstCellInline": {
+                "bold": {
+                  "fontWeight": "700"
+                },
+                "strike": {
+                  "textDecorationLine": "line-through"
+                },
+                "link": {
+                  "role": "link",
+                  "textDecorationLine": "underline",
+                  "cursor": "pointer"
+                },
+                "code": {
+                  "fontFamily": "IBMPlexMono-Regular"
+                }
+              },
+              "overflowContainers": [
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 358,
+                  "hasHorizontalOverflow": true
+                },
+                {
+                  "overflowX": "auto",
+                  "scrollWidth": 1935,
+                  "clientWidth": 334,
+                  "hasHorizontalOverflow": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      "evidence_map": {
+        "AC-1": [
+          "docs/dev/evidence/20260507-055611/ui-measurements.json",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md"
+        ],
+        "AC-2": [
+          "docs/dev/evidence/20260507-055611/ui-measurements.json",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-desktop-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-sessionid-mobile-render.png",
+          "docs/dev/evidence/20260507-055611/qa-20260507-055611-trace.zip"
+        ],
+        "AC-3": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/vitest-happy-app-all.md"
+        ],
+        "AC-4": [
+          "docs/dev/evidence/20260507-055611/vitest-parseMarkdown.md",
+          "docs/dev/evidence/20260507-055611/vitest-happy-app-all.md"
+        ]
+      },
+      "trace": "docs/dev/evidence/20260507-055611/qa-20260507-055611-trace.zip",
+      "captured_at": "2026-05-07T07:28:27Z"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+# QA iter2 typecheck
+started_at=2026-04-28T13:40:59Z
+command: yarn workspace happy-app typecheck
+yarn workspace v1.22.22
+yarn run v1.22.22
+$ tsc --noEmit
+Done in 3.44s.
+Done in 3.69s.
+typecheck_exit=0
+finished_at=2026-04-28T13:41:03Z

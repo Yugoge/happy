@@ -1,7 +1,7 @@
 # views
 
-*Last updated: 2026-04-25T01:56:46Z*
-**Total entries**: 21
+*Last updated: 2026-05-07T17:46:01Z*
+**Total entries**: 23
 **Convention**: kebab
 
 ## Tree
@@ -11,10 +11,12 @@ views/
 ├── `AskUserQuestionView.tsx` - tsx file
 ├── `BashView.tsx` - tsx file
 ├── `BashViewFull.tsx` - tsx file
+├── `CodexAttachmentView.tsx` - tsx file
 ├── `CodexBashView.tsx` - tsx file
 ├── `CodexDiffView.tsx` - tsx file
 ├── `CodexParallelView.tsx` - tsx file
 ├── `CodexPatchView.tsx` - tsx file
+├── `CodexPlanView.tsx` - tsx file
 ├── `CodexSubagentView.tsx` - tsx file
 ├── `EditView.tsx` - tsx file
 ├── `EditViewFull.tsx` - tsx file

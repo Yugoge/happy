@@ -1646,6 +1646,21 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
                     parentUUID: null
                 });
             }
+
+            const noTurn = normalizeRawMessage('db-service-2', null, 1, {
+                ...base,
+                content: {
+                    type: 'session',
+                    data: {
+                        id: 'env-service-2',
+                        time: 1,
+                        role: 'agent',
+                        ev: { t: 'service', text: 'Global service notice' }
+                    }
+                }
+            });
+            expect(noTurn).toBeTruthy();
+            expect(noTurn?.role).toBe('agent');
         });
 
         it('normalizes tool-call lifecycle events', () => {
@@ -1702,6 +1717,162 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
                     tool_use_id: 'call-1',
                     content: null,
                     is_error: false
+                });
+            }
+
+            const endWithOutput = normalizeRawMessage('db-4-output', null, 1, {
+                ...base,
+                content: {
+                    type: 'session',
+                    data: {
+                        id: 'env-4-output',
+                        time: 1,
+                        role: 'agent',
+                        turn: 'turn-1',
+                        ev: {
+                            t: 'tool-call-end',
+                            call: 'call-1',
+                            output: JSON.stringify({ output: 'stdout', status: 'completed' })
+                        }
+                    }
+                }
+            });
+            expect(endWithOutput).toBeTruthy();
+            if (endWithOutput && endWithOutput.role === 'agent') {
+                expect(endWithOutput.content[0]).toMatchObject({
+                    type: 'tool-result',
+                    tool_use_id: 'call-1',
+                    content: JSON.stringify({ output: 'stdout', status: 'completed' }),
+                    is_error: false
+                });
+            }
+
+            const structuredResult = {
+                output: '',
+                stdout: '',
+                stderr: null,
+                exit_code: 0,
+                status: 'completed',
+                duration_ms: 4,
+                cwd: '/tmp/project',
+                command: 'true',
+                empty_output: true,
+                source: 'codex.exec_command_end'
+            };
+            const endWithResult = normalizeRawMessage('db-4-result', null, 1, {
+                ...base,
+                content: {
+                    type: 'session',
+                    data: {
+                        id: 'env-4-result',
+                        time: 1,
+                        role: 'agent',
+                        turn: 'turn-1',
+                        ev: {
+                            t: 'tool-call-end',
+                            call: 'call-1',
+                            output: '',
+                            result: structuredResult
+                        }
+                    }
+                }
+            });
+            expect(endWithResult).toBeTruthy();
+            if (endWithResult && endWithResult.role === 'agent') {
+                expect(endWithResult.content[0]).toMatchObject({
+                    type: 'tool-result',
+                    tool_use_id: 'call-1',
+                    content: structuredResult,
+                    is_error: false
+                });
+            }
+
+            const failedEnd = normalizeRawMessage('db-4-failed', null, 1, {
+                ...base,
+                content: {
+                    type: 'session',
+                    data: {
+                        id: 'env-4-failed',
+                        time: 1,
+                        role: 'agent',
+                        turn: 'turn-1',
+                        ev: {
+                            t: 'tool-call-end',
+                            call: 'call-1',
+                            output: JSON.stringify({ output: 'stdout', status: 'failed', exit_code: 2 })
+                        }
+                    }
+                }
+            });
+            if (failedEnd && failedEnd.role === 'agent') {
+                expect(failedEnd.content[0]).toMatchObject({
+                    type: 'tool-result',
+                    tool_use_id: 'call-1',
+                    is_error: true
+                });
+            }
+
+            const failedResult = normalizeRawMessage('db-4-failed-result', null, 1, {
+                ...base,
+                content: {
+                    type: 'session',
+                    data: {
+                        id: 'env-4-failed-result',
+                        time: 1,
+                        role: 'agent',
+                        turn: 'turn-1',
+                        ev: {
+                            t: 'tool-call-end',
+                            call: 'call-1',
+                            result: {
+                                output: 'partial',
+                                stdout: 'partial',
+                                stderr: 'boom',
+                                exit_code: 2,
+                                status: 'failed',
+                                duration_ms: null,
+                                cwd: null,
+                                command: null,
+                                empty_output: false,
+                                source: 'codex.exec_command_end'
+                            }
+                        }
+                    }
+                }
+            });
+            if (failedResult && failedResult.role === 'agent') {
+                expect(failedResult.content[0]).toMatchObject({
+                    type: 'tool-result',
+                    tool_use_id: 'call-1',
+                    is_error: true
+                });
+            }
+
+            const declinedResult = normalizeRawMessage('db-4-declined-result', null, 1, {
+                ...base,
+                content: {
+                    type: 'session',
+                    data: {
+                        id: 'env-4-declined-result',
+                        time: 1,
+                        role: 'agent',
+                        turn: 'turn-1',
+                        ev: {
+                            t: 'tool-call-end',
+                            call: 'call-1',
+                            result: {
+                                output: '',
+                                stderr: 'policy denied',
+                                status: 'declined'
+                            }
+                        }
+                    }
+                }
+            });
+            if (declinedResult && declinedResult.role === 'agent') {
+                expect(declinedResult.content[0]).toMatchObject({
+                    type: 'tool-result',
+                    is_error: true
                 });
             }
         });

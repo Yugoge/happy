@@ -1,0 +1,98 @@
+{
+  "request_id": "20260428-063343-codex-rendering-iter1",
+  "purpose": "Deterministic dev-only fixture targets for QA matrix rows that were missing live evidence in the first QA cycle.",
+  "creation_constraints": {
+    "production_access": "forbidden",
+    "daemon_restart": "forbidden",
+    "non_ui_session_creation": "forbidden",
+    "live_ui_claim_by_dev": false
+  },
+  "qa_instruction": "Use these payload shapes as source/test-backed targets when a normal UI-created dev session emits matching Codex events; capture desktop and mobile inline/detail evidence without creating sessions via APIs or daemon-control paths.",
+  "fixture_targets": [
+    {
+      "matrix_row": "patch_diff",
+      "tool_name": "CodexPatch",
+      "start_input": {
+        "changes": {
+          "packages/example.ts": {
+            "type": "update",
+            "unified_diff": "@@ -1 +1 @@\n-old\n+new"
+          }
+        }
+      },
+      "end_output": {
+        "status": "completed"
+      },
+      "expected_visible_strings": ["packages/example.ts", "old", "new", "completed"]
+    },
+    {
+      "matrix_row": "plan_update",
+      "tool_name": "functions.update_plan",
+      "start_input": {
+        "text": "Inspect payload\nRender fallback",
+        "plan": [
+          { "step": "Inspect payload", "status": "completed" },
+          { "step": "Render fallback", "status": "in_progress" }
+        ]
+      },
+      "end_output": {
+        "text": "Inspect payload\nRender fallback"
+      },
+      "expected_visible_strings": ["Plan: 2 steps", "Inspect payload", "Render fallback"]
+    },
+    {
+      "matrix_row": "multi_tool_sequences",
+      "tool_name": "multi_tool_use.parallel",
+      "start_input": {
+        "tool_uses": [
+          { "recipient_name": "functions.exec_command", "parameters": { "cmd": "pwd" } },
+          { "recipient_name": "mcp__resources__read", "parameters": { "uri": "file://fixture.md" } }
+        ]
+      },
+      "end_output": {
+        "status": "completed"
+      },
+      "expected_visible_strings": ["Parallel tool", "functions.exec_command", "mcp__resources__read"]
+    },
+    {
+      "matrix_row": "image_view",
+      "tool_name": "functions.view_image",
+      "start_input": {
+        "path": "/tmp/render-fixtures/plot.png",
+        "image": { "width": 640, "height": 480 },
+        "size": 2048
+      },
+      "end_output": {
+        "path": "/tmp/render-fixtures/plot.png"
+      },
+      "expected_visible_strings": ["plot.png", "/tmp/render-fixtures/plot.png", "640×480"]
+    },
+    {
+      "matrix_row": "mcp_resource",
+      "tool_name": "mcp__resources__read",
+      "start_input": {
+        "uri": "file://fixture.md"
+      },
+      "end_output": {
+        "server": "resources",
+        "tool": "read",
+        "status": "completed"
+      },
+      "expected_visible_strings": ["resources.read", "file://fixture.md", "completed"]
+    },
+    {
+      "matrix_row": "unknown_fallback",
+      "tool_name": "functions.future_tool",
+      "start_input": {
+        "nested": {
+          "value": ["unknown", { "type": "payload" }]
+        }
+      },
+      "end_output": {
+        "status": "completed",
+        "result": { "ok": true }
+      },
+      "expected_visible_strings": ["functions.future_tool", "payload", "ok"]
+    }
+  ]
+}

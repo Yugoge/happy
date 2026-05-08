@@ -1,0 +1,164 @@
+{
+  "request_id": "20260507-055611",
+  "task_id": "20260507-055611",
+  "timestamp": "2026-05-07T07:08:25Z",
+  "dev_report_path": "docs/dev/dev-report-20260507-055611.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "docs/dev/specs/spec-20260506-203755.md",
+      ".claude/specs/spec-20260506-203755/cp-state-dev.json"
+    ],
+    "files_created": [
+      "docs/dev/dev-report-20260507-055611.json"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Replaced the leak-prone inline regex walk with a bounded scanner for the selected inline Markdown slice.",
+        "type": "parser",
+        "files_modified": [
+          "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts"
+        ],
+        "changes": "Closed delimiters are now required for ***, **, *, ~~, code, links, kbd, and LaTeX tokens; escaped token starts are ignored; \\* and escaped markdown-link literals remain plain.",
+        "rationale": "The BA root cause identified end-of-string delimiter acceptance as the reason complaint-shaped emphasis could consume later strikethrough/link/code tokens. The scanner fixes the token boundary instead of weakening downstream rendering checks."
+      },
+      {
+        "id": 2,
+        "description": "Rendered table header/cell strings through the existing span renderer at render time.",
+        "type": "renderer",
+        "files_modified": [
+          "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+        ],
+        "changes": "Web and native table paths now call parseMarkdownSpans(...) and RenderSpans(...) for headers/cells while preserving row[colIndex] ?? '' empty-cell fallback and existing horizontal scroll containers.",
+        "rationale": "The BA root cause identified table strings bypassing RenderSpans after 0dd09cc3 restored string rows for empty-cell preservation. Render-time parsing restores inline formatting without changing the protected table data shape."
+      },
+      {
+        "id": 3,
+        "description": "Added regression coverage for AC1 through AC4 parser/data-shape requirements.",
+        "type": "test",
+        "files_modified": [
+          "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+        ],
+        "changes": "Added fixtures for bounded ***, strikethrough/link/code after emphasis, selected escapes, LaTeX, kbd, autolinks, code precedence, table empty cells, and header/list/task-list/numbered-list parser call sites.",
+        "rationale": "The parser is shared by text, header, unordered-list, task-list, and numbered-list blocks; tests prove the selected fix did not regress those call sites."
+      },
+      {
+        "id": 4,
+        "description": "Updated the overnight spec and checkpoint state for this implementation cycle.",
+        "type": "workflow-artifact",
+        "files_modified": [
+          "docs/dev/specs/spec-20260506-203755.md",
+          ".claude/specs/spec-20260506-203755/cp-state-dev.json"
+        ],
+        "changes": "Section 2 now records approach/rationale; Section 3 records exact file/line edits; stale tool-card checkpoints cp-02/cp-03 were waived as out of scope for the BA-narrowed markdown slice.",
+        "rationale": "The spec-driven workflow requires lifecycle notes and checkpoint closure while preserving the current task's no-broadened-scope boundary."
+      }
+    ],
+    "scripts_created": [],
+    "permissions_to_add": [],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+        "imported_by": [
+          "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+          "packages/happy-app/sources/components/MessageView.tsx",
+          "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/ExitPlanToolView.tsx",
+          "packages/happy-app/sources/app/(app)/changelog.tsx",
+          "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/app/(app)/artifacts/[id].tsx"
+        ],
+        "impact_note": "High impact: MarkdownView has more than five importers; QA should exercise normal messages, sidebar/task/tool markdown views, changelog, artifact, and session message routes as practical."
+      },
+      {
+        "modified": "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+        "imported_by": []
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "0dd09cc3 for table-cell inline regression; no single confirmed commit for *** leakage",
+      "why_issue_occurred": "0dd09cc3 preserved empty table cells by restoring string table rows, which also bypassed inline span rendering. The older regex span parser accepted end-of-string as a delimiter close and let overlapping asterisk runs corrupt later tokens.",
+      "how_fix_addresses_root": "The table parser shape stays string[]/string[][] and cells are parsed only at render time; the inline parser now requires real unescaped closing delimiters and treats selected escaped punctuation as literal text."
+    },
+    "diff_stats": {
+      "files_changed": 3,
+      "lines_added": 254,
+      "lines_removed": 58,
+      "new_symbols_introduced": [
+        "ESCAPABLE_PUNCTUATION",
+        "pushPlainText",
+        "isEscaped",
+        "findUnescaped",
+        "consumeDelimited",
+        "consumeCodeSpan",
+        "consumeKbdSpan",
+        "consumeLink",
+        "consumeLatex",
+        "readEscapedLiteral",
+        "consumeToken",
+        "expectTextBlock",
+        "expectSpan"
+      ],
+      "minimum_possible_lines_estimate": 240,
+      "justification_for_overage": "BA explicitly required exact parser-first coverage for AC1/AC3/AC4 and a deterministic replacement for the delimiter-leaking regex branch; the added lines are concentrated in that scanner plus required regression tests."
+    },
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "QA must still perform live dev.life-ai.app desktop 1440x900 and mobile 390x844 rendering/screenshots for AC1 and AC2, including table scrollWidth > clientWidth and overflow-x auto/scroll checks with WIDE_TABLE_SENTINEL. Dev did not deploy/restart services because the dispatch forbade service restarts.",
+    "implementation_notes": [
+      "Preserved pre-existing guards: linkUtils.ts was not modified, parseMarkdownBlock.ts table validation/data-shape code was not modified, and isEscapedDollar/isPriceLikeDollar remain active in parseMarkdownSpans.ts.",
+      "The BA reference_source.role_table contains no design role-token map, so strict role-token equality was not applicable; no color/spacing/typography tokens were changed.",
+      "Reference links (#10), footnotes (#11), nested ordered-list repair (#13), Mermaid, context-capacity UI, tool-card rendering, mhchem, and broad HTML-inline support remain intentionally out of scope.",
+      "The cp-state file contained stale tool-card checkpoints; cp-02 and cp-03 were waived because executing them would violate the current BA/user forbidden scope."
+    ],
+    "validation_performed": [
+      {
+        "command": "yarn --cwd packages/happy-app vitest sources/components/markdown/parseMarkdown.test.ts --run",
+        "phase": "test-first",
+        "result": "failed before implementation as expected: 3 failing tests reproduced emphasis/escape/call-site issues"
+      },
+      {
+        "command": "yarn --cwd packages/happy-app vitest sources/components/markdown/parseMarkdown.test.ts --run",
+        "phase": "post-fix",
+        "result": "pass: 7 tests passed"
+      },
+      {
+        "command": "yarn --cwd packages/happy-app typecheck",
+        "phase": "build/typecheck",
+        "result": "pass: tsc --noEmit completed successfully"
+      }
+    ],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "Focused parser regression suite passed and TypeScript typecheck passed. Live rendered desktop/mobile screenshots and scroll measurements were not performed by dev due no service restart/deploy constraint; QA must verify on dev.life-ai.app."
+    },
+    "codex_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    }
+  },
+  "blocking_issues": [],
+  "unresolved_risks": [
+    "Live browser rendering and horizontal-scroll measurements are still required on dev.life-ai.app for AC1/AC2.",
+    "The scanner is still a targeted Markdown subset, not a full CommonMark/GFM inline parser; deferred #10/#11/#13 remain open by BA design."
+  ],
+  "recommendations": [
+    "Run QA's desktop and mobile dev-web probes before close.",
+    "Schedule separate parser cycles for #10 reference links, #11 footnotes, and #13 nested ordered-list repair."
+  ]
+}

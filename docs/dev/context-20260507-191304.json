@@ -1,0 +1,318 @@
+{
+  "request_id": "20260507-191304",
+  "task_id": "20260507-191304",
+  "timestamp": "2026-05-07T19:13:04Z",
+  "requirement": {
+    "original": "立刻修复",
+    "clarified": "Resolve cycle-4 close-NO blocker by removing scripts/cycle-4-dom-probe.js (3 NEW critical style violations) and the corresponding stale .claude/settings.local.json Bash allow entry, scripts/INDEX.md auto-listing entry, and annotating spec section 3 cycle-4 references. Cycle-4 substantive renderer/i18n/fixture work is correct and untouched.",
+    "what": "Repo housekeeping: file removal (or relocate+rename+parameterize) + JSON allow-entry removal + INDEX entry removal + spec annotation",
+    "why": "Cycle 4 close debate Round 2 unanimous CLOSE: NO under AC-2.6(b) cleanliness-of-THIS-diff rule due to 3 NEW critical inspector violations on the auxiliary helper script (filename embeds cycle number, ART_DIR/FIXTURE_URL hardcoded, require uses absolute path)",
+    "where": [
+      "scripts/cycle-4-dom-probe.js",
+      ".claude/settings.local.json",
+      "scripts/INDEX.md",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "scope": {
+      "included": [
+        "Remove scripts/cycle-4-dom-probe.js OR relocate+rename+parameterize per alternative path",
+        "Remove .claude/settings.local.json line 27 Bash allow entry referencing cycle-4-dom-probe.js",
+        "Remove scripts/INDEX.md line 11 entry for cycle-4-dom-probe.js",
+        "Annotate (do NOT delete) docs/dev/specs/spec-20260506-203844.md lines 277, 343, 346, 360, 367 as superseded by cycle 5"
+      ],
+      "excluded": [
+        "Re-running cycle-4 renderer/i18n/fixture work (correct, not the blocker)",
+        "Any feature or UX changes",
+        "Modifying closed-cycle historical artifacts (close-report, qa-report, dev-report, inspector-reports, completion-report from cycle 4)",
+        "Production access (life-ai.app, localhost:8090, localhost:3000) - forbidden by CLAUDE.md",
+        "Daemon restart, docker rebuild, browser invocation, Playwright invocation",
+        "Modifying the global Playwright install at /usr/lib/node_modules/playwright"
+      ]
+    },
+    "success_criteria": [
+      "scripts/cycle-4-dom-probe.js no longer exists at that path",
+      ".claude/settings.local.json has no Bash allow entry referencing cycle-4-dom-probe.js, JSON remains valid",
+      "scripts/INDEX.md does not list cycle-4-dom-probe.js",
+      "Re-running style-inspector + cleanliness-inspector on cycle-5 diff returns zero NEW violations attributable to the formerly-flagged file",
+      "Spec section 3 references are annotated (not orphaned), preserving historical narrative",
+      "Two screenshot artifacts at docs/dev/qa-artifacts/20260507-142748/ are preserved (the audit evidence)"
+    ],
+    "constraints": [
+      "Bash-safety hook may block direct `rm` - dev picks hook-compatible mechanism (git rm, mv, stub-empty, etc.)",
+      "Spec is END-STATE not mechanism",
+      "Closed-cycle historical artifacts (cycle-4 reports) are immutable and out of scope",
+      "No production access of any kind",
+      "No daemon restart, no docker rebuild"
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "scripts/cycle-4-dom-probe.js",
+      ".claude/settings.local.json",
+      "scripts/INDEX.md",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "path_dependent_shared_infra": [],
+    "out_of_path_observed_but_not_touched": [
+      "docs/dev/close-report-20260507-142748.md",
+      "docs/dev/style-inspector-report-20260507-142748.json",
+      "docs/dev/cleanliness-inspector-report-20260507-142748.json",
+      "docs/dev/prompt-inspector-report-20260507-142748.json",
+      "docs/dev/qa-report-20260507-142748.json",
+      "docs/dev/dev-report-20260507-142748.json",
+      "docs/dev/completion-20260507-142748.md",
+      "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-desktop.png",
+      "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-mobile.png"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/close-report-20260507-142748.md",
+      "line": null,
+      "observation": "Multiple references to cycle-4-dom-probe.js; closed-cycle artifact, immutable history; do not modify",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/style-inspector-report-20260507-142748.json",
+      "line": "24,30,38,46",
+      "observation": "Cycle-4 inspector report enumerates the 3 violations; closed-cycle artifact, immutable history; do not modify",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/cleanliness-inspector-report-20260507-142748.json",
+      "line": null,
+      "observation": "Cycle-4 cleanliness report flags misplaced file; closed-cycle artifact, immutable history; do not modify",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/qa-report-20260507-142748.json",
+      "line": null,
+      "observation": "Cycle-4 QA report cites the probe in Section 4 evidence; closed-cycle artifact, immutable history; do not modify",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/dev-report-20260507-142748.json",
+      "line": null,
+      "observation": "Cycle-4 dev report records script creation; closed-cycle artifact, immutable history; do not modify",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-desktop.png",
+      "line": null,
+      "observation": "Screenshot produced by the probe; PRESERVE -- this is the audit evidence the probe captured. The probe's deletion does not invalidate the screenshots.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T19:13:04Z",
+      "task_id": "20260507-191304",
+      "file": "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-mobile.png",
+      "line": null,
+      "observation": "Screenshot produced by the probe; PRESERVE -- this is the audit evidence the probe captured.",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+  "root_cause_analysis": {
+    "symptom": "Cycle 4 close debate returned CLOSE: NO unanimously due to 3 NEW critical style-inspector violations on scripts/cycle-4-dom-probe.js",
+    "root_cause": "Cycle 4 dev placed a one-shot verification helper into the durable scripts/ directory with three transient values hardcoded (cycle-4 in filename, absolute artifact path on line 10, absolute Playwright module path on line 2, hardcoded fixture URL on line 11). Under AC-2.6(b) cleanliness-of-THIS-diff with introduced_in_diff:true, these become dispositive close blockers.",
+    "root_cause_commit": "Cycle 4 dev commit (referenced in docs/dev/dev-report-20260507-142748.json) - exact hash not material to this housekeeping cycle",
+    "why_introduced": "Dev needed live DOM-probe evidence for cycle-4 AC1-AC4; created a Playwright helper with environmental defaults inlined for fast iteration",
+    "why_problematic": "scripts/ is the durable-tooling directory; cycle-specific helpers belong under docs/dev/qa-artifacts/<task-id>/. Hardcoded transient values violate the no-hardcoded-values standard. Cycle-N-prefix violates meaningful-naming convention.",
+    "timeline": "Introduced 2026-05-07T14:27:48Z (cycle 4); flagged at close 2026-05-07T~14:42Z; remediation begins 2026-05-07T19:13:04Z",
+    "affected_files": [
+      "scripts/cycle-4-dom-probe.js",
+      ".claude/settings.local.json",
+      "scripts/INDEX.md",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "evidence_type": "observed",
+    "observations": [
+      "scripts/cycle-4-dom-probe.js exists at given path with 84 lines (observed: Read tool)",
+      "Line 2 contains require('/usr/lib/node_modules/playwright') (observed: Read tool)",
+      "Line 10 contains absolute ART_DIR with embedded task-id (observed: Read tool)",
+      "Line 11 contains hardcoded http://localhost:8097 FIXTURE_URL (observed: Read tool)",
+      "Filename literally has cycle-4- prefix (observed: filesystem)",
+      ".claude/settings.local.json line 27 has the Bash allow entry (observed: Read tool)",
+      "scripts/INDEX.md line 11 has cycle-4-dom-probe.js entry (observed: Grep tool)",
+      "docs/dev/specs/spec-20260506-203844.md has 5 references at lines 277, 343, 346, 360, 367 (observed: Grep tool)",
+      "docs/dev/qa-artifacts/20260507-142748/ contains cycle4-fixture-desktop.png and cycle4-fixture-mobile.png (observed: Glob tool)",
+      "Style-inspector report enumerates 3 violations with introduced_in_diff:true (observed: Read tool)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["cycle-4-dom-probe", "scripts/cycle-4-dom-probe.js", "settings.local.json", "立刻修复"],
+    "localization_evidence": "Direct Read of scripts/cycle-4-dom-probe.js confirmed the 3 violations at line 2, line 10, line 11, and filename. Direct Read of .claude/settings.local.json:27 confirmed the stale allow entry. Grep confirmed 9 files reference cycle-4-dom-probe; 4 are live (script + settings + INDEX + active spec) and 5+ are immutable historical artifacts. The QA close-report explicitly enumerated all three violations with their line numbers and recommended remediations.",
+    "located_source": "scripts/cycle-4-dom-probe.js (lines 2, 10, 11, filename) + .claude/settings.local.json:27 + scripts/INDEX.md:11 + docs/dev/specs/spec-20260506-203844.md:{277,343,346,360,367}",
+    "localization_blocked": null,
+    "git_bisect_result": null
+  },
+  "diagnosis_layer": "L0",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "立刻修复",
+      "acceptance_criterion": "The 3 NEW critical inspector violations on scripts/cycle-4-dom-probe.js are eliminated AND the corresponding .claude/settings.local.json allow entry is removed AND scripts/INDEX.md no longer references the file AND spec section 3 references are annotated -- such that re-running inspectors on the cycle-5 diff returns zero NEW violations from this file."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "scripts/cycle-4-dom-probe.js",
+      "line_range": "1-84",
+      "role": "One-shot DOM-probe helper used by cycle-4 dev for AC1-AC4 verification; has 3 critical style violations introduced in cycle-4 diff",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool full file content; line 2 = require('/usr/lib/node_modules/playwright'); line 10 = ART_DIR with absolute path; line 11 = FIXTURE_URL hardcoded localhost:8097",
+      "verified_via": "Read"
+    },
+    {
+      "file": ".claude/settings.local.json",
+      "line_range": "27",
+      "role": "Stores Bash allow entry that referenced the now-stale script path; cycle-4 added it",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool, line 27 = \"Bash(node /dev/shm/dev-workspace/happy-dev/scripts/cycle-4-dom-probe.js:*)\"",
+      "verified_via": "Read"
+    },
+    {
+      "file": "scripts/INDEX.md",
+      "line_range": "11",
+      "role": "Auto-generated INDEX listing for scripts/ directory; lists the file as `cycle-4-dom-probe.js - js file`",
+      "imports_from": ["leaf"],
+      "evidence": "Grep tool, line 11 = \"├── `cycle-4-dom-probe.js` - js file\"",
+      "verified_via": "Grep"
+    },
+    {
+      "file": "docs/dev/specs/spec-20260506-203844.md",
+      "line_range": "277,343,346,360,367",
+      "role": "Cycle-spec narrative section 3 cycle-4 sub-bullets that reference the script as part of cycle-4 diff scope",
+      "imports_from": ["leaf"],
+      "evidence": "Grep tool, 5 line numbers each containing 'cycle-4-dom-probe'",
+      "verified_via": "Grep"
+    }
+  ],
+  "pre_existing_guards": [],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- doc-only + repo-housekeeping (file removal + JSON entry removal + spec annotation); cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, or (4) screenshot evidence",
+    "viewport": null,
+    "theme": null,
+    "locale": null,
+    "auth_state": null,
+    "data_state": null,
+    "browser": null,
+    "url_path": null
+  },
+  "evidence": {
+    "observed": "Cycle 4 close debate Round 2 returned CLOSE: NO unanimously (QA + Codex). 3 NEW critical style-inspector violations on scripts/cycle-4-dom-probe.js are dispositive blockers under AC-2.6(b) cleanliness-of-THIS-diff with introduced_in_diff:true.",
+    "measured": {
+      "value": "scripts/cycle-4-dom-probe.js exists (84 lines); line 2 = require('/usr/lib/node_modules/playwright'); line 10 = ART_DIR='/dev/shm/dev-workspace/happy-dev/docs/dev/qa-artifacts/20260507-142748'; line 11 = FIXTURE_URL with hardcoded localhost:8097; filename has cycle-4- prefix; .claude/settings.local.json:27 has stale Bash allow entry; scripts/INDEX.md:11 references the file; spec section 3 has 5 line references",
+      "location": "scripts/cycle-4-dom-probe.js + .claude/settings.local.json:27 + scripts/INDEX.md:11 + docs/dev/specs/spec-20260506-203844.md:{277,343,346,360,367}"
+    },
+    "expected": {
+      "value": "scripts/cycle-4-dom-probe.js absent (or relocated to docs/dev/qa-artifacts/20260507-142748/ with parameterized constants and non-cycle-prefixed name); .claude/settings.local.json without the stale allow entry, valid JSON; scripts/INDEX.md without the entry; spec section 3 references annotated as superseded by cycle 5",
+      "source": "docs/dev/close-report-20260507-142748.md:76-100 (Final verdict + Remediation prescription) + docs/dev/style-inspector-report-20260507-142748.json:24-50 (3 enumerated violations)"
+    },
+    "gap": "1 file present that should be absent (or transformed) + 1 allow-list line present that should be absent + 1 INDEX line present that should be absent + 5 spec references not yet annotated as superseded"
+  },
+  "scope_expansion": {
+    "search_pattern": "cycle-4-dom-probe",
+    "search_scope": "/dev/shm/dev-workspace/happy-dev/** (project-wide)",
+    "user_reported": ["scripts/cycle-4-dom-probe.js", ".claude/settings.local.json"],
+    "additional_found": ["scripts/INDEX.md:11", "docs/dev/specs/spec-20260506-203844.md:{277,343,346,360,367}"],
+    "all_occurrences": [
+      "scripts/cycle-4-dom-probe.js",
+      "scripts/INDEX.md:11",
+      ".claude/settings.local.json:27",
+      "docs/dev/specs/spec-20260506-203844.md:277",
+      "docs/dev/specs/spec-20260506-203844.md:343",
+      "docs/dev/specs/spec-20260506-203844.md:346",
+      "docs/dev/specs/spec-20260506-203844.md:360",
+      "docs/dev/specs/spec-20260506-203844.md:367",
+      "docs/dev/close-report-20260507-142748.md (out-of-scope, immutable)",
+      "docs/dev/style-inspector-report-20260507-142748.json (out-of-scope, immutable)",
+      "docs/dev/cleanliness-inspector-report-20260507-142748.json (out-of-scope, immutable)",
+      "docs/dev/prompt-inspector-report-20260507-142748.json (out-of-scope, immutable)",
+      "docs/dev/qa-report-20260507-142748.json (out-of-scope, immutable)",
+      "docs/dev/dev-report-20260507-142748.json (out-of-scope, immutable)",
+      "docs/dev/completion-20260507-142748.md (out-of-scope, immutable)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Cycle-4 close-report's Final verdict + Remediation prescription, and the cycle-4 style-inspector report's 3 enumerated violations with line-level evidence and authoritative recommendations. Both authored within this session and verified by independent QA + Codex agents.",
+    "url_or_location": "docs/dev/close-report-20260507-142748.md:76-100 + docs/dev/style-inspector-report-20260507-142748.json:24-50",
+    "copy_allowed": true,
+    "role_table": null
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "dedup_hit_plus_git_log",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/dev-report-20260507-142748.json (paired with ba-spec-20260507-142748.md and qa-report-20260507-142748.json)",
+        "proposed_solution": "Add live DOM-probe verification helper (Playwright script) to capture AC1-AC4 evidence as desktop+mobile screenshots and DOM-text assertions",
+        "actual_change": "Created scripts/cycle-4-dom-probe.js (84 lines) with hardcoded constants for fast iteration; added .claude/settings.local.json allow entry to permit Bash invocation",
+        "outcome": "Renderer/i18n/fixture work passed all 8 ACs and produced valid evidence; the helper script itself triggered 3 NEW critical style-inspector violations (filename embeds cycle-4-, ART_DIR+FIXTURE_URL hardcoded, require uses absolute /usr/lib/... path); cleanliness-inspector also flagged it as misplaced (one-shot helper in durable scripts/); close debate Round 2 unanimous CLOSE: NO under AC-2.6(b)",
+        "failure_category": "tainted_reference",
+        "target_layer": "L0"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L0",
+      "differs_from_all_priors": true,
+      "rationale": "Cycle 4 was a forward-add (create the helper). This cycle is a backward-remove (delete the helper). Same layer is acceptable here because the prior failure was content-of-helper not concept-of-helper, and this cycle eliminates the helper entirely rather than re-attempting to author a clean version. QA's Preferred remediation explicitly recommends delete because the screenshot evidence is already preserved at docs/dev/qa-artifacts/20260507-142748/. Per the user's '立刻修复' urgency, the smaller-deterministic delete path beats the larger-optional relocate-rename-parameterize path."
+    }
+  },
+  "context": {
+    "codebase_state": "main branch; cycle-4 work landed; close pipeline returned NO; cycle 5 begins now",
+    "recent_commits": "Cycle 4 dev/QA artifacts present at docs/dev/{ba-spec,dev-report,qa-report,close-report,style-inspector-report,cleanliness-inspector-report,prompt-inspector-report,completion}-20260507-142748.{md,json}",
+    "file_contents": {
+      "scripts/cycle-4-dom-probe.js": "84 lines, lines 2/10/11 have the violations enumerated above",
+      ".claude/settings.local.json:27": "\"Bash(node /dev/shm/dev-workspace/happy-dev/scripts/cycle-4-dom-probe.js:*)\"",
+      "scripts/INDEX.md:11": "├── `cycle-4-dom-probe.js` - js file",
+      "docs/dev/specs/spec-20260506-203844.md:277,343,346,360,367": "5 references in cycle-4 sub-sections of section 3"
+    },
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Smallest-deterministic cleanup. Path: delete (preferred) -- removes all 3 violations in one stroke and is consistent with cleanliness-inspector's classification of the file as misplaced + QA's Preferred recommendation. Alternative path (relocate to docs/dev/qa-artifacts/20260507-142748/ AND parameterize constants AND drop cycle-4- prefix AND change require to module-name form) is acceptable but larger and offers no audit benefit since screenshots already preserve the evidence. Dev picks tactically-feasible mechanism (rm, git rm, mv, stub-empty) subject to bash-safety hook constraints; the spec encodes END-STATE not mechanism.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "scripts/cycle-4-dom-probe.js (REMOVE -- preferred path; or relocate+rename+parameterize -- alternative path)",
+      ".claude/settings.local.json (REMOVE line 27 entry; preserve JSON validity)",
+      "scripts/INDEX.md (REMOVE line 11; or regenerate)",
+      "docs/dev/specs/spec-20260506-203844.md (ANNOTATE -- not delete -- lines 277, 343, 346, 360, 367)"
+    ],
+    "validation_approach": "Cycle-5 close pipeline runs style-inspector + cleanliness-inspector against the cycle-5 diff. Zero NEW violations attributable to scripts/cycle-4-dom-probe.js (or its relocated equivalent) confirms AC4. JSON validity check on .claude/settings.local.json confirms AC2. Grep absence of cycle-4-dom-probe in scripts/INDEX.md confirms AC3. Spec lines 277/343/346/360/367 annotated (visible 'removed in cycle 5' markers) confirms AC5."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  }
+}

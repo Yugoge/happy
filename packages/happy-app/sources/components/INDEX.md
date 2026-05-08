@@ -1,7 +1,7 @@
 # components
 
-*Last updated: 2026-04-26T08:34:49Z*
-**Total entries**: 167
+*Last updated: 2026-05-03T10:06:35Z*
+**Total entries**: 169
 **Convention**: kebab
 
 ## Tree
@@ -59,10 +59,12 @@ components/
 │   │   ├── `AskUserQuestionView.tsx` - tsx file
 │   │   ├── `BashView.tsx` - tsx file
 │   │   ├── `BashViewFull.tsx` - tsx file
+│   │   ├── `CodexAttachmentView.tsx` - tsx file
 │   │   ├── `CodexBashView.tsx` - tsx file
 │   │   ├── `CodexDiffView.tsx` - tsx file
 │   │   ├── `CodexParallelView.tsx` - tsx file
 │   │   ├── `CodexPatchView.tsx` - tsx file
+│   │   ├── `CodexPlanView.tsx` - tsx file
 │   │   ├── `CodexSubagentView.tsx` - tsx file
 │   │   ├── `EditView.tsx` - tsx file
 │   │   ├── `EditViewFull.tsx` - tsx file

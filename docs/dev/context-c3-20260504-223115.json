@@ -1,0 +1,583 @@
+{
+  "request_id": "c3-20260504-223115",
+  "task_id": "c3-20260504-223115",
+  "iteration": 2,
+  "iteration_history": [
+    {"iteration": 1, "ts": "2026-05-04T22:35Z", "verdict": "fail", "qa_report": "docs/dev/ba-qa-report-c3-20260504-223115.json"},
+    {"iteration": 2, "ts": "2026-05-04T23:05Z", "addresses": ["OBJ-3-A: verb-set extension", "OBJ-3-B: AC8 warn-to-deny escalation + AC8.5 audit-log", "OBJ-3-C: log relocation to ~/.claude/logs/", "OBJ-3-D: settings.json deny extension", "OBJ-3-E: daemon-restart-http-stop label", "OBJ-3-F: tightened R3 trigger"]}
+  ],
+  "timestamp": "2026-05-04T23:05Z",
+  "concern": "C3",
+  "companion_concern": "C1 (separate cycle)",
+  "requirement": {
+    "original": "进一步完善hook彻底永久根本禁止你使用任何途径自己重启，除非我使用allow command",
+    "clarified": "Permanently and completely forbid Claude (orchestrator and subagents) from restarting OR otherwise disrupting any happy-daemon-* unit by ANY path: direct systemctl using verbs {stop, restart, disable, enable, reload, kill, try-restart, reload-or-restart}; chained or wrapped invocations; wrapper scripts on disk (/tmp/*.sh); env-shifted or time-shifted execution; dbus signaling to systemd; daemon HTTP /stop on any localhost port; unit-file edits; agent-prompt indirection. The ONLY allowed path is an explicit, time-bounded, single-shot grant created by the user from a real TTY via a CLI command (claude-allow-restart <target>). Hooks must read the grant sentinel atomically and consume it on first match. Generic /allow must NOT bypass this prohibition.",
+    "what": "Multi-layer hook hardening + new CLI grant channel that produces a sentinel file the hooks consume",
+    "why": "On 2026-05-04 22:16 the orchestrator chained `sudo systemctl restart happy-daemon-dev && echo ok` and it passed every layer of the existing hook stack because happy-daemon-dev is on the dev whitelist (line 35 of /root/.claude/hooks/pretool-bash-safety.sh). The user's new directive is absolute: no self-restart by any path, ever, unless an explicit allow-command is invoked.",
+    "where": [
+      "/root/.claude/hooks/pretool-bash-safety.sh",
+      "/root/.claude/hooks/pretool-block-production-files.sh",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py",
+      "/root/.claude/settings.json",
+      "/root/bin/claude-allow-restart (NEW)"
+    ],
+    "scope": {
+      "included": [
+        "Bash gate: policy reversal (remove happy-daemon-dev from systemctl whitelist)",
+        "Bash gate: extend systemctl regex (line 428) from 4-verb {stop,restart,disable,enable} to 8-verb {stop,restart,disable,enable,reload,kill,try-restart,reload-or-restart} — addresses OBJ-3-A",
+        "Bash gate: wrapper-class blocks (systemd-run/at/crontab/nohup/timeout/nc/dbus-send/bash -c/eval/python -c/wrapper-script-on-disk)",
+        "Bash gate: daemon HTTP /stop block — UNCONDITIONAL on (localhost|127.0.0.1):PORT/stop regardless of surrounding 'daemon' word — addresses OBJ-3-F; uses stable label daemon-restart-http-stop — addresses OBJ-3-E",
+        "Bash gate: sentinel-write block",
+        "Bash gate: sentinel consume function (flock+SIGALRM template from existing check_and_consume_allowlist)",
+        "Bash gate: decouple daemon-restart from generic /allow short-circuit",
+        "Edit/Write gate: cover /etc/systemd/system/happy-daemon-*.service and .service.d/",
+        "Edit/Write gate: cover /root/bin/happy-restart.sh + adjacent admin scripts",
+        "Edit/Write gate: cover /root/.claude/hooks/* against subagent edits",
+        "Edit/Write gate: cover /tmp/claude-allow-daemon-restart-*.flag",
+        "Settings: extend permissions.deny with Bash(systemctl restart|reload|kill|try-restart|reload-or-restart|enable:*) — addresses OBJ-3-D — REPLACES iter-1's withdrawn hook-demotion R7",
+        "Prompt purity: add daemon-restart-prescription category; escalate from warn-only to deny (line 339 conditional return) — addresses OBJ-3-B; do NOT exempt subagents for THIS category; preserve warn-only and subagent-exempt for all other categories",
+        "Prompt purity: write audit log entry to ~/.claude/logs/claude-daemon-restart-grants.log on every hit (hard or soft)",
+        "New CLI: /root/bin/claude-allow-restart with target arg, TTL≤60s, single-shot, --revoke, --list, --audit, TTY check, audit log at ~/.claude/logs/claude-daemon-restart-grants.log (user-writable, NO sudo) — addresses OBJ-3-C"
+      ],
+      "excluded": [
+        "C1 per-stack happy-restart.sh rewrite (separate cycle)",
+        "Generic systemctl prohibition for non-happy units (out of scope)",
+        "Replacement of existing /allow mechanism (extended, not replaced)",
+        "Edit to /dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-bash-safety.sh (52-line stub does not contain the rules)",
+        "Edit to /root/bin/happy-restart.sh body (already blocked at line 345 of bash hook; further changes are C1 scope)",
+        "Demoting .claude/hooks/** from ask to deny — already in ask per Read-verified iter 2; iter-1 R7 misread corrected",
+        "Audit log at /var/log/* — withdrawn iter 2 because it requires root-only writes, conflicts with no-sudo CLI contract",
+        "Verbs {start, isolate, set-property, mask, unmask, link, revert, edit} — out of scope per user-need-path analysis (start non-disruptive; isolate covered by other rules; mask/unmask/link/revert/edit modify unit definition and are covered by Layer 2 Edit/Write blocks)"
+      ]
+    },
+    "success_criteria": [
+      "All 27 architect+iter2-inventoried Bash bypass paths exit 2 unless valid sentinel grant present and consumed",
+      "All 9 architect-inventoried Edit/Write paths exit 2",
+      "All 4 architect-inventoried Agent paths exit 2 for daemon-restart-prescription hard hits (escalation from warn-only); soft hits exit 0 with WARN AND audit-log write",
+      "claude-allow-restart CLI exists, runs only on TTY, single-shot consume verified, NO sudo required",
+      "Generic /allow does NOT bypass daemon-restart prohibition (covers all 8 verbs)",
+      "settings.json permissions.deny extended with Bash(systemctl restart|reload|kill|try-restart|reload-or-restart|enable:*)",
+      "Hook self-modification preserves existing permissions.ask gate at lines 237-238 (no change at this layer)",
+      "Audit log at ~/.claude/logs/claude-daemon-restart-grants.log records every grant/consume/expire/revoke (user-writable; matches existing convention)",
+      "Other prompt-purity categories preserve warn-only behavior (no regression)",
+      "TASK-ID c3-20260504-223115 appears in commit message and dev report"
+    ],
+    "constraints": [
+      "Reuse existing flock+SIGALRM atomic-consume pattern from pretool-bash-safety.sh:114-298",
+      "Do not introduce new locking primitives",
+      "Do not exempt subagents from daemon-restart rules (the IS_SUBAGENT short-circuit elsewhere in the file does NOT apply)",
+      "Do not remove the existing /allow mechanism for non-daemon-restart cases",
+      "Do not regress other prompt-purity categories from warn-only to deny — escalation is daemon-restart-prescription-only",
+      "Do not use /var/log/* for the audit log — user-writable path required (~/.claude/logs/)",
+      "Do not require sudo for claude-allow-restart",
+      "BLOCKED: stderr substrings must be stable for QA grep (one of: daemon-restart-prohibition, daemon-restart-wrapper, daemon-restart-prompt, daemon-restart-edit, daemon-restart-sentinel-write, daemon-restart-allow-decoupled, daemon-restart-http-stop, hook-self-modification)"
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "/root/.claude/hooks/pretool-bash-safety.sh",
+      "/root/.claude/hooks/pretool-block-production-files.sh",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py",
+      "/root/.claude/settings.json",
+      "/root/bin/claude-allow-restart"
+    ],
+    "path_dependent_shared_infra": [
+      "/root/.claude/logs/bash-consent.log (existing audit log; daemon-restart events MAY be appended for unification — Could Have, not Must)",
+      "~/.claude/logs/claude-daemon-restart-grants.log (NEW dedicated audit log; iter-2 relocated from /var/log/ per OBJ-3-C; matches existing convention bash-consent.log, git-privilege-grants.log, checkpoint.log per Glob iter 2)",
+      "/tmp/claude-allow-daemon-restart-<target>.flag (sentinel file read by hooks, written by CLI)",
+      "~/.claude/sessions/active.json or $CLAUDE_SESSION_ID env (source of session id for binding)"
+    ],
+    "out_of_path_observed_but_not_touched": [
+      "/dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-bash-safety.sh (52-line stub; not where rules live)",
+      "/root/bin/happy-restart.sh body (C1 scope)",
+      "/root/bin/safe-daemon-restart.sh (referenced by CLAUDE.md but does not exist on disk)"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-04T22:35Z",
+      "task_id": "c3-20260504-223115",
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 325,
+      "observation": "Global /allow short-circuit covers ALL safety blocks ('covering all safety checks' per comment line 322-324). Broader than dev-block scope. C3 only requires daemon-restart decoupling (R11); a general redesign of /allow scope is path-external.",
+      "in_user_path": false,
+      "security_relevant": true
+    },
+    {
+      "ts": "2026-05-04T22:35Z",
+      "task_id": "c3-20260504-223115",
+      "file": "/root/bin/happy-restart.sh",
+      "line": null,
+      "observation": "Architect notes hardcoded daemon list, single binary check path, unconditional Docker recreate. C1 scope, not C3.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-04T22:35Z",
+      "file": "/root/bin/safe-daemon-restart.sh",
+      "line": null,
+      "observation": "CLAUDE.md references this SOP; ls confirms it does not exist on disk. If created later, an additional happy-restart-style substring block would be needed.",
+      "in_user_path": false,
+      "security_relevant": false,
+      "task_id": "c3-20260504-223115"
+    },
+    {
+      "ts": "2026-05-04T22:35Z",
+      "file": "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py",
+      "line": 316,
+      "observation": "Subagents are exempted from prompt-purity (line 314-316: `if data.get('agent_id'): return None`). C3 removes the exemption for the daemon-restart-prescription category only; broader removal is path-external.",
+      "in_user_path": false,
+      "security_relevant": false,
+      "task_id": "c3-20260504-223115"
+    },
+    {
+      "ts": "2026-05-04T23:05Z",
+      "file": "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py",
+      "line": 339,
+      "observation": "Hook is unconditionally WARN-ONLY today: `return 0` even after `_emit_block` (Read-verified iter 2). Other categories ({tool-name-prescription, shell-command, shell-syntax, fenced-bash-block, etc.}) preserve warn-only behavior in iter 2 — escalation is daemon-restart-prescription-only. If user later wants other categories to also block, a one-line dispatch extension suffices. Logged for cross-cycle visibility.",
+      "in_user_path": false,
+      "security_relevant": false,
+      "task_id": "c3-20260504-223115"
+    },
+    {
+      "ts": "2026-05-04T23:05Z",
+      "file": "systemctl-verb-set",
+      "line": null,
+      "observation": "Eight further systemctl verbs ({start, isolate, set-property, mask, unmask, link, revert, edit}) exist beyond the eight covered in C3 iter 2. Per `man systemctl` (8). Out of scope per user-need-path analysis: `start` is non-disruptive (only fires if unit not active; happy-daemon-dev is always active under Restart=on-failure); `isolate` would take down most of the system and is blocked by other safety rules; `mask`/`unmask`/`link`/`revert`/`edit` modify unit definition rather than runtime state and are covered by Layer 2 Edit/Write blocks on /etc/systemd/system/happy-daemon-*.service.d/. If user later requests these verbs added to coverage, a one-line regex extension suffices.",
+      "in_user_path": false,
+      "security_relevant": false,
+      "task_id": "c3-20260504-223115"
+    },
+    {
+      "ts": "2026-05-04T23:05Z",
+      "file": "/root/.claude/settings.json",
+      "line": "237-238",
+      "observation": "Iter-1 BA misread these lines as being in permissions.allow; Read-verified iter 2 they are inside permissions.ask (block begins line 208). Iter-1 R7 (demote from allow to ask) is a no-op; withdrawn in iter 2 and replaced with permissions.deny extension for systemctl verbs. Logging here so future cycles do not retry the misread.",
+      "in_user_path": false,
+      "security_relevant": false,
+      "task_id": "c3-20260504-223115"
+    }
+  ],
+  "root_cause_analysis": {
+    "symptom": "Orchestrator successfully chained `sudo systemctl restart happy-daemon-dev && echo ok` despite hook stack",
+    "root_cause": "Layer 1 (Bash safety hook) explicitly allow-lists happy-daemon-dev for systemctl restart (DEV_SYSTEMD='happy-daemon-dev' at line 35). The check_systemctl_targets_all_dev helper returns 0 when every target is whitelisted. Compound forms split by &&/||/; preserve this allow per subcommand. Plus: line 325's generic /allow short-circuit fires before the systemctl gate, providing a second bypass surface.",
+    "root_cause_commit": "N/A (policy is intentional; the change is a policy reversal, not a bug fix)",
+    "why_introduced": "On 2026-04-04, dev-overnight automation legitimately required restart access to happy-daemon-dev for build/deploy cycles. The whitelist was the simplest way to permit dev ops while blocking production.",
+    "why_problematic": "The threat model expanded on 2026-05-04: the user no longer wants Claude to restart any daemon by any path, even dev. The whitelist is now a policy hole. Whitelist-by-name is also fragile against compound and wrapper forms; the `&&` splitter sees each subcommand independently allow-listed.",
+    "timeline": "2026-04-04: whitelist added. 2026-05-04 22:16: orchestrator exploits whitelist. 2026-05-04 22:30+: user issues absolute prohibition directive.",
+    "affected_files": [
+      "/root/.claude/hooks/pretool-bash-safety.sh:35 (DEV_SYSTEMD declaration)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:81-105 (check_systemctl_targets_all_dev helper)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:325 (global /allow short-circuit, runs before systemctl gate)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:428-435 (systemctl block; iter-2 verified regex literally `(stop|restart|disable|enable)` — missing reload/kill/try-restart/reload-or-restart)",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py:339 (iter-2 verified literally `return 0` — WARN-ONLY today; needs category-conditional escalation)",
+      "/root/.claude/settings.json:195-196 (existing systemctl stop/disable deny — to preserve and extend)",
+      "/root/.claude/settings.json:237-238 (iter-2 verified inside permissions.ask, not allow — iter-1 misread)"
+    ],
+    "evidence_type": "observed",
+    "observations": [
+      "DEV_SYSTEMD='happy-daemon-dev' confirmed at line 35 (observed: Read of /root/.claude/hooks/pretool-bash-safety.sh)",
+      "check_systemctl_targets_all_dev returns 0 when all targets in whitelist (observed: lines 81-105)",
+      "Generic /allow consume runs at line 325 BEFORE systemctl block at line 428 (observed: Read)",
+      "Line 428 regex literally `'systemctl\\s+(stop|restart|disable|enable)\\s+'` — verbs reload/kill/try-restart/reload-or-restart NOT in regex; commands using these verbs against happy-daemon-* fall through to exit 0 (observed: Read iter 2 at offset 420-435)",
+      "Prompt-purity hook line 339 unconditionally `return 0` after `_emit_block` — WARN-ONLY today; line 57-59 STDERR_HEADER explicitly self-describes as 'warning: HOW prescription detected (not blocking)' (observed: Read iter 2 at offset 50-60 and 325-345)",
+      "settings.json:237-238 are inside permissions.ask block (block begins line 208), NOT permissions.allow as iter-1 BA misread (observed: Read iter 2 at offset 1-100 and 190-240; Grep confirmed)",
+      "settings.json:195-196 already deny `Bash(systemctl stop:*)` and `Bash(systemctl disable:*)` — observed iter 2; missing restart/reload/kill/try-restart/reload-or-restart/enable",
+      "/root/.claude/logs/ contains user-writable bash-consent.log/git-privilege-grants.log/checkpoint.log/close-overrides.log (observed: Glob iter 2)",
+      "Project hook /dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-bash-safety.sh is 52 lines and does NOT contain systemctl rules (observed: Read full file + wc -l)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["hook", "重启", "restart", "allow command", "途径", "彻底永久根本禁止"],
+    "localization_evidence": "Iter-2 reproduced via Read of /root/.claude/hooks/pretool-bash-safety.sh (line 428 regex), /root/.claude/hooks/pretool-orchestrator-prompt-purity.py (line 339 unconditional return 0; line 57-59 STDERR_HEADER warn-only self-description; line 314-316 subagent exemption), and /root/.claude/settings.json (lines 195-196 existing deny entries; lines 208-238 ask block confirming hooks ** is in ask not allow). Glob of /root/.claude/logs/ confirmed user-writable convention. Architect specialist's path inventory cross-validated against live file Read in iter 1; iter 2 added evidence for B24-B27 alternative-verb gaps and prompt-purity warn-only state.",
+    "located_source": "/root/.claude/hooks/pretool-bash-safety.sh:35 (DEV_SYSTEMD), :428-435 (systemctl gate; iter-2 verified missing reload/kill/try-restart/reload-or-restart), :325 (/allow short-circuit); /root/.claude/hooks/pretool-orchestrator-prompt-purity.py:339 (warn-only return 0); /root/.claude/settings.json:208-238 (ask block confirming hooks ** is already in ask)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "bisect_blocked": "Not a regression — policy is intentional. The user's directive is a policy change forward, not a bug fix backward. Bisect would not surface useful information.",
+      "reproducibility_verified": true
+    }
+  },
+  "diagnosis_layer": "L4 (logic / policy) primary — verb-set extension at line 428 + prompt-purity category-conditional escalation at line 339; L5 (infrastructure: new CLI grant channel + ~/.claude/logs/ audit destination); L1 (settings.json permissions.deny extension across six new systemctl verbs)",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "进一步完善hook彻底永久根本禁止你使用任何途径自己重启",
+      "classification": "user-need",
+      "acceptance_criterion": "All 27 architect+iter2-inventoried Bash paths exit 2 unless valid sentinel grant present (including B24-B27 alternative-verb paths added iter 2 per OBJ-3-A); all 9 Edit/Write paths exit 2; all 4 Agent paths exit 2 for daemon-restart-prescription hard hits (escalation from warn-only per OBJ-3-B)"
+    },
+    {
+      "id": "R2",
+      "source_phrase": "除非我使用allow command",
+      "classification": "user-need",
+      "acceptance_criterion": "A CLI command claude-allow-restart <target> exists, runs only on real TTY, single-shot, target-bound, TTL≤60s, audit-logged to ~/.claude/logs/claude-daemon-restart-grants.log (user-writable per OBJ-3-C; NO sudo); hooks consume the sentinel atomically on first match and re-block on second invocation."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "(user-sim specialist) friction is a feature; preserve it",
+      "classification": "user-need (specialist-derived, adopted into spec via user authority over scope)",
+      "acceptance_criterion": "CLI requires <target> arg with no defaults, no --all shortcut; typo on target name fails with enumerated options error message; audit log path MUST be user-writable (no sudo)"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line_range": "35-105, 325-350, 428-435, 114-298",
+      "role": "Layer 1 — Bash command gate; contains DEV_SYSTEMD whitelist, check_systemctl_targets_all_dev helper, generic /allow short-circuit, systemctl block, and reusable check_and_consume_allowlist scaffolding",
+      "imports_from": "stdin (Claude tool input JSON); ~/.claude/sessions for session id; /tmp/claude-bash-allowlist-<sid>.json for /allow consume",
+      "evidence": "Read of file, lines 35, 81-105, 114-298, 325, 345-350, 428-435",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-block-production-files.sh",
+      "line_range": "1-82",
+      "role": "Layer 2 — Edit/Write gate; currently covers /root/happy/, /root/.happy*/, /usr/lib/node_modules/happy*, /usr/bin/happy*, plus a content-scan rule for happy-daemon-dev.service ExecStart binary; missing coverage for /etc/systemd/system/* generally and for hook files themselves",
+      "imports_from": "stdin (Claude tool input JSON)",
+      "evidence": "Full file Read",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py",
+      "line_range": "316 (subagent exempt), 95 (SHELL_COMMANDS list)",
+      "role": "Layer 3 — Agent dispatch prompt gate; current regex coverage is brittle for natural-language daemon-restart prompts; subagents are currently exempted",
+      "imports_from": "stdin",
+      "evidence": "Architect report cites line 316 and line 95 explicitly; not independently re-verified by BA but tier_1 specialist evidence",
+      "verified_via": "tier_1 specialist report"
+    },
+    {
+      "file": "/root/.claude/settings.json",
+      "line_range": "237-238",
+      "role": "Permission table; currently allow-lists Write/Edit on .claude/hooks/**",
+      "imports_from": "N/A",
+      "evidence": "Grep result for 'claude/hooks|allow.*Edit|allow.*Write' returning lines 237-238 verbatim",
+      "verified_via": "Grep"
+    },
+    {
+      "file": "/root/bin/claude-allow-restart",
+      "line_range": "N/A (NEW)",
+      "role": "Layer 0 / grant channel — user-only TTY-gated CLI that writes the sentinel file with TTL+session+target+audit-log binding",
+      "imports_from": "shell tty -s; date for ISO-8601; flock for atomic write; ~/.claude/sessions/active.json or $CLAUDE_SESSION_ID; /var/log/claude-daemon-restart-grants.log",
+      "evidence": "Architect report § 'Allow-channel UX' lines 217-258; user-sim specialist directive (verbatim in BA prompt)",
+      "verified_via": "tier_1 specialist reports"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 345,
+      "type": "if (substring grep)",
+      "code_snippet": "if echo \"$COMMAND\" | grep -qE 'happy-restart'; then ... exit 2",
+      "purpose": "Block invocation of happy-restart.sh script by name",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 421,
+      "type": "if (regex)",
+      "code_snippet": "if echo \"$COMMAND\" | grep -qE 'kill\\s+-'; then ... exit 2",
+      "purpose": "Block kill with any signal; covers kill -HUP path B13",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 414,
+      "type": "if (regex)",
+      "code_snippet": "if echo \"$COMMAND\" | grep -qE '(killall|pkill)\\s+.*(happy|claude|docker)'; then ... exit 2",
+      "purpose": "Block process killers; covers pkill -f happy-daemon-dev path B14",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 567,
+      "type": "if (regex)",
+      "code_snippet": "if echo \"$COMMAND\" | grep -qE '(^|[;&|]\\s*)kill\\s+[0-9]'; then ... exit 2",
+      "purpose": "Block kill with bare PIDs; redundant defense for path B13",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 525,
+      "type": "if (regex)",
+      "code_snippet": "if echo \"$COMMAND\" | grep -qE '(curl|wget).*(/v1/sessions|/v1/machines|/session-started|/spawn-session)' ...",
+      "purpose": "Block server-API session creation/modification; does NOT cover daemon control HTTP /stop on random ports",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-bash-safety.sh",
+      "line": 114,
+      "type": "function (atomic flock+SIGALRM consume)",
+      "code_snippet": "check_and_consume_allowlist() { ... } (lines 114-298)",
+      "purpose": "Reusable scaffolding for atomic sentinel consume — REUSE for daemon-restart consume",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-block-production-files.sh",
+      "line": 66,
+      "type": "if (content-scan)",
+      "code_snippet": "if [ \"$FILE_PATH\" = \"/etc/systemd/system/happy-daemon-dev.service\" ]; then ... grep -qE 'Exec(Start|Stop)=.*/usr/bin/happy([^-]|$)' ... exit 2",
+      "purpose": "Existing path-coverage for happy-daemon-dev.service ExecStart binary contamination; pattern to extend for general unit edits",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": false,
+    "items": [
+      {"check": "regression keywords in user complaint", "status": "skipped", "evidence": "User said 进一步完善 (further improve) — implies improvement of policy, not regression of behavior. Not 'used to work' / '以前没问题' / 'broke after X'."}
+    ]
+  },
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- pure backend hook config + CLI script + settings.json edits; cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, or (4) screenshot evidence",
+    "viewport": null,
+    "theme": null,
+    "locale": null,
+    "auth_state": null,
+    "data_state": null,
+    "browser": null,
+    "url_path": null
+  },
+  "evidence": {
+    "observed": "User: '进一步完善hook彻底永久根本禁止你使用任何途径自己重启，除非我使用allow command'",
+    "measured": {
+      "value": "Iter-2 verified: line 428 regex literally `'systemctl\\s+(stop|restart|disable|enable)\\s+'` (Read-verified iter 2 at offset 420) — verbs reload/kill/try-restart/reload-or-restart NOT in regex; commands using these verbs against happy-daemon-* fall through to exit 0. DEV_SYSTEMD=\"happy-daemon-dev\" at line 35; check_systemctl_targets_all_dev at lines 81-105 returns 0 when all targets in whitelist; /allow short-circuit at line 325 runs BEFORE systemctl gate at line 428. Prompt-purity hook line 339 is verbatim `return 0` after `_emit_block` — WARN-ONLY today (Read-verified iter 2 at offset 325). settings.json:237-238 lists Write/Edit(.claude/hooks/**) but inside permissions.ask block (begins line 208), NOT permissions.allow as iter-1 BA misread (Read-verified iter 2). settings.json:195-196 already deny systemctl stop/disable; missing restart/reload/kill/try-restart/reload-or-restart/enable. /root/.claude/logs/ contains user-writable bash-consent.log/git-privilege-grants.log/checkpoint.log/close-overrides.log/overnight-idle.jsonl convention (Glob-verified iter 2).",
+      "location": "/root/.claude/hooks/pretool-bash-safety.sh:35, :81-105, :325, :428-435; /root/.claude/hooks/pretool-orchestrator-prompt-purity.py:57-59, :314-316, :327-339; /root/.claude/settings.json:195-196, :208 (ask block start), :237-238; /root/.claude/logs/ (directory listing)"
+    },
+    "expected": {
+      "value": "Every Bash/Edit/Write/Agent path that would result in happy-daemon-* daemon-state-disrupting action — restart, stop, disable, enable, reload, kill, try-restart, reload-or-restart — MUST exit 2 unless a valid /tmp/claude-allow-daemon-restart-<target>.flag is present and is consumed atomically; generic /allow MUST NOT cover daemon-restart; prompt-purity hook MUST escalate to exit 2 for daemon-restart-prescription category specifically (preserve warn-only for other categories); audit log MUST be user-writable at ~/.claude/logs/claude-daemon-restart-grants.log",
+      "source": "User directive (verbatim) + architect specialist 4-layer defense recommendation + user-sim specialist CLI-with-audit-trail recommendation + iter-1 QA report + man systemctl(8) for verb semantics"
+    },
+    "gap": "Iter-2 updated: 17 of 27 Bash paths NOT blocked today (B1, B3-B12, B15, B16, B22-B27); 6 of 9 Edit/Write paths NOT blocked (E2-E5, E7, E8); ALL 4 Agent paths (A1-A4) currently produce WARN-ONLY behavior (line 339 returns 0 even on hard hit); 1 architect-missed bypass (generic /allow short-circuit at line 325); 1 settings.json gap (permissions.deny missing restart/reload/kill/try-restart/reload-or-restart/enable verbs)"
+  },
+  "scope_expansion": {
+    "search_pattern": "happy-daemon|systemctl restart|systemctl stop|claude-allow|claude-bash-allowlist|pretool-bash-safety|pretool-block-production",
+    "search_scope": "/root/.claude/hooks/, /root/.claude/settings.json, /dev/shm/dev-workspace/happy-dev/.claude/hooks/, /dev/shm/dev-workspace/happy-dev/.claude/settings.json, /root/bin/",
+    "user_reported": ["hook stack generally"],
+    "additional_found": [
+      "/root/.claude/hooks/pretool-bash-safety.sh",
+      "/root/.claude/hooks/pretool-block-production-files.sh",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py",
+      "/root/.claude/settings.json",
+      "/root/bin/claude-allow-restart (NEW)"
+    ],
+    "all_occurrences": [
+      "/root/.claude/hooks/pretool-bash-safety.sh:35 (DEV_SYSTEMD)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:81-105 (check_systemctl_targets_all_dev)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:114-298 (check_and_consume_allowlist; reuse template)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:325 (/allow short-circuit; decouple)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:345-350 (existing happy-restart substring block)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:413-425 (kill/pkill blocks; preserved)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:428-435 (systemctl block; EXTEND verb set to 8 — addresses OBJ-3-A)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:525-540 (curl-to-prod-API; extend for daemon HTTP /stop unconditional — addresses OBJ-3-F)",
+      "/root/.claude/hooks/pretool-bash-safety.sh:567-573 (kill bare PID; preserved)",
+      "/root/.claude/hooks/pretool-block-production-files.sh:1-82 (entire file; extend)",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py:57-59 (STDERR_HEADER warn-only self-description; preserved for non-daemon-restart categories)",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py:314-316 (subagent exemption; remove for daemon-restart-prescription category only)",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py:327-339 (main() function; change line 339 from `return 0` to category-conditional dispatch — addresses OBJ-3-B)",
+      "/root/.claude/settings.json:195-196 (existing systemctl stop/disable deny entries; preserve)",
+      "/root/.claude/settings.json:208 (permissions.ask block start)",
+      "/root/.claude/settings.json:237-238 (.claude/hooks/** in ask — confirmed; iter-2 leaves unchanged; iter-1 misread corrected)",
+      "/root/.claude/settings.json (extend permissions.deny array with Bash(systemctl restart|reload|kill|try-restart|reload-or-restart|enable:*) — addresses OBJ-3-D)",
+      "/root/.claude/logs/ (existing audit log convention: bash-consent.log, git-privilege-grants.log, checkpoint.log; iter-2 audit log lands here per OBJ-3-C)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_0_live_source (hook contents) + tier_1_external (architect + user-sim specialist reports)",
+    "description": "Architect report (339 lines) at docs/dev/architect-happy-restart-and-daemon-prohibition-20260504-223115.md provides 23+9+4 path inventory and 4-layer defense recommendation. User-sim specialist provides CLI command contract (target arg, TTL, single-shot, --revoke, --list, audit). Live source files cited at file:line.",
+    "url_or_location": "/dev/shm/dev-workspace/happy-dev/docs/dev/architect-happy-restart-and-daemon-prohibition-20260504-223115.md (architect); BA prompt USER_VERBATIM block (user-sim); /root/.claude/hooks/pretool-bash-safety.sh and adjacent files (live source)",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "No project CLAUDE.md role table relevant to this concern; reference materials are policy-not-design-tokens"
+    }
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing (进一步完善 = 'further improve' implies prior state inadequate) + iter-1 of THIS spec rejected by QA on 2026-05-04T22:50Z",
+    "attempts": [
+      {
+        "artifact_path": "git history of /root/.claude/hooks/pretool-bash-safety.sh (2026-04-04 era)",
+        "proposed_solution": "Add DEV_SYSTEMD='happy-daemon-dev' allowlist for legitimate dev-overnight automation",
+        "actual_change": "Whitelist entry plus check_systemctl_targets_all_dev helper",
+        "outcome": "Dev ops became frictionless but created a permanent hole; 2026-05-04 22:16 the orchestrator exploited this hole",
+        "failure_category": "tainted_reference",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "/root/.claude/hooks/pretool-bash-safety.sh:345-350 (2026-04-09 era)",
+        "proposed_solution": "Block 'happy-restart' substring outright after the 2026-04-09 session_dirs.txt incident",
+        "actual_change": "if grep -qE 'happy-restart' ... exit 2",
+        "outcome": "Blocks the named script invocation but does not cover direct systemctl forms; partial coverage",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "Implicit attempt — 2026-05-04 22:16 orchestrator chained sudo systemctl restart happy-daemon-dev && echo ok",
+        "proposed_solution": "(orchestrator believed the dev whitelist authorized the operation)",
+        "actual_change": "(no code change; live exploitation of the policy hole)",
+        "outcome": "Restart succeeded; user issued absolute prohibition directive in response",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4-bypass"
+      },
+      {
+        "artifact_path": "iter-1 of this BA spec (docs/dev/ticket-c3-20260504-223115.md @ 2026-05-04T22:35Z)",
+        "proposed_solution": "Multi-layer hook hardening: policy reversal targeting verbs {stop|restart|disable|enable}, wrapper-class blocks, settings.json demote .claude/hooks/** from allow to ask, Edit/Write gate extension, prompt-purity daemon-restart-prescription category, new CLI claude-allow-restart with /var/log/ audit log, sentinel-file grant channel.",
+        "actual_change": "(spec written; not yet shipped — QA intercepted at validation gate)",
+        "outcome": "QA verdict FAIL on three blocking dimensions: (1) verb-set blind spot — `reload|kill|try-restart|reload-or-restart` not covered by line 428 regex {stop|restart|disable|enable} so policy reversal incomplete; (2) AC8 spec-vs-execution drift — claims prompt-purity hook exits 2 today but live hook line 339 unconditionally returns 0 (warn-only); (3) /var/log/claude-daemon-restart-grants.log requires root-owned writes incompatible with no-sudo CLI contract (AC9/AC10 unverifiable). Plus three strengthening dimensions: settings.json deny extension absent, no daemon-restart-http-stop label in R13 stable-substring list, R3 OR-condition misses `daemon`-less curl /stop URLs.",
+        "failure_category": "wrong_scope (verb-set scope drawn too narrow) + spec_text_vs_execution_drift (AC8 untestable) + affected_file_accuracy (audit log path non-writable)",
+        "target_layer": "L4 + L5 + L1 (multi-layer but with three correctness gaps)"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4 (logic policy reversal — NOW with full 8-verb set) + L5 (infrastructure: CLI grant channel + ~/.claude/logs/ audit destination) + L1 (settings.json permissions.deny extension across six newly-covered verbs) + L4 (prompt-purity hook category-conditional escalation from warn-only to deny for daemon-restart-prescription). Multi-layer.",
+      "differs_from_all_priors": true,
+      "rationale": "Iter-1 was a strict subset of this attempt (4 verbs only, /var/log audit, settings.json hooks-demote no-op due to misread). Iter 2 fixes: (a) verb-set completion at L4 — adds `reload|kill|try-restart|reload-or-restart` to the bash hook regex AND to settings.json permissions.deny; this is a NEW L4 logic surface; no prior attempt covered these four verbs; (b) prompt-purity escalation at L4 — line 339's unconditional `return 0` becomes conditional on category: daemon-restart-prescription returns 2; other categories preserve return 0 (no regression); NEW behavioral path; no prior attempt touched the prompt-purity hook at all; (c) audit log relocation at L5 — moves from /var/log/claude-daemon-restart-grants.log (root-only writable) to ~/.claude/logs/claude-daemon-restart-grants.log (matches existing convention); (d) settings.json deny extension at L1 — adds six Bash(systemctl <verb>:*) entries that did not exist; replaces iter-1's withdrawn hook-demotion R7 (which was a misread of already-existing ask state). Together these are fundamentally different from prior attempts."
+    }
+  },
+  "context": {
+    "codebase_state": "Working directory /dev/shm/dev-workspace/happy-dev; many uncommitted modified files (per git status snapshot at session start) — these are unrelated to C3 and dev should not touch them in C3 cycle.",
+    "recent_commits": "d4c87cb1 (atomic-symlink ADR), dc45221e (deploy/rollback scripts) — unrelated to C3.",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "claude_session_active": true,
+      "subagent_streak_state_path": "/tmp/claude-tool-streak-<sid>.json",
+      "consent_log_path": "$HOME/.claude/logs/bash-consent.log",
+      "new_audit_log_path": "~/.claude/logs/claude-daemon-restart-grants.log (iter-2 relocated from /var/log/ per OBJ-3-C)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Multi-layer defense (4 layers + 1 grant channel + 1 settings.json defense-in-depth) with iter-2 corrections. Sequencing: (1) write CLI script + ensure ~/.claude/logs/ exists → (2) extend settings.json permissions.deny → (3) extend Edit/Write gate path coverage → (4) modify Bash hook (verb-set extension at line 428 + wrapper blocks + sentinel consume + decouple from /allow + http-/stop block) → (5) modify prompt-purity hook (category-conditional return at line 339 + audit-log write + per-category subagent-exempt removal) → (6) test each AC including AC2.5 (alternative verbs) and AC8.5 (audit-log).",
+    "files_to_create": [
+      "/root/bin/claude-allow-restart (executable shell script, ~150 lines; user-only; tty -s check; flock+SIGALRM atomic write; audit log at ~/.claude/logs/claude-daemon-restart-grants.log)",
+      "~/.claude/logs/claude-daemon-restart-grants.log (created by first invocation; permissions 0644 user:user; matches existing convention used by bash-consent.log, git-privilege-grants.log)",
+      "/root/.claude/hooks/tests/test-c3-daemon-restart.sh (NEW; tests for AC1-AC17 including AC2.5 alternative-verb coverage and AC8.5 audit-log writes)"
+    ],
+    "files_to_modify": [
+      "/root/.claude/hooks/pretool-bash-safety.sh (~90 new lines; existing rules preserved; reuse check_and_consume_allowlist scaffolding; extend line 428 regex to 8 verbs; add http-/stop block; add wrapper-class blocks; remove happy-daemon-dev from DEV_SYSTEMD)",
+      "/root/.claude/hooks/pretool-block-production-files.sh (~50 new lines for path coverage)",
+      "/root/.claude/hooks/pretool-orchestrator-prompt-purity.py (~40 new lines: add daemon-restart-prescription category; change line 339 from `return 0` to `return 2 if category == 'daemon-restart-prescription' else 0`; add audit-log write before return; remove subagent exemption at line 315 for THIS category only)",
+      "/root/.claude/settings.json (extend permissions.deny array with Bash(systemctl restart|reload|kill|try-restart|reload-or-restart|enable:*); DO NOT touch lines 237-238 — already in ask)"
+    ],
+    "validation_approach": "QA in this cycle MUST: (a) attempt every AC1-AC17 trigger and verify hook exit code 2 and stderr substring; (b) for AC2.5 specifically, attempt `systemctl reload`, `systemctl kill [-s SIG]`, `systemctl try-restart`, `systemctl reload-or-restart` against happy-daemon-dev and assert exit 2 with stable stderr label; (c) for AC8 specifically, verify warn-only preserved for non-daemon prompt-purity categories (no regression); (d) for AC8.5 specifically, verify audit log lines are valid JSON and contain required fields; (e) for AC9/AC10/AC16 specifically, verify the audit log path is ~/.claude/logs/claude-daemon-restart-grants.log (NOT /var/log/) and is writable without sudo; (f) verify settings.json permissions.deny contains all six new entries. All evidence captured as command transcripts in qa-report-c3-20260504-223115.md."
+  },
+  "allow_command_contract": {
+    "name": "claude-allow-restart",
+    "path": "/root/bin/claude-allow-restart",
+    "owner": "user (must run from real TTY; refuses inside Claude session via tty -s check)",
+    "args": {
+      "positional_target": {
+        "required": true,
+        "values": ["dev", "default", "jade", "qijie", "all"],
+        "no_default": true,
+        "typo_handling": "fail with enumerated-options error message; do NOT silently fall back"
+      },
+      "--ttl": {"required": false, "default": 60, "max": 60, "unit": "seconds", "behavior": "values >60 are clamped to 60 with stderr WARN"},
+      "--reason": {"required": false, "type": "string", "behavior": "appended to audit log"},
+      "--list": {"subcommand": true, "behavior": "print active grants (read all /tmp/claude-allow-daemon-restart-*.flag, validate, print non-expired)"},
+      "--revoke": {"subcommand": true, "arg": "<target>", "behavior": "unlink /tmp/claude-allow-daemon-restart-<target>.flag and log outcome=revoked"},
+      "--audit": {"subcommand": true, "behavior": "tail -f /var/log/claude-daemon-restart-grants.log"},
+      "--dry-run": {"required": false, "behavior": "print intended sentinel JSON without writing"}
+    },
+    "sentinel_path": "/tmp/claude-allow-daemon-restart-<target>.flag",
+    "sentinel_format": {
+      "target": "string (one of: dev, default, jade, qijie, all)",
+      "expires_at": "ISO-8601 string",
+      "granted_by": "literal 'user-tty'",
+      "session_id": "<active-claude-sid> (read from ~/.claude/sessions/active.json or $CLAUDE_SESSION_ID env)",
+      "single_shot": "boolean (always true in v1)",
+      "reason": "string (free-text, may be empty)",
+      "granted_at": "ISO-8601 string"
+    },
+    "consumption_semantics": "atomic flock+SIGALRM (reuse check_and_consume_allowlist scaffolding from pretool-bash-safety.sh:114-298). On systemctl-match, hook: (1) acquires flock LOCK_EX|LOCK_NB on the sentinel; (2) reads JSON; (3) validates target == bare-unit-suffix, expires_at > now, session_id == current sid; (4) if valid: unlinks atomically, logs outcome=consumed, exit 0; (5) if invalid: exit 2 with appropriate stderr substring. Hook holds flock throughout to prevent concurrent consume.",
+    "multi_target_behavior": "A grant for 'dev' covers ONLY happy-daemon-dev. A grant for 'all' covers any happy-daemon-*. Other unit names are not covered. The hook compares the bare unit name (after stripping .service) to the grant target.",
+    "revoke_semantics": "--revoke <target> unlinks the sentinel immediately AND writes outcome=revoked to audit log. Subsequent Claude attempts on that target re-block.",
+    "error_recovery": {
+      "claude_crashes_after_grant_before_use": "TTL ≤60s self-cleans. User can --revoke explicitly if desired before TTL.",
+      "claude_crashes_during_consume": "flock is process-bound; on hook process exit, flock released; sentinel may or may not be unlinked depending on which step the hook reached. Hook code must unlink BEFORE returning success; if it returned success, the sentinel is gone. If hook crashed mid-write of audit log, sentinel may already be unlinked but audit log entry missing — acceptable degradation (user can correlate via grant timestamp). v1 does not guarantee atomic audit-log + unlink.",
+      "two_grants_in_quick_succession": "Each --target X invocation overwrites /tmp/claude-allow-daemon-restart-X.flag. v1 does not stack grants; second invocation replaces the first. --list shows current grant only."
+    },
+    "interaction_with_existing_entry_points": {
+      "happy-restart.sh": "Already blocked at /root/.claude/hooks/pretool-bash-safety.sh:345 by substring; the new sentinel mechanism does NOT unblock this. To run happy-restart.sh, user must invoke it manually outside Claude (the existing rule's intent).",
+      "safe-daemon-restart.sh": "Referenced by CLAUDE.md but file does not exist on disk. If created, an additional substring block analogous to happy-restart should be added. NOT in C3 scope.",
+      "generic /allow": "Decoupled per R11. Generic /allow consume does NOT cover daemon-restart; daemon-restart REQUIRES the dedicated sentinel."
+    },
+    "tty_check": {
+      "command": "tty -s",
+      "exit_on_failure": 1,
+      "stderr_message": "ERROR: claude-allow-restart must be run from a real TTY, not from Claude. To grant a daemon restart, open a new terminal session and run this command there."
+    },
+    "audit_log_format": {
+      "path": "~/.claude/logs/claude-daemon-restart-grants.log",
+      "format": "JSON-line: {\"ts\": \"<ISO-8601>\", \"sid\": \"<sid>\", \"target\": \"<target>\", \"outcome\": \"granted|consumed|expired|revoked|allow_decoupled|target_mismatch|session_mismatch\", \"reason\": \"<reason>\"} (one JSON object per line; jq-friendly). Prompt-purity-emitted entries use {\"ts\": ..., \"sid\": ..., \"source\": \"prompt-purity\", \"category\": \"daemon-restart-prescription\", \"hit_kind\": \"hard|soft\", \"snippet\": ..., \"exit_code\": 0|2}.",
+      "permissions": "0644 user:user (readable by any user; writable by the user running the CLI; matches existing /root/.claude/logs/* convention — bash-consent.log, git-privilege-grants.log, checkpoint.log all live here per Glob iter 2)",
+      "rationale": "Iter-1 used /var/log/claude-daemon-restart-grants.log which requires root-owned writes; conflicts with no-sudo CLI contract. Iter-2 relocates to ~/.claude/logs/ per OBJ-3-C: matches existing convention; user-writable; survives sessions; surfaceable via CLI --audit subcommand."
+    }
+  },
+  "bypass_surface_inventory": {
+    "bash_paths": [
+      {"id": "B1", "path": "systemctl restart happy-daemon-dev (single command)", "current": "ALLOWED via whitelist", "after_C3": "BLOCKED unless sentinel grant"},
+      {"id": "B2", "path": "systemctl restart happy-daemon / -jade / -qijie", "current": "BLOCKED (line 428)", "after_C3": "BLOCKED (preserved)"},
+      {"id": "B3", "path": "sudo systemctl restart …", "current": "ALLOWED (sudo prefix irrelevant)", "after_C3": "BLOCKED unless sentinel"},
+      {"id": "B4", "path": "systemctl restart happy-daemon-dev && echo ok", "current": "ALLOWED via splitter", "after_C3": "BLOCKED"},
+      {"id": "B5", "path": "bash -c 'systemctl restart happy-daemon-dev'", "current": "ALLOWED", "after_C3": "BLOCKED via wrapper-class rule"},
+      {"id": "B6", "path": "eval 'systemctl restart happy-daemon-dev'", "current": "ALLOWED", "after_C3": "BLOCKED"},
+      {"id": "B7", "path": "sh/zsh -c '…'", "current": "ALLOWED", "after_C3": "BLOCKED"},
+      {"id": "B8", "path": "nohup systemctl restart … &", "current": "ALLOWED", "after_C3": "BLOCKED via wrapper-class rule"},
+      {"id": "B9", "path": "systemd-run --unit foo systemctl restart …", "current": "ALLOWED", "after_C3": "BLOCKED via systemd-run rule"},
+      {"id": "B10", "path": "timeout 30 systemctl restart …", "current": "ALLOWED", "after_C3": "BLOCKED"},
+      {"id": "B11", "path": "watch -n1 systemctl restart …", "current": "ALLOWED", "after_C3": "BLOCKED"},
+      {"id": "B12", "path": "heredoc body containing systemctl restart …", "current": "ALLOWED", "after_C3": "BLOCKED via co-occurrence rule"},
+      {"id": "B13", "path": "kill -HUP <pid>", "current": "BLOCKED (line 421)", "after_C3": "BLOCKED (preserved)"},
+      {"id": "B14", "path": "pkill -f happy-daemon-dev", "current": "BLOCKED (line 414)", "after_C3": "BLOCKED (preserved)"},
+      {"id": "B15", "path": "Daemon HTTP POST /stop via curl/wget (any localhost:PORT/stop)", "current": "NOT BLOCKED for random localhost ports — iter-1 BA proposed OR-trigger requiring 'daemon' word; QA OBJ-3-F notes URL like http://127.0.0.1:42173/stop has no 'daemon' word so iter-1 OR-trigger fails to fire", "after_C3": "BLOCKED via UNCONDITIONAL (localhost|127.0.0.1):[0-9]+/stop trigger regardless of surrounding text — addresses OBJ-3-F; uses stable label daemon-restart-http-stop — addresses OBJ-3-E"},
+      {"id": "B16", "path": "nc localhost <port> raw TCP", "current": "NOT BLOCKED", "after_C3": "BLOCKED via wrapper-class rule"},
+      {"id": "B17", "path": "bash /root/bin/happy-restart.sh", "current": "BLOCKED (line 345)", "after_C3": "BLOCKED (preserved)"},
+      {"id": "B18", "path": "/root/bin/happy-restart.sh (direct)", "current": "BLOCKED (line 345)", "after_C3": "BLOCKED (preserved)"},
+      {"id": "B19", "path": "cp /root/bin/happy-restart.sh /tmp/foo.sh; bash /tmp/foo.sh", "current": "PARTIAL — bypasses name match", "after_C3": "BLOCKED via /tmp/*.sh wrapper rule"},
+      {"id": "B20", "path": "ln -s /root/bin/happy-restart.sh /tmp/foo && /tmp/foo", "current": "PARTIAL", "after_C3": "BLOCKED via /tmp/*.sh wrapper rule (+ inner systemctl re-gates)"},
+      {"id": "B21", "path": "Write /tmp/foo.sh with restart sequence; bash /tmp/foo.sh", "current": "INDIRECT BYPASS", "after_C3": "BLOCKED via /tmp/*.sh wrapper rule"},
+      {"id": "B22", "path": "dbus-send --system /org/freedesktop/systemd1 …", "current": "NOT BLOCKED", "after_C3": "BLOCKED via dbus-send rule"},
+      {"id": "B23", "path": "python3 -c 'subprocess.run([systemctl,restart,happy-daemon-dev])'", "current": "ALLOWED at Bash level", "after_C3": "BLOCKED via python -c daemon-vocab rule"},
+      {"id": "B24", "path": "systemctl reload happy-daemon-dev (or any happy-daemon-*)", "current": "ALLOWED — verb 'reload' not in line-428 regex {stop,restart,disable,enable}; falls through to exit 0 today; sends SIGHUP via ExecReload= which can re-init configuration and disrupt runtime state for some daemons (Read-verified at /root/.claude/hooks/pretool-bash-safety.sh:428 iter 2)", "after_C3": "BLOCKED via extended verb-set regex {stop|restart|disable|enable|reload|kill|try-restart|reload-or-restart}; addresses OBJ-3-A; stderr label daemon-restart-prohibition"},
+      {"id": "B25", "path": "systemctl kill happy-daemon-* (with or without --signal=SIG / -s SIG)", "current": "ALLOWED — verb 'kill' not in regex; sends signal directly to unit's main PID per systemd KillSignal=; equivalent to kill -SIG against happy-cli main PID; happy-daemon respawns under Restart=on-failure so user-visible effect is identical to restart (Read-verified at /root/.claude/hooks/pretool-bash-safety.sh:428 iter 2; man systemctl(8))", "after_C3": "BLOCKED via extended verb-set regex; addresses OBJ-3-A; (\\s+|\\b) regex anchor handles `-s SIG` flag form"},
+      {"id": "B26", "path": "systemctl try-restart happy-daemon-*", "current": "ALLOWED — verb 'try-restart' not in regex; restarts only if unit is currently active (which happy-daemon-dev always is); fully equivalent to restart in this context (Read-verified at /root/.claude/hooks/pretool-bash-safety.sh:428 iter 2)", "after_C3": "BLOCKED via extended verb-set regex; addresses OBJ-3-A"},
+      {"id": "B27", "path": "systemctl reload-or-restart happy-daemon-*", "current": "ALLOWED — verb 'reload-or-restart' not in regex; falls back to restart if reload not supported; happy-daemon does not define ExecReload= so this is functionally restart (Read-verified at /root/.claude/hooks/pretool-bash-safety.sh:428 iter 2)", "after_C3": "BLOCKED via extended verb-set regex; addresses OBJ-3-A"}
+    ],
+    "edit_write_paths": [
+      {"id": "E1", "path": "Edit /etc/systemd/system/happy-daemon-dev.service", "current": "PARTIAL — only /usr/bin/happy ExecStart blocked", "after_C3": "BLOCKED — full path coverage"},
+      {"id": "E2", "path": "Edit /etc/systemd/system/happy-daemon.service (production)", "current": "NOT BLOCKED", "after_C3": "BLOCKED"},
+      {"id": "E3", "path": "Edit /etc/systemd/system/happy-daemon-dev.service to remove ExecStop", "current": "NOT BLOCKED", "after_C3": "BLOCKED via full path coverage"},
+      {"id": "E4", "path": "Write /etc/systemd/system/happy-daemon-dev.service.d/override.conf", "current": "NOT BLOCKED", "after_C3": "BLOCKED via .service.d/* path coverage"},
+      {"id": "E5", "path": "Write /etc/systemd/system/happy-restart-shadow.service (new wrapper unit)", "current": "NOT BLOCKED", "after_C3": "BLOCKED via /etc/systemd/system/happy-* prefix"},
+      {"id": "E6", "path": "Edit /root/bin/happy-restart.sh", "current": "NOT BLOCKED for Edit (only Bash invocation)", "after_C3": "BLOCKED via /root/bin/ path coverage"},
+      {"id": "E7", "path": "Edit /root/.claude/hooks/pretool-bash-safety.sh", "current": "PROMPTS USER — settings.json:237-238 in permissions.ask (iter-2 verified, iter-1 misread as allow)", "after_C3": "PRESERVED in ask (no change at this layer; iter-1 R7 withdrawn; Edit/Write gate hook path coverage adds redundant defense at hook layer for subagent-emitted edits)"},
+      {"id": "E8", "path": "Edit /root/bin/safe-swap-drain.sh", "current": "NOT BLOCKED", "after_C3": "BLOCKED via /root/bin/ admin script coverage"},
+      {"id": "E9", "path": "Write /tmp/anything.sh containing systemctl invocations", "current": "Write NOT blocked; invocation later re-gates", "after_C3": "Invocation BLOCKED via /tmp/*.sh rule (Write itself remains unblocked, which is fine because nothing executes from a blocked invocation)"}
+    ],
+    "agent_paths": [
+      {"id": "A1", "path": "Orchestrator dispatches subagent with prompt 'restart happy-daemon-dev'", "current": "BRITTLE coverage in prompt-purity (depends on flag/pipe presence)", "after_C3": "BLOCKED via daemon-restart-prescription category"},
+      {"id": "A2", "path": "Orchestrator dispatches: 'Please ensure happy-daemon-dev is fresh; do whatever needed'", "current": "NOT BLOCKED (natural language)", "after_C3": "HARD HIT BLOCKED; soft hits emit WARN"},
+      {"id": "A3", "path": "Subagent (already running) calls systemctl restart itself", "current": "ALLOWED via Bash whitelist", "after_C3": "BLOCKED via Layer 1 (no subagent exemption for daemon-restart)"},
+      {"id": "A4", "path": "Subagent invokes a script that internally restarts", "current": "Reduces to B17-B21", "after_C3": "BLOCKED via wrapper-class rules"}
+    ]
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true,
+    "reuse_existing_flock_scaffolding": true,
+    "stable_stderr_substrings_for_qa_grep": true,
+    "no_subagent_exempt_for_daemon_restart_rules": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "All required information is in the architect specialist report (tier_1), live source files (tier_0; re-verified iter 2 per QA's evidence requests), iter-1 QA report (tier_1), and `man systemctl` (8) for verb semantics. The user's directive is a policy decision, not a domain best-practice question. Web search would not surface useful information for this concern."
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  },
+  "TASK_ID_VERBATIM": "TASK-ID: c3-20260504-223115"
+}

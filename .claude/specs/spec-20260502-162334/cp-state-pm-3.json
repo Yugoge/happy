@@ -1,0 +1,45 @@
+{
+  "spec_id": "spec-20260502-162334",
+  "agent_type": "pm",
+  "instance_id": 3,
+  "generation": 1,
+  "agent_id": "spec-bootstrap-pm-3",
+  "is_running": false,
+  "checked_in_at": "2026-05-02T20:30:00Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Capture Section 1 baseline: source layer status, dev daemon process state (started 2026-04-25), dev web container image age (built 2026-04-28 13:42 — older than several app source files), protocol gate state (experimentalRawEvents:false in current dist, fixed by S1+S-BUILD), scope policy state, MCP elicitation handler state (only accepts mode==='form' && _meta.codex_approval_kind==='mcp_tool_call'), attachment path state, QA history all-fail verdicts, user verdict '彻底没有实现需求'",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T20:30:00Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Confirm scope boundaries enforce out-of-scope list: 139 file cleanup deferred until S7 verifies green; /root/happy and production paths off-limits; no new features beyond S1-S7; no hook replacement; CLI changes routed via dev worktree dist only (no npm install -g, no /usr/bin/happy*, no /usr/lib/node_modules/happy*)",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T20:30:00Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Surface three past-failure warnings to be carried forward across cycles: (a) 2026-04-25 scope-leak — generic-content whitelist broke Claude Code Grep/Glob/WebSearch; (b) 2026-04-04 production catastrophe — npm install -g destroyed all production sessions; (c) 2026-03-29 production-URL incident — Playwright on life-ai.app corrupted production data",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T20:30:00Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Populate Section 8 (Attention Notes) with cycle-specific traps after first cycle completes: dependency order mandatory (CLI source → S-BUILD → S4 → app deploy → S7); S4 PAUSE-PENDING-USER; thread/start NOT turn/start carries experimentalRawEvents; safe-daemon-restart.sh does NOT exist — use systemctl",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T20:30:00Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/pm-report-20260502-162334.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

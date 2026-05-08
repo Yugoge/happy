@@ -250,6 +250,12 @@ export default function DevScreen() {
                     onPress={() => router.push('/dev/tools2')}
                 />
                 <Item
+                    title="Codex Render Fixtures"
+                    subtitle="Deterministic Codex payload matrix for QA"
+                    icon={<Ionicons name="code-slash-outline" size={28} color="#007AFF" />}
+                    onPress={() => router.push('/dev/codex-render-fixtures' as any)}
+                />
+                <Item
                     title="Shimmer View"
                     subtitle="Shimmer loading effects with masks"
                     icon={<Ionicons name="sparkles-outline" size={28} color="#007AFF" />}

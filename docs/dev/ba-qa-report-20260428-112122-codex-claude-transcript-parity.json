@@ -1,0 +1,275 @@
+{
+  "request_id": "20260428-112122-codex-claude-transcript-parity",
+  "task_id": "20260428-112122-codex-claude-transcript-parity",
+  "timestamp": "2026-04-28T11:52:15.460853Z",
+  "mode": "ba_validation",
+  "qa": {
+    "status": "fail",
+    "verdict": "fail",
+    "summary": "BA artifacts exist, parse, and describe one coherent parity issue, but they are not suitable for unconditional dev handoff because critical subagent raw-event propagation and structured-result transport contracts remain unproven/underspecified.",
+    "artifacts": {
+      "ba_spec": {
+        "path": "docs/dev/ba-spec-20260428-112122-codex-claude-transcript-parity.md",
+        "exists": true,
+        "well_formed": true
+      },
+      "context_json": {
+        "path": "docs/dev/context-20260428-112122-codex-claude-transcript-parity.json",
+        "exists": true,
+        "json_parse": "pass",
+        "request_id_matches": true,
+        "task_id_matches": true
+      }
+    },
+    "user_verbatim_requirement": "Happy dev transcript rendering for Bash/tool-call content and subagent lifecycle/content should match current Claude Code rendering when the underlying session source is Codex. Claude Code current rendering is the source of truth.",
+    "verified_against_complaint": true,
+    "complaint_location_keywords": [
+      "happy",
+      "dev",
+      "transcript",
+      "rendering",
+      "bash",
+      "tool-call",
+      "content",
+      "subagent",
+      "lifecycle",
+      "codex",
+      "claude",
+      "code"
+    ],
+    "verified_location_keywords": [
+      "happy-dev",
+      "codex",
+      "claude",
+      "sessionProtocolMapper",
+      "CodexBashView",
+      "CodexSubagentView",
+      "SidebarAgentConversation",
+      "typesRaw"
+    ],
+    "location_overlap": [
+      "happy",
+      "dev",
+      "codex",
+      "claude",
+      "bash",
+      "subagent",
+      "rendering"
+    ],
+    "checks": [
+      {
+        "name": "artifact_existence",
+        "status": "pass",
+        "evidence": "Both BA spec and context JSON exist under docs/dev."
+      },
+      {
+        "name": "json_well_formed",
+        "status": "pass",
+        "evidence": "Context JSON parsed successfully and request_id/task_id match filename suffix."
+      },
+      {
+        "name": "scope_alignment",
+        "status": "pass_with_objections",
+        "evidence": "Requirements decomposition covers Bash/tool-call, subagent lifecycle/content, Claude-vs-Codex source-of-truth, and Happy dev constraints."
+      },
+      {
+        "name": "root_cause_claims",
+        "status": "pass_with_objections",
+        "evidence": "exec_command_end payload drop and lifecycle/result normalization claims are supported by cited code; subagent child-content path is not fully proven."
+      },
+      {
+        "name": "affected_file_accuracy",
+        "status": "fail",
+        "evidence": "codexAppServerClient.ts is affected but omitted from files_to_modify despite likely needing event identity propagation."
+      },
+      {
+        "name": "protocol_contract_quality",
+        "status": "fail",
+        "evidence": "Structured ToolCall.result requirement conflicts with current string-only sessionToolCallEndEventSchema unless BA specifies transport."
+      },
+      {
+        "name": "verification_requirements",
+        "status": "fail",
+        "evidence": "Live UI closure requirement conflicts with blanket no-deployment wording; golden tests are underclassified as Should Have."
+      },
+      {
+        "name": "single_issue_coherence",
+        "status": "pass",
+        "evidence": "Bash/tool-call and subagent lifecycle/content are two facets of the same Codex-vs-Claude transcript parity issue."
+      },
+      {
+        "name": "dev_handoff_suitability",
+        "status": "fail",
+        "evidence": "Dev handoff should be conditional on BA amendment for objections OBJ-1 through OBJ-8."
+      }
+    ],
+    "supported_claims": [
+      "Codex app-server emits exec_command_end with output/exit_code/duration_ms/status/cwd/command at codexAppServerClient.ts:315-327.",
+      "Codex mapper currently drops exec_command_end payload by emitting only tool-call-end call at codex/utils/sessionProtocolMapper.ts:324-328.",
+      "Session protocol currently limits tool-call-end output to optional string at sessionProtocol.ts:41-45.",
+      "typesRaw normalizes omitted session output to null and is_error false at typesRaw.ts:664-680.",
+      "typesRaw drops start/stop lifecycle markers at typesRaw.ts:560-562 and tests assert broad dropping at typesRaw.spec.ts:1871-1904.",
+      "Claude mapper/renderers are a reasonable local parity oracle for current Claude Code behavior."
+    ],
+    "objections": [
+      {
+        "id": "OBJ-1",
+        "severity": "critical",
+        "category": "evidence_gap_subagent_child_content",
+        "finding": "BA requires Codex subagent child text/tool calls to attach to one Claude-equivalent conversation, but the evidence only proves receiverThreadIds on collabAgentToolCall control events. Current commandExecution and agentMessage emissions do not forward threadId/subagent identity, so AC2 may be infeasible from the proven data path.",
+        "evidence": [
+          "packages/happy-cli/src/codex/codexAppServerClient.ts:302-327 emits exec_command_begin/end without thread identity",
+          "packages/happy-cli/src/codex/codexAppServerClient.ts:364-372 emits agent_message without thread identity",
+          "packages/happy-cli/src/codex/codexAppServerClient.ts:397-408 is the only cited begin path carrying receiverThreadIds",
+          "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:84-110 resolves subagent only from message.subagent/parent_call_id/parentCallId"
+        ],
+        "recommendation": "BA must either prove raw Codex child-thread events arrive with usable identity, or explicitly require app-server propagation of child thread identity before mapper/reducer work.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-2",
+        "severity": "critical",
+        "category": "affected_file_accuracy",
+        "finding": "Context affected_files includes codexAppServerClient.ts, but development_approach.files_to_modify omits it. Because missing child identity/result fields likely originate before the mapper, this omission can send dev into an impossible mapper/UI-only implementation path.",
+        "evidence": [
+          "context.root_cause_analysis.affected_files includes packages/happy-cli/src/codex/codexAppServerClient.ts",
+          "context.development_approach.files_to_modify starts at packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts and does not list codexAppServerClient.ts"
+        ],
+        "recommendation": "Add codexAppServerClient.ts as an explicit likely modification target or document why no app-server event propagation change is needed.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-3",
+        "severity": "critical",
+        "category": "protocol_contract_ambiguity",
+        "finding": "BA requires a structured ToolCall.result object, but the current session protocol tool-call-end schema only accepts optional string output. The BA phrase that structured fields must remain available if output stays string is not an acceptance-testable transport contract.",
+        "evidence": [
+          "packages/happy-wire/src/sessionProtocol.ts:41-45 defines sessionToolCallEndEventSchema output as z.string().optional()",
+          "packages/happy-app/sources/sync/typesRaw.ts:664-680 maps envelope.ev.output directly to tool-result content",
+          "context.expected_normalized_contract.codex_bash_tool_result.required_shape requires output/stdout/stderr/exit_code/status/duration_ms/cwd/command/empty_output/source"
+        ],
+        "recommendation": "BA must name the transport mechanism: extend schema with a structured field, derive result by joining start/end envelopes, or another exact tested path. Metadata/raw JSON alone must be disallowed.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-4",
+        "severity": "major",
+        "category": "test_requirements_underclassified",
+        "finding": "Golden mapper/normalizer/reducer tests are listed as Should Have even though the diagnosed bug is L4 data-flow loss. Without golden raw-event to envelope to normalized-message expectations, screenshots could pass while result fields or child linkage remain structurally wrong.",
+        "evidence": [
+          "BA spec diagnosis_layer/context says L4",
+          "BA spec Should Have says add focused mapper/normalizer/reducer tests",
+          "context.expected_normalized_contract defines object and identity requirements that need unit/golden tests"
+        ],
+        "recommendation": "Promote focused golden tests for Codex Bash result shape and Codex subagent identity/linkage to Must Have.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-5",
+        "severity": "major",
+        "category": "verification_contract_contradiction",
+        "finding": "BA requires live dev UI screenshots/DOM metrics for closure, but also states no deployment. In this happy-dev environment, live web verification usually requires a safe dev-web rebuild/deploy or an explicit local/HMR verification route; the current wording can contradict QA closure requirements.",
+        "evidence": [
+          "BA Must Have: live QA must use dev UI screenshots/DOM metrics",
+          "Context constraints: No production access, deployment, daemon restart, or API-created sessions",
+          "Project CLAUDE.md permits rebuilding/deploying happy-web-dev from the worktree for QA while forbidding production deployment"
+        ],
+        "recommendation": "Change restriction to no production deployment/services and explicitly allow safe dev-web/local verification as required by happy-dev QA protocol.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-6",
+        "severity": "major",
+        "category": "unproven_subagent_result_source",
+        "finding": "AC2 and requirements ask for Codex subagent result/summary parity, but the cited Codex collab_agent_call_end evidence carries status only, not result text/summary. BA does not identify the raw event that supplies a child agent final answer or summary.",
+        "evidence": [
+          "packages/happy-cli/src/codex/codexAppServerClient.ts:412-421 emits collab_agent_call_end with tool/status/senderThreadId/subagent only",
+          "BA AC2 requires prompt, result/summary, and child tools through one conversation"
+        ],
+        "recommendation": "Identify and cite the raw event carrying subagent result/summary, or explicitly scope summary/result display to data that exists and require child final answer attachment when available.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-7",
+        "severity": "major",
+        "category": "identity_invariant_not_explicit",
+        "finding": "BA mentions stable CUID2 mapping but does not state the key invariant needed for reducer/sidebar linkage: visible parent tool-call id, args.sessionSubagent when applicable, envelope.subagent, reducer sidechain key, and SidebarAgentConversation messages must point to the same child conversation identity.",
+        "evidence": [
+          "packages/happy-cli/src/claude/utils/sessionProtocolMapper.ts:568-578 uses sessionSubagentForCall as visible call id for hidden parent tool calls",
+          "packages/happy-app/sources/sync/reducer/reducer.ts:947-1156 stores sidechain messages by msg.sidechainId and marks owner messages changed",
+          "BA expected_normalized_contract names stable CUID2 but not the full linkage invariant"
+        ],
+        "recommendation": "Add a Must Have identity invariant and golden test asserting one stable CUID2 links parent card, sidechain messages, child tools, detail, and sidebar.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-8",
+        "severity": "major",
+        "category": "blocking_preconditions_underreported",
+        "finding": "context.blocking_issues is empty even though QA preconditions still require missing Claude Bash+Agent and Codex subagent routes to be found or UI-created. These are acceptable preconditions, but they should be represented as open validation blockers/preconditions rather than buried with blocking_issues: [].",
+        "evidence": [
+          "context.qa_preconditions lists missing/future Claude Bash+Agent and Codex subagent sample route discovery or UI creation",
+          "context.blocking_issues is []"
+        ],
+        "recommendation": "Populate blocking_issues or a distinct open_preconditions list so dev/QA cannot mistake the issue as fully sample-provisioned.",
+        "blocks_dev_handoff": true
+      },
+      {
+        "id": "OBJ-9",
+        "severity": "minor",
+        "category": "runtime_evidence_traceability",
+        "finding": "Prior mobile/runtime observations are second-hand in the final artifacts and not linked to exact screenshot paths or measured report fields, though BA honestly marks diagnosis completeness as mixed.",
+        "evidence": [
+          "BA Evidence Observed references prior mobile simulation generically",
+          "context.prior_attempts references docs/dev/qa-report-20260427-230227-p05.json but final BA evidence does not include screenshot/measurement paths"
+        ],
+        "recommendation": "Link exact prior evidence files/fields where available, while preserving live QA as the closure gate.",
+        "blocks_dev_handoff": false
+      },
+      {
+        "id": "OBJ-10",
+        "severity": "minor",
+        "category": "scope_precision",
+        "finding": "runCodex.ts appears in affected_files/all_occurrences because it mirrors exec_command_end into the local Ink buffer, but it is not clearly part of Happy web transcript rendering. This is not blocking, but it may distract implementation unless labeled as non-target evidence.",
+        "evidence": [
+          "packages/happy-cli/src/codex/runCodex.ts:538-557 writes event summaries into messageBuffer",
+          "development_approach.files_to_modify does not include runCodex.ts"
+        ],
+        "recommendation": "Mark runCodex.ts as contextual/non-target unless dev intentionally updates local CLI display parity too.",
+        "blocks_dev_handoff": false
+      }
+    ],
+    "objection_summary": {
+      "total": 10,
+      "critical": 3,
+      "major": 5,
+      "minor": 2,
+      "blocks_dev_handoff": 8
+    },
+    "recommendation": "Return to BA for a targeted amendment before dev implementation. Minimum amendment: prove or require Codex child-thread event propagation through codexAppServerClient.ts, define exact structured result transport, promote golden tests to Must Have, clarify dev-web deployment allowance, and list open sample-route preconditions as blockers/preconditions.",
+    "codex_consult": {
+      "invoked": true,
+      "status": "ok",
+      "feedback_source": "/tmp/codex-ba-qa-feedback-20260428-112122-1777376810.txt",
+      "feedback_summary": "Codex agreed PASS_WITH_OBJECTIONS is defensible only if dev handoff is conditional, but advised FAIL for unconditional dev readiness due to subagent child-event propagation, codexAppServerClient omission, structured result transport, weak golden-test classification, dev deployment wording, unproven subagent result source, missing ID invariant, and underreported preconditions.",
+      "feedback_incorporated": "Verdict changed from draft pass_with_objections/warning to fail for dev handoff suitability; objections OBJ-1 through OBJ-8 promoted as blockers."
+    },
+    "self_verification": {
+      "claims_total": 9,
+      "claims_with_evidence": 9,
+      "claims_superficial": 0,
+      "confidence": "high"
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_validation_areas": [
+      "subagent raw-event propagation evidence",
+      "structured result transport contract",
+      "affected-file/development target accuracy",
+      "golden test requirements",
+      "QA/dev-web verification wording"
+    ],
+    "recommended_ba_amendment": "Produce a revised BA spec/context or addendum resolving OBJ-1 through OBJ-8 before invoking dev."
+  }
+}

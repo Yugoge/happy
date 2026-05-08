@@ -1,0 +1,242 @@
+{
+  "request_id": "c1-20260504-223115",
+  "task_id": "c1-20260504-223115",
+  "timestamp": "2026-05-04T22:50:00Z",
+  "concern": "C1",
+  "mode": "ba_validation",
+  "verdict": "pass_with_objections",
+  "summary": {
+    "evidence_quality": "strong",
+    "scope_alignment": "aligned",
+    "investigation_completeness": "complete",
+    "affected_file_accuracy": "accurate",
+    "spec_text_vs_execution_drift": "objection_raised",
+    "ac4_regression_guard_documented": true,
+    "objection_count": 2,
+    "blocking_objection_count": 0
+  },
+  "ac4_regression_guard_check": {
+    "user_required_property": "Default-no-arg invocation MUST be byte-for-byte equivalent to today's behavior",
+    "ba_documentation_locations": [
+      "ticket-c1-20260504-223115.md M7 (Must-Have): 'Default behaviour preservation (regression guard)'",
+      "ticket-c1-20260504-223115.md AC4 (full GIVEN/WHEN/THEN block, lines 183-192)",
+      "context-c1-20260504-223115.json success_criteria[3]: 'AC4: no-arg invocation = today's exact behavior'",
+      "context-c1-20260504-223115.json regression_guard.no_arg_behavior_preserved (full pre/post step-by-step diff with delta call-out)",
+      "context-c1-20260504-223115.json target_dispatch_table_design.default_no_arg_behavior.maps_to = 'all-prod'"
+    ],
+    "verdict": "PASS — AC4 is documented as a hard MUST-HAVE acceptance criterion with explicit GIVEN/WHEN/THEN and a step-by-step pre/post diff in context JSON. NOT a passing remark. The 'maps_to: all-prod' contract is also stated in the dispatch table schema. User's regression-guard intent is preserved at multiple layers."
+  },
+  "dimension_findings": {
+    "evidence_quality": {
+      "verdict": "strong",
+      "spot_checks_performed": [
+        {
+          "check": "Architect claim: line 22-26 hardcoded daemon list",
+          "method": "Read /root/bin/happy-restart.sh lines 22-26",
+          "result": "CONFIRMED: line 22 = systemctl stop happy-daemon, line 24 = ...-jade, line 26 = ...-qijie. Exact 3-daemon hardcoded list as claimed. happy-daemon-dev intentionally absent."
+        },
+        {
+          "check": "Architect claim: binary glob targets /usr/lib/node_modules/happy-coder/dist",
+          "method": "Read /root/bin/happy-restart.sh lines 53-54",
+          "result": "CONFIRMED: line 53 = `ls /usr/lib/node_modules/happy-coder/dist/types-*.mjs`, line 54 = `ls /usr/lib/node_modules/happy-coder/dist/index-*.mjs`. Exact path as claimed."
+        },
+        {
+          "check": "BA claim: happy-session-recovery.sh --home parser at lines 1500-1511",
+          "method": "Read /root/bin/happy-session-recovery.sh lines 1490-1520",
+          "result": "CONFIRMED: lines 1500-1502 in save case, lines 1510-1512 in restore case. Both wire `[ \"${1:-}\" = \"--home\" ] && SCOPE_HOME=\"$2\"`."
+        },
+        {
+          "check": "BA claim: SCOPE_HOME-driven scoped save at lines 539-556",
+          "method": "Grep --home|SCOPE_HOME on /root/bin/happy-session-recovery.sh",
+          "result": "CONFIRMED: lines 539-556 implement scoped save (validate SCOPE_HOME ∈ HAPPY_HOMES, restrict scan/save to that home, log 'Scoped save: only $SCOPE_HOME')."
+        },
+        {
+          "check": "BA claim: happy-daemon-dev.service wires --home /root/.happy-dev",
+          "method": "Read /etc/systemd/system/happy-daemon-dev.service",
+          "result": "CONFIRMED: line 14 = `ExecStartPre=/bin/bash -c '/root/bin/happy-session-recovery.sh save --home /root/.happy-dev || true'`. Also line 17 ExecStart=/usr/bin/happy-dev (not /usr/bin/happy), line 29 HAPPY_HOME_DIR=/root/.happy-dev, line 30 HAPPY_SERVER_URL=http://localhost:3005."
+        }
+      ],
+      "summary": "All 5 spot-checked architect/BA evidence claims confirmed against on-disk source. No fabrication, no offset errors, no inherited-without-verification claims."
+    },
+    "scope_alignment": {
+      "verdict": "aligned",
+      "user_request": "继续你的研究如何支持单独重启 — 即 /root/bin/happy-restart.sh 应该支持单个happy全体进程单独重启",
+      "user_request_translated": "Continue research on supporting independent (per-stack) restart — happy-restart.sh should support restarting a single happy full-stack independently",
+      "ba_scope_delivered": "Single-file refactor of /root/bin/happy-restart.sh introducing target dispatch (dev/default/jade/qijie/all-prod/all) via --target flag",
+      "narrowing_check": "NOT NARROWED. BA delivers the full matrix (dev + 3 prod targets + 2 aggregate). User's '单独重启' (single-stack restart) is fully covered.",
+      "expansion_check": "NOT EXPANDED beyond user need. NO unrelated improvements: no logging redesign, no perf work, no error-handling polish beyond what restart correctness requires. The S/C/W tier requirements (S1 per-target detached kill, S2 lockfile, S3 server URL, S4 audit tags, C1 structured exit codes, C2 --include-docker) are all directly justified by the architect's 9 structural problems and are properly tiered (Should/Could) so they do not pollute the Must-Have core.",
+      "renaming_check": "NOT RENAMED. Bug stays as 'per-stack restart support'. AC4 explicitly preserves no-arg behavior to prevent the refactor from becoming a behavioral break.",
+      "won_have_block_correctly_excludes": "W1 (recovery script edits), W2 (new wrapper script), W3 (hook policy — C3's territory), W4 (systemd unit edits), W5 (Docker rebuild), W6 (new health probes). All correctly out-of-scope and aligned with single-file refactor framing."
+    },
+    "investigation_completeness": {
+      "verdict": "complete",
+      "prerequisite_files_investigated": [
+        {
+          "file": "/etc/systemd/system/happy-daemon.service",
+          "evidence_in_ba_artifacts": "scope_boundary.out_of_path_observed_but_not_touched[1] cites 'verified already wires --home /root/.happy'",
+          "qa_verification": "Trust BA's read; not independently re-read but ba evidence pattern (one of 4) is consistent with happy-daemon-dev.service which QA did re-read."
+        },
+        {
+          "file": "/etc/systemd/system/happy-daemon-jade.service",
+          "evidence_in_ba_artifacts": "scope_boundary.out_of_path_observed_but_not_touched[2] cites 'verified already wires --home /root/.happy-jade'",
+          "qa_verification": "Trust BA's read."
+        },
+        {
+          "file": "/etc/systemd/system/happy-daemon-qijie.service",
+          "evidence_in_ba_artifacts": "scope_boundary.out_of_path_observed_but_not_touched[3] cites 'verified already wires --home /root/.happy-qijie'",
+          "qa_verification": "Trust BA's read."
+        },
+        {
+          "file": "/etc/systemd/system/happy-daemon-dev.service",
+          "evidence_in_ba_artifacts": "scope_boundary.out_of_path_observed_but_not_touched[4] cites 'verified already wires --home /root/.happy-dev; binary ExecStart=/usr/bin/happy-dev'",
+          "qa_verification": "INDEPENDENTLY VERIFIED by QA in this report. Line 14 of unit file matches BA's claim exactly."
+        },
+        {
+          "file": "Worktree dist path /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/*.mjs",
+          "evidence_in_ba_artifacts": "context.observations[3] cites 'observed: ls /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/*.mjs'",
+          "qa_verification": "Not independently re-listed (path shows up in Bash hook safe area). BA's pattern is consistent with the symlink chain /usr/bin/happy-dev → /root/happy-dev/packages/happy-cli/bin/happy-dev.mjs which BA also claimed and is plausible."
+        },
+        {
+          "file": "Global CLI dist /usr/lib/node_modules/happy-coder/dist/*.mjs",
+          "evidence_in_ba_artifacts": "Direct Read of happy-restart.sh lines 53-54 confirms; BA's claim is anchored to the actual script source, not invented.",
+          "qa_verification": "VERIFIED by QA via Read of happy-restart.sh."
+        },
+        {
+          "file": "/root/bin/happy-session-recovery.sh --home support",
+          "evidence_in_ba_artifacts": "context.dependencies cites 'Provides save --home <home> and restore --home <home> already; no edit needed'; ticket lines 1500-1511 (--home parser), 539-556 (scoped save), 976-988 (scoped restore) cited verbatim",
+          "qa_verification": "INDEPENDENTLY VERIFIED via Read+Grep of happy-session-recovery.sh; all line ranges match exactly."
+        }
+      ],
+      "summary": "BA did not blindly accept architect findings. Evidence trail shows BA performed independent reads of (a) the script under refactor at all 5 hardcoded paths, (b) the recovery script's --home implementation at 3 distinct line ranges, (c) all 4 systemd unit files, (d) the symlink chain for the dev binary entrypoint. The BA spec's component_chain[] list and pre_existing_guards[] list show evidence_type='Read' or 'Grep' for each prerequisite. Investigation depth is appropriate."
+    },
+    "affected_file_accuracy": {
+      "verdict": "accurate",
+      "line_range_spot_checks": [
+        {
+          "ba_claim": "line 9: SKIP_SESSIONS=\"${1:-}\"",
+          "actual": "line 9 = SKIP_SESSIONS=\"${1:-}\"",
+          "match": true
+        },
+        {
+          "ba_claim": "lines 22-26: hardcoded 3-prod-daemon stop",
+          "actual": "lines 22, 24, 26 = systemctl stop {happy-daemon, happy-daemon-jade, happy-daemon-qijie}; lines 21, 23, 25 are log() calls between them",
+          "match": true,
+          "note": "Range [22-26] correctly captures both stops AND interleaved logs."
+        },
+        {
+          "ba_claim": "lines 30-37: detached-process kill (BA narrowed from architect's 28-42)",
+          "actual": "loop pidfile iteration lines 30-37; outer KILLED=0 init at line 29; final claude pkill loop at lines 39-41",
+          "match": "approximate",
+          "note": "BA's 30-37 is the inner pidfile loop only. The architect's 28-42 captures the full detached-process block (lines 28-42 inclusive). Both characterizations correct; BA's narrower range is sufficient for the per-target restriction it's targeting."
+        },
+        {
+          "ba_claim": "lines 53-54: ls /usr/lib/node_modules/happy-coder/dist",
+          "actual": "lines 53-54 = TYPES_FILE/INDEX_FILE assignment with that exact path",
+          "match": true
+        },
+        {
+          "ba_claim": "lines 61-79: 3-token grep on prod dist",
+          "actual": "lines 61-80 contain the 3 token checks (line 63 shouldHideParentToolCall, line 70 Task.*Agent, line 76 sendExisting) with surrounding if-fi structure",
+          "match": true,
+          "note": "BA's 61-79 captures all 3 checks. Off-by-one (line 80 is the closing fi) is not material."
+        },
+        {
+          "ba_claim": "lines 91-92: docker compose up -d (unconditional)",
+          "actual": "line 91 = log message, line 92 = cd /root/deploy && docker compose up -d happy-server happy-web",
+          "match": true
+        },
+        {
+          "ba_claim": "lines 96-106: hardcoded 3-prod-daemon start",
+          "actual": "lines 96, 100, 104 = HAPPY_SERVER_URL=... systemctl start {happy-daemon, happy-daemon-jade, happy-daemon-qijie} with interleaved logs",
+          "match": true
+        },
+        {
+          "ba_claim": "lines 111-133: hardcoded 3 PID verify blocks",
+          "actual": "lines 111-117 (main daemon verify), 119-125 (jade verify), 127-133 (qijie verify)",
+          "match": true
+        }
+      ],
+      "summary": "Every BA-claimed line range corresponds to actual code at the cited lines. No offset errors. The script is at 142 lines; BA's claims cover lines 6 (set), 9 (SKIP), 12 (log fn), 18 (save), 22-26 (stops), 30-37 (kill), 53-54 (binary path), 61-79 (gate), 91-92 (docker), 96-106 (starts), 111-133 (verify). All anchor correctly. BA's edit plan in affected_files.line_ranges_to_refactor is well-founded."
+    },
+    "spec_text_vs_execution_drift": {
+      "verdict": "objection_raised",
+      "constraint_acknowledged_by_ba": "BA explicitly cites 'Subagent CANNOT live-test the script (hook block); verification = user from real TTY post-implementation' (development_approach.validation_approach in context JSON; constraints[4] in requirement; Technical Hints in ticket).",
+      "drift_observed": "Despite BA's awareness, the MEASURABLE clauses in AC2-AC8 are written in runtime-execution form, not static-inspection form. Concretely: AC3 says 'docker ps --format ... shows the same CreatedAt' (runtime); AC5 says 'grep TASK-ID /var/log/happy-restart.log returns ≥1 hit per invocation' (post-runtime log artifact); AC6 says 'tail /var/log/happy-session-recovery.log shows Scoped save' (runtime); AC7 says 'a fake-corrupted state.json causes --target dev to log the ERROR' (runtime); AC8 says 'echo $? prints 2' (runtime).",
+      "consequence": "Dev subagent will land the implementation but cannot self-verify these 7 ACs because the hook permanently blocks the subagent from running happy-restart.sh. QA subagent verifying after dev will face the same hook block. The static-inspection equivalent of each MEASURABLE clause exists (e.g. AC3 static form: 'grep -c \"docker compose up\" outside the all-prod/all/jade/default/qijie target branches = 0'; AC5 static form: 'grep -E \"TASK-ID:\\s*c1-20260504-223115\" /root/bin/happy-restart.sh returns ≥1 line in the script'; AC8 static form: 'grep -E \"exit\\s+2\" + grep \"BLOCKED: unknown target\" both present in script') but BA did not write them.",
+      "objection_dimension": "spec_text_vs_execution_drift",
+      "remediation_required": "BA must add a 'STATIC-INSPECTION MEASURABLE' subclause to each of AC2, AC3, AC5, AC6, AC7, AC8 that is verifiable by reading the refactored script source alone (grep / structural patterns), distinct from the runtime MEASURABLE that the user exercises post-merge from a real TTY. AC1, AC4 already have grep-friendly measurables.",
+      "severity": "non_blocking_for_implementation_proceed_but_blocking_for_qa_close",
+      "rationale_severity": "Dev can still land the refactor against the GIVEN/WHEN/THEN logic; the runtime-MEASURABLE doesn't gate the implementation. But QA's eventual close-cycle on this concern WILL be blocked by inability to run any of AC2-AC8's measurables, so the AC text needs a static parallel before close. If BA fixes this BEFORE dev starts (cheap, just text addition), QA close path is unblocked downstream. If BA does not fix, QA close-cycle will return PASS_AS_SUBSTITUTE for AC2/3/5/6/7/8 verifications based on static-inspection-equivalents, which is a known anti-pattern in this codebase per spec-20260503-091826 §5.4 rule 4."
+    }
+  },
+  "objections": [
+    {
+      "id": "OBJ-C1-001",
+      "dimension": "spec_text_vs_execution_drift",
+      "severity": "non_blocking_for_dev_proceed",
+      "ac_affected": ["AC2", "AC3", "AC5", "AC6", "AC7", "AC8"],
+      "summary": "AC MEASURABLE clauses for 6 of 8 ACs are runtime-execution form, but the Bash hook permanently blocks both dev subagent and QA subagent from running /root/bin/happy-restart.sh. Without parallel static-inspection MEASURABLE clauses, downstream QA cannot close those ACs without invoking the PASS_AS_SUBSTITUTE pattern.",
+      "ba_must_do": "Add a STATIC-INSPECTION subclause to each of AC2, AC3, AC5, AC6, AC7, AC8 that is verifiable by reading the refactored happy-restart.sh source (grep, structural pattern match), distinct from the RUNTIME MEASURABLE the user exercises post-merge.",
+      "examples_of_static_form": {
+        "AC2_static": "grep -E 'binary_dist_glob.*=.*/dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist' /root/bin/happy-restart.sh returns ≥1 hit AND grep -E 'binary_dist_glob.*=.*/usr/lib/node_modules/happy-coder/dist' returns ≥3 hits (one per prod target).",
+        "AC3_static": "grep -nE 'docker compose up -d' /root/bin/happy-restart.sh returns exactly 1 hit AND that line is inside a branch gated on docker_services non-empty (verifiable by reading 5-10 lines of context around the hit).",
+        "AC5_static": "grep -E 'TASK-ID:\\s*c1-20260504-223115' /root/bin/happy-restart.sh returns ≥1 hit AND that line executes before any side-effect (i.e. before any systemctl, docker, save call).",
+        "AC6_static": "grep -E 'happy-session-recovery.sh save --home' /root/bin/happy-restart.sh returns ≥1 hit; for the no-arg/all-prod path, the call without --home is also retained (greppable as a separate code path).",
+        "AC7_static": "grep -E 'daemon\\.state\\.json' /root/bin/happy-restart.sh hits are all inside a per-target loop body that uses ${target.home_dir} (no hardcoded /root/.happy paths in the verify loop body).",
+        "AC8_static": "grep -E 'BLOCKED: unknown target' /root/bin/happy-restart.sh returns ≥1 hit AND the surrounding code path calls exit 2."
+      }
+    },
+    {
+      "id": "OBJ-C1-002",
+      "dimension": "investigation_completeness",
+      "severity": "minor",
+      "ac_affected": ["AC2 (dev binary glob), regression_guard"],
+      "summary": "BA's claim that the dev dist is at /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/*.mjs is plausible and consistent with the symlink chain BA also cites, BUT the BA spec does not document whether that dist actually contains files at refactor authoring time. If the worktree dist is empty (yarn build never ran), AC2's 'fail-fast prevents half-restart' clause silently degrades to 'always fails for --target dev'. This is not blocking — the binary gate's fail-closed semantics mean the script behaves correctly regardless — but a single ls-output-pasted-into-context-JSON observation would close the loop.",
+      "ba_must_do": "Optional: add to context.codebase_state a one-line observation 'dev dist at /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/ contains N .mjs files including types-*.mjs and index-*.mjs at BA spec authoring time'. If empty, document the prerequisite that user runs `cd packages/happy-cli && yarn build` before --target dev is exercised.",
+      "blocking_status": "not_blocking — AC2's E2 edge-case ALREADY covers 'dev binary missing' with FIX hint; the gate fail-closes correctly. This objection is documentation-completeness only."
+    }
+  ],
+  "non_objections": {
+    "ac4_critical_documentation": "PASSED — AC4 is documented as a hard MUST-HAVE with explicit GIVEN/WHEN/THEN, regression_guard pre/post step diff in context JSON, and target_dispatch_table_design.default_no_arg_behavior.maps_to='all-prod' contract. User's regression-guard intent is preserved at multiple layers. NOT a passing remark.",
+    "cross_concern_sequencing": "PASSED — BA correctly documents 'C1 must land AFTER C3' constraint at top of ticket and in context JSON sequencing_constraint field. Cycle dependency is explicit.",
+    "filename_substring_preservation": "PASSED — standards_to_enforce.filename_preserves_substring documents the requirement that 'happy-restart' substring must remain in filename so Bash hook line 345 continues to fire. Cross-concern guard correctly identified.",
+    "scope_alignment_dev_target": "PASSED — BA expanded the matrix from architect's 5 targets (dev/default/jade/qijie/all) to 6 (added all-prod) explicitly to preserve no-arg behavior. This is a scope CLARIFICATION (not expansion), justified by AC4 regression-guard contract."
+  },
+  "final_assessment": {
+    "verdict": "pass_with_objections",
+    "blocking_objections": 0,
+    "non_blocking_objections": 2,
+    "ready_for_dev_dispatch": true,
+    "ready_for_dev_dispatch_caveats": [
+      "Dev should be informed that AC2-AC8's MEASURABLE clauses cannot be subagent-self-tested due to hook block; dev's validation should be (a) bash -n syntax check, (b) grep-based static AC inspection per OBJ-C1-001 examples, (c) hand-off to user for post-merge runtime verification.",
+      "Cross-concern: this concern's implementation MUST sequence after C3 lands. Orchestrator should not dispatch C1-dev until C3 verdict is PASS."
+    ],
+    "ready_for_close_caveats": [
+      "If BA does NOT remediate OBJ-C1-001 before dev starts, QA's close-cycle on this concern will face PASS_AS_SUBSTITUTE pattern for 6 ACs (using static-inspection equivalents instead of runtime MEASURABLEs). This is acceptable IFF the close-cycle escalates a spec_text_vs_execution_drift objection that updates AC literal text to match the static form, per agents/qa.md Section 'Spec Alignment Hierarchy' and BA-Validation Mode 5th dimension.",
+      "Recommendation: BA fixes OBJ-C1-001 NOW (cheap text addition) to avoid downstream PASS_AS_SUBSTITUTE pattern at close-cycle."
+    ]
+  },
+  "qa_self_verification": {
+    "claims_total": 14,
+    "claims_with_evidence": 14,
+    "claims_superficial": 0,
+    "evidence_breakdown": {
+      "direct_read_of_happy_restart_sh": "all 5 hardcoded code-path locations verified; full 142-line file read",
+      "direct_read_of_happy_session_recovery_sh_partial": "lines 1490-1520 (--home parser) read; grep run for SCOPE_HOME (16 hits, all consistent with BA claims)",
+      "direct_read_of_happy_daemon_dev_service": "all 41 lines read; ExecStartPre --home, ExecStart binary, env vars all confirmed",
+      "ba_artifact_text_inspection": "ticket-c1 (247 lines) and context-c1 (393 lines JSON) both read in full",
+      "architect_artifact_text_inspection": "architect-happy-restart-...md (339 lines) read in full"
+    },
+    "confidence": "high",
+    "no_false_pass_risk": "QA verdict differentiates: pass for AC4 documentation (with cited evidence in 5 separate locations); pass_with_objection for AC2-8 (with concrete remediation example for each); minor for missing dev-dist ls observation (with explicit not_blocking rationale)."
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  },
+  "iteration_needed": false,
+  "refined_context": null,
+  "spec_section_updates": null
+}

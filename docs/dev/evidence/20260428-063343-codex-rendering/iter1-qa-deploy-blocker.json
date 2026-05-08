@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-04-28T12:31:15.338248Z",
+  "new_built_image": {
+    "tag": "happy-app:dev",
+    "id": "sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd",
+    "created": "2026-04-28T12:24:45Z"
+  },
+  "running_container": {
+    "name": "happy-web-dev",
+    "image": "sha256:0cfaad196caad28966f7c76a92929b34965fa4026be266c9ffbe87c2cd6ec584",
+    "status": "running",
+    "started": "2026-04-28T11:33:22.383235173Z"
+  },
+  "deploy_attempt": {
+    "operation": "redeploy happy-web-dev with the freshly built happy-app:dev image",
+    "executed": false,
+    "blocked_by_hook": true,
+    "hook_summary": "BLOCKED: service 'set' is not a dev service; allowed dev services include happy-web-dev. QA did not retry or wrap the blocked operation.",
+    "qa_action_after_block": "stopped deployment path, performed read-only image/container inspect, and marked live verification blocked because the running container is stale"
+  },
+  "service_probe": {
+    "url": "http://localhost:8097/",
+    "status": "responded with HTML, but response is from stale container image so it is not valid iter1 evidence"
+  }
+}

@@ -21,7 +21,17 @@ describe('session protocol schemas', () => {
         description: 'Run `ls -la` in the repo root',
         args: { command: 'ls -la' },
       },
-      { t: 'tool-call-end', call: 'call-1' },
+      {
+        t: 'tool-call-end',
+        call: 'call-1',
+        output: 'stdout',
+        result: {
+          output: 'stdout',
+          exit_code: 0,
+          status: 'declined',
+          source: 'codex.exec_command_end',
+        },
+      },
       { t: 'file', ref: 'upload-1', name: 'report.txt', size: 1024, mimeType: 'text/plain' },
       {
         t: 'file',
@@ -127,7 +137,7 @@ describe('createEnvelope', () => {
     const subagent = createId();
     const envelope = createEnvelope(
       'agent',
-      { t: 'tool-call-end', call: 'call-1' },
+      { t: 'tool-call-end', call: 'call-1', result: { output: 'stdout' } },
       {
         id: 'fixed-id',
         time: 12345,
@@ -142,7 +152,7 @@ describe('createEnvelope', () => {
       role: 'agent',
       turn: 'turn-1',
       subagent,
-      ev: { t: 'tool-call-end', call: 'call-1' },
+      ev: { t: 'tool-call-end', call: 'call-1', result: { output: 'stdout' } },
     });
   });
 

@@ -294,6 +294,53 @@ describe('reducerTracer', () => {
             expect(traced[0].sidechainId).toBe('parent-agent-msg');
         });
 
+        it('should link Codex spawn_agent CUID2 calls without using provider thread ids', () => {
+            const state = createTracer();
+
+            const parentToolMessage: NormalizedMessage = {
+                id: 'codex-parent-msg',
+                localId: null,
+                createdAt: 1000,
+                role: 'agent',
+                isSidechain: false,
+                content: [{
+                    type: 'tool-call',
+                    id: 'session-subagent-1',
+                    name: 'functions.spawn_agent',
+                    input: {
+                        prompt: 'Inspect Codex transcript',
+                        sessionSubagent: 'session-subagent-1',
+                        receiverThreadIds: ['provider-child-thread'],
+                    },
+                    description: null,
+                    uuid: 'codex-parent-uuid',
+                    parentUUID: null
+                }]
+            };
+
+            traceMessages(state, [parentToolMessage]);
+
+            const childMessage: NormalizedMessage = {
+                id: 'codex-child-msg',
+                localId: null,
+                createdAt: 2000,
+                role: 'agent',
+                isSidechain: true,
+                content: [{
+                    type: 'text',
+                    text: 'child answer',
+                    uuid: 'codex-child-uuid',
+                    parentUUID: 'session-subagent-1'
+                }]
+            };
+
+            const traced = traceMessages(state, [childMessage]);
+            expect(traced).toHaveLength(1);
+            expect(traced[0].sidechainId).toBe('codex-parent-msg');
+            expect(state.toolCallToMessageId.get('session-subagent-1')).toBe('codex-parent-msg');
+            expect(state.toolCallToMessageId.has('provider-child-thread')).toBe(false);
+        });
+
         it('should buffer orphan messages until parent arrives', () => {
             const state = createTracer();
             

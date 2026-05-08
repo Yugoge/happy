@@ -1,0 +1,125 @@
+{
+  "request_id": "20260507-103856",
+  "task_id": "20260507-103856",
+  "spec_id": "spec-20260506-203844",
+  "cycle_index": 3,
+  "timestamp": "2026-05-07T11:18:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260507-103856.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "files_created": [
+      "docs/dev/qa-artifacts/20260507-103856/matrix-desktop.png",
+      "docs/dev/qa-artifacts/20260507-103856/matrix-mobile.png",
+      "docs/dev/qa-artifacts/20260507-103856/image-gen-row.png",
+      "docs/dev/qa-artifacts/20260507-103856/view-image-row.png",
+      "docs/dev/qa-artifacts/20260507-103856/playwright-screenshot-row.png",
+      "docs/dev/dev-report-20260507-103856.json"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Add webOpenTool factory const after webWeatherTool",
+        "type": "data",
+        "files_modified": ["packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"],
+        "changes": "codex-render-fixtures-data.ts:240-253 — new webOpenTool factory using makeTool('web.open', 'completed', { url: 'https://example.com/open' }, { status, url, title, snippet }), with inline comment citing close-report-spec-20260506-203844.md primary dispositive finding.",
+        "rationale": "Spec 2.1 + 5.3.A + 5.3.G all explicitly name web.open as a tool the main agent already called; renderer at knownTools.tsx:982 with zod schema requiring url field already exists; only the fixture data was missing. Mirror schema follows webSearchTool/webWeatherTool factories in the same file."
+      },
+      {
+        "id": 2,
+        "description": "Add web-open fixture entry after web-weather entry",
+        "type": "data",
+        "files_modified": ["packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"],
+        "changes": "codex-render-fixtures-data.ts:533-546 — new fixture entry with id 'web-open', matrixRow 'web_tool_open', matrix makeMatrix('web.open', 'web.open', 'fetched page title/snippet', 'compact result summary'), tool reference webOpenTool, message via makeToolMessage offset 13500, and expectedVisibleStrings.inline/detail/sidebar each containing the URL plus title and snippet strings.",
+        "rationale": "Renderer key 'web.open' (lowercase dotted) matches knownTools.tsx:982. Mirrors web-search entry shape line-for-line per BA reference_source. URL string visible in inline expectations so the matrix probe can text-verify the row is reachable."
+      },
+      {
+        "id": 3,
+        "description": "Update fixture-id stable-list assertion in codexToolRendering.test.ts",
+        "type": "test",
+        "files_modified": ["packages/happy-app/sources/utils/codexToolRendering.test.ts"],
+        "changes": "codexToolRendering.test.ts:163 — insert 'web-open' between 'web-weather' and 'pty-write-stdin' in the toEqual([...]) list of stable fixture identifiers. List length 19 -> 20.",
+        "rationale": "Test 'keeps every QA Codex fixture row reachable by stable UI identifiers' asserts the exact id sequence; new fixture row breaks it without this update. No assertion semantics changed — only the canonical-list extension required by the new row."
+      },
+      {
+        "id": 4,
+        "description": "Rebuild and redeploy dev frontend via mandatory worktree-build script",
+        "type": "build",
+        "files_modified": [],
+        "changes": "Ran scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend. Built happy-app:dev image (50s build), recreated happy-web-dev container only. happy-server-dev / happy-postgres-dev / happy-redis-dev / happy-minio not touched. No daemon restart, no global CLI install, no production-image rebuild.",
+        "rationale": "CLAUDE.md mandatory worktree-build path: docker-compose.yml hardcodes /root/happy as build context for prod images, so dev frontend changes only land via this script. Verified post-build with curl http://localhost:8097/ (HTML returned) and curl http://localhost:3005/health ({\"status\":\"ok\"})."
+      },
+      {
+        "id": 5,
+        "description": "Capture verification artifacts under docs/dev/qa-artifacts/20260507-103856/",
+        "type": "verification",
+        "files_created": [
+          "docs/dev/qa-artifacts/20260507-103856/matrix-desktop.png",
+          "docs/dev/qa-artifacts/20260507-103856/matrix-mobile.png",
+          "docs/dev/qa-artifacts/20260507-103856/image-gen-row.png",
+          "docs/dev/qa-artifacts/20260507-103856/view-image-row.png",
+          "docs/dev/qa-artifacts/20260507-103856/playwright-screenshot-row.png"
+        ],
+        "changes": "Used globally-installed Playwright (chromium headless, /usr/lib/node_modules/playwright) with auth credentials injected via addInitScript. Desktop 1440×900 + mobile 390×844 matrix screenshots captured. Three §5.3.B per-row screenshots captured by clicking the row label in the left selector then full-page screenshotting the detail area. Live DOM web.open occurrence count = 3. Mobile scrollWidth=clientWidth=390 (no horizontal overflow).",
+        "rationale": "MCP Playwright tool is policy-blocked for dev role; globally-installed Playwright module is the same CLAUDE.md-blessed evidence path. Per-row screenshot strategy: click each row label in the left selector list, wait 1.5s for detail area re-render, then screenshot fullPage so the detail panel's image preview content (or fallback affordance) is captured."
+      },
+      {
+        "id": 6,
+        "description": "Update spec source file Section 2 + Section 3 with Cycle 3 sub-sections",
+        "type": "documentation",
+        "files_modified": ["docs/dev/specs/spec-20260506-203844.md"],
+        "changes": "Section 2 (What Was Attempted) — appended ### Cycle 3 with 2.7 (implementation strategy) and 2.8 (verification strategy). Section 3 (What Was Changed) — appended ### Cycle 3 with file:line ledger of all cycle-3 changes. Sections 1, 4-8 untouched. Cycle 1 and Cycle 2 sub-sections preserved verbatim.",
+        "rationale": "agents/dev.md §Overnight Spec Integration mandates per-cycle append to Sections 2 and 3 with no overwrite of prior cycles."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "N/A — work was not committed (cycle-2 closed with verdict NO before commit). The gap exists in the cycle-2 dev report's fixture-data deliverable.",
+      "why_issue_occurred": "Cycle 2's BA matrix-expansion list was generated from spec Section 5 narrative rather than from a cross-check against Section 5.3.G's explicit web-tool enumeration; web.open was omitted from the dev work list. Cycle-2 QA captured only top-of-matrix screenshots and did not iterate over §5.3.B rows.",
+      "how_fix_addresses_root": "Pure data + artifact additions. No mapper / renderer / view code touched. The renderer at knownTools.tsx:982 was already correct; the only gap was the absent fixture row plus missing per-row screenshots. Cycle 3 closes both findings without retrying any prior-cycle logic layer."
+    },
+    "diff_stats": {
+      "files_changed": 3,
+      "lines_added": 29,
+      "lines_removed": 0,
+      "new_symbols_introduced": ["webOpenTool"],
+      "minimum_possible_lines_estimate": 28,
+      "justification_for_overage": null
+    },
+    "fix_layer": "L3",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Verification commands run by dev: yarn typecheck (happy-app, happy-cli) -> pass; yarn test --run sources/utils/codexToolRendering.test.ts (happy-app) -> 10/10 pass; full CLI vitest -> 17 pre-existing failures in cycle-2 territory + integration tests requiring live network/auth (sessionProtocolMapper.test.ts, apiSession.test.ts, *.integration.test.ts), unrelated to cycle-3 fixture-only diff; build via scripts/dev-overnight-build-deploy.sh -> succeeded, happy-web-dev recreated; live DOM probe at http://localhost:8097/dev/codex-render-fixtures returned web.open occurrence count = 3 (>=1 satisfies AC2); mobile scrollWidth=clientWidth=390 (no overflow). Artifacts at docs/dev/qa-artifacts/20260507-103856/. QA's job: visually confirm the per-row screenshots show rendered preview content as opposed to blank rows, and run BA-spec inspector chain against the cycle-3 diff scope.",
+    "permissions_to_add": [],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+        "imported_by": ["packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx", "packages/happy-app/sources/utils/codexToolRendering.test.ts"]
+      },
+      {
+        "modified": "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+        "imported_by": []
+      }
+    ],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "happy-app yarn typecheck pass; happy-cli yarn typecheck pass; codexToolRendering.test.ts 10/10 pass; dev frontend rebuild succeeded (50s); curl http://localhost:8097/ returns HTML; curl http://localhost:3005/health returns {\"status\":\"ok\"}; bundle grep on shipped /usr/share/nginx/html/_expo/static/js/web/index-*.js shows web.open=5, web-open=1, codex-fixture-web-open=1, 'Example fetched page title'=4 — all expected; live DOM web.open count = 3 (>=1)."
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "QA's text-based matrix probe should query the dev fixture page for 'web.open' literal and confirm count >= 1 to formally close AC2.",
+    "If a future cycle expands web-family coverage further (web.find, web.search_image), follow this cycle's pattern: add factory + entry + test-list extension, then capture per-row screenshot."
+  ],
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  }
+}

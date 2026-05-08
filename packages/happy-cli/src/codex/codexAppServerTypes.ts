@@ -115,6 +115,32 @@ export type ReviewDecision =
     | "denied"
     | "abort";
 
+export type McpServerElicitationRequestParams = {
+    threadId: string;
+    turnId: string | null;
+    serverName: string;
+} & (
+    | {
+          mode: "form";
+          _meta: Record<string, unknown> | null;
+          message: string;
+          requestedSchema?: Record<string, unknown> | null;
+      }
+    | {
+          mode: "url";
+          _meta: Record<string, unknown> | null;
+          message: string;
+          url: string;
+          elicitationId: string;
+      }
+);
+
+export type McpServerElicitationRequestResponse = {
+    action: "accept" | "decline" | "cancel";
+    content: unknown | null;
+    _meta: Record<string, unknown> | null;
+};
+
 // --- Shared enums ---
 
 export type ApprovalPolicy = "untrusted" | "on-failure" | "on-request" | "never";

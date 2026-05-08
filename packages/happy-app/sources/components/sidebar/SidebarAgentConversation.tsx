@@ -2,7 +2,7 @@ import * as React from 'react';
 import { View, ScrollView, Text } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
-import { ToolCall, Message, ToolCallMessage, ModeSwitchMessage, UserTextMessage } from '@/sync/typesMessage';
+import { ToolCall, Message, ToolCallMessage, ModeSwitchMessage, UserTextMessage, AgentTextMessage } from '@/sync/typesMessage';
 import { Metadata } from '@/sync/storageTypes';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { ToolView } from '../tools/ToolView';
@@ -76,7 +76,7 @@ const ChildUserTextBlock = React.memo<{ message: UserTextMessage }>(({ message }
 });
 
 // Renders an agent thinking block with brain icon and italic styling
-const ChildThinkingBlock = React.memo<{ message: Message }>(({ message }) => {
+const ChildThinkingBlock = React.memo<{ message: AgentTextMessage }>(({ message }) => {
     if (!message.text) return null;
     return (
         <View style={styles.childThinking}>

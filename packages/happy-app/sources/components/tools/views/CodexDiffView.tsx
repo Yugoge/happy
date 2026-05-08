@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { View, Text } from 'react-native';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
 import { ToolSectionView } from '../ToolSectionView';
 import { ToolDiffView } from '@/components/tools/ToolDiffView';
@@ -15,7 +15,24 @@ interface CodexDiffViewProps {
 }
 
 export const CodexDiffView = React.memo<CodexDiffViewProps>(({ tool, metadata }) => {
-    const { theme } = useUnistyles();
+    const { input } = tool;
+    let fileName: string | undefined;
+    if (input?.unified_diff && typeof input.unified_diff === 'string') {
+        fileName = parseUnifiedDiff(input.unified_diff).fileName;
+    }
+    return (
+        <ToolSectionView>
+            <View style={styles.summaryRow}>
+                <Text style={styles.fileName} numberOfLines={1} ellipsizeMode="middle">
+                    {fileName || t('tools.names.viewDiff')}
+                </Text>
+                <Text style={styles.summaryBadge}>{t('tools.desc.showingDiff')}</Text>
+            </View>
+        </ToolSectionView>
+    );
+});
+
+export const CodexDiffViewFull = React.memo<CodexDiffViewProps>(({ tool, metadata }) => {
     const showLineNumbersInToolViews = useSetting('showLineNumbersInToolViews');
     const { input } = tool;
 
@@ -65,5 +82,20 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: 13,
         color: theme.colors.textSecondary,
         fontFamily: 'monospace',
+        flex: 1,
+        minWidth: 0,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 4,
+        paddingVertical: 4,
+    },
+    summaryBadge: {
+        fontSize: 11,
+        color: theme.colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
     },
 }));

@@ -6,6 +6,7 @@ import { knownTools } from '@/components/tools/knownTools';
 import { ToolDiffView } from '@/components/tools/ToolDiffView';
 import { trimIdent } from '@/utils/trimIdent';
 import { SimpleSyntaxHighlighter } from '@/components/SimpleSyntaxHighlighter';
+import { parseUnifiedDiff } from '@/utils/codexUnifiedDiff';
 
 // Tools whose result may contain full file content injected by the CLI
 const FILE_CONTENT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit']);
@@ -94,6 +95,8 @@ const FileContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
             return <MultiEditContent tool={tool} />;
         case 'CodexPatch':
             return <CodexPatchContent tool={tool} />;
+        case 'CodexDiff':
+            return <CodexDiffContent tool={tool} />;
         case 'edit':
             return <GeminiEditContent tool={tool} />;
         default:
@@ -158,7 +161,7 @@ const MultiEditContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
 });
 
 const CodexPatchContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
-    const changes = tool.input?.changes;
+    const changes = tool.input?.changes ?? tool.input?.fileChanges;
     if (!changes || typeof changes !== 'object') return null;
 
     const files = Object.keys(changes);
@@ -177,6 +180,10 @@ const CodexPatchContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
                     newText = change.add.content || '';
                 } else if (change?.delete) {
                     oldText = change.delete.content || '';
+                } else if (typeof change?.diff === 'string' || typeof change?.unified_diff === 'string') {
+                    const parsed = parseUnifiedDiff(change.diff ?? change.unified_diff);
+                    oldText = parsed.oldText;
+                    newText = parsed.newText;
                 }
 
                 return (
@@ -191,6 +198,23 @@ const CodexPatchContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
                     </View>
                 );
             })}
+        </View>
+    );
+});
+
+const CodexDiffContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
+    const unifiedDiff = tool.input?.unified_diff;
+    if (typeof unifiedDiff !== 'string') return null;
+    const parsed = parseUnifiedDiff(unifiedDiff);
+    return (
+        <View style={styles.editBlock}>
+            {parsed.fileName ? <Text style={styles.editLabel}>{parsed.fileName}</Text> : null}
+            <ToolDiffView
+                oldText={parsed.oldText}
+                newText={parsed.newText}
+                showLineNumbers={true}
+                showPlusMinusSymbols={true}
+            />
         </View>
     );
 });
@@ -243,7 +267,7 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.text,
     },
     tabTextActive: {
-        color: theme.colors.background,
+        color: theme.colors.surface,
     },
     multiEditContainer: {
         gap: 12,

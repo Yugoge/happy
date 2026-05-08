@@ -1,0 +1,208 @@
+{
+  "request_id": "20260507-060647",
+  "task_id": "20260507-060647",
+  "timestamp": "2026-05-07T07:20:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260507-060647.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "files_created": [
+      "docs/dev/qa-artifacts/20260507-060647/matrix-desktop.png",
+      "docs/dev/qa-artifacts/20260507-060647/matrix-mobile.png",
+      "docs/dev/dev-report-20260507-060647.json"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Added regression coverage for Codex subagent lifecycle call-id completion and app rendering matrix fallback summaries.",
+        "type": "test",
+        "files_modified": [
+          "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts",
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+        ],
+        "changes": "Added tests for spawn_agent/wait_agent/close_agent start/end visible call matching, fixture matrix IDs, image/screenshot crosswalks, generic fallback summaries, MCP empty states, request_user_input unavailable state, and subagent control content suppression.",
+        "rationale": "BA root cause identified renderer and mapper gaps; tests prove completed control cards no longer remain running and non-specialized tools no longer expose raw JSON as the primary inline output."
+      },
+      {
+        "id": 2,
+        "description": "Fixed Codex collab subagent control end mapping so completed control cards stop spinning.",
+        "type": "mapper",
+        "files_modified": [
+          "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts"
+        ],
+        "changes": "collab_agent_call_end now ends the same visible call id that was started: spawn_agent ends the session subagent visible call, while wait_agent and close_agent end their own original calls.",
+        "rationale": "The previous mapper collapsed all subagent control ends through the session subagent mapping, leaving wait/close cards orphaned in running state."
+      },
+      {
+        "id": 3,
+        "description": "Implemented compact Codex generic fallback summaries and suppressed content blocks for subagent control cards.",
+        "type": "renderer",
+        "files_modified": [
+          "packages/happy-app/sources/utils/codexToolRendering.ts",
+          "packages/happy-app/sources/components/tools/ToolView.tsx"
+        ],
+        "changes": "Generic fallback now displays concise lines for Web, MCP resources, request_user_input unavailable, status/error/output, plus a details hint; subagent control cards render header/status only rather than blank/raw generic content.",
+        "rationale": "User saw raw JSON and overlapping/redundant main-flow content; primary inline rendering should be human-readable with raw payload moved to detail surfaces."
+      },
+      {
+        "id": 4,
+        "description": "Added knownTools crosswalk/status entries for image generation, Playwright screenshots, request input, and subagent lifecycle tools.",
+        "type": "renderer_config",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/knownTools.tsx"
+        ],
+        "changes": "Added completed/error status extraction for subagent control and request_user_input tools; added mcp__playwright__browser_take_screenshot and image_gen.imagegen entries that reuse attachment summary and image preview rendering.",
+        "rationale": "Binding acceptance words explicitly called out image_gen.imagegen, mcp__playwright__.browser_take_screenshot, spawn_agent, wait_agent, close_agent, and request_user_input visibility."
+      },
+      {
+        "id": 5,
+        "description": "Expanded the dev Codex render fixture route into a deterministic tool-rendering matrix.",
+        "type": "fixture",
+        "files_modified": [
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx"
+        ],
+        "changes": "Added matrix metadata and fixtures for view_image, Playwright screenshot, image_gen, patch/diff, update_plan, parallel tools, subagent spawn/wait/close, request_user_input unavailable, Web search/weather, PTY write_stdin, MCP resource list/template/read, and unknown fallback. The route now displays user token to renderer key crosswalk rows.",
+        "rationale": "QA needs a stable dev-only route to verify every requested tool family in the same UI surfaces used by real sessions."
+      },
+      {
+        "id": 6,
+        "description": "Updated the living spec with Cycle 2 approach and exact changed file locations.",
+        "type": "documentation",
+        "files_modified": [
+          "docs/dev/specs/spec-20260506-203844.md"
+        ],
+        "changes": "Added Section 2 Cycle 2 implementation/verification strategy and Section 3 Cycle 2 exact file:line change list.",
+        "rationale": "The spec-driven workflow requires current-cycle implementation traceability before final response."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "N/A - BA identified current L4 renderer/mapper coverage gaps rather than a single blame commit.",
+      "why_issue_occurred": "Codex tool envelopes and app renderers did not have a complete matrix for non-text tools; subagent control end events were not matched to the visible start call ids; generic fallback rendered raw JSON instead of concise user-facing summaries.",
+      "how_fix_addresses_root": "The mapper now emits matching visible start/end ids, knownTools classifies requested tool names with correct status/preview behavior, generic fallback summarizes without raw JSON main-flow noise, and dev fixtures/tests cover the requested matrix."
+    },
+    "diff_stats": {
+      "files_changed": 9,
+      "lines_added": 2398,
+      "lines_removed": 116,
+      "new_symbols_introduced": [
+        "GenericToolSummary",
+        "buildGenericToolSummary",
+        "CODEX_SUBAGENT_CONTROL_TOOLS",
+        "codexToolStateStatus",
+        "ToolRenderingMatrixRow",
+        "makeMatrix"
+      ],
+      "minimum_possible_lines_estimate": 80,
+      "justification_for_overage": "BA scope required a full deterministic rendering matrix, regression tests, and cross-layer mapper/app fixture coverage for many tool families. Counts are scoped to implementation code files; existing untracked fixture/helper files are counted by full file length because they are not yet tracked by git."
+    },
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Verify http://localhost:8097/dev/codex-render-fixtures?devBuild=202605070704 on desktop and mobile. Desktop and mobile screenshots are in docs/dev/qa-artifacts/20260507-060647/. For live daemon/session validation, do not restart the daemon from a subagent; use sandbox daemon or request user-approved dev daemon reload.",
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "Passed: yarn --silent vitest run packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts (17 tests); yarn --silent workspace happy-app vitest run sources/utils/codexToolRendering.test.ts (10 tests); yarn --silent workspace happy-app typecheck; yarn --silent workspace happy typecheck; yarn --silent workspace happy build; bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend. Live browser smoke passed on http://localhost:8097/dev/codex-render-fixtures?devBuild=202605070704: desktop/mobile text checks for screenshot/image_gen/subagent/Web/MCP rows true, mobile scrollWidth=clientWidth=390, console errors=0. A curl port smoke command was rejected by the execution policy with AskForApproval=Never, so browser live-render verification was used instead."
+    },
+    "blast_radius": [
+      {
+        "modified": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+        "imported_by": [
+          "packages/happy-cli/src/codex/runCodex.ts",
+          "packages/happy-cli/src/claude/utils/sessionProtocolMapper.test.ts",
+          "packages/happy-cli/src/api/apiSession.ts",
+          "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts"
+        ]
+      },
+      {
+        "modified": "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts",
+        "imported_by": []
+      },
+      {
+        "modified": "packages/happy-app/sources/utils/codexToolRendering.ts",
+        "imported_by": [
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+          "packages/happy-app/sources/components/tools/sidebar/GenericToolInspector.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexPlanView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+          "packages/happy-app/sources/components/tools/knownTools.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+        "imported_by": []
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/ToolView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/app/(app)/dev/tools2.tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/components/SidebarAgentConversation.tsx",
+          "packages/happy-app/sources/components/MessageView.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/tasks/TaskViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/SidebarAgentConversation.tsx",
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/ToolHeader.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+        "imported_by": [
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+        "imported_by": []
+      },
+      {
+        "modified": "docs/dev/specs/spec-20260506-203844.md",
+        "imported_by": []
+      }
+    ],
+    "implementation_notes": [
+      "Pre-existing dirty/untracked worktree was preserved; no unrelated files were reverted.",
+      "No production domains/ports were accessed; only localhost:8097 dev web was used for live rendering.",
+      "No daemon restart or global CLI install was performed. The dev frontend was rebuilt/redeployed only with scripts/dev-overnight-build-deploy.sh frontend.",
+      "The first fullPage screenshot attempt with the Playwright screenshot tool timed out; viewport screenshots were captured successfully through Playwright page.screenshot to the docs/dev/qa-artifacts directory.",
+      "Checkpoint file .claude/specs/spec-20260506-203844/cp-state-dev.json has cp-01 through cp-05 marked done."
+    ],
+    "permissions_to_add": []
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should verify the dev fixture matrix in desktop and mobile viewports and optionally compare detail/sidebar surfaces for selected rows.",
+    "If QA needs proof against a live Codex daemon stream, use a sandbox daemon or ask the user to perform the approved dev daemon reload; do not restart from a daemon-managed subagent."
+  ]
+}

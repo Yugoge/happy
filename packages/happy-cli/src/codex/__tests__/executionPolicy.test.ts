@@ -28,4 +28,22 @@ describe('resolveCodexExecutionPolicy', () => {
             sandbox: 'read-only',
         });
     });
+
+    it('maps yolo mode to never + danger-full-access without managed sandbox', () => {
+        const policy = resolveCodexExecutionPolicy('yolo', false);
+
+        expect(policy).toEqual({
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+    });
+
+    it('maps bypassPermissions to never + danger-full-access without managed sandbox', () => {
+        const policy = resolveCodexExecutionPolicy('bypassPermissions', false);
+
+        expect(policy).toEqual({
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+    });
 });

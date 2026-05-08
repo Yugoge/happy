@@ -1,0 +1,326 @@
+{
+  "request_id": "20260507-142952",
+  "task_id": "20260507-142952",
+  "timestamp": "2026-05-07T14:42Z",
+  "ba_spec_path": "docs/dev/ba-spec-20260507-142952.md",
+  "predecessor_cycle": {
+    "is_predecessor": false,
+    "note": "close-report-20260507-055611.md is NOT the predecessor. This is a NEW spec for three independent hook-layer bugs diagnosed via codex in this session. Forensic source: /var/tmp/codex-outputs/codex-output-2821653-1778158499.txt (initial diagnosis); validation source: /var/tmp/codex-outputs/codex-output-4128518-1778164293.txt (AC-text adversarial review)."
+  },
+  "requirement": {
+    "original": "好的很简单修复：第一禁止cp-state直接修改，第二Stop hook 应该兜底，第三dev 被判成 ba role 的真正机制",
+    "clarified": "Three independent hook-layer fixes in /root/.claude/: (1) deny direct cp-state writes for all subagents (spec-check.py is the only legal writer), (2) Stop hook finalizes orphaned is_running=true cp-state slots when agent_id has been clobbered, (3) resolver makes inactive cp-state non-authoritative so dev with colliding agent_id is not misclassified as ba.",
+    "what": "Three hook-layer fixes (tool-policy + new path-specific guard hook + Stop hook orphan finalization + resolver inactive-match nullification)",
+    "why": "Three composing bugs let a misbehaving BA subagent corrupt cp-state, the corruption survives across Stop, and the surviving corruption misclassifies the next subagent. Forensic at spec-20260506-203755/cp-state-ba.json.",
+    "where": [
+      "/root/.claude/policies/tool-policy.v1.json",
+      "/root/.claude/hooks/lib/agent_resolver.py",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py",
+      "/root/.claude/hooks/pretool-cp-state-write-guard.py (NEW)",
+      "/root/.claude/settings.json"
+    ],
+    "scope": {
+      "included": [
+        "Remove per-role cp-state allowed_write entries from tool-policy.v1.json",
+        "Add cp-state path to denied_write or _shared_protected_path_prefixes",
+        "Tighten dev role's '*' blanket allow with explicit cp-state denied_write entry",
+        "Tighten spec role's .claude/specs/ allow if present",
+        "Add new path-specific PreToolUse hook (pretool-cp-state-write-guard.py) that denies cp-state writes regardless of resolved role, but allows orchestrator (no agent_id)",
+        "Wire the new hook in settings.json after pretool-tool-policy.py",
+        "Add _finalize_orphans() to subagentstop-cp-enforce.py for is_running=true slots with null agent_id or dead pid",
+        "Make agent_resolver._scan_cp_state_files return None instead of matches[0].get('agent_type') in the inactive-match fallthrough",
+        "Verify each AC's test scenario (synthetic cp-state files in /tmp/) passes"
+      ],
+      "excluded": [
+        "Schema migration for existing cp-state files",
+        "SDK-level fixes to agent_id reuse",
+        "happy-dev application code (no packages/happy-app, no docker, no daemons)",
+        "MarkdownView.tsx table rendering regression",
+        "Refactoring spec-check.py beyond removing is unnecessary; the script remains the canonical writer",
+        "Changes to bash-safety, block-production-files, orchestrator-gate, or other unrelated hooks"
+      ]
+    },
+    "success_criteria": [
+      "Subagent direct-Edit on a cp-state file returns BLOCKED stderr (AC-1).",
+      "Subagent Bash heredoc/redirect to a cp-state file returns BLOCKED stderr (AC-1).",
+      "Subagent Bash invocation of spec-check.py mark/waive/check-in/check-out succeeds (AC-1 non-regression).",
+      "Orchestrator (no agent_id) Edit on a cp-state file is allowed (AC-1 emergency-repair preserved).",
+      "Stop hook finalizes a synthetic orphan cp-state (is_running=true, agent_id=null, no pending cps) and emits the orphan-finalize stderr line (AC-2).",
+      "Resolver returns None when only inactive cp-state matches exist and no agent-index entry; returns the agent-index role when one exists (AC-3).",
+      "Resolver _pick_active semantics for active matches unchanged (AC-3 non-regression).",
+      "Existing /spec /dev /redev /close BA workflows that use spec-check.py continue to succeed (M5)."
+    ],
+    "constraints": [
+      "Edits target the working tree at /dev/shm/dev-workspace/dot-claude (visible via /root/.claude/ symlink). Git operations cwd MUST be /dev/shm/dev-workspace/dot-claude. NEVER push from /root/.claude/.",
+      "Each Python hook file MUST be edited as a single atomic Write or Edit operation. Multi-stage edits leave the hook chain broken between tool calls.",
+      "Validate Python syntax (python3 -c 'import ast; ast.parse(open(...).read())') after every hook edit BEFORE proceeding.",
+      "Dev's tool-policy may not currently allow writes to /root/.claude/hooks/*.py. Note: codex confirmed dev's '*' allow at tool-policy.v1.json:142-144 covers this; if AC-1's tightening adds an explicit deny for hooks/*.py, dev would lose write authority. The tightening MUST be path-scoped to cp-state files only."
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "/root/.claude/policies/tool-policy.v1.json",
+      "/root/.claude/hooks/lib/agent_resolver.py",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py",
+      "/root/.claude/hooks/pretool-cp-state-write-guard.py",
+      "/root/.claude/settings.json"
+    ],
+    "path_dependent_shared_infra": [
+      "/root/.claude/hooks/pretool-tool-policy.py (caller of resolve_agent_type; no edit needed but the new guard hook must be wired AFTER it in settings.json)",
+      "/root/.claude/hooks/lib/bash_write_targets.py (used by the new guard hook to extract Bash heredoc/redirect targets; no edit needed)",
+      "/root/.claude/hooks/lib/policy_registry.py (no edit needed)",
+      "/root/.claude/scripts/spec-check.py (the canonical writer; no edit needed; AC-1 explicitly preserves its operation)"
+    ],
+    "out_of_path_observed_but_not_touched": []
+  },
+  "out_of_scope_observations": [],
+  "root_cause_analysis": {
+    "symptom": "BA subagent corrupted cp-state via direct Edit; cp-state survived Stop with agent_id cleared; downstream dev subagent inheriting a colliding agent_id was misclassified as ba and denied writes.",
+    "root_cause": "Three independent hook-chain holes: (1) tool-policy allows per-role direct write to own cp-state; (2) Stop hook finalizes only by exact agent_id match; (3) resolver falls back to first inactive cp-state match instead of returning None.",
+    "root_cause_commit": "N/A — these holes have been present since the cp-state lifecycle was introduced; no single regression commit. Forensic file timestamp 2026-05-07T14:27:54Z (spec-20260506-203755/cp-state-ba.json).",
+    "why_introduced": "Per-role cp-state allow was added to give each agent self-mark capability before spec-check.py existed as the canonical writer (commit history pre-spec-check.py). Stop hook agent_id-only matching was an isolation choice to avoid cross-agent finalization. Resolver inactive fallthrough was a legacy single-match convenience for early single-spec usage.",
+    "why_problematic": "All three holes compose to let a single misbehaving BA poison the next subagent's role classification. The forensic at spec-20260506-203755/cp-state-ba.json shows evidence-fields injected by direct Edit (only path that produces them) plus agent_id cleared (only path that produces this is check-out OR direct Edit clobber).",
+    "timeline": "Bug 1 mechanism: present since per-role cp-state writes were added to tool-policy. Bug 2 mechanism: present since Stop hook's agent_id-keyed dispatch. Bug 3 mechanism: present since agent_resolver._scan_cp_state_files added the legacy single-match fallback. All three were latent until cycle 20260506-203755 exercised them simultaneously.",
+    "affected_files": [
+      "/root/.claude/policies/tool-policy.v1.json",
+      "/root/.claude/hooks/lib/agent_resolver.py",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py",
+      "/root/.claude/hooks/pretool-cp-state-write-guard.py (NEW)",
+      "/root/.claude/settings.json"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "observed: spec-20260506-203755/cp-state-ba.json contains 'evidence' fields per checkpoint; spec-check.py:_apply_mark_transition (lines 402-413) cannot write that field — only direct Edit/Write/Bash heredoc can.",
+      "observed: same file currently shows agent_id=null, is_running=false, checked_out_at=2026-05-07T14:27:54Z. Stop did eventually finalize, but the only way agent_id reaches null while is_running was earlier true is check-out OR direct-Edit clobber.",
+      "inferred: codex line-by-line review at agent_resolver.py:91-94 confirms the inactive-match fallthrough returns matches[0].get('agent_type') instead of None.",
+      "inferred: pretool-tool-policy.py:99-101 exits 0 when role is None — codex flagged this as the unresolved-role caveat that AC-1's policy-only fix would miss without the new path-specific guard hook.",
+      "observed: tool-policy.v1.json grants cp-state write access at ba :111-113, qa :168-170, pm, ui-specialist, user; dev :142-144 has '*' blanket allow.",
+      "observed: bash_write_targets.extract_bash_write_paths returns empty list for 'python3 spec-check.py mark ...' (verified by direct test in this BA session), confirming AC-1's claim that spec-check.py invocations are not affected by the cp-state path-policy deny."
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["cp-state", "Stop hook", "dev", "ba role"],
+    "localization_evidence": "Direct read of /root/.claude/hooks/subagentstop-cp-enforce.py, /root/.claude/hooks/lib/agent_resolver.py, /root/.claude/hooks/pretool-tool-policy.py, /root/.claude/scripts/spec-check.py, /root/.claude/policies/tool-policy.v1.json, plus inspection of forensic cp-state file at /dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203755/cp-state-ba.json. Codex adversarial review validated each diagnosis line-by-line.",
+    "located_source": "Bug 1: /root/.claude/policies/tool-policy.v1.json:111-113 (ba), :168-170 (qa), and similar role entries; /root/.claude/hooks/pretool-tool-policy.py:64-66 (Bash target extraction). Bug 2: /root/.claude/hooks/subagentstop-cp-enforce.py:57-65 (_match_agent), :81-91 (_find_active_state), :104-119 (_find_all_slots_for_agent), :282-285 (_handle_no_active_state). Bug 3: /root/.claude/hooks/lib/agent_resolver.py:91-94 (_scan_cp_state_files inactive fallthrough), :106-111 (_resolve_by_id ordering).",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "reason": "Not a regression. The three mechanisms have been latent since their introduction; no recent code change caused them. Bug 1's forensic file (spec-20260506-203755/cp-state-ba.json) shows the bug was triggered by a misbehaving BA in cycle 20260506, but the underlying mechanism predates that cycle."
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "禁止cp-state直接修改",
+      "acceptance_criterion": "AC-1: subagent direct write to cp-state-*.json blocked; spec-check.py invocations preserved."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "Stop hook 应该兜底",
+      "acceptance_criterion": "AC-2: Stop hook finalizes orphaned is_running=true slots when agent_id was clobbered."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "dev 被判成 ba role 的真正机制",
+      "acceptance_criterion": "AC-3: resolver makes inactive cp-state non-authoritative; dev-registry wins in shadow case."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "/root/.claude/policies/tool-policy.v1.json",
+      "line_range": "1-300",
+      "role": "Source of role-specific allowed_write_path_prefixes; today permits direct cp-state writes per role.",
+      "imports_from": "loaded by /root/.claude/hooks/lib/policy_registry.py:load_policy",
+      "evidence": "Read of file, lines 65-185 inspected; ba :111-113, qa :168-170, pm, ui-specialist, user, dev :142-144 verified.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-tool-policy.py",
+      "line_range": "1-117",
+      "role": "PreToolUse hook applying tool-policy for resolved subagent roles; exits 0 when role is None (the unresolved-role caveat).",
+      "imports_from": "lib.agent_resolver, lib.bash_write_targets, lib.policy_registry",
+      "evidence": "Full Read; _extract_targets at 47-67 confirms Bash extraction; main() at 95-108 confirms exit 0 on unresolved role.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/hooks/lib/agent_resolver.py",
+      "line_range": "1-124",
+      "role": "Resolves payload -> agent_type via subagent_type direct, cp-state match, dev-registry match; today returns matches[0] inactive role as legacy fallback.",
+      "imports_from": "stdlib only",
+      "evidence": "Full Read; _scan_cp_state_files at 77-94 confirms the inactive fallthrough; _resolve_by_id at 106-111 confirms cp-state precedes registry.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/hooks/subagentstop-cp-enforce.py",
+      "line_range": "1-329",
+      "role": "SubagentStop hook; finds and finalizes cp-state slots owned by stopping agent_id; today's _find_all_slots_for_agent filter is exact agent_id equality, so orphan slots (agent_id=null) are invisible.",
+      "imports_from": "stdlib only",
+      "evidence": "Full Read; _match_agent at 57-65, _find_active_state at 81-91, _find_all_slots_for_agent at 104-119, _idempotent_finalize at 122-135, _dispatch at 304-312.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.claude/scripts/spec-check.py",
+      "line_range": "1-646",
+      "role": "Canonical writer for cp-state files; only writes state/waived_reason/updated_at via _apply_mark_transition; check-out clears agent_id at 538.",
+      "imports_from": "stdlib only",
+      "evidence": "Full Read; _apply_mark_transition at 402-413 confirms it does NOT write 'evidence' field — direct Edit is the only path that produces the forensic shape.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203755/cp-state-ba.json",
+      "line_range": "n/a",
+      "role": "Forensic evidence file. Contains 'evidence' fields per checkpoint that spec-check.py cannot write. Currently agent_id=null, is_running=false, checked_out_at=2026-05-07T14:27:54Z.",
+      "imports_from": "leaf",
+      "evidence": "Direct read in this BA session: confirmed evidence-field shape and agent_id-null state.",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "/root/.claude/hooks/subagentstop-cp-enforce.py",
+      "line": 290,
+      "type": "if",
+      "code_snippet": "def _find_blocking_pending(agent_id):  # M11 global preflight: ANY active, non-timed-out, pending slot blocks Stop.",
+      "purpose": "M11 invariant: pending checkpoints block Stop unconditionally. AC-2's _finalize_orphans MUST NOT bypass this — orphan finalization applies only to slots with no pending checkpoints.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/lib/agent_resolver.py",
+      "line": 64,
+      "type": "if",
+      "code_snippet": "def _pick_active(matches):  # Cross-role active collision -> None (fail closed).",
+      "purpose": "F14 M8/M9: active-match disambiguation with fail-closed semantics. AC-3 preserves this for active matches; only the inactive fallthrough at line 94 changes.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/scripts/spec-check.py",
+      "line": 291,
+      "type": "if",
+      "code_snippet": "def _enforce_cross_role_scope(...):  # Agent-first cross-role refusal. UNCONDITIONAL refusal: no env override, no sentinel, no orchestrator bypass.",
+      "purpose": "Cross-role mark/waive prevention. AC-1 does not touch this; spec-check.py remains the canonical writer with its existing safeguards.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/hooks/pretool-subagent-code-block.py",
+      "line": 32,
+      "type": "validator",
+      "code_snippet": "def _warn_unregistered():  # LOW-10 soft-policy: role unresolved -> warn + allow (was hard-block).",
+      "purpose": "LOW-10: unresolved-role degrades to warn+allow. AC-3 preserves this — the new None return from _scan_cp_state_files for inactive matches still degrades to warn+allow at the caller.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- agent-prompt edit / hook-layer config; cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, or (4) screenshot evidence",
+    "viewport": null,
+    "theme": null,
+    "locale": null,
+    "auth_state": null,
+    "data_state": null,
+    "browser": null,
+    "url_path": null
+  },
+  "evidence": {
+    "observed": "User reported three bugs verbatim: 第一禁止cp-state直接修改，第二Stop hook 应该兜底，第三dev 被判成 ba role 的真正机制",
+    "measured": {
+      "value": "Bug 1: tool-policy ba :111-113 contains '*/.claude/specs/*/cp-state-ba.json' as allowed_write entry; forensic file spec-20260506-203755/cp-state-ba.json contains 'evidence' fields per cp. Bug 2: same file shows agent_id=null + is_running=false; subagentstop-cp-enforce.py:99 filters by exact agent_id equality. Bug 3: agent_resolver.py:94 returns matches[0].get('agent_type') for inactive matches.",
+      "location": "/root/.claude/policies/tool-policy.v1.json (per-role lines), /dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203755/cp-state-ba.json (forensic), /root/.claude/hooks/lib/agent_resolver.py:91-94, /root/.claude/hooks/subagentstop-cp-enforce.py:57-65,99,282-285"
+    },
+    "expected": {
+      "value": "Bug 1: tool-policy denies cp-state writes for all subagent roles + path-specific guard hook for unresolved roles. Bug 2: Stop hook finalizes orphan slots (is_running=true + null agent_id OR dead pid) regardless of stopping agent_id. Bug 3: agent_resolver returns None for inactive matches; dev-registry agent-index becomes the only authoritative source when only inactive cp-state matches exist.",
+      "source": "User verbatim requirement + codex adversarial review at /var/tmp/codex-outputs/codex-output-4128518-1778164293.txt"
+    },
+    "gap": "Three independent hook-chain holes; each has its own AC; combined they form the failure path observed in cycle 20260506-203755."
+  },
+  "scope_expansion": {
+    "search_pattern": "cp-state",
+    "search_scope": "/root/.claude/hooks/**, /root/.claude/scripts/**, /root/.claude/policies/**",
+    "user_reported": ["cp-state direct write block", "Stop hook backstop", "dev->ba misclassification root cause"],
+    "additional_found": ["dev role's '*' blanket allow at tool-policy.v1.json:142-144 needs tightening", "spec role's .claude/specs/ allow needs same tightening", "pretool-tool-policy.py:99-101 exit 0 on unresolved role is the caveat that AC-1 needs the new path-specific guard hook to cover"],
+    "all_occurrences": [
+      "/root/.claude/policies/tool-policy.v1.json:111-113 (ba allow)",
+      "/root/.claude/policies/tool-policy.v1.json:168-170 (qa allow)",
+      "/root/.claude/policies/tool-policy.v1.json (pm, ui-specialist, user — line numbers TBD by dev at edit time)",
+      "/root/.claude/policies/tool-policy.v1.json:142-144 (dev '*' blanket)",
+      "/root/.claude/hooks/pretool-tool-policy.py:99-101 (unresolved-role exit 0)",
+      "/root/.claude/hooks/lib/agent_resolver.py:91-94 (inactive fallthrough)",
+      "/root/.claude/hooks/lib/agent_resolver.py:106-111 (resolve order)",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py:57-65 (_match_agent agent_id equality)",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py:99 (_collect_slots_in_dir agent_id filter)",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py:282-285 (_handle_no_active_state)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "All affected source files were directly read in this BA session; codex adversarial review validated each AC line-by-line.",
+    "url_or_location": "Source files at /root/.claude/hooks/**, /root/.claude/scripts/spec-check.py, /root/.claude/policies/tool-policy.v1.json. Codex output at /var/tmp/codex-outputs/codex-output-4128518-1778164293.txt.",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "no project CLAUDE.md role-table relevant; this is a hook-layer infrastructure cycle, not a UI/design cycle"
+    }
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "First attempt at this scope. No prior ba-spec or ticket targets these three specific bugs. The forensic mention of close-report-20260507-055611.md in the orchestrator prompt is a sibling artifact (different cycle) and is not a predecessor for these bugs."
+    }
+  },
+  "context": {
+    "codebase_state": "M docs/dev/INDEX.md, M packages/happy-app/sources/components/markdown/MarkdownView.tsx (unrelated regression noted by orchestrator as out of scope), and other unstaged hunks; this cycle does NOT touch packages/happy-app or any application code.",
+    "recent_commits": "d4c87cb1 docs(dev) atomic-symlink ADR; dc45221e feat(deploy) cycle 20260429-192017 deploy.sh + rollback.sh; eaa64754 docs(claude) extract happy-dev operational snippets",
+    "file_contents": {
+      "spec-20260506-203755/cp-state-ba.json": {
+        "agent_id": null,
+        "is_running": false,
+        "checked_in_at": "2026-05-07T10:46:00Z",
+        "checked_out_at": "2026-05-07T14:27:54Z",
+        "checkpoint_count": 10,
+        "first_three_checkpoints": [
+          {"id": "cp-01", "state": "waived-with-reason"},
+          {"id": "cp-02", "state": "waived-with-reason"},
+          {"id": "cp-03", "state": "waived-with-reason"}
+        ]
+      }
+    },
+    "dependencies": {},
+    "environment": {
+      "working_tree": "/dev/shm/dev-workspace/dot-claude (visible at /root/.claude via symlink)",
+      "happy_dev_repo": "/dev/shm/dev-workspace/happy-dev (NOT the edit target)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Three independent fixes, each implementable separately. Suggested ordering: (1) AC-3 (smallest, agent_resolver fallthrough -> None); (2) AC-2 (subagentstop _finalize_orphans); (3) AC-1 (tool-policy edits + new guard hook + settings.json wiring — most steps and most risk because the guard hook must allow orchestrator while denying subagents). Each fix MUST be validated by python3 -c 'import ast; ast.parse(open(...).read())' before the next subagent dispatch. Acceptance tests in /tmp/test-cpstate/, /tmp/test-orphan/, /tmp/test-resolver/ as described in each AC.",
+    "files_to_create": [
+      "/root/.claude/hooks/pretool-cp-state-write-guard.py"
+    ],
+    "files_to_modify": [
+      "/root/.claude/policies/tool-policy.v1.json",
+      "/root/.claude/hooks/lib/agent_resolver.py",
+      "/root/.claude/hooks/subagentstop-cp-enforce.py",
+      "/root/.claude/settings.json"
+    ],
+    "validation_approach": "QA verifies each AC's verifiable test (synthetic cp-state in /tmp/) passes; QA also verifies the BA self-test scenario succeeded (this BA cycle used spec-check.py mark for its own check-in, demonstrating the contract). QA must also confirm: existing /spec /dev /redev /close BA workflows still succeed (check by running spec-check.py mark in a synthetic spec dir post-fix)."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Hook-chain semantics are project-specific; codex adversarial review of the AC drafts (with line-cited references to actual source) is the appropriate validation, not industry web search."
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "AC-1 needed the glob widened to numbered slots ('*/.claude/specs/*/cp-state-*.json' not just 'cp-state-AGENT.json'), the dev '*' blanket-allow tightening, the spec role's .claude/specs/ allow tightening, and a path-specific role-independent backstop hook to cover the unresolved-role exit-0 caveat at pretool-tool-policy.py:99-101. AC-2 was rejected as initially framed (the active-state path already handles is_running=true + terminal cps via _handle_complete); the real failure mode is agent_id clobber producing orphan slots invisible to _find_all_slots_for_agent's exact-equality filter; AC-2 was reframed as orphan finalization. AC-3 was confirmed but tightened: inactive cp-state matches must be entirely non-authoritative (return None at line 94 instead of matches[0].get('agent_type')), so dev-registry agent-index naturally takes precedence in the inactive-shadow case.",
+    "feedback_incorporated": "AC-1 glob updated to cp-state-*.json with explicit coverage of numbered slots. AC-1 implementation requirements expanded to include dev '*' blanket tightening AND a new pretool-cp-state-write-guard.py hook independent of role resolution. AC-2 fully rewritten: now targets orphan slots (is_running=true + null agent_id OR dead pid) via a new _finalize_orphans() function, preserving M11 pending-block invariant. AC-3 tightened: _scan_cp_state_files inactive fallthrough returns None instead of matches[0]."
+  }
+}

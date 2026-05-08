@@ -12,6 +12,7 @@ import { Message } from '@/sync/typesMessage';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Typography } from '@/constants/Typography';
 import { navigateToSession } from '@/hooks/useNavigateToSession';
+import { MarkdownView } from '@/components/markdown/MarkdownView';
 
 const stylesheet = StyleSheet.create((theme) => ({
     loadingContainer: {
@@ -119,14 +120,14 @@ function FullView(props: { message: Message }) {
     if (props.message.kind === 'agent-text') {
         return (
             <View style={styles.fullViewContainer}>
-                <Text style={styles.messageText}>{props.message.text}</Text>
+                <MarkdownView markdown={props.message.text} />
             </View>
         )
     }
     if (props.message.kind === 'user-text') {
         return (
             <View style={styles.fullViewContainer}>
-                <Text style={styles.messageText}>{props.message.text}</Text>
+                <MarkdownView markdown={props.message.displayText || props.message.text} />
             </View>
         )
     }

@@ -1,0 +1,4 @@
+yarn run v1.22.22
+$ tsc --noEmit
+Done in 3.56s.
+typecheck_exit=0

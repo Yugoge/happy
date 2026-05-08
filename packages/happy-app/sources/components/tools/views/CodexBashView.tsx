@@ -3,11 +3,10 @@ import { View, Text, ScrollView } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Octicons } from '@expo/vector-icons';
 import { ToolCall } from '@/sync/typesMessage';
-import { knownTools } from '@/components/tools/knownTools';
 import { CommandView } from '@/components/CommandView';
 import { Metadata } from '@/sync/storageTypes';
 import { resolvePath } from '@/utils/pathUtils';
-import { stringifyToolCommand } from '@/utils/toolCommand';
+import { buildTerminalRenderData } from '@/utils/codexToolRendering';
 import { t } from '@/text';
 
 interface CodexBashViewProps {
@@ -17,38 +16,6 @@ interface CodexBashViewProps {
 
 // Parity with BashView.tsx: cap inline output preview at 2 lines
 const MAX_PREVIEW_LINES = 2;
-
-function countLines(text: string | null | undefined): number {
-    if (!text || !text.trim()) return 0;
-    return text.split('\n').length;
-}
-
-function truncateLines(text: string | null | undefined, max: number): string | null {
-    if (!text || !text.trim()) return null;
-    const lines = text.split('\n');
-    if (lines.length <= max) return text;
-    return lines.slice(0, max).join('\n');
-}
-
-// Mirror BashView.tsx parseBashResult — reuses knownTools.Bash.result schema
-function parseCodexBashResult(state: string, result: any) {
-    let parsed: { stdout?: string; stderr?: string } | null = null;
-    let unparsed: string | null = null;
-    let error: string | null = null;
-
-    if (state === 'completed' && result) {
-        if (typeof result === 'string') {
-            unparsed = result;
-        } else {
-            const r = knownTools.Bash.result.safeParse(result);
-            parsed = r.success ? r.data : null;
-            if (!parsed) unparsed = JSON.stringify(result);
-        }
-    } else if (state === 'error' && typeof result === 'string') {
-        error = result;
-    }
-    return { parsed, unparsed, error };
-}
 
 export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata }) => {
     const { theme } = useUnistyles();
@@ -97,22 +64,12 @@ export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata })
     }
 
     // Bash / unknown branch — ScrollView horizontal + CommandView with parsed result
-    const commandDisplay = commandStr || stringifyToolCommand(command) || '';
-    const { parsed, unparsed, error } = parseCodexBashResult(state, result);
-
-    const previewStdout = parsed
-        ? truncateLines(parsed.stdout, MAX_PREVIEW_LINES)
-        : truncateLines(unparsed, MAX_PREVIEW_LINES);
-    const previewStderr = parsed ? truncateLines(parsed.stderr, MAX_PREVIEW_LINES) : null;
-
-    // +N more lines indicator (parity with BashView.tsx)
-    const outputLines = parsed
-        ? countLines(parsed.stdout) + countLines(parsed.stderr)
-        : countLines(unparsed);
-    const shownOutputLines = parsed
-        ? Math.min(countLines(parsed.stdout), MAX_PREVIEW_LINES) + Math.min(countLines(parsed.stderr), MAX_PREVIEW_LINES)
-        : Math.min(countLines(unparsed), MAX_PREVIEW_LINES);
-    const extraLines = Math.max(0, outputLines - shownOutputLines);
+    const terminal = buildTerminalRenderData(
+        { ...input, command, parsed_cmd: parsedCmd, cmd: commandStr },
+        state,
+        result,
+        MAX_PREVIEW_LINES,
+    );
 
     return (
         <ScrollView
@@ -123,17 +80,35 @@ export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata })
         >
             <View style={styles.commandWrapper}>
                 <CommandView
-                    command={commandDisplay}
-                    stdout={previewStdout}
-                    stderr={previewStderr}
-                    error={error}
+                    command={terminal.command}
+                    stdout={terminal.stdout}
+                    stderr={terminal.stderr}
+                    error={terminal.error}
+                    status={terminal.statusLine}
                     hideEmptyOutput
                 />
-                {extraLines > 0 && (
-                    <Text style={styles.moreText}>+{extraLines} more lines</Text>
+                {terminal.extraLines > 0 && (
+                    <Text style={styles.moreText}>+{terminal.extraLines} more lines</Text>
                 )}
             </View>
         </ScrollView>
+    );
+});
+
+export const CodexBashViewFull = React.memo<CodexBashViewProps>(({ tool }) => {
+    const terminal = buildTerminalRenderData(tool.input, tool.state, tool.result);
+    return (
+        <View style={styles.fullContainer}>
+            <CommandView
+                command={terminal.command}
+                stdout={terminal.stdout}
+                stderr={terminal.stderr}
+                error={terminal.error}
+                status={terminal.statusLine}
+                fullWidth
+                wrap
+            />
+        </View>
     );
 });
 
@@ -167,5 +142,8 @@ const styles = StyleSheet.create((theme) => ({
         opacity: 0.7,
         paddingVertical: 4,
         paddingHorizontal: 4,
+    },
+    fullContainer: {
+        paddingBottom: 24,
     },
 }));

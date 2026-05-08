@@ -5,6 +5,7 @@ import { parseMarkdownSpans } from "./parseMarkdownSpans";
 const LIST_ITEM_RE = /^(\s*)[-*+]\s(.*)$/;
 // Task list prefix inside a captured list item: [x], [X], or [ ].
 const TASK_PREFIX_RE = /^\[([xX ])\]\s(.*)$/;
+const IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
 
 type ListItemInfo = {
     depth: number;
@@ -131,6 +132,13 @@ function tryHeader(ctx: ParseCtx, line: string): boolean {
     return false;
 }
 
+function tryImage(ctx: ParseCtx, trimmed: string): boolean {
+    const match = trimmed.match(IMAGE_RE);
+    if (!match) return false;
+    ctx.blocks.push({ type: 'image', alt: match[1], url: match[2] });
+    return true;
+}
+
 function consumeLatexLines(ctx: ParseCtx, firstSegment: string): string {
     const latexContent = [firstSegment];
     while (ctx.index < ctx.lines.length) {
@@ -254,6 +262,7 @@ function parseSingleLine(ctx: ParseCtx, line: string, lineStartIndex: number): v
     const trimmed = line.trim();
     if (tryLatexBlock(ctx, trimmed)) return;
     if (tryCodeBlock(ctx, trimmed)) return;
+    if (tryImage(ctx, trimmed)) return;
     if (trimmed === '---') { ctx.blocks.push({ type: 'horizontal-rule' }); return; }
     if (tryOptionsBlock(ctx, trimmed)) return;
     if (tryBlockquote(ctx, trimmed, lineStartIndex)) return;

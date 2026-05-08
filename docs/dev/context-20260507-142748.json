@@ -1,0 +1,349 @@
+{
+  "request_id": "20260507-142748",
+  "task_id": "20260507-142748",
+  "timestamp": "2026-05-07T14:30:00Z",
+  "revised_at": "2026-05-07T15:30:00Z",
+  "revision_reason": "Addresses 6 objections from ba-qa-report-20260507-142748.json: F.4 (knownTools playwright entries don't exist; must be added), C.2 (extractSubtitle not extractDescription), B.7 (existing fallback literal at CodexAttachmentView.tsx:36 must be specialized), AC2 (needs new fixture row), AC3 (needs distinguishing literals), AC5/AC6 (needs explicit substring requirements).",
+  "spec_id": "spec-20260506-203844",
+  "cycle_ordinal": 4,
+  "requirement": {
+    "original": "继续开发spec剩余部分",
+    "clarified": "Address the six §5.3 super-checklist sub-items not yet covered after cycle 3 closed cycle-2 dispositive blockers: C.2 patch header dedup, B.7 stale-message advisory, F.4 Playwright long-input compact summary, G.4 specialized web tool fixture coverage, E.2 PTY streaming doc note, I.2 Plan-mode availability doc note. D.5 three-card subagent merge deferred to its own /spec.",
+    "what": "Six small, deterministic improvements to dev frontend renderers + fixture data + documentation notes",
+    "why": "Continue closing the spec's super-checklist toward verdict YES on the underlying user requirement 'show me all tool renderings clearly in Happy UI', without crossing into architectural redesign that would risk regressing already-closed items.",
+    "where": [
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/text/translations/en.ts"
+    ],
+    "scope": {
+      "included": [
+        "C.2 patch header dedup",
+        "B.7 stale-message advisory affordance",
+        "F.4 Playwright long-input compact summary",
+        "G.4 web.time / web.finance / web.sports fixture rows",
+        "E.2 PTY streaming documentation note in fixture description",
+        "I.2 Plan-mode availability documentation note in fixture description"
+      ],
+      "excluded": [
+        "D.5 three-card subagent lifecycle merge (architectural — defer to own /spec)",
+        "Retroactive fix of old-message rendering",
+        "Production happy-app image (happy-app:message-fixes) and production daemons",
+        "i18n translation to all 9 languages for the new B.7 key (English-only this round)"
+      ]
+    },
+    "success_criteria": [
+      "M1 (C.2): knownTools['CodexPatch'].extractSubtitle at knownTools.tsx:752-767 returns null; patch-unified-diff fixture row's visible header region contains the basename example.ts AT MOST ONCE and the EDIT label EXACTLY ONCE",
+      "M2 (F.4): four NEW knownTools entries (mcp__playwright__browser_navigate / _evaluate / _run_code / _type) defined near knownTools.tsx:1391, each with extractSubtitle that truncates >120 chars and synthesizes data: <mime> for data URLs",
+      "M3 (G.4): three NEW fixture rows web-time/web-finance/web-sports added to codex-render-fixtures-data.ts with input fields {timezone:'Asia/Tokyo'}, {symbol:'AAPL'}, {league:'NBA',team:'Lakers'} and matching expectedVisibleStrings.inline",
+      "M4 (B.7): inline literal 'Preview unavailable' at CodexAttachmentView.tsx:36 replaced with t('tools.attachment.staleAdvisory'); new en.ts key value contains 'new session' AND 'inline preview' substrings; new image-stale-no-preview fixture row demonstrates it",
+      "M5 (F.4 fixture): NEW playwright-data-url fixture row with tool.input.url = 'data:text/html,<200+ chars>' demonstrates M2 truncation; expectedVisibleStrings.inline contains 'data:' but not the long suffix",
+      "S1 (E.2): pty-write-stdin fixture's description at line 553 contains 'static fixture' AND ('streaming' OR 'stream')",
+      "S2 (I.2): request-user-input-unavailable fixture's description at line 497 contains 'Plan mode' AND ('CLI' OR 'outside')",
+      "AC7 (build): yarn typecheck exit 0; dev frontend rebuild succeeds; localhost:8097 serves HTML"
+    ],
+    "constraints": [
+      "Dev-only build path (scripts/dev-overnight-build-deploy.sh)",
+      "No production access",
+      "No daemon restart",
+      "Use existing i18n function t(); add new key to en.ts only this round"
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/text/translations/en.ts"
+    ],
+    "path_dependent_shared_infra": [
+      "packages/happy-app/sources/utils/codexToolRendering.ts (already touched in cycle 2; F.4 truncation may add a small helper here if needed)"
+    ],
+    "out_of_path_observed_but_not_touched": [
+      "Subagent three-card merge (D.5) — architectural; outside this cycle's user-need-path subset"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-07T14:30:00Z",
+      "task_id": "20260507-142748",
+      "file": "docs/dev/specs/spec-20260506-203844.md",
+      "line": 444,
+      "observation": "§5.3.D bullet '三张 subagent 卡合并为单一 lifecycle 卡' — architectural three-card merge defers to its own /spec; warrants architect consultation. The fallback bullet '三张卡各自完成态正确, spinner 停止, 位置稳定' was already satisfied in cycle 2.",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+  "root_cause_analysis": {
+    "symptom": "Six §5.3 super-checklist sub-items remain unaddressed after cycle 3; user said 继续开发 (keep developing).",
+    "root_cause": "Each sub-item has a distinct micro root cause: C.2 — knownTools['CodexPatch'].extractSubtitle returns the basename which ToolView renders as a subtitle; CodexPatchViewFull's inner fileHeader separately renders the full path, producing duplicated identity. B.7 — CodexAttachmentView.tsx:36 already has a fallback path but uses the generic literal 'Preview unavailable' instead of a user-actionable advisory. F.4 — knownTools has NO entries for mcp__playwright__browser_navigate / _evaluate / _run_code / _type (only browser_take_screenshot at line 1391); their inputs render raw with no truncation. G.4 — fixture data file lacks rows for three already-registered renderer keys (web.time/web.finance/web.sports). E.2/I.2 — fixture descriptions don't acknowledge their out-of-frontend-scope limitations.",
+    "root_cause_commit": "N/A — multi-item continuation; no single regression commit",
+    "why_introduced": "Cycle 1-3 prioritized payload data flow (preview_uri extraction) and fixture-row dispositive coverage (web.open). The six items in this cycle are the residual L1 renderer composition tasks plus L0 documentation polish that did not block earlier cycle close.",
+    "why_problematic": "Spec verdict cannot reach YES until the residual items either land or are explicitly classified out-of-scope-with-justification.",
+    "timeline": "Cycle 1 (initial mapper extraction) → Cycle 2 (compact-summary fallback + matrix-gap close NO) → Cycle 3 (web.open + per-row screenshots, close YES) → Cycle 4 (this — Phase A residuals).",
+    "affected_files": [
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/text/translations/en.ts"
+    ],
+    "evidence_type": "inferred",
+    "observations": [
+      "CodexPatchView.tsx:150-157 renders fileHeader with file path + kindLabel (inferred: Read in this BA revision)",
+      "ToolView.tsx:152-164 (extractStrings) consumes knownTool.extractSubtitle, NOT extractDescription (inferred: Read in this BA revision)",
+      "knownTools['CodexPatch'].extractSubtitle at knownTools.tsx:752-767 returns the basename of the first patched file (inferred: Read in this BA revision)",
+      "knownTools.tsx grep for browser_navigate|browser_evaluate|browser_run_code|browser_type returns ZERO matches; only mcp__playwright__browser_take_screenshot at line 1391 (inferred: grep in this BA revision)",
+      "CodexAttachmentView.tsx:35-37 ALREADY renders fallback `attachment.previewUnavailableReason ?? 'Preview unavailable'` when previewUri is missing (inferred: Read in this BA revision)",
+      "extractAttachmentSummary at codexToolRendering.ts:391 reads result.preview_unavailable_reason and supplies previewUnavailableReason (inferred: Read in this BA revision)",
+      "patch-unified-diff fixture row exists at codex-render-fixtures-data.ts:367-379 with expectedVisibleStrings.inline = ['packages/example.ts', 'EDIT'] (inferred: Read in this BA revision)",
+      "codex-render-fixtures-data.ts contains web.weather (line 520-533) and web.open (line 535-547) fixture rows; web.time/finance/sports absent (inferred: grep in this BA revision)",
+      "knownTools.tsx:1027/1072/1085 registers web.time/web.finance/web.sports renderer keys with input zod schemas {timezone}, {symbol}, {league,team} respectively (inferred: Read in this BA revision)",
+      "pty-write-stdin fixture description at codex-render-fixtures-data.ts:553 currently reads 'PTY follow-up writes are visible as related terminal control output.' (inferred: Read in this BA revision)",
+      "request-user-input-unavailable fixture description at codex-render-fixtures-data.ts:497 currently reads 'Default-mode limitation is rendered as unavailable rather than silent failure.' (inferred: Read in this BA revision)",
+      "Spec §5.3 verbatim text confirms each sub-item's unmet criterion (inferred: spec file Read)"
+    ],
+    "diagnosis_completeness": "incomplete (inferred only; live browser verification deferred to QA per cycle convention — fixture page is dev-only and does not require a runtime-only investigation by BA since the renderer behavior is fully determined by source)",
+    "complaint_location_keywords": [
+      "Update file",
+      "patch-demo",
+      "view_image",
+      "image_gen",
+      "browser_take_screenshot",
+      "data:",
+      "web.time",
+      "web.finance",
+      "web.sports",
+      "write_stdin",
+      "request_user_input"
+    ],
+    "localization_evidence": "Token-by-token cross-walk: each spec §5.3 sub-item's verbatim wording maps directly to a renderer file or fixture row identified by grep; no environment-sealed component required.",
+    "located_source": "5 files listed in affected_files",
+    "localization_blocked": null
+  },
+  "diagnosis_layer": "L1+L3+L0",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "继续开发spec剩余部分",
+      "acceptance_criterion": "Close C.2, B.7, F.4, G.4, E.2-doc, I.2-doc per acceptance criteria AC1-AC7"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "152-164",
+      "role": "extractStrings() consumes knownTool.extractSubtitle (NOT extractDescription) for the value rendered as `description` in the outer card header (cfg.description Text inside headerLeft at lines 107-111).",
+      "imports_from": ["@/components/tools/knownTools", "@/components/tools/views/_all"],
+      "evidence": "Read packages/happy-app/sources/components/tools/ToolView.tsx and grep `extractDescription` confirmed only TaskView.tsx:22-23 and CodexSubagentView.tsx:49 reference it",
+      "verified_via": "Read+grep"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line_range": "727-781",
+      "role": "knownTools['CodexPatch'] entry: title=t('tools.names.applyChanges'); extractSubtitle (line 752-767) returns the basename of the first patched file -- this is the source of the duplicated outer-header subtitle.",
+      "imports_from": ["@/utils/codexToolRendering", "@/text"],
+      "evidence": "Read packages/happy-app/sources/components/tools/knownTools.tsx around line 727-781",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line_range": "1391-1402",
+      "role": "Only Playwright entry: mcp__playwright__browser_take_screenshot. NO entries for browser_navigate / browser_evaluate / browser_run_code / browser_type — verified via grep returning 0 matches.",
+      "imports_from": ["@/utils/codexToolRendering", "@/text"],
+      "evidence": "grep -nE 'browser_navigate|browser_evaluate|browser_run_code|browser_type' returns zero matches",
+      "verified_via": "grep"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "line_range": "150-157",
+      "role": "CodexPatchViewFull renders fileHeader (file path + kindLabel) inside a ToolSectionView that is wrapped by ToolView's outer header.",
+      "imports_from": ["@/components/tools/ToolDiffView", "@/components/tools/ToolSectionView"],
+      "evidence": "Read packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "line_range": "29-45",
+      "role": "Renders attachment card. Line 36 shows the existing fallback `{attachment.previewUnavailableReason ?? 'Preview unavailable'}` — the literal 'Preview unavailable' is what M4 replaces with the i18n-keyed advisory.",
+      "imports_from": ["@/utils/codexToolRendering", "../ToolSectionView"],
+      "evidence": "Read packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "line_range": "385-395",
+      "role": "extractAttachmentSummary builds the AttachmentSummary returned to CodexAttachmentView. Reads result.preview_unavailable_reason at line 391 to populate previewUnavailableReason.",
+      "imports_from": [],
+      "evidence": "grep result for previewUnavailableReason and Read",
+      "verified_via": "grep+Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line_range": "969-1113",
+      "role": "Registers web.search_query / web.open / web.find / web.weather / web.time / web.click / web.image_query / web.finance / web.sports / web.screenshot renderer keys with input zod schemas.",
+      "imports_from": ["@/utils/codexToolRendering", "@/text"],
+      "evidence": "Read packages/happy-app/sources/components/tools/knownTools.tsx around lines 969-1113",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "line_range": "367-562",
+      "role": "Defines fixture session messages + tool calls + matrix rows + expectedVisibleStrings array consumed by /dev/codex-render-fixtures route. Verified rows: patch-unified-diff (367-379), request-user-input-unavailable (493-505), web-weather (521-533), web-open (535-547), pty-write-stdin (549-561).",
+      "imports_from": ["@/sync/typesMessage"],
+      "evidence": "Read packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "line": 101,
+      "type": "if",
+      "code_snippet": "if (entries.length === 0) { return null; }",
+      "purpose": "guards against rendering empty patch summary; must be preserved",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "line": 134,
+      "type": "if",
+      "code_snippet": "if (entries.length === 0) { return null; }",
+      "purpose": "same guard in CodexPatchViewFull",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "applicability": "applicable",
+    "viewport": "1440x900 desktop AND 390x844 mobile",
+    "theme": "light",
+    "locale": "en",
+    "auth_state": "logged-in",
+    "data_state": "fixture session dev-codex-render-fixtures (no live network)",
+    "browser": "Chrome desktop",
+    "url_path": "http://localhost:8097/dev/codex-render-fixtures"
+  },
+  "evidence": {
+    "observed": "User said: 继续开发spec剩余部分. Orchestrator's gap analysis enumerated six unaddressed §5.3 sub-items.",
+    "measured": {
+      "value": "C.2: outer subtitle source is knownTools['CodexPatch'].extractSubtitle (knownTools.tsx:752-767, returns basename); inner full path at CodexPatchView.tsx:150-157 — both visible in card header. G.4: web.time/finance/sports renderer keys registered (knownTools.tsx:1027/1072/1085) but fixture rows absent. B.7: CodexAttachmentView.tsx:36 already renders `attachment.previewUnavailableReason ?? 'Preview unavailable'` fallback — gap is the generic literal, not absent advisory. F.4: knownTools has NO entries for browser_navigate / _evaluate / _run_code / _type (verified zero grep matches); only browser_take_screenshot at line 1391. E.2/I.2: fixture descriptions at lines 553 and 497 currently describe rendering quality, not scope limitations.",
+      "location": "ToolView.tsx:152-164 (extractSubtitle consumer); knownTools.tsx:752-767 (CodexPatch.extractSubtitle); knownTools.tsx:1391 (only Playwright entry); CodexPatchView.tsx:150-157; CodexAttachmentView.tsx:36; codexToolRendering.ts:391 (previewUnavailableReason data path); codex-render-fixtures-data.ts:367/493/497/521/549/553"
+    },
+    "expected": {
+      "value": "C.2: knownTools['CodexPatch'].extractSubtitle returns null so outer subtitle is suppressed; only inner full-path + kindLabel visible. B.7: line 36 literal replaced with t('tools.attachment.staleAdvisory') whose en.ts value contains 'new session' AND 'inline preview'. F.4: 4 new knownTools entries with extractSubtitle truncation/data: synopsis. G.4: 3 new fixture rows with distinguishing literals (Asia/Tokyo, AAPL, NBA+Lakers). M5: 1 new playwright-data-url fixture row. E.2: pty-write-stdin description contains 'static fixture' AND ('streaming' OR 'stream'). I.2: request-user-input-unavailable description contains 'Plan mode' AND ('CLI' OR 'outside').",
+      "source": "spec-20260506-203844.md §5.3 verbatim user requirements (sub-items C.2/B.7/F.4/G.4/E.2/I.2); supplemented by ba-qa-report-20260507-142748.json required_evidence fields"
+    },
+    "gap": "Seven discrete edits across 5 files: M1 (knownTools CodexPatch.extractSubtitle null), M2 (4 new Playwright knownTools entries), M3 (3 new fixture rows), M4 (CodexAttachmentView line 36 i18n + en.ts key + 1 new fixture row), M5 (1 new playwright-data-url fixture row), S1 (description edit at line 553), S2 (description edit at line 497). Sum estimated <300 LOC."
+  },
+  "scope_expansion": {
+    "search_pattern": "C.2: fileHeader|extractSubtitle|CodexPatch (corrected — extractSubtitle, not extractDescription); B.7: previewUnavailableReason|preview_uri|view_image|image_gen|CodexAttachmentView; F.4: mcp__playwright__browser_navigate|_evaluate|_run_code|_type|data:; G.4: web\\.(time|finance|sports); E.2/I.2: fixture description fields",
+    "search_scope": "packages/happy-app/sources/**",
+    "user_reported": ["spec §5.3 sub-items via orchestrator gap analysis"],
+    "additional_found": [
+      "packages/happy-app/sources/utils/codexToolRendering.ts:391 (B.7 — extractAttachmentSummary supplies previewUnavailableReason)",
+      "packages/happy-app/sources/components/tools/ToolView.tsx:152-164 (C.2 — confirmed extractSubtitle is the consumed extractor)"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx:150-157",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:727-781 (CodexPatch entry incl. extractSubtitle 752-767)",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1391 (only Playwright entry; M2 adds 4 new entries near here)",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1027/1072/1085 (web.time/finance/sports renderer keys with zod input schemas)",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx:35-37 (existing fallback at line 36)",
+      "packages/happy-app/sources/utils/codexToolRendering.ts:391 (extractAttachmentSummary)",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:367-379 (patch-unified-diff fixture)",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:493-505 (request-user-input-unavailable fixture; description at 497)",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:521-547 (web-weather and web-open fixtures)",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:549-561 (pty-write-stdin fixture; description at 553)",
+      "packages/happy-app/sources/text/translations/en.ts (new key tools.attachment.staleAdvisory)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Spec spec-20260506-203844 §5.3 sub-items verbatim; all source code references verified via Read/Grep in this BA session.",
+    "url_or_location": "docs/dev/specs/spec-20260506-203844.md:430-490 (super-checklist) and the file:line citations in component_chain",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "no project CLAUDE.md role table for renderer color tokens; CLAUDE.md focuses on architecture/styles/i18n. New advisory text uses existing theme.colors.textSecondary already in CodexPatchView.tsx for kindLabel/movePath."
+    }
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "dedup_hit",
+    "attempts": [
+      {
+        "artifact_path": "(implicit cycle 1)",
+        "proposed_solution": "Initial mapper image-preview extraction",
+        "actual_change": "Mapper produces preview_uri for image tool results",
+        "outcome": "Closed implicitly",
+        "failure_category": "other",
+        "target_layer": "L3"
+      },
+      {
+        "artifact_path": "docs/dev/ticket-20260507-060647.md (or legacy ba-spec form)",
+        "proposed_solution": "Generic fallback compact summary; initial fixture coverage",
+        "actual_change": "ToolView generic fallback path moves raw JSON to details; codex-render-fixtures coverage of base tool set",
+        "outcome": "Close NO — matrix-gap dispositive (web.open + per-row screenshots missing)",
+        "failure_category": "wrong_scope",
+        "target_layer": "L3"
+      },
+      {
+        "artifact_path": "docs/dev/ticket-20260507-103856.md",
+        "proposed_solution": "Add web.open fixture row + capture three §5.3.B per-row detail screenshots",
+        "actual_change": "Fixture row added at codex-render-fixtures-data.ts:534-547; screenshots in docs/dev/qa-artifacts/20260507-103856/",
+        "outcome": "Close YES",
+        "failure_category": "other",
+        "target_layer": "L3+L0"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L1+L3+L0",
+      "differs_from_all_priors": true,
+      "rationale": "Prior cycles worked at L3 (mapper data) and L0 (artifact evidence). This cycle introduces L1 renderer composition changes (CodexPatchView header dedup, image-renderer stale advisory, Playwright compact-summary heuristic) — a different layer. The L3 portion (three fixture rows) and L0 portion (two doc notes) are additive complements, not repeats: web.time/web.finance/web.sports are NEW rows, not re-attempts of web.open."
+    }
+  },
+  "context": {
+    "codebase_state": "branch main, 30+ modified files (mostly cycle 3 carryover); no uncommitted patch-renderer or fixture-data changes from this BA session",
+    "recent_commits": "d4c87cb1 docs(dev) atomic-symlink ADR; dc45221e feat(deploy) cycle-20260429-192017",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "build_path": "scripts/dev-overnight-build-deploy.sh <worktree> frontend",
+      "test_url": "http://localhost:8097/dev/codex-render-fixtures",
+      "dev_api": "https://api-dev.life-ai.app",
+      "dev_db": "happydb_dev"
+    }
+  },
+  "development_approach": {
+    "strategy": "Six discrete edits per file. Land them in order: G.4 fixtures (additive, low-risk) → E.2/I.2 doc notes (description field updates, low-risk) → F.4 Playwright truncation (knownTools entries + small helper if needed) → C.2 patch header dedup (verify which side suppresses the duplicate path) → B.7 stale advisory (image renderer branch + en.ts key + fixture row to demonstrate). Then yarn typecheck and dev rebuild + Playwright verification at localhost:8097.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx (verify file existence; locate via Glob if absent)",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/text/translations/en.ts"
+    ],
+    "validation_approach": "QA: yarn typecheck → dev rebuild via scripts/dev-overnight-build-deploy.sh → Playwright at localhost:8097/dev/codex-render-fixtures → assert each AC's expectedVisibleStrings → capture per-AC desktop+mobile screenshots → cross-check no regression on cycle-3 closed items (web.open row + image-preview rows still render correctly)."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Continuation cycle on an established spec; all required references are in-spec or in-codebase. No novel domain pattern to research."
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "request_id": "20260506-124632",
+  "task_id": "20260506-124632",
+  "status": "warning",
+  "verdict": "warning",
+  "summary": "Code-level fix, typechecks, unit coverage, dev-web deployment, and fixture rendering passed. Full live future screenshot/imagegen session verification is pending a safe dev daemon restart so new CLI mapper output is emitted by the running daemon.",
+  "qa": {
+    "status": "warning",
+    "acceptance_results": [
+      {
+        "criterion": "Playwright screenshot result displays inline image when preview data is present or derivable",
+        "status": "pass_static",
+        "evidence": "sessionProtocolMapper test embeds readable screenshot paths and markdown screenshot links as data:image preview_uri; specialized attachment renderer registered for mcp__playwright__browser_take_screenshot."
+      },
+      {
+        "criterion": "AI-generated image result displays inline image when preview data is present or derivable",
+        "status": "pass_static",
+        "evidence": "sessionProtocolMapper test embeds image_gen image data, bare image paths, file:// paths, and generated-image status text containing an image path as data:image preview_uri; specialized attachment renderer registered for image_gen.imagegen."
+      },
+      {
+        "criterion": "Path-only image-view output handled",
+        "status": "pass_static_and_fixture",
+        "evidence": "functions.view_image is registered to CodexAttachmentView; extractAttachmentSummary recognizes preview_uri; dev fixture rendered a data:image <img> at 220x140."
+      },
+      {
+        "criterion": "Existing title/status, Terminal, and generic non-image MCP cards not regressed",
+        "status": "pass_fixture",
+        "evidence": "dev fixture still shows Terminal card and generic MCP/resource card; mapper tests preserved generic mcp end payloads."
+      },
+      {
+        "criterion": "No page-level overflow from image previews",
+        "status": "pass_fixture_desktop_mobile_attempt",
+        "evidence": "dev fixture browser evaluation found data image rendered and no horizontal overflow; mobile screenshot qa-image-render-mobile-attempt.png showed narrow responsive fixture route. Playwright innerWidth reporting was inconsistent, so this remains fixture-level evidence rather than full live-session proof."
+      },
+      {
+        "criterion": "Dev web only; no production/API-created session shortcuts",
+        "status": "pass",
+        "evidence": "Verified http://localhost:8097 and http://localhost:3005/health only; no production endpoints and no API session creation were used."
+      }
+    ],
+    "commands": [
+      "yarn --silent vitest run packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts — PASS, 16 tests",
+      "yarn --silent workspace happy-app vitest run sources/utils/codexToolRendering.test.ts — PASS, 9 tests",
+      "yarn --silent workspace happy typecheck — PASS",
+      "yarn --silent workspace happy-app typecheck — PASS",
+      "yarn --silent workspace happy build — PASS",
+      "bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend — PASS",
+      "curl http://localhost:8097/ and http://localhost:3005/health — PASS"
+    ],
+    "browser_evidence": {
+      "route": "http://localhost:8097/dev/codex-render-fixtures",
+      "desktop": "data:image preview present; no console errors; one known route-layout warning; no horizontal overflow in evaluation.",
+      "mobile": "browser screenshot qa-image-render-mobile-attempt.png captured a narrow responsive fixture page; data-image scroll/evaluation found preview image present."
+    },
+    "blockers": [
+      {
+        "type": "live_daemon_restart_required_for_full_e2e",
+        "detail": "The Happy web app was rebuilt/deployed and happy-cli was built, but the running dev daemon was not restarted from this daemon-managed session. New live tool calls will only emit the new preview_uri mapper output after the user-controlled safe dev daemon restart path is used."
+      }
+    ],
+    "permissions_verification": {
+      "validated_permissions": []
+    },
+    "refined_context": null
+  },
+  "created_at": "2026-05-06T14:10:46Z"
+}

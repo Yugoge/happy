@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "spec_id": "spec-20260502-162334",
+  "monolith_path": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260502-162334.md",
+  "monolith_sha256": "056a956d7a8e957508d309319bfa249b2da88eda9284aa836c98fe8a6352c807",
+  "monolith_bytes": 21217,
+  "monolith_lines": 191,
+  "created_at": "2026-05-02T20:16:51Z",
+  "agent_relevance": {
+    "ui-specialist": false,
+    "ba": true,
+    "dev": true,
+    "qa": true,
+    "pm": true,
+    "architect": false,
+    "product-owner": false,
+    "user": true,
+    "cleaner": false,
+    "cleanliness-inspector": false,
+    "git-edge-case-analyst": false,
+    "prompt-inspector": false,
+    "rule-inspector": false,
+    "style-inspector": false,
+    "test-executor": false,
+    "test-validator": false
+  },
+  "views": {
+    "ba": "spec-20260502-162334/views/ba.md",
+    "dev": "spec-20260502-162334/views/dev.md",
+    "qa": "spec-20260502-162334/views/qa.md",
+    "pm": "spec-20260502-162334/views/pm.md",
+    "user": "spec-20260502-162334/views/user.md",
+    "orchestrator": "spec-20260502-162334/views/orchestrator.md"
+  },
+  "sections_present": {
+    "S1": true,
+    "S2": true,
+    "S3": true,
+    "S4": true,
+    "S5": true,
+    "S6": true,
+    "S7": true,
+    "S8": true
+  }
+}

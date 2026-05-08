@@ -25,6 +25,8 @@ import type {
     SandboxMode,
     InputItem,
     ReasoningEffort,
+    McpServerElicitationRequestParams,
+    McpServerElicitationRequestResponse,
 } from './codexAppServerTypes';
 import type { SandboxConfig } from '@/persistence';
 import { initializeSandbox, wrapForMcpTransport } from '@/sandbox/manager';
@@ -39,14 +41,33 @@ type PendingRequest = {
 
 type LegacyPatchChanges = Record<string, Record<string, unknown>>;
 
-export type ApprovalHandler = (params: {
-    type: 'exec' | 'patch';
-    callId: string;
-    command?: string[];
-    cwd?: string;
-    fileChanges?: Record<string, unknown>;
-    reason?: string | null;
-}) => Promise<ReviewDecision>;
+export type ApprovalRequest =
+    | {
+          type: 'exec';
+          callId: string;
+          command?: string[];
+          cwd?: string;
+          reason?: string | null;
+      }
+    | {
+          type: 'patch';
+          callId: string;
+          fileChanges?: Record<string, unknown>;
+          reason?: string | null;
+      }
+    | {
+          type: 'mcp_elicitation';
+          callId: string;
+          serverName: string;
+          toolName?: string;
+          toolDescription?: string;
+          toolArguments?: unknown;
+          message: string;
+          mode: 'form' | 'url';
+          reason?: string | null;
+      };
+
+export type ApprovalHandler = (params: ApprovalRequest) => Promise<ReviewDecision>;
 
 /**
  * Check that `codex app-server` is available.
@@ -95,6 +116,15 @@ function normalizeRawFileChangeList(changes: unknown): LegacyPatchChanges | unde
     return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
+function pickToolArtifactFields(item: Record<string, unknown>): Record<string, unknown> {
+    const keys = [
+        'output', 'result', 'content', 'path', 'url', 'uri', 'previewUri', 'preview_uri',
+        'image', 'images', 'artifacts', 'contentItems', 'files', 'file', 'filePath', 'file_path',
+        'mimeType', 'mime_type', 'base64', 'imageBase64', 'image_base64', 'b64_json', 'data',
+    ];
+    return Object.fromEntries(keys.flatMap((key) => item[key] === undefined ? [] : [[key, item[key]]]));
+}
+
 export class CodexAppServerClient {
     private process: ChildProcess | null = null;
     private readline: ReadlineInterface | null = null;
@@ -131,6 +161,8 @@ export class CodexAppServerClient {
     private notificationProtocol: 'unknown' | 'legacy' | 'raw' = 'unknown';
     private completedTurnIds = new Set<string>();
     private rawFileChangesByItemId = new Map<string, LegacyPatchChanges>();
+    private approvedMcpElicitationsForSession = new Set<string>();
+    private rawChildThreadIds = new Set<string>();
 
     // Handlers set by the consumer (runCodex.ts)
     private eventHandler: ((msg: EventMsg) => void) | null = null;
@@ -164,6 +196,37 @@ export class CodexAppServerClient {
     private extractTurnStatus(params: any): string | null {
         const status = params?.turn?.status ?? params?.status ?? null;
         return typeof status === 'string' && status.length > 0 ? status : null;
+    }
+
+    private extractThreadId(params: any): string | null {
+        const threadId = params?.thread?.id ?? params?.threadId ?? params?.thread_id ?? null;
+        return typeof threadId === 'string' && threadId.length > 0 ? threadId : null;
+    }
+
+    private rawNotificationContext(params: any): Record<string, string> {
+        const threadId = this.extractThreadId(params);
+        const turnId = this.extractTurnId(params);
+        return {
+            ...(threadId ? { threadId, thread_id: threadId } : {}),
+            ...(turnId ? { turnId, turn_id: turnId } : {}),
+        };
+    }
+
+    private isRootThreadNotification(params: any): boolean {
+        const threadId = this.extractThreadId(params);
+        if (!threadId) {
+            return true;
+        }
+        return threadId === this._threadId && !this.rawChildThreadIds.has(threadId);
+    }
+
+    private rememberReceiverThreadIds(item: any): void {
+        const receiverThreadIds = Array.isArray(item?.receiverThreadIds) ? item.receiverThreadIds : [];
+        for (const receiverThreadId of receiverThreadIds) {
+            if (typeof receiverThreadId === 'string' && receiverThreadId.length > 0) {
+                this.rawChildThreadIds.add(receiverThreadId);
+            }
+        }
     }
 
     private shouldHandleRawNotification(method: string): boolean {
@@ -231,6 +294,9 @@ export class CodexAppServerClient {
         }
 
         if (method === 'turn/started') {
+            if (!this.isRootThreadNotification(params)) {
+                return true;
+            }
             const turnId = this.extractTurnId(params);
             if (turnId) {
                 this._turnId = turnId;
@@ -244,6 +310,9 @@ export class CodexAppServerClient {
         }
 
         if (method === 'turn/completed') {
+            if (!this.isRootThreadNotification(params)) {
+                return true;
+            }
             this.emitRawTurnCompletion(
                 this.extractTurnId(params),
                 this.extractTurnStatus(params),
@@ -255,7 +324,7 @@ export class CodexAppServerClient {
 
         if (method === 'thread/status/changed') {
             const statusType = params?.status?.type;
-            if (statusType === 'idle' && this.pendingTurnCompletion?.started) {
+            if (statusType === 'idle' && this.pendingTurnCompletion?.started && this.isRootThreadNotification(params)) {
                 this.emitRawTurnCompletion(this._turnId, 'completed', null, method);
             }
             return true;
@@ -277,6 +346,8 @@ export class CodexAppServerClient {
             return method.startsWith('item/');
         }
 
+        const eventContext = this.rawNotificationContext(params);
+
         if (method === 'item/started' && item.type === 'commandExecution') {
             const callId = typeof item.id === 'string' ? item.id : '';
             this.eventHandler?.({
@@ -286,6 +357,7 @@ export class CodexAppServerClient {
                 command: item.command,
                 cwd: item.cwd,
                 description: item.command,
+                ...eventContext,
             });
             return true;
         }
@@ -302,6 +374,7 @@ export class CodexAppServerClient {
                 status: item.status,
                 cwd: item.cwd,
                 command: item.command,
+                ...eventContext,
             });
             return true;
         }
@@ -320,6 +393,7 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     changes: changes ?? {},
+                    ...eventContext,
                 });
                 return true;
             }
@@ -330,6 +404,7 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     status: item.status,
+                    ...eventContext,
                 });
 
                 if (callId && (item.status === 'completed' || item.status === 'failed' || item.status === 'declined')) {
@@ -347,10 +422,11 @@ export class CodexAppServerClient {
                     message: text,
                     item_id: item.id,
                     phase: item.phase,
+                    ...eventContext,
                 });
             }
 
-            if (item.phase === 'final_answer' && this.pendingTurnCompletion?.started) {
+            if (item.phase === 'final_answer' && this.pendingTurnCompletion?.started && this.isRootThreadNotification(params)) {
                 this.emitRawTurnCompletion(
                     this.extractTurnId(params),
                     'completed',
@@ -370,6 +446,7 @@ export class CodexAppServerClient {
         if (item.type === 'collabAgentToolCall') {
             const callId = typeof item.id === 'string' ? item.id : '';
             const senderThreadId = typeof item.senderThreadId === 'string' ? item.senderThreadId : undefined;
+            this.rememberReceiverThreadIds(item);
 
             if (method === 'item/started') {
                 this.eventHandler?.({
@@ -382,7 +459,7 @@ export class CodexAppServerClient {
                     senderThreadId,
                     receiverThreadIds: item.receiverThreadIds ?? [],
                     agentsStates: item.agentsStates ?? {},
-                    subagent: senderThreadId,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -395,7 +472,8 @@ export class CodexAppServerClient {
                     tool: item.tool,
                     status: item.status,
                     senderThreadId,
-                    subagent: senderThreadId,
+                    receiverThreadIds: item.receiverThreadIds ?? [],
+                    ...eventContext,
                 });
                 return true;
             }
@@ -412,6 +490,7 @@ export class CodexAppServerClient {
                     namespace: item.namespace ?? null,
                     tool: item.tool,
                     arguments: item.arguments,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -426,6 +505,8 @@ export class CodexAppServerClient {
                     status: item.status,
                     success: item.success ?? null,
                     durationMs: item.durationMs ?? null,
+                    ...pickToolArtifactFields(item),
+                    ...eventContext,
                 });
                 return true;
             }
@@ -442,6 +523,7 @@ export class CodexAppServerClient {
                     server: item.server,
                     tool: item.tool,
                     arguments: item.arguments,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -455,6 +537,8 @@ export class CodexAppServerClient {
                     tool: item.tool,
                     status: item.status,
                     durationMs: item.durationMs ?? null,
+                    ...pickToolArtifactFields(item),
+                    ...eventContext,
                 });
                 return true;
             }
@@ -470,6 +554,7 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     text,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -480,6 +565,7 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     text,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -495,6 +581,7 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     path,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -505,6 +592,7 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     path,
+                    ...eventContext,
                 });
                 return true;
             }
@@ -657,6 +745,8 @@ export class CodexAppServerClient {
         if (!opts?.preserveThreadState) {
             this._threadId = null;
             this.threadDefaults = null;
+            this.approvedMcpElicitationsForSession.clear();
+            this.rawChildThreadIds.clear();
         }
 
         // Fail in-flight requests from this process generation.
@@ -723,7 +813,7 @@ export class CodexAppServerClient {
             developerInstructions: null,
             compactPrompt: null,
             includeApplyPatchTool: null,
-            experimentalRawEvents: false,
+            experimentalRawEvents: true,
             persistExtendedHistory: true,
         };
 
@@ -907,12 +997,13 @@ export class CodexAppServerClient {
         approvalPolicy?: ApprovalPolicy;
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
+        inputItems?: InputItem[];
     }): Promise<void> {
         if (!this._threadId) {
             throw new Error('No active thread. Call startThread first.');
         }
 
-        const input: InputItem[] = [
+        const input: InputItem[] = opts?.inputItems ?? [
             { type: 'text', text: prompt },
         ];
 
@@ -968,6 +1059,7 @@ export class CodexAppServerClient {
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
         turnTimeoutMs?: number;
+        inputItems?: InputItem[];
     }): Promise<{ aborted: boolean }> {
         // Wait for any in-flight interruptTurn() to complete before starting a new
         // turn. Otherwise the stale turn/interrupt RPC can reach Codex after our
@@ -1169,6 +1261,88 @@ export class CodexAppServerClient {
         return legacy ? 'denied' : 'decline';
     }
 
+    private isMcpToolApprovalElicitation(params: McpServerElicitationRequestParams): boolean {
+        // Accept every known elicitation shape — RPC method itself is the discriminator.
+        return params.mode === 'form' || params.mode === 'url';
+    }
+
+    private mapDecisionToMcpElicitationResponse(
+        decision: ReviewDecision,
+    ): McpServerElicitationRequestResponse {
+        if (typeof decision === 'string') {
+            switch (decision) {
+                case 'approved':
+                case 'approved_for_session':
+                    return { action: 'accept', content: {}, _meta: null };
+                case 'denied':
+                    return { action: 'decline', content: null, _meta: null };
+                case 'abort':
+                    return { action: 'cancel', content: null, _meta: null };
+                default:
+                    return { action: 'decline', content: null, _meta: null };
+            }
+        }
+
+        // Exec-policy amendments are meaningful for shell approvals, not MCP elicitations.
+        return { action: 'decline', content: null, _meta: null };
+    }
+
+    private extractMcpToolName(params: McpServerElicitationRequestParams): string | undefined {
+        const metaToolName = params._meta?.tool_name;
+        if (typeof metaToolName === 'string' && metaToolName.length > 0) {
+            return metaToolName;
+        }
+
+        const match = params.message.match(/tool\s+"([^"]+)"/i);
+        return match?.[1];
+    }
+
+    private mcpElicitationSessionKey(serverName: string, toolName?: string): string {
+        return `${serverName}:${toolName ?? '*'}`;
+    }
+
+    private async handleMcpElicitationRequest(
+        id: number,
+        params: McpServerElicitationRequestParams,
+    ): Promise<void> {
+        if (!this.isMcpToolApprovalElicitation(params)) {
+            logger.debug(
+                `[CodexAppServer] Declining unsupported MCP elicitation: ${params.serverName}`,
+            );
+            this.respond(id, { action: 'cancel', content: null, _meta: null });
+            return;
+        }
+
+        const meta = params._meta ?? {};
+        const toolName = this.extractMcpToolName(params);
+        const toolDescription = typeof meta.tool_description === 'string'
+            ? meta.tool_description
+            : undefined;
+        const sessionKey = this.mcpElicitationSessionKey(params.serverName, toolName);
+        if (this.approvedMcpElicitationsForSession.has(sessionKey)) {
+            this.respond(id, { action: 'accept', content: {}, _meta: null });
+            return;
+        }
+
+        const callId = `mcp:${params.serverName}:${id}`;
+        const decision = await this.handleApproval({
+            type: 'mcp_elicitation',
+            callId,
+            serverName: params.serverName,
+            toolName,
+            toolDescription,
+            toolArguments: meta.tool_params,
+            message: params.message,
+            mode: params.mode,
+            reason: params.message,
+        });
+
+        if (decision === 'approved_for_session') {
+            this.approvedMcpElicitationsForSession.add(sessionKey);
+        }
+        this.respond(id, this.mapDecisionToMcpElicitationResponse(decision));
+    }
+
     private async handleServerRequest(id: number, method: string, params: any): Promise<void> {
         // Command execution approval
         if (method === 'item/commandExecution/requestApproval' || method === 'execCommandApproval') {
@@ -1197,6 +1371,15 @@ export class CodexAppServerClient {
                 reason: params.reason,
             });
             this.respond(id, { decision: this.mapDecisionToWire(decision, legacy) });
+            return;
+        }
+
+        // MCP tool-call approval. Codex 0.125 emits this when an MCP tool is not
+        // read-only under approval modes such as on-failure. The request id can be
+        // 0, so the generic JSON-RPC handler must route it explicitly instead of
+        // treating an empty response as rejection.
+        if (method === 'mcpServer/elicitation/request') {
+            await this.handleMcpElicitationRequest(id, params);
             return;
         }
 
@@ -1270,7 +1453,7 @@ export class CodexAppServerClient {
             // turn/completed is a fallback signal — for mid-inference interrupts,
             // Codex may only signal completion here (not via codex/event turn_aborted).
             // emitRawTurnCompletion deduplicates via completedTurnIds if legacy already handled it.
-            if (method === 'turn/completed') {
+            if (method === 'turn/completed' && this.isRootThreadNotification(params)) {
                 this.emitRawTurnCompletion(
                     this.extractTurnId(params),
                     this.extractTurnStatus(params),

@@ -5,11 +5,17 @@ Organization and usage documentation for `dev/`.
 <!-- AUTO:readme-stats -->
 
 ## Overview
-- **Total files**: 402
-- **Subdirectories**: 7
+- **Total files**: 600
+- **Subdirectories**: 8
 - **Naming convention**: kebab
 
 ## Files
+- `adr-atomic-symlink-deploy.md` - ADR: Atomic-symlink deploys for happy-cli
+- `agent-failure-audit-20260507.md` - Agent Failure Audit — 2026-05-07
+- `apply-sop-c1-redev-20260505-001500.md` - Apply SOP — C1 Redev (`/root/bin/happy-restart.sh` per-stack refactor)
+- `architect-codex-recovery-gap-20260428-215017.json` - json config
+- `architect-happy-restart-and-daemon-prohibition-20260504-223115.md` - Architect Report — happy-restart.sh per-stack support + permanent daemon-restart prohibition
+- `architect-virtual-repo-testing-20260429-192017.json` - json config
 - `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
 - `ba-investigation-20260425-122518.md` - BA Re-Investigation Artifact — Cycle 2 Round 2
 - `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
@@ -50,6 +56,36 @@ Organization and usage documentation for `dev/`.
 - `ba-qa-report-20260425-221000-redev3-iter1.json` - json config
 - `ba-qa-report-20260425-221000-redev3.json` - json config
 - `ba-qa-report-20260426-085000-ac12.json` - json config
+- `ba-qa-report-20260426-095000-wid.json` - json config
+- `ba-qa-report-20260427-001500-saga.json` - json config
+- `ba-qa-report-20260427-230227-p01-rerun.json` - json config
+- `ba-qa-report-20260427-230227-p02.json` - json config
+- `ba-qa-report-20260428-063343-codex-rendering-rerun.json` - json config
+- `ba-qa-report-20260428-063343-codex-rendering.json` - json config
+- `ba-qa-report-20260428-112122-codex-claude-transcript-parity-r2.json` - json config
+- `ba-qa-report-20260428-112122-codex-claude-transcript-parity-r3.json` - json config
+- `ba-qa-report-20260428-112122-codex-claude-transcript-parity.json` - json config
+- `ba-qa-report-20260428-215017.json` - json config
+- `ba-qa-report-20260429-120613.json` - json config
+- `ba-qa-report-20260429-192017.json` - json config
+- `ba-qa-report-20260502-162334.json` - json config
+- `ba-qa-report-20260506-124632.json` - json config
+- `ba-qa-report-20260507-055611.json` - json config
+- `ba-qa-report-20260507-060647.json` - json config
+- `ba-qa-report-20260507-103129.json` - json config
+- `ba-qa-report-20260507-103856.json` - json config
+- `ba-qa-report-20260507-142748-iter2.json` - json config
+- `ba-qa-report-20260507-142748.json` - json config
+- `ba-qa-report-20260507-142952.json` - json config
+- `ba-qa-report-20260507-191304.json` - json config
+- `ba-qa-report-20260507-191743.json` - json config
+- `ba-qa-report-c1-20260504-223115.json` - json config
+- `ba-qa-report-c1-redev-20260505-001500.json` - json config
+- `ba-qa-report-c2-20260504-223115.json` - json config
+- `ba-qa-report-c3-20260504-223115-iter2.json` - json config
+- `ba-qa-report-c3-20260504-223115.json` - json config
+- `ba-qa-response-20260428-112122-codex-claude-transcript-parity.json` - json config
+- `ba-report-20260502-162334.json` - json config
 - `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 - `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
 - `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
@@ -128,7 +164,24 @@ Organization and usage documentation for `dev/`.
 - `ba-spec-20260425-redev-layering.md` - BA Spec: spec-20260425-094312 Re-Layering Design
 - `ba-spec-20260426-085000-ac12.md` - BA Specification: AC12 Script-Level Dry-Run Verification of /merge
 - `ba-spec-20260426-095000-wid.md` - BA Specification: 20260426-095000-wid — Workflow Integrity Dimension Remediation
+- `ba-spec-20260427-001500-saga.md` - BA Specification: 20260427-001500-saga — Saga closure (final)
+- `ba-spec-20260427-230227-p04.md` - BA Specification: §5.16/§5.17/§5.18 Evidence Conflict Closure
+- `ba-spec-20260428-063343-codex-rendering.md` - BA Specification: Codex Rendering Completion
+- `ba-spec-20260428-112122-codex-claude-transcript-parity.md` - BA Specification: Codex/Claude Transcript Rendering Parity — R3 QA Amendment
+- `ba-spec-20260428-215017.md` - BA Specification: Fix codex session registration gap so codex sessions survive dev-daemon restart
+- `ba-spec-20260429-120613.md` - BA Specification: rollback.sh — symmetric companion to deploy.sh
+- `ba-spec-20260429-192017.md` - BA Specification: Virtual-Repo End-to-End Test Harness for deploy.sh + rollback.sh
+- `ba-spec-20260507-142952.md` - BA Specification: Hook-Layer Fix — cp-state Direct-Write Block, Stop Hook Backstop, Resolver Fail-Closed
+- `ba-spec-20260507-191743.md` - BA Specification: cp-state Bash-Write Bypass Closure (4 Codex Forms + High-Risk Adjacent)
+- `blocked-20260428-063343-codex-rendering.md` - Blocked Development Report — 20260428-063343-codex-rendering
 - `build-verification-20260409.json` - json config
+- `cleanliness-inspector-report-20260504-223115.json` - json config
+- `cleanliness-inspector-report-20260507-055611.json` - json config
+- `cleanliness-inspector-report-20260507-103856.json` - json config
+- `cleanliness-inspector-report-20260507-142748.json` - json config
+- `cleanliness-inspector-report-20260507-142952.json` - json config
+- `cleanliness-inspector-report-20260507-191304.json` - json config
+- `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 - `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 - `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
 - `close-report-20260425-102054.md` - Close Debate Report
@@ -143,6 +196,17 @@ Organization and usage documentation for `dev/`.
 - `close-report-20260426-080520.md` - /close report — spec-20260424-233926, fifth invocation
 - `close-report-20260426-084528.md` - /close report — sixth invocation (saga spec-20260424-233926)
 - `close-report-20260426-085000-ac12.md` - Close Debate Report
+- `close-report-20260426-095000-wid.md` - Close Debate Report — /redev5 (diagnostic via codex)
+- `close-report-20260427-001500-saga.md` - Close Debate Report
+- `close-report-20260429-192017.md` - Close Debate Report
+- `close-report-20260504-223115.md` - Close Debate Report
+- `close-report-20260507-055611.md` - Close Debate Report
+- `close-report-20260507-103856.md` - Close Debate Report
+- `close-report-20260507-142748.md` - Close Debate Report
+- `close-report-20260507-142952.md` - /close Debate Report — task-id 20260507-142952
+- `close-report-20260507-191304.md` - Close Report — task-id 20260507-191304 (cycle 5)
+- `close-report-spec-20260506-203844.md` - Close Debate Report
+- `codex-fork-divergence-research-20260427.md` - No description
 - `codex-research-20260425-bgtask-reconnect.md` - No description
 - `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 - `completion-20260425-104643.md` - Development Completion Report — Spec Maturity Remediation
@@ -153,6 +217,21 @@ Organization and usage documentation for `dev/`.
 - `completion-20260425-211000-redev2.md` - /redev2 Completion Report — Mystery 4 + Trap 11
 - `completion-20260425-221000-redev3.md` - /redev3 Completion Report — Mystery 6 + 5-function refactor
 - `completion-20260426-085000-ac12.md` - /redev4 Completion Report 20260426-085000-ac12 — AC12 /merge-half empirically verified
+- `completion-20260427-001500-saga.md` - Saga Closure Attestation — 20260427-001500-saga
+- `completion-20260428-112122-codex-claude-transcript-parity.md` - Development Completion Report — 20260428-112122-codex-claude-transcript-parity
+- `completion-20260428-215017.md` - Development Completion Report — 20260428-215017
+- `completion-20260429-120613.md` - Development Completion Report — 20260429-120613
+- `completion-20260429-192017.md` - Development Completion Report — 20260429-192017
+- `completion-20260502-162334.md` - Development Completion Report — 20260502-162334
+- `completion-20260504-223115.md` - Development Completion Report — 20260504-223115
+- `completion-20260506-124632.md` - Development Completion Report — 20260506-124632
+- `completion-20260507-055611.md` - Development Completion Report — 20260507-055611
+- `completion-20260507-103856.md` - Development Completion Report — 20260507-103856
+- `completion-20260507-142748.md` - Development Completion Report — 20260507-142748
+- `completion-20260507-142952.md` - Completion Report — task-id 20260507-142952
+- `completion-20260507-191304.md` - Development Completion Report — 20260507-191304
+- `completion-20260507-191743.md` - Completion Report — task-id 20260507-191743
+- `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 - `context-20260323-210000.json` - json config
 - `context-20260403-210447-0.json` - json config
 - `context-20260403-210447-1.json` - json config
@@ -228,6 +307,26 @@ Organization and usage documentation for `dev/`.
 - `context-20260425-bgtask.json` - json config
 - `context-20260426-085000-ac12.json` - json config
 - `context-20260426-095000-wid.json` - json config
+- `context-20260427-001500-saga.json` - json config
+- `context-20260427-230227-p04.json` - json config
+- `context-20260428-063343-codex-rendering.json` - json config
+- `context-20260428-112122-codex-claude-transcript-parity.json` - json config
+- `context-20260428-215017.json` - json config
+- `context-20260429-120613.json` - json config
+- `context-20260429-192017.json` - json config
+- `context-20260506-124632.json` - json config
+- `context-20260507-055611.json` - json config
+- `context-20260507-060647.json` - json config
+- `context-20260507-103129.json` - json config
+- `context-20260507-103856.json` - json config
+- `context-20260507-142748.json` - json config
+- `context-20260507-142952.json` - json config
+- `context-20260507-191304.json` - json config
+- `context-20260507-191743.json` - json config
+- `context-c1-20260504-223115.json` - json config
+- `context-c1-redev-20260505-001500.json` - json config
+- `context-c2-20260504-223115.json` - json config
+- `context-c3-20260504-223115.json` - json config
 - `deploy-report-20260425-201355.json` - json config
 - `dev-instrument-20260425-201355-5-19-7.1.md` - Pipeline 7.1 — Phase-1 Instrumentation Plan + Block Report
 - `dev-report-20260403-210447-0.json` - json config
@@ -243,6 +342,7 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260403-210447-7.json` - json config
 - `dev-report-20260403-210447-8.json` - json config
 - `dev-report-20260403-210447-9.json` - json config
+- `dev-report-20260403-210447.json` - json config
 - `dev-report-20260404-080000.json` - json config
 - `dev-report-20260404-110000.json` - json config
 - `dev-report-20260404-120000.json` - json config
@@ -273,14 +373,19 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260424-143000-7.json` - json config
 - `dev-report-20260424-143000-8.json` - json config
 - `dev-report-20260424-143000-9.json` - json config
+- `dev-report-20260424-143000.json` - json config
 - `dev-report-20260424-170900-extra.json` - json config
+- `dev-report-20260424-170900.json` - json config
 - `dev-report-20260424-172000-extra2.json` - json config
+- `dev-report-20260424-172000.json` - json config
 - `dev-report-20260424-202503.json` - json config
 - `dev-report-20260425-000300-0.json` - json config
 - `dev-report-20260425-000300-1.json` - json config
 - `dev-report-20260425-000300-2.json` - json config
 - `dev-report-20260425-000300-9.json` - json config
+- `dev-report-20260425-000300.json` - json config
 - `dev-report-20260425-030000-0.json` - json config
+- `dev-report-20260425-030000.json` - json config
 - `dev-report-20260425-104643.json` - json config
 - `dev-report-20260425-122518-G1.json` - json config
 - `dev-report-20260425-122518-G2-iter1.json` - json config
@@ -288,8 +393,10 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260425-122518-G3.json` - json config
 - `dev-report-20260425-122518-G4.json` - json config
 - `dev-report-20260425-122518-G5.json` - json config
+- `dev-report-20260425-122518.json` - json config
 - `dev-report-20260425-131502.json` - json config
 - `dev-report-20260425-143500-redev.json` - json config
+- `dev-report-20260425-143500.json` - json config
 - `dev-report-20260425-201355-5-16.json` - json config
 - `dev-report-20260425-201355-5-17.json` - json config
 - `dev-report-20260425-201355-5-18-retry.json` - json config
@@ -304,10 +411,43 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260425-201355-5-3.json` - json config
 - `dev-report-20260425-201355-5-4-5.json` - json config
 - `dev-report-20260425-201355-5-8.json` - json config
+- `dev-report-20260425-201355.json` - json config
 - `dev-report-20260425-211000-redev2.json` - json config
+- `dev-report-20260425-211000.json` - json config
 - `dev-report-20260425-221000-redev3-iter1.json` - json config
 - `dev-report-20260425-221000-redev3.json` - json config
+- `dev-report-20260425-221000.json` - json config
 - `dev-report-20260426-085000-ac12.json` - json config
+- `dev-report-20260426-085000.json` - json config
+- `dev-report-20260426-095000-wid-iter1.json` - json config
+- `dev-report-20260426-095000-wid.json` - json config
+- `dev-report-20260426-095000.json` - json config
+- `dev-report-20260427-001500-saga.json` - json config
+- `dev-report-20260427-001500.json` - json config
+- `dev-report-20260428-063343-codex-rendering-iter1.json` - json config
+- `dev-report-20260428-063343-codex-rendering-iter2.json` - json config
+- `dev-report-20260428-063343-codex-rendering-iter3.json` - json config
+- `dev-report-20260428-063343-codex-rendering-iter4.json` - json config
+- `dev-report-20260428-063343-codex-rendering.json` - json config
+- `dev-report-20260428-063343.json` - json config
+- `dev-report-20260428-112122-codex-claude-transcript-parity.json` - json config
+- `dev-report-20260428-112122.json` - json config
+- `dev-report-20260428-215017.json` - json config
+- `dev-report-20260429-120613.json` - json config
+- `dev-report-20260429-192017.json` - json config
+- `dev-report-20260502-162334.json` - json config
+- `dev-report-20260504-223115.json` - json config
+- `dev-report-20260506-124632.json` - json config
+- `dev-report-20260507-055611.json` - json config
+- `dev-report-20260507-060647.json` - json config
+- `dev-report-20260507-103856.json` - json config
+- `dev-report-20260507-142748.json` - json config
+- `dev-report-20260507-142952.json` - json config
+- `dev-report-20260507-191304.json` - json config
+- `dev-report-20260507-191743.json` - json config
+- `dev-report-c1-20260504-223115.json` - json config
+- `dev-report-c1-redev-20260505-001500.json` - json config
+- `dev-report-c3-20260504-223115.json` - json config
 - `dev-report-tools2-filter-fix.json` - json config
 - `e2e-verification-rendering.json` - json config
 - `e2e-verification-title.json` - json config
@@ -315,19 +455,36 @@ Organization and usage documentation for `dev/`.
 - `hook-block-handoff-20260425-201355.md` - Hook-Block Handoff — DEV_SESSION_ID dev-20260425-201355
 - `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 - `isolation-audit-20260404.md` - Production/Dev Isolation Audit
+- `observations-ledger.md` - Observations Ledger
 - `overnight-log-20260424.md` - Overnight Log — 2026-04-24
 - `overnight-log-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - No description
 - `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
 - `overnight-summary-20260424.md` - Overnight Development Summary — 2026-04-24
 - `overnight-summary-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - Overnight Development Summary — Session 21d24e89
 - `overnight-summary-d6f1eea4.md` - Overnight Development Summary
+- `prompt-inspector-report-20260504-223115.json` - json config
+- `prompt-inspector-report-20260507-055611.json` - json config
+- `prompt-inspector-report-20260507-103856.json` - json config
+- `prompt-inspector-report-20260507-142748.json` - json config
+- `prompt-inspector-report-20260507-142952.json` - json config
+- `prompt-inspector-report-20260507-191304.json` - json config
+- `prompt-inspector-report-spec-20260506-203844.json` - json config
+- `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 - `qa-audit-20260407.json` - json config
 - `qa-audit-20260425-131502.md` - QA 审计报告 — Cycle 5 Verification (dev-20260425-131502)
 - `qa-build-deploy-20260407.json` - json config
+- `qa-codex-consensus-20260502-162334.txt` - txt file
+- `qa-codex-consensus-20260507-142952.txt` - txt file
 - `qa-hooks-bash-safety.json` - json config
 - `qa-hooks-prod-files.json` - json config
 - `qa-hooks-project.json` - json config
+- `qa-input-20260429-192017-ac4-mutated-deploy.sh` - AC4 mutation harness: temporarily modify the rewritten deploy.sh to disable
+- `qa-input-20260429-192017-redebate-codex-prompt.txt` - txt file
+- `qa-input-20260429-192017-redebate-mutation-test.sh` - QA re-debate mutation harness for M-REWRITE.5 verification.
+- `qa-input-codex-prompt-20260428-215017.txt` - txt file
 - `qa-issue3-browser-debug-20260407.json` - json config
+- `qa-output-20260429-192017-codex.txt` - txt file
+- `qa-output-codex-cycle5-20260507-191304.txt` - txt file
 - `qa-report-20260403-210447-0.json` - json config
 - `qa-report-20260403-210447-1.json` - json config
 - `qa-report-20260403-210447-10.json` - json config
@@ -400,16 +557,57 @@ Organization and usage documentation for `dev/`.
 - `qa-report-20260425-221000-redev3-iter1.json` - json config
 - `qa-report-20260425-221000-redev3.json` - json config
 - `qa-report-20260426-085000-ac12.json` - json config
+- `qa-report-20260427-001500-saga.json` - json config
+- `qa-report-20260427-230227-p05.json` - json config
+- `qa-report-20260428-063343-codex-rendering-iter1-live-rerun.json` - json config
+- `qa-report-20260428-063343-codex-rendering-iter1.json` - json config
+- `qa-report-20260428-063343-codex-rendering-iter2-live-rerun.json` - json config
+- `qa-report-20260428-063343-codex-rendering-iter2.json` - json config
+- `qa-report-20260428-063343-codex-rendering.json` - json config
+- `qa-report-20260428-112122-codex-claude-transcript-parity-r2.json` - json config
+- `qa-report-20260428-112122-codex-claude-transcript-parity.json` - json config
+- `qa-report-20260428-215017.json` - json config
+- `qa-report-20260429-120613.json` - json config
+- `qa-report-20260429-192017.json` - json config
+- `qa-report-20260502-162334.json` - json config
+- `qa-report-20260506-124632.json` - json config
+- `qa-report-20260507-055611.json` - json config
+- `qa-report-20260507-103856.json` - json config
+- `qa-report-20260507-142748.json` - json config
+- `qa-report-20260507-142952.json` - json config
+- `qa-report-20260507-191304.json` - json config
+- `qa-report-20260507-191743.json` - json config
+- `qa-report-c1-20260504-223115.json` - json config
+- `qa-report-c1-redev-20260505-001500.json` - json config
+- `qa-report-c3-20260504-223115.json` - json config
 - `qa-report-visual-evidence-20260426.md` - QA Visual Evidence Report — spec-20260424-084848 Cycle 6 (2026-04-26 22:18Z)
 - `qa-review-20260407-0830.json` - json config
 - `qa-site-isolation-verification.json` - json config
 - `qa-validation-20260410.json` - json config
 - `sim-test-and-cleanup-20260425-122518.json` - json config
+- `style-inspector-report-20260504-223115.json` - json config
+- `style-inspector-report-20260507-055611.json` - json config
+- `style-inspector-report-20260507-103856.json` - json config
+- `style-inspector-report-20260507-142748.json` - json config
+- `style-inspector-report-20260507-142952.json` - json config
+- `style-inspector-report-20260507-191304.json` - json config
+- `style-inspector-report-spec-20260506-203844.json` - json config
+- `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
+- `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
+- `ticket-20260507-060647.md` - BA Specification: Happy Tool Rendering Matrix Fix (QA Revision)
+- `ticket-20260507-103856.md` - BA Specification: Close-report cycle-3 fix — `web.open` fixture row + per-row §5.3.B image-preview screenshots
+- `ticket-20260507-142748.md` - BA Specification: Spec spec-20260506-203844 — Phase A remaining sub-items (C.2, B.7, F.4, G.4, E.2-doc, I.2-doc)
+- `ticket-20260507-191304.md` - BA Specification: Remove cycle-4 DOM probe script + cleanup stale permission entry
+- `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
+- `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
+- `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)
+- `ticket-c3-20260504-223115.md` - BA Specification: C3 — Permanent prohibition on Claude restarting any happy-daemon
 
 ## Subdirectories
 - `evidence/`
 - `overnight/`
 - `postmortems/`
+- `qa-artifacts/`
 - `qa-partial-20260425-131502/`
 - `specs/`
 - `specs.pre-merge-backup/`

@@ -1,0 +1,45 @@
+{
+  "spec_id": "spec-20260506-203755",
+  "agent_type": "dev",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": null,
+  "is_running": false,
+  "checked_in_at": "2026-05-07T07:07:14Z",
+  "checked_out_at": "2026-05-07T07:09:42Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Read Background Explore findings to locate parseMarkdownBlock.ts + MermaidRenderer.tsx + tool-card dispatch root causes",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T07:07:14Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Implement Section 5.4 chip-vs-verbose 4-level dispatch hierarchy in GenericToolPreview",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by dev-20260507-055611 at 2026-05-07T07:07:14Z",
+      "updated_at": "2026-05-07T07:07:14Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Implement Command (#18) metadata rehydration fix per Background Explore root cause",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by dev-20260507-055611 at 2026-05-07T07:07:14Z",
+      "updated_at": "2026-05-07T07:07:14Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Write dev-report JSON listing files changed + per-bug fix references",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T07:09:42Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/dev-report-20260507-055611.json",
+    "exists": true,
+    "validated_at": "2026-05-07T07:09:42Z"
+  }
+}

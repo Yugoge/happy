@@ -551,6 +551,9 @@ export const zhHans: TranslationStructure = {
             other: '其他',
             otherDescription: '输入您自己的答案',
             otherPlaceholder: '输入您的答案...',
+        },
+        attachment: {
+            staleAdvisory: '在此会话或新会话中再次触发以查看 inline 预览。',
         }
     },
 

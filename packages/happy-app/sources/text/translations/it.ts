@@ -548,6 +548,9 @@ export const it: TranslationStructure = {
             modifyingFiles: ({ count }: { count: number }) => `Modificando ${count} file`,
             modifyingMultipleFiles: ({ file, count }: { file: string; count: number }) => `${file} e altri ${count}`,
             showingDiff: 'Mostrando modifiche',
+        },
+        attachment: {
+            staleAdvisory: 'Riattiva in questa o in una nuova sessione per vedere l\'anteprima inline.',
         }
     },
 

@@ -1,0 +1,52 @@
+{
+  "spec_id": "spec-20260506-203844",
+  "agent_type": "qa",
+  "instance_id": 2,
+  "generation": 1,
+  "agent_id": "a3292278c5e2deaf4",
+  "is_running": false,
+  "checked_in_at": "2026-05-07T21:56:26Z",
+  "checked_out_at": "2026-05-07T22:02:50Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Measure actual Happy UI visibility for each listed tool family",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-finalization-spec-20260506-203844-qa-20260506T204809Z at 2026-05-07T06:28:31Z",
+      "updated_at": "2026-05-07T06:28:31Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Verify spinner duration and completed failed unavailable states",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-finalization-spec-20260506-203844-qa-20260506T204809Z at 2026-05-07T06:28:31Z",
+      "updated_at": "2026-05-07T06:28:31Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Capture desktop live-browser evidence on dev web",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-finalization-spec-20260506-203844-qa-20260506T204809Z at 2026-05-07T06:28:31Z",
+      "updated_at": "2026-05-07T06:28:31Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Capture mobile live-browser evidence on dev web",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-finalization-spec-20260506-203844-qa-20260506T204809Z at 2026-05-07T06:28:31Z",
+      "updated_at": "2026-05-07T06:28:31Z"
+    },
+    {
+      "id": "cp-05",
+      "action": "Confirm production endpoints and restart scripts were not used",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T06:28:31Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/specs/spec-20260506-203844/artifacts/qa-report.json",
+    "exists": true,
+    "validated_at": "2026-05-07T10:53:35Z"
+  }
+}

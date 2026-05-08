@@ -1,0 +1,94 @@
+{
+  "spec_id": "spec-20260502-162334",
+  "agent_type": "qa",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": "ad30a39136f128745",
+  "is_running": false,
+  "checked_in_at": "2026-05-03T16:25:16Z",
+  "checked_out_at": "2026-05-03T16:26:11Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Verify S-BUILD post-build pre-S4: dist/runCodex-*.mjs mtime newer than src; grep 'experimentalRawEvents: true' >=1; grep 'experimentalRawEvents: false' = 0",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:21Z",
+      "updated_at": "2026-05-03T09:54:21Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Verify S3 deploy: image created timestamp newer than every app source mtime; curl http://localhost:8097/ returns HTML; production targets untouched",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:26Z",
+      "updated_at": "2026-05-03T09:54:26Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Verify S4 post-restart: /root/.happy-dev/daemon.state.json shows fresh startTime; new Codex children use /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist/index.mjs; live dev sessions creatable via UI",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:26Z",
+      "updated_at": "2026-05-03T09:54:26Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Verify S1 runtime via thread/start RPC (NOT turn/start): tail /root/.happy-dev/logs/ for next Codex thread; thread/start payload contains experimentalRawEvents:true",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:27Z",
+      "updated_at": "2026-05-03T09:54:27Z"
+    },
+    {
+      "id": "cp-05",
+      "action": "Verify D1 MCP elicitation live: trigger Playwright MCP from Codex session in dev UI; no 'user rejected MCP tool call'; logs show no 'Unknown server request: mcpServer/elicitation/request'",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:31Z",
+      "updated_at": "2026-05-03T09:54:31Z"
+    },
+    {
+      "id": "cp-06",
+      "action": "Verify D2 Codex tool rendering live: each specialized renderer (Bash/Subagent/Parallel/Patch/Diff/Attachment/Plan) shows command/stdout/stderr/result/status/exit code; no [object Object]; no duplication; collapse/expand identical to Claude Code; same session must include Claude Code Bash + Grep as regression guards",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:32Z",
+      "updated_at": "2026-05-03T09:54:32Z"
+    },
+    {
+      "id": "cp-07",
+      "action": "Verify D3 attachments live: image attachment - model reply references image content; non-image - matches S6 decision (model quotes content OR UI shows documented limitation)",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:32Z",
+      "updated_at": "2026-05-03T09:54:32Z"
+    },
+    {
+      "id": "cp-08",
+      "action": "Verify D4 scope-leak live: Claude Code Grep/Glob/WebSearch/ToolSearch from D2 session stay collapsed on main transcript; Codex unknown/resource render inline as fixture expects",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:37Z",
+      "updated_at": "2026-05-03T09:54:37Z"
+    },
+    {
+      "id": "cp-09",
+      "action": "Produce S7 4x2 live screenshot matrix on https://dev.life-ai.app or http://localhost:8097, store under docs/dev/evidence/spec-20260502-162334/; include regression-guard screenshots",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:37Z",
+      "updated_at": "2026-05-03T09:54:37Z"
+    },
+    {
+      "id": "cp-10",
+      "action": "Verify Hard Prohibitions not violated: no edits to non-Codex *View.tsx; no behavior changes in shared protocol/reducer for non-Codex envelopes; no /root/happy* or production paths; no daemon restart other than dev (user-only); no hook config changes; no global CLI install",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:37Z",
+      "updated_at": "2026-05-03T09:54:37Z"
+    },
+    {
+      "id": "cp-11",
+      "action": "Write qa-report-<ts>.json with Section 4 measured values, Section 6 gap analysis, Section 7 next step, explicit pass/fail per requirement (D1/D2/D3/D4), overall verdict",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by spec-bootstrap-qa at 2026-05-03T09:54:40Z",
+      "updated_at": "2026-05-03T09:54:40Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/qa-report-20260502-162334.json",
+    "exists": false,
+    "validated_at": "2026-05-03T09:54:40Z"
+  }
+}

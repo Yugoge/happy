@@ -1,7 +1,7 @@
 # specs
 
-*Last updated: 2026-04-26T22:54:21Z*
-**Total entries**: 38
+*Last updated: 2026-05-07T19:32:59Z*
+**Total entries**: 82
 **Convention**: kebab
 
 ## Tree
@@ -35,6 +35,47 @@ specs/
 │       ├── `pm.md` - pm view of spec-20260424-084848
 │       ├── `qa.md` - qa view of spec-20260424-084848
 │       └── `ui-specialist.md` - ui-specialist view of spec-20260424-084848
+├── spec-20260502-162334/
+│   ├── views/
+│   │   ├── `ba.md` - ba view of spec-20260502-162334
+│   │   ├── `dev.md` - dev view of spec-20260502-162334
+│   │   ├── `manifest.json` - json config
+│   │   ├── `manifest.json.lock` - lock file
+│   │   ├── `orchestrator.md` - orchestrator view of spec-20260502-162334
+│   │   ├── `pm.md` - pm view of spec-20260502-162334
+│   │   ├── `qa.md` - qa view of spec-20260502-162334
+│   │   └── `user.md` - user view of spec-20260502-162334
+│   ├── `ba-report-20260502-162334.json` - json config
+│   ├── `qa-amendment-cycle1.md` - QA Amendment — Cycle 1 — spec-20260502-162334
+│   └── `split-qa-unresolved.json` - json config
+├── spec-20260506-203755/
+│   ├── views/
+│   │   ├── `ba.md` - ba view of spec-20260506-203755
+│   │   ├── `dev.md` - dev view of spec-20260506-203755
+│   │   ├── `manifest.json` - json config
+│   │   ├── `manifest.json.lock` - lock file
+│   │   ├── `orchestrator.md` - orchestrator view of spec-20260506-203755
+│   │   ├── `pm.md` - pm view of spec-20260506-203755
+│   │   ├── `qa.md` - qa view of spec-20260506-203755
+│   │   └── `ui-specialist.md` - ui-specialist view of spec-20260506-203755
+│   ├── `ba-cycle2-append-20260507-103129.md` - BA Cycle 2 Spec Append — Table Inline-Layout Regression
+│   └── `split-qa-unresolved.json` - json config
+├── spec-20260506-203844/
+│   ├── artifacts/
+│   │   ├── `ba-report.json` - json config
+│   │   └── `qa-report.json` - json config
+│   ├── views/
+│   │   ├── `ba.md` - ba view of spec-20260506-203844
+│   │   ├── `dev.md` - dev view of spec-20260506-203844
+│   │   ├── `mandate-omissions.json` - json config
+│   │   ├── `manifest.json` - json config
+│   │   ├── `orchestrator.md` - orchestrator view of spec-20260506-203844
+│   │   ├── `pm.md` - pm view of spec-20260506-203844
+│   │   ├── `qa.md` - qa view of spec-20260506-203844
+│   │   ├── `ui-specialist.md` - ui-specialist view of spec-20260506-203844
+│   │   └── `user.md` - user view of spec-20260506-203844
+│   ├── `checkpoints.json` - json config
+│   └── `cp-state-index.json` - json config
 ├── `spec-20260423-191545.md` - Spec: Session model persistence + status bar display
 ├── `spec-20260423-202430.md` - Spec: Per-Session Model Persistence + Status Bar Model Display
 ├── `spec-20260424-084848-cycle6-corrections.md` - spec-20260424-084848 — Cycle 6 Corrections (Honest State After User Manual Verification)
@@ -44,7 +85,10 @@ specs/
 ├── `spec-20260425-094312.md` - Spec: session-recovery 系统全部 bug 修复 (P0/P0-NEW/P1/P2)
 ├── `spec-20260425-094312.md.bak-layering-20260425-1329` - bak-layering-20260425-1329 file
 ├── `spec-20260425-094312.md.bak-redev-final` - bak-redev-final file
-└── `spec-20260425-094312.md.bak-redev-fix` - bak-redev-fix file
+├── `spec-20260425-094312.md.bak-redev-fix` - bak-redev-fix file
+├── `spec-20260502-162334.md` - Spec: Codex 4-fix runtime closure — make declared fixes actually visible to user
+├── `spec-20260506-203755.md` - Spec: happy-app rendering & tool-call audit — 17 bugs catalogued + verbatim user feedback + Claude's rendering/tool-call analysis
+└── `spec-20260506-203844.md` - Spec: Happy 工具调用与非文本/图形渲染问题超级清单
 ```
 
 ---

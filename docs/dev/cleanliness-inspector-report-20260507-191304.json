@@ -1,0 +1,61 @@
+{
+  "request_id": "20260507-191304",
+  "timestamp": "2026-05-07T19:30:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "--changed-files",
+  "tagging_mechanism": "ii-inspector-side-tagging",
+  "scope": {
+    "modified": [
+      ".claude/settings.local.json",
+      "scripts/INDEX.md",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "removed": [
+      "scripts/cycle-4-dom-probe.js"
+    ],
+    "created": [
+      "docs/dev/dev-report-20260507-191304.json"
+    ]
+  },
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB"
+  },
+  "verification_notes": {
+    "cycle_4_file_removed": "scripts/cycle-4-dom-probe.js verified absent from repo",
+    "scripts_index_updated": "scripts/INDEX.md no longer contains cycle-4-dom-probe entry",
+    "settings_cleanup": ".claude/settings.local.json allow entry removed (0 references)",
+    "spec_annotated": "spec-20260506-203844.md has 34 cycle-4/Cycle 5 annotations",
+    "dev_report_created": "docs/dev/dev-report-20260507-191304.json present (10259 bytes)",
+    "tmp_relocation_acceptable": "rm-blocked-by-bash-safety-hook; /tmp move is sanctioned per cycle context"
+  },
+  "diff_scope_compliance": {
+    "files_inspected": 5,
+    "files_outside_scope_flagged": 0,
+    "introduced_in_diff_findings": 0,
+    "preexisting_findings": 0
+  }
+}

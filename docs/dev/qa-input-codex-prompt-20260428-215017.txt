@@ -1,0 +1,34 @@
+USER REQUIREMENT: Verify a bug fix for codex sessions not being registered in dev-daemon /list snapshot, blocking recovery via --resume.
+SCOPE: find bugs that prevent or threaten this requirement.
+OUT OF SCOPE: adjacent improvements, hypothetical attack vectors outside threat model, style preferences, defensive hardening not requested.
+
+CONTEXT
+The bug: codex-flavor sessions spawned by happy-daemon-dev never call notifyDaemonSessionStarted with their codexThreadId, so the daemon /list response (which only reads claudeSessionId) lists them with claudeSessionId=undefined. The user-only recovery script therefore cannot resume them after a daemon restart.
+
+DEV FIX (3 production edits, mirror-not-unify):
+1. packages/happy-cli/src/codex/runCodex.ts lines 710-713 — inside the `if (!client.hasActiveThread())` lazy thread-start branch, the session.updateMetadata handler now composes `updated = {...currentMetadata, codexThreadId: startedThread.threadId}` and fires notifyDaemonSessionStarted(session.sessionId, updated).catch(err -- logger.debug) from INSIDE the handler before returning updated.
+2. packages/happy-cli/src/codex/resumeExistingThread.ts lines 38-41 — symmetric pattern on resume path; widened ResumeThreadSession structural type with `readonly sessionId: string`.
+3. packages/happy-cli/src/daemon/controlServer.ts line 82 — added `?? child.happySessionMetadataFromLocalWebhook?.codexThreadId` null-coalesce after the existing claudeSessionId lookup.
+
+TEST EVIDENCE:
+- resumeExistingThread.test.ts: 2/2 pass — new vi.mock + assertion that notifyDaemonSessionStarted is called with codexThreadId-bearing blob.
+- daemon.integration.test.ts: new "should expose codexThreadId under claudeSessionId field for codex sessions" test passes 2.977s with real authenticated daemon under isolated test env. claude-side regression test "should track session-started webhook from terminal session" still passes 2.731s.
+- tsc --noEmit exit 0, no errors.
+- Dist build: contains both new notify call sites at runCodex mjs lines 2097 (resume) + 2593 (start), and the coalesce at index mjs line 4654.
+- Other pre-existing integration test failures (spawn/stop, stress test, SIGKILL/SIGTERM) appear unrelated to this fix — they require real Claude binary spawn which is not available in this env. They fail in isolation too.
+
+REGRESSION CHECKS:
+- packages/happy-cli/package.json version unchanged.
+- packages/happy-cli/src/claude/session.ts lines 112-124 unchanged (claude registration path untouched).
+- recovery script unchanged.
+
+DRAFT VERDICT: PASS — all 5 acceptance criteria satisfied.
+
+CHALLENGE ADVERSARIALLY. Look for over/under-engineering, missed edge cases, regression risk, scope drift, and any concrete reason this draft would not pass close debate. Specifically:
+1. Is the integration test a sufficient substitute for true manual sandbox-daemon-curl verification?
+2. Does the coalesce at controlServer.ts line 82 introduce any subtle bug for sessions where neither field is set, or for hypothetical sessions where both are set?
+3. Is the dev dist regeneration trustworthy?
+4. Are the pre-existing test failures actually unrelated, or could the dev fix be subtly causing them?
+5. Any other concerns?
+
+Reply with CODEX_FEEDBACK: substantive points.

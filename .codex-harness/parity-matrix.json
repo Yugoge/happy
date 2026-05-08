@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-05-07T22:11:40+00:00",
+  "source_inventory_sha256": null,
+  "source": "claude-compat/sync-report.json",
+  "safe_claim": "Codex-native workflow/todo/lifecycle state is authoritative. Imported Claude metadata is classified per feature and unsupported/fallback rows block full parity.",
+  "summary": {},
+  "total_rows": 0,
+  "release_gate": {
+    "sync_complete_with_known_unsupported": "pass",
+    "full_claude_parity": "pass",
+    "sync_blocker_count": 0,
+    "blocker_count": 0,
+    "blocking_statuses": [],
+    "policy": "Full parity can only be claimed when every row is native, a verified import, or an explicit native replacement; fallback and unsupported rows fail closed."
+  },
+  "rows": []
+}

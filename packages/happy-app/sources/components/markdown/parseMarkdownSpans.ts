@@ -1,9 +1,6 @@
 import type { MarkdownSpan } from "./parseMarkdown";
 
-// Updated pattern to handle nested markdown and asterisks
-// Capture groups 1-9: existing bold/italic/link/code; 10-11: display latex $$...$$ (HIGHER precedence);
-// 12-13: inline latex $...$; 14-15: strikethrough ~~...~~; 16-17: <kbd>...</kbd>
-const pattern = /(\*\*(.*?)(?:\*\*|$))|(\*(.*?)(?:\*|$))|(\[([^\]]+)\](?:\(([^)]+)\))?)|(`(.*?)(?:`|$))|(\$\$([\s\S]+?)\$\$)|(\$([^\s$][^$\n]*?[^\s$]|[^\s$\d\\])\$)|(~~(.*?)(?:~~|$))|(<kbd>([\s\S]*?)<\/kbd>)/g;
+const ESCAPABLE_PUNCTUATION = new Set(['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|', '~']);
 
 // Decode common HTML entities (&lt;, &gt;, &amp;, &quot;, &#NNN;, &nbsp;)
 // so Claude's content with escaped HTML renders as intended literal characters.
@@ -53,12 +50,23 @@ function pushTextWithAutoLinks(spans: MarkdownSpan[], text: string, styles: Mark
     }
 }
 
-function isEscapedDollar(source: string, matchIndex: number): boolean {
+function pushPlainText(spans: MarkdownSpan[], text: string, styles: MarkdownSpan['styles']) {
+    const decoded = decodeEntities(text);
+    if (decoded) {
+        spans.push({ styles, text: decoded, url: null });
+    }
+}
+
+function isEscaped(source: string, matchIndex: number): boolean {
     let backslashCount = 0;
     for (let i = matchIndex - 1; i >= 0 && source[i] === '\\'; i--) {
         backslashCount++;
     }
     return backslashCount % 2 === 1;
+}
+
+function isEscapedDollar(source: string, matchIndex: number): boolean {
+    return isEscaped(source, matchIndex);
 }
 
 function isPriceLikeDollar(source: string, matchIndex: number): boolean {
@@ -67,63 +75,131 @@ function isPriceLikeDollar(source: string, matchIndex: number): boolean {
     return /[A-Za-z0-9]/.test(prev);
 }
 
-function handleLatexDisplayMatch(spans: MarkdownSpan[], source: string, match: RegExpExecArray): void {
-    if (isEscapedDollar(source, match.index) || isPriceLikeDollar(source, match.index)) {
-        pushTextWithAutoLinks(spans, match[10], []);
-        return;
+function findUnescaped(source: string, needle: string, fromIndex: number): number {
+    let index = source.indexOf(needle, fromIndex);
+    while (index !== -1) {
+        if (!isEscaped(source, index)) return index;
+        index = source.indexOf(needle, index + 1);
     }
-    spans.push({ styles: [], text: match[11], url: null, latex: true, latexDisplay: true });
+    return -1;
 }
 
-function handleLatexMatch(spans: MarkdownSpan[], source: string, match: RegExpExecArray): void {
-    if (isEscapedDollar(source, match.index) || isPriceLikeDollar(source, match.index)) {
-        pushTextWithAutoLinks(spans, match[12], []);
-        return;
-    }
-    spans.push({ styles: [], text: match[13], url: null, latex: true });
+function consumeDelimited(
+    spans: MarkdownSpan[],
+    source: string,
+    index: number,
+    delimiter: string,
+    styles: MarkdownSpan['styles'],
+    header: boolean,
+): number | null {
+    const end = findUnescaped(source, delimiter, index + delimiter.length);
+    if (end === -1 || end === index + delimiter.length) return null;
+    const suppressForHeader = header && styles.every(style => style === 'bold' || style === 'italic');
+    pushTextWithAutoLinks(spans, source.slice(index + delimiter.length, end), suppressForHeader ? [] : styles);
+    return end + delimiter.length;
 }
 
-function handleLinkMatch(spans: MarkdownSpan[], match: RegExpExecArray) {
-    if (match[7]) {
-        spans.push({ styles: [], text: match[6], url: match[7] });
-    } else {
-        pushTextWithAutoLinks(spans, `[${match[6]}]`, []);
-    }
+function consumeCodeSpan(spans: MarkdownSpan[], source: string, index: number): number | null {
+    const end = findUnescaped(source, '`', index + 1);
+    if (end === -1) return null;
+    spans.push({ styles: ['code'], text: source.slice(index + 1, end), url: null });
+    return end + 1;
 }
 
-function handleMatchedToken(spans: MarkdownSpan[], source: string, match: RegExpExecArray, header: boolean) {
-    if (match[1]) {
-        pushTextWithAutoLinks(spans, match[2], header ? [] : ['bold']);
-    } else if (match[3]) {
-        pushTextWithAutoLinks(spans, match[4], header ? [] : ['italic']);
-    } else if (match[5]) {
-        handleLinkMatch(spans, match);
-    } else if (match[8]) {
-        spans.push({ styles: ['code'], text: match[9], url: null });
-    } else if (match[10]) {
-        handleLatexDisplayMatch(spans, source, match);
-    } else if (match[12]) {
-        handleLatexMatch(spans, source, match);
-    } else if (match[14]) {
-        pushTextWithAutoLinks(spans, match[15], ['strikethrough']);
-    } else if (match[16]) {
-        spans.push({ styles: ['kbd'], text: match[17], url: null });
+function consumeKbdSpan(spans: MarkdownSpan[], source: string, index: number): number | null {
+    if (!source.startsWith('<kbd>', index)) return null;
+    const end = source.indexOf('</kbd>', index + 5);
+    if (end === -1) return null;
+    spans.push({ styles: ['kbd'], text: source.slice(index + 5, end), url: null });
+    return end + 6;
+}
+
+function consumeLink(spans: MarkdownSpan[], source: string, index: number): number | null {
+    const textEnd = findUnescaped(source, ']', index + 1);
+    if (textEnd === -1 || source[textEnd + 1] !== '(') return null;
+    const urlEnd = findUnescaped(source, ')', textEnd + 2);
+    if (urlEnd === -1) return null;
+    spans.push({ styles: [], text: decodeEntities(source.slice(index + 1, textEnd)), url: source.slice(textEnd + 2, urlEnd) });
+    return urlEnd + 1;
+}
+
+function consumeLatex(spans: MarkdownSpan[], source: string, index: number): number | null {
+    if (source.startsWith('$$', index)) {
+        if (isEscapedDollar(source, index) || isPriceLikeDollar(source, index)) return null;
+        const end = findUnescaped(source, '$$', index + 2);
+        if (end === -1 || end === index + 2) return null;
+        spans.push({ styles: [], text: source.slice(index + 2, end), url: null, latex: true, latexDisplay: true });
+        return end + 2;
     }
+    if (source[index] !== '$' || isEscapedDollar(source, index) || isPriceLikeDollar(source, index)) return null;
+    const end = findUnescaped(source, '$', index + 1);
+    if (end === -1 || end === index + 1) return null;
+    const content = source.slice(index + 1, end);
+    if (/^\s|\s$/.test(content)) return null;
+    spans.push({ styles: [], text: content, url: null, latex: true });
+    return end + 1;
+}
+
+function readEscapedLiteral(source: string, index: number): { text: string, end: number } | null {
+    if (source[index] !== '\\' || index + 1 >= source.length) return null;
+    const next = source[index + 1];
+    if (next === '[') {
+        const textEnd = findUnescaped(source, ']', index + 2);
+        if (textEnd !== -1 && source[textEnd + 1] === '(') {
+            const urlEnd = findUnescaped(source, ')', textEnd + 2);
+            if (urlEnd !== -1) {
+                return { text: source.slice(index + 1, urlEnd + 1), end: urlEnd + 1 };
+            }
+        }
+    }
+    if (!ESCAPABLE_PUNCTUATION.has(next)) return null;
+    return { text: next, end: index + 2 };
+}
+
+function consumeToken(spans: MarkdownSpan[], source: string, index: number, header: boolean): number | null {
+    if (source[index] === '`') return consumeCodeSpan(spans, source, index);
+    if (source.startsWith('<kbd>', index)) return consumeKbdSpan(spans, source, index);
+    if (source[index] === '$') return consumeLatex(spans, source, index);
+    if (source.startsWith('~~', index)) return consumeDelimited(spans, source, index, '~~', ['strikethrough'], header);
+    if (source.startsWith('***', index)) return consumeDelimited(spans, source, index, '***', ['bold', 'italic'], header);
+    if (source.startsWith('**', index)) return consumeDelimited(spans, source, index, '**', ['bold'], header);
+    if (source[index] === '*') return consumeDelimited(spans, source, index, '*', ['italic'], header);
+    if (source[index] === '[') return consumeLink(spans, source, index);
+    return null;
 }
 
 export function parseMarkdownSpans(markdown: string, header: boolean) {
     const spans: MarkdownSpan[] = [];
     let lastIndex = 0;
-    let match: RegExpExecArray | null;
-    pattern.lastIndex = 0;
+    let index = 0;
 
-    while ((match = pattern.exec(markdown)) !== null) {
-        const plainText = markdown.slice(lastIndex, match.index);
-        if (plainText) {
-            pushTextWithAutoLinks(spans, plainText, []);
+    const flushPlainText = (end: number) => {
+        if (end > lastIndex) {
+            pushTextWithAutoLinks(spans, markdown.slice(lastIndex, end), []);
         }
-        handleMatchedToken(spans, markdown, match, header);
-        lastIndex = pattern.lastIndex;
+    };
+
+    while (index < markdown.length) {
+        const escaped = readEscapedLiteral(markdown, index);
+        if (escaped) {
+            flushPlainText(index);
+            pushPlainText(spans, escaped.text, []);
+            index = escaped.end;
+            lastIndex = index;
+            continue;
+        }
+        if (!isEscaped(markdown, index)) {
+            const tokenSpans: MarkdownSpan[] = [];
+            const consumed = consumeToken(tokenSpans, markdown, index, header);
+            if (consumed !== null) {
+                flushPlainText(index);
+                spans.push(...tokenSpans);
+                index = consumed;
+                lastIndex = index;
+                continue;
+            }
+        }
+        index++;
     }
 
     if (lastIndex < markdown.length) {

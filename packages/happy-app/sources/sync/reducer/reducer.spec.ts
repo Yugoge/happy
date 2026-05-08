@@ -3042,5 +3042,68 @@ describe('reducer', () => {
                 }
             }
         });
+
+        it('keeps Codex spawn_agent sidechain linkage and displayable final result', () => {
+            const state = createReducer();
+            const result = reducer(state, [
+                {
+                    id: 'codex-parent-msg',
+                    localId: null,
+                    createdAt: 1000,
+                    role: 'agent',
+                    isSidechain: false,
+                    content: [{
+                        type: 'tool-call',
+                        id: 'session-subagent-1',
+                        name: 'functions.spawn_agent',
+                        input: {
+                            prompt: 'Inspect Codex transcript',
+                            sessionSubagent: 'session-subagent-1',
+                        },
+                        description: 'Inspect Codex transcript',
+                        uuid: 'codex-parent-uuid',
+                        parentUUID: null
+                    }]
+                },
+                {
+                    id: 'codex-child-text',
+                    localId: null,
+                    createdAt: 1100,
+                    role: 'agent',
+                    isSidechain: true,
+                    content: [{
+                        type: 'text',
+                        text: 'Child tool output',
+                        uuid: 'codex-child-text-uuid',
+                        parentUUID: 'session-subagent-1'
+                    }]
+                },
+                {
+                    id: 'codex-parent-result',
+                    localId: null,
+                    createdAt: 1200,
+                    role: 'agent',
+                    isSidechain: false,
+                    content: [{
+                        type: 'tool-result',
+                        tool_use_id: 'session-subagent-1',
+                        content: 'Final child answer',
+                        is_error: false,
+                        uuid: 'codex-result-uuid',
+                        parentUUID: null
+                    }]
+                }
+            ]);
+
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].kind).toBe('tool-call');
+            if (result.messages[0].kind === 'tool-call') {
+                expect(result.messages[0].tool.name).toBe('functions.spawn_agent');
+                expect(result.messages[0].tool.state).toBe('completed');
+                expect(result.messages[0].tool.result).toBe('Final child answer');
+                expect(result.messages[0].children).toHaveLength(1);
+                expect(result.messages[0].children[0].kind).toBe('agent-text');
+            }
+        });
     });
 });

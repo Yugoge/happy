@@ -1,0 +1,38 @@
+{
+  "spec_id": "spec-20260502-162334",
+  "agent_type": "user",
+  "instance_id": 2,
+  "generation": 1,
+  "agent_id": "a3196d1d615d55069",
+  "is_running": true,
+  "checked_in_at": "2026-05-02T19:55:41Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "On REQUEST from dev for S4: run /root/bin/safe-daemon-restart.sh dev --reason 'load codex rendering + raw events'",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by aa96ca8db7db273e6 at 2026-05-02T16:50:11Z",
+      "updated_at": "2026-05-02T16:50:11Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Confirm S6 attachment scope decision (non-image first-class OR images-only with explicit documentation) when dev surfaces it",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by aa96ca8db7db273e6 at 2026-05-02T16:50:15Z",
+      "updated_at": "2026-05-02T16:50:15Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Validate that the four fix groups become visible in the live dev runtime ('彻底没有实现需求' verdict invalidated)",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by aa96ca8db7db273e6 at 2026-05-02T16:50:18Z",
+      "updated_at": "2026-05-02T16:50:18Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/user-report-20260502-162334.json",
+    "exists": false,
+    "validated_at": "2026-05-02T16:50:18Z"
+  }
+}

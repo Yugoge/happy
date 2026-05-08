@@ -17,6 +17,8 @@ interface CodexPatchViewProps {
 
 type CodexPatchEntry = {
     diff?: string;
+    unified_diff?: string;
+    type?: string;
     kind?: {
         type?: string;
         move_path?: string | null;
@@ -65,8 +67,11 @@ function getPatchTexts(change: CodexPatchEntry): { oldText: string; newText: str
         };
     }
 
-    if (typeof change.diff === 'string') {
-        const parsed = parseUnifiedDiff(change.diff);
+    const diff = typeof change.diff === 'string' ? change.diff
+        : typeof change.unified_diff === 'string' ? change.unified_diff
+        : null;
+    if (diff) {
+        const parsed = parseUnifiedDiff(diff);
         return {
             oldText: parsed.oldText,
             newText: parsed.newText,
@@ -77,19 +82,48 @@ function getPatchTexts(change: CodexPatchEntry): { oldText: string; newText: str
 }
 
 function getPatchKindLabel(change: CodexPatchEntry): string | null {
-    switch (change.kind?.type) {
+    switch (change.kind?.type ?? change.type) {
         case 'add':
             return 'new';
         case 'delete':
             return 'delete';
         case 'update':
-            return change.kind.move_path ? 'move' : 'edit';
+            return change.kind?.move_path ? 'move' : 'edit';
         default:
             return null;
     }
 }
 
 export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata }) => {
+    const { theme } = useUnistyles();
+    const entries = Object.entries(getPatchChanges(tool.input) ?? {});
+
+    if (entries.length === 0) {
+        return null;
+    }
+
+    return (
+        <ToolSectionView>
+            <View style={styles.summaryContainer}>
+                {entries.map(([file, change]) => {
+                    const filePath = resolvePath(file, metadata);
+                    const kindLabel = getPatchKindLabel(change) ?? 'edit';
+                    return (
+                        <View key={file} style={styles.summaryRow}>
+                            <Octicons name="file-diff" size={16} color={theme.colors.textSecondary} />
+                            <Text style={styles.summaryFile} numberOfLines={1} ellipsizeMode="middle">
+                                {filePath}
+                            </Text>
+                            <Text style={styles.kindLabel}>{kindLabel}</Text>
+                        </View>
+                    );
+                })}
+            </View>
+        </ToolSectionView>
+    );
+});
+
+export const CodexPatchViewFull = React.memo<CodexPatchViewProps>(({ tool, metadata }) => {
     const { theme } = useUnistyles();
     const showLineNumbersInToolViews = useSetting('showLineNumbersInToolViews');
     const { input } = tool;
@@ -141,6 +175,23 @@ const styles = StyleSheet.create((theme) => ({
     patchContainer: {
         backgroundColor: theme.colors.surface,
         overflow: 'hidden',
+    },
+    summaryContainer: {
+        gap: 4,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+    },
+    summaryFile: {
+        fontSize: 13,
+        color: theme.colors.text,
+        fontFamily: 'monospace',
+        flex: 1,
+        minWidth: 0,
     },
     fileHeader: {
         paddingHorizontal: 16,

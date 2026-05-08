@@ -549,6 +549,9 @@ export const pt: TranslationStructure = {
             other: 'Outro',
             otherDescription: 'Digite sua própria resposta',
             otherPlaceholder: 'Digite sua resposta...',
+        },
+        attachment: {
+            staleAdvisory: 'Acione novamente nesta ou em uma nova sessão para ver a pré-visualização inline.',
         }
     },
 

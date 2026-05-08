@@ -1,7 +1,7 @@
 # tools
 
-*Last updated: 2026-04-26T08:34:14Z*
-**Total entries**: 31
+*Last updated: 2026-05-07T17:45:47Z*
+**Total entries**: 33
 **Convention**: kebab
 
 ## Tree
@@ -12,10 +12,12 @@ tools/
 │   ├── `AskUserQuestionView.tsx` - tsx file
 │   ├── `BashView.tsx` - tsx file
 │   ├── `BashViewFull.tsx` - tsx file
+│   ├── `CodexAttachmentView.tsx` - tsx file
 │   ├── `CodexBashView.tsx` - tsx file
 │   ├── `CodexDiffView.tsx` - tsx file
 │   ├── `CodexParallelView.tsx` - tsx file
 │   ├── `CodexPatchView.tsx` - tsx file
+│   ├── `CodexPlanView.tsx` - tsx file
 │   ├── `CodexSubagentView.tsx` - tsx file
 │   ├── `EditView.tsx` - tsx file
 │   ├── `EditViewFull.tsx` - tsx file

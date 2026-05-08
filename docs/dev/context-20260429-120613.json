@@ -1,0 +1,305 @@
+{
+  "request_id": "20260429-120613",
+  "task_id": "20260429-120613",
+  "iteration": 2,
+  "iteration_2_timestamp": "2026-04-29T12:50:00+00:00",
+  "iteration_2_summary": "QA verdict on iteration 1 was 'fail' with OBJ-1 (critical: broken safe-daemon-restart.sh recovery path) and OBJ-2 (major: fork-divergence asymmetry not addressed). Both objections resolved in this iteration. OBJ-1: M14b runtime test-and-degrade added; M8 and M14-P3 route through daemon_restart_hint() which selects between the (currently nonexistent) safe-daemon-restart.sh and the verified-extant systemctl form (happy-daemon{,-jade,-qijie}.service) plus /root/bin/happy-restart.sh shortcut. OBJ-2: M15 success epilogue adds Block 2 (fork-divergence advisory) printing the AHEAD count from git rev-list, naming forward paths (a) force-push and (b) tag-based forward roll, with worked example and copy-string (no auto-execute). M15b adds a code-comment section header. New ACs: AC16 (runtime test-and-degrade) and AC17 (fork-divergence advisory). AC4 revised to allow either recovery branch. Technical Hints precondition rewritten — safe-daemon-restart.sh availability is no longer required.",
+  "timestamp": "2026-04-29T12:06:13+00:00",
+  "requirement": {
+    "original": "直接开始开发，然后开发完了之后我们设计两个虚拟仓库测试",
+    "clarified": "Implement scripts/rollback.sh as the symmetric companion to scripts/deploy.sh. Defer two-virtual-repo end-to-end testing to a follow-up cycle.",
+    "what": "scripts/rollback.sh — a hardened bash script that restores /root/happy to a previously-tagged pre-deploy snapshot and forces the three production daemons (default / jade / qijie) onto that older code via global install + bounded polling.",
+    "why": "deploy.sh's tail epilogue (line 386) advertises `bash $(dirname \"$0\")/rollback.sh $PRE_TAG` as the recovery path; the file does not yet exist. Without it, deploy.sh's safety story is incomplete: a deploy that ships and then misbehaves has no scripted rollback procedure.",
+    "where": ["scripts/rollback.sh"],
+    "scope": {
+      "included": [
+        "scripts/rollback.sh implementation per M1-M19 of ba-spec-20260429-120613.md",
+        "Static AC checks (bash -n, shellcheck if available, grep audits per AC11/AC15)",
+        "scripts/INDEX.md and scripts/README.md auto-regeneration on commit (handled by doc-sync hook)"
+      ],
+      "excluded": [
+        "Two-virtual-repo end-to-end testing (W6, deferred to follow-up cycle per user)",
+        "Edits to scripts/deploy.sh (W7, codex review point 7)",
+        "scripts/_common.sh helper extraction (W8, codex review point 7)",
+        "Database migration rollback (W1)",
+        "Docker image rollback (W2)",
+        "/root/bin/ shell-script rollback (W3)",
+        "Remote-push automation (W4, M15)",
+        "Live end-to-end execution by any agent (constraint: only the user runs this in their TTY against /root/happy)"
+      ]
+    },
+    "success_criteria": [
+      "scripts/rollback.sh exists, parses with bash -n",
+      "All AC1-AC17 from ba-spec-20260429-120613.md hold under static inspection (AC16/AC17 added in iteration 2)",
+      "deploy.sh is byte-identical to its prior commit (AC15)",
+      "Header comment block enumerates DB / Docker / /root/bin/ as out-of-scope (AC11)",
+      "Script body contains no docker/psql/prisma migrate/pg_restore invocations (AC11)",
+      "Script body contains no `git push` invocation (AC9; reaffirmed AC17)",
+      "Script body contains no `git fetch` invocation (AC17 — divergence advisory must NOT auto-fetch)",
+      "Phase-aware abort messages present for P0/P1/P2/P3 (AC12)",
+      "Daemon-restart hint emits both branches in source: safe-daemon-restart.sh (forward-compat) AND systemctl restart happy-daemon{,-jade,-qijie}.service (current state) — AC16 (NEW iter2)",
+      "Success epilogue includes Block 2 fork-divergence advisory naming paths (a) and (b) with copy-string (no auto-execute) — AC17 (NEW iter2)",
+      "Script body contains a comment block titled 'Fork divergence after rollback' (M15b, NEW iter2)"
+    ],
+    "constraints": [
+      "Hook-blocked from agent context: npm install -g, git reset --hard, git push, kill PIDs, /usr/bin/happy",
+      "Agent validation limited to: bash -n, shellcheck, static greps, code review",
+      "Forbidden bypasses: no nohup/setsid/systemd-run wrappers, no /tmp/*.sh write-and-execute, no editing of hooks",
+      "set -uo pipefail (NOT set -e); explicit `if !` + `|| abort` idioms"
+    ]
+  },
+  "root_cause_analysis": {
+    "symptom": "scripts/rollback.sh does not exist; deploy.sh:386 references it as the recovery path",
+    "root_cause": "Prior cycle implemented deploy.sh and codex hardening but did not deliver the companion rollback.sh — a deliberate split, not a regression. The current cycle closes that split.",
+    "root_cause_commit": "N/A — new feature, not a regression. deploy.sh was added in the prior cycle (recent commit; not bisected because this is greenfield work, not a regression bug).",
+    "why_introduced": "deploy.sh shipped first as the higher-traffic operation; rollback was a known-deferred companion.",
+    "why_problematic": "deploy.sh advertises rollback.sh in its success epilogue; if a deploy misbehaves, the operator is told to run a script that doesn't exist.",
+    "timeline": "Prior cycle: deploy.sh shipped (387 lines, 15 codex findings addressed). This cycle: rollback.sh (~230-310 lines, 12 codex review findings addressed).",
+    "affected_files": ["scripts/rollback.sh (NEW)", "scripts/INDEX.md (auto-regenerated on commit)", "scripts/README.md (auto-regenerated on commit)"],
+    "evidence_type": "observed",
+    "observations": [
+      "scripts/rollback.sh absent (observed: ls /dev/shm/dev-workspace/happy-dev/scripts/ at 2026-04-29 12:06)",
+      "scripts/deploy.sh:386 reads `bash $(dirname \"$(realpath \"$0\")\")/rollback.sh $PRE_TAG` (observed: Read full deploy.sh)",
+      "Three daemon home dirs each have daemon.state.json:.startedWithCliVersion=0.14.0-1 (observed: jq probe of /root/.happy*/daemon.state.json)",
+      "/var/log/happy-deploy.log does not exist yet — no deploy.sh run has occurred (observed: stat returned ENOENT)",
+      "Existing pre-deploy tags in /root/happy do NOT yet match the deploy.sh format `stable/YYYY-MM-DD-HHMMSS-<sha>-pre-deploy` (observed: git for-each-ref output: stable/2026-03-23-F1-F2, stable/2026-03-25-mobile-table-fix, stable/2026-04-09-prod-baseline)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["开发", "rollback.sh", "deploy.sh"],
+    "localization_evidence": "deploy.sh:386 references rollback.sh; ls of scripts/ shows file absent. The dev subagent will run bash -n on the produced file and grep audits for AC11/AC15.",
+    "located_source": "scripts/rollback.sh (to be created)",
+    "localization_blocked": null
+  },
+  "diagnosis_layer": "L5",
+  "requirements_decomposition": [
+    {"id": "R1", "source_phrase": "直接开始开发", "acceptance_criterion": "scripts/rollback.sh exists and satisfies M1-M19 of ba-spec-20260429-120613.md"},
+    {"id": "R2", "source_phrase": "开发完了之后我们设计两个虚拟仓库测试", "acceptance_criterion": "Virtual-repo end-to-end testing is OUT-OF-SCOPE this cycle (W6); a follow-up cycle handles it"}
+  ],
+  "component_chain": [
+    {
+      "file": "scripts/deploy.sh",
+      "line_range": "1-387",
+      "role": "reference / pattern source — the companion script whose helpers, constants, and idioms rollback.sh must duplicate verbatim",
+      "imports_from": ["leaf"],
+      "evidence": "Read /dev/shm/dev-workspace/happy-dev/scripts/deploy.sh (387 lines)",
+      "verified_via": "Read"
+    },
+    {
+      "file": "scripts/rollback.sh",
+      "line_range": "1-310 (to be created)",
+      "role": "the new artifact",
+      "imports_from": ["scripts/deploy.sh (pattern only — duplicated, not sourced)"],
+      "evidence": "Glob for scripts/rollback.sh returned no match",
+      "verified_via": "grep"
+    },
+    {
+      "file": "/root/happy/.git/refs/tags/stable/*",
+      "line_range": "N/A (git-tag namespace)",
+      "role": "input space — rollback.sh's argument is a tag from this namespace; pre-deploy tags follow `stable/YYYY-MM-DD-HHMMSS-<sha>-pre-deploy`",
+      "imports_from": ["leaf"],
+      "evidence": "git for-each-ref --format='%(refname:short) %(objecttype) %(creatordate:short)' 'refs/tags/stable/*' returned 3 existing tags (none in the new format)",
+      "verified_via": "grep"
+    },
+    {
+      "file": "/root/.happy/daemon.state.json",
+      "line_range": "JSON object",
+      "role": "verification source — rollback.sh polls .startedWithCliVersion to confirm daemon migration",
+      "imports_from": ["leaf"],
+      "evidence": "jq probe: {startedWithCliVersion: \"0.14.0-1\", pid: 334850, httpPort: 40693, lastHeartbeat: \"4/29/2026, 12:08:02 PM\"}",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.happy-jade/daemon.state.json",
+      "line_range": "JSON object",
+      "role": "verification source (jade daemon)",
+      "imports_from": ["leaf"],
+      "evidence": "jq probe: {startedWithCliVersion: \"0.14.0-1\", pid: 4801, httpPort: 46117}",
+      "verified_via": "Read"
+    },
+    {
+      "file": "/root/.happy-qijie/daemon.state.json",
+      "line_range": "JSON object",
+      "role": "verification source (qijie daemon)",
+      "imports_from": ["leaf"],
+      "evidence": "jq probe: {startedWithCliVersion: \"0.14.0-1\", pid: 4799, httpPort: 43771}",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- CLI / build-CI; cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, or (4) screenshot evidence"
+  },
+  "evidence": {
+    "observed": "User stated `直接开始开发，然后开发完了之后我们设计两个虚拟仓库测试`. The orchestrator's prompt confirms scripts/rollback.sh is missing and deploy.sh:386 references it.",
+    "measured": {
+      "value": "scripts/rollback.sh does not exist",
+      "location": "/dev/shm/dev-workspace/happy-dev/scripts/ (ls output: deploy.sh, INDEX.md, postinstall.cjs, pretool-block-production.sh, README.md, release.cjs)"
+    },
+    "expected": {
+      "value": "scripts/rollback.sh exists and satisfies M1-M19 + AC1-AC15",
+      "source": "scripts/deploy.sh:386 advertises the companion; the orchestrator prompt's mermaid flowchart enumerates the gate sequence"
+    },
+    "gap": "1 file absent; ~230-310 lines to author"
+  },
+  "scope_expansion": {
+    "search_pattern": "rollback.sh|scripts/rollback",
+    "search_scope": "/dev/shm/dev-workspace/happy-dev/**",
+    "user_reported": ["scripts/rollback.sh"],
+    "additional_found": ["scripts/deploy.sh:25", "scripts/deploy.sh:386"],
+    "all_occurrences": [
+      "scripts/rollback.sh (NEW, this cycle)",
+      "scripts/deploy.sh:25 (header reference; documentation, no edit needed)",
+      "scripts/deploy.sh:386 (success-epilogue reference; documentation, no edit needed)",
+      "scripts/INDEX.md (auto-regenerated on commit by doc-sync hook)",
+      "scripts/README.md (auto-regenerated on commit by doc-sync hook)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "scripts/deploy.sh — read in full (387 lines) in this session. All 15 codex findings cataloged in its header comment. The mermaid `rollback.sh 内部流程` flowchart in the orchestrator's prompt enumerates the gate sequence.",
+    "url_or_location": "/dev/shm/dev-workspace/happy-dev/scripts/deploy.sh:1-387",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "no project CLAUDE.md role table (this is a CLI/build-CI artifact, not a UI surface; role tables are for design-system tokens which do not apply)"
+    }
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L5",
+      "differs_from_all_priors": true,
+      "rationale": "Greenfield work. Grep-matched specs (ba-spec-20260425-104643/122518/redev-final/redev-fix) all addressed unrelated domains (harness hook isolation, /redev settings registration, awk bash safety hooks, recovery-script-mtime tuning). None addressed dev→prod CLI source promotion or daemon-aware rollback. Contract D not triggered."
+    }
+  },
+  "context": {
+    "codebase_state": "Working tree dirty (32 modified .ts/.tsx files in packages/happy-app/sources/) — unrelated to this cycle's deliverables. dev subagent must NOT touch those files.",
+    "recent_commits": "41900760 chore: remove tracked worktree dir refs ...; 70336397 docs(dev): add close-report ...; 7745e5d5 chore(docs): track all parallel-cycle artifacts ...; 27733ff6 feat(cycle6): land 5.3/5.4-5/5.8/5.16/5.17/5.18 ...",
+    "file_contents": {
+      "scripts/deploy.sh": "387 lines, 15 codex findings cataloged in header. Helpers (log/abort/confirm) at lines 62-68. Constants (PROD_ROOT/RECOVERY_SCRIPT/DAEMON_AUTO_UPGRADE_WAIT_SECONDS/DAEMON_HOMES) at lines 33-56. Daemon verification loop at lines 313-329."
+    },
+    "dependencies": {
+      "system_binaries_required": ["bash", "git", "jq", "npm", "node"],
+      "shell_features_required": ["bash 4.x+ for arrays / regex matching"],
+      "external_scripts_invoked": ["/root/bin/happy-session-recovery.sh save (M6)"]
+    },
+    "environment": {
+      "exec_context": "user TTY against /root/happy (NOT agent context)",
+      "log_path": "/var/log/happy-rollback.log (writable by root only)"
+    }
+  },
+  "development_approach": {
+    "strategy": "Author scripts/rollback.sh by mirroring scripts/deploy.sh's structure with rollback-specific gates: (1) reuse helpers + constants verbatim; (2) replace deploy.sh's argument parser with the strict tag-name regex + annotated-tag check + check-ref-format; (3) add M3b git-state gate; (4) tighten M5 untracked-file policy for npm install -g paths; (5) make M6 recovery snapshot mandatory (no skip); (6) add M7 PRE_ROLLBACK capture + TARGET_VERSION read from tag (BEFORE reset); (7) add M8 same-version no-op trap with operator-path message; (8) S2 safety tag with collision-resistant naming; (9) M10 post-reset HEAD verification; (10) replace deploy.sh's single-sleep daemon verification with M12 bounded polling that exits 1 on stale-after-deadline; (11) Phase P0/P1/P2/P3 abort message routing per M14; (12) success epilogue per M15 (no copyable push command); (13) static body audit per M17/AC11.",
+    "files_to_create": ["scripts/rollback.sh"],
+    "files_to_modify": [],
+    "validation_approach": "Agent-side: bash -n scripts/rollback.sh, shellcheck if available, grep audits for AC11/AC15, code review against this spec. Live execution by USER ONLY in their TTY against /root/happy (after at least one prior deploy.sh run has produced a stable/...-pre-deploy tag). The dev subagent MUST NOT execute the script."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": false,
+    "_no_hardcoded_values_rationale": "This standard targets app/library code where magic numbers should be named constants. A bash deploy/rollback script's hardcoded paths (/root/happy, /root/.happy*, /var/log/*) and timeouts (90s) ARE the contract — they are operational constants, not magic numbers, and naming them as bash variables (which the spec already does: PROD_ROOT, DAEMON_HOMES, DAEMON_AUTO_UPGRADE_WAIT_SECONDS) IS the enforcement.",
+    "yaml_frontmatter_description_only": false,
+    "_yaml_frontmatter_rationale": "bash script, no YAML frontmatter applicable",
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": false,
+    "_git_root_cause_rationale": "greenfield work, no regression to bisect"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Straightforward bash script; the reference (deploy.sh) is in-tree and the codex review covered the design space. No external research needed."
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex returned 12 substantive findings (all in-scope, none nitpicks): 1) AC8 contradicts M18 — stale daemons must be exit 1, not exit 0; 2) Missing git-state gate (no merge/rebase/cherry-pick/branch=main check); 3) M8 silent-no-op message should include operator path (safe-daemon-restart.sh); 4) Daemon polling should be bounded (10s tick, 90s deadline) not single sleep; 5) AC11 header docs insufficient — add static body audit AC; 6) Recovery-script hook-bypass boundary needs sharper agent-forbidden wording; 7) Optional deploy.sh polish is scope drift — remove entirely (also M19 typo fixed); 8) S2 safety tag collision risk — add existence check + random suffix; 9) Untracked-file policy too permissive — strict reject under packages/happy-cli/** + top-level package files; 10) Tag validation — add git check-ref-format; tag-message verification deferred to Could-have C3; 11) Manual remote-push epilogue dangerous (force-push footgun) — remove copyable command; 12) Abort instructions need phase-awareness (P0/P1/P2/P3).",
+    "feedback_incorporated": "All 12 findings classified in_scope_real_bug or in_scope_minor; none rejected. Spec was rewritten: M2 strengthened (check-ref-format), M3b added (git-state gate), M5 tightened (path-specific untracked rejection), M8 message extended (operator path), M11 split from M12 (M12 now is bounded polling), M14 made phase-aware (P0/P1/P2/P3), M15 removed copyable push command, M17 added (static body audit), M19 added (exit codes — was M18 in prior draft, fixing the dangling 'M19' forward-reference codex flagged), S2 collision avoidance, AC3b/AC8(rev)/AC9(rev)/AC11(rev)/AC12/AC13/AC14/AC15 added, W7/W8 added (no deploy.sh edits, no _common.sh extraction). Optional deploy.sh polish section deleted entirely."
+  },
+  "qa_iteration_2": {
+    "qa_report_path": "docs/dev/ba-qa-report-20260429-120613.json",
+    "qa_verdict_iter1": "fail",
+    "objections_addressed": [
+      {
+        "id": "OBJ-1",
+        "severity": "critical",
+        "qa_finding": "M8/M14-P3/AC4 referenced /root/bin/safe-daemon-restart.sh which does not exist on this server; only /root/bin/safe-swap-drain.sh matches the safe* glob. BA's iteration-1 precondition required this nonexistent file.",
+        "investigation_evidence": {
+          "method": "ls /root/bin/ (full directory listing) + grep for happy* and safe* + ls /etc/systemd/system/happy-daemon*",
+          "files_in_root_bin_relevant_to_daemon_restart": [
+            "/root/bin/happy-restart.sh (5710 bytes, EXTANT — closest equivalent: stops/starts all 3 daemons + Docker, verifies PIDs)",
+            "/root/bin/happy-claude-cleanup.sh (18694 bytes, EXTANT — orphan cleanup, NOT a restart path)",
+            "/root/bin/happy-readiness-probe.sh (1631 bytes, EXTANT — probe only, NOT a restart path)",
+            "/root/bin/safe-swap-drain.sh (14854 bytes, EXTANT — swap drain, NOT a daemon restart path)"
+          ],
+          "files_in_root_bin_NOT_extant": [
+            "/root/bin/safe-daemon-restart.sh (DOES NOT EXIST — only forward-referenced in CLAUDE.md and prior bak ba-specs)"
+          ],
+          "verified_extant_systemd_units": [
+            "/etc/systemd/system/happy-daemon.service",
+            "/etc/systemd/system/happy-daemon-jade.service",
+            "/etc/systemd/system/happy-daemon-qijie.service"
+          ]
+        },
+        "resolution_path_chosen": "Hybrid of QA's options 1 + 3 — substitute concrete extant systemctl invocations AND add a runtime test-and-degrade (M14b daemon_restart_hint() function). Centralizes hint emission so M8 and M14-P3 share the same logic. Forward-compat: if safe-daemon-restart.sh is later authored, the runtime test [-x] will pick it up automatically without re-editing rollback.sh.",
+        "spec_changes": [
+          "M8 rewritten — silent-no-op operator path now references happy-restart.sh + systemctl unit names; preserves a forward-compat conditional for safe-daemon-restart.sh",
+          "M14-P3 recovery hint rewritten with two-branch test-and-degrade",
+          "M14b NEW — daemon_restart_hint() function definition; centralizes the test-and-degrade logic",
+          "AC4 revised — allows either recovery branch; failure only when systemctl form is missing entirely",
+          "AC16 NEW — runtime test-and-degrade enforcement (both branches in source, correct runtime selection)",
+          "Technical Hints precondition rewritten — safe-daemon-restart.sh availability NOT required"
+        ]
+      },
+      {
+        "id": "OBJ-2",
+        "severity": "major",
+        "qa_finding": "deploy.sh:363 pushes to fork remote (atomic main + 2 tags); rollback.sh:M15 forbids push. Asymmetry leaves fork/main AHEAD of /root/happy/main after a successful local rollback. The next deploy.sh invocation does git fetch fork (line 144) and the bad commits become candidates for re-merge. BA did not document this asymmetry in iteration 1.",
+        "investigation_evidence": {
+          "method": "grep -n 'EXPECTED_REMOTE_NAME\\|fork' scripts/deploy.sh + Read deploy.sh:140-371",
+          "deploy_sh_push_site": "scripts/deploy.sh:362-371 — `git push --atomic fork main:main refs/tags/$PRE_TAG:refs/tags/$PRE_TAG refs/tags/$DEPLOY_TAG:refs/tags/$DEPLOY_TAG`",
+          "deploy_sh_fetch_site": "scripts/deploy.sh:143-144 — `git fetch fork` runs at the START of every deploy.sh invocation (Bug #10 lite section)",
+          "remote_name_constant": "scripts/deploy.sh:34 — EXPECTED_REMOTE_NAME=\"fork\"",
+          "worked_example": {
+            "before_rollback": {
+              "head": "0a1b2c3d (bad commit, just deployed)",
+              "fork_main": "0a1b2c3d (just pushed by deploy.sh:363)",
+              "pre_tag": "refs/tags/stable/2026-04-29-103045-9z8y7x6w-pre-deploy → 9z8y7x6w (good)"
+            },
+            "after_rollback": {
+              "head": "9z8y7x6w (= PRE_TAG, set by git reset --hard)",
+              "fork_main": "0a1b2c3d (UNCHANGED — rollback.sh did not push)",
+              "git_log_HEAD_to_fork_main": "0a1b2c3d (1 commit on fork, not on local; THIS is the divergence)",
+              "git_log_fork_main_to_HEAD": "(empty — local is strictly behind fork)",
+              "divergence_direction": "fork_main is 1 commit AHEAD of HEAD"
+            }
+          }
+        },
+        "resolution_path_chosen": "Add Block 2 fork-divergence advisory to M15 success epilogue + M15b code-comment section. Block 2 prints the AHEAD count from git rev-list (no auto-fetch — uses last known fetch state), enumerates two forward paths (force-push (a), tag-based forward roll (b)), prints non-executing copy-string for path (a), and gives a recommendation. Script does NOT auto-execute either path.",
+        "spec_changes": [
+          "M15 split into Block 1 (no-push warning, carry-forward) and Block 2 (fork-divergence advisory, NEW)",
+          "M15b NEW — code-comment section titled 'Fork divergence after rollback' for future maintainers",
+          "AC17 NEW — enforces Block 2 content (literal AHEAD-count string, two paths with copy-string, recommendation, no auto-fetch/auto-push)"
+        ],
+        "advisory_literal_text_excerpt": "fork/main is now AHEAD of HEAD by ${DIVERGENCE_AHEAD} commit(s). The bad commit(s) you just rolled away from are still on the fork. Until they are removed from the fork, the next deploy.sh invocation in /root/happy will see them via 'git fetch fork' and they may re-enter your tree."
+      }
+    ],
+    "qa_carry_forward_unchanged": [
+      "M2 tag regex (matches deploy.sh emission format)",
+      "All 9 deploy.sh line citations (byte-accurate)",
+      "3 daemon home dirs verified",
+      "8 codex real-bug findings → M-section requirements",
+      "W6 deferral of two-virtual-repo testing",
+      "W7/W8 (no deploy.sh polish, no _common.sh extraction)",
+      "M14 phase-aware abort messages (P0/P1/P2/P3)",
+      "M12 polling parameters (90s deadline / 10s tick)"
+    ]
+  },
+  "specialists_assessed": {
+    "ui_specialist": "SKIP — bash ops script, no UI surface",
+    "architect": "SKIP — architecture established in prior cycle (deploy.sh + codex review); rollback.sh is symmetric implementation, no new structural decisions",
+    "product_owner": "SKIP — completion criterion is operationally defined (mirror deploy.sh's safety pattern for the rollback path)",
+    "user": "SKIP — internal operator tool, no end-user UX"
+  }
+}

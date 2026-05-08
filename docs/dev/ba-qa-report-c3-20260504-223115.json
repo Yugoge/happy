@@ -1,0 +1,98 @@
+{
+  "request_id": "c3-20260504-223115",
+  "task_id": "c3-20260504-223115",
+  "mode": "ba_validation",
+  "concern": "C3",
+  "verified_at": "2026-05-04T22:50Z",
+  "verdict": "fail",
+  "objections": [
+    {
+      "dimension": "investigation_completeness",
+      "claim": "BA spec R1 (Bash gate policy reversal) and AC1/AC2 cover the systemctl verb set {stop,restart,disable,enable}, while the wrapper-class rule R2 includes the broader verb set {restart,stop,disable,enable,reload,kick,cycle,bounce,hup}.",
+      "problem": "Coverage gap on direct (non-wrapper) systemctl invocations using verbs OUTSIDE {stop,restart,disable,enable}. Specifically: `systemctl reload happy-daemon-dev`, `systemctl kill happy-daemon-dev` (with or without --signal=), `systemctl kill -s SIGTERM happy-daemon-dev`, `systemctl try-restart happy-daemon-dev`, and `systemctl reload-or-restart happy-daemon-dev` are NOT caught by the policy reversal in R1. The existing systemctl gate at /root/.claude/hooks/pretool-bash-safety.sh:428 uses the regex `systemctl\\s+(stop|restart|disable|enable)\\s+`, so even after BA's R1 (which removes happy-daemon-dev from the whitelist), these alternative verbs would not enter the gate at all and would simply fall through to exit 0. `systemctl reload` is a documented systemd verb that re-reads config and is fully sufficient to disrupt a daemon when paired with HUP-on-reload; `systemctl kill` directly sends signals to the unit's main PID, equivalent to a kill of happy-cli. User said `任何途径` (ANY path); BA's R1+R2 do not close these paths because R2 is gated on co-occurrence with a wrapper token, and `systemctl reload happy-daemon-dev` has neither a wrapper token nor falls under the existing gate's verb set.",
+      "required_evidence": "BA must (a) extend the verb set in the bash hook's systemctl gate from `(stop|restart|disable|enable)` to `(stop|restart|disable|enable|reload|kill|try-restart|reload-or-restart)`, and (b) add an AC (AC2.5 or extend AC1) that explicitly attempts each new verb against happy-daemon-dev and asserts exit 2. Without this, R1 is incomplete vs the user's `任何途径` directive."
+    },
+    {
+      "dimension": "investigation_completeness",
+      "claim": "BA's bypass_surface_inventory accepts architect's 23 Bash + 9 Edit + 4 Agent path enumeration as the universe of bypass surfaces.",
+      "problem": "BA explicitly notes the inventory came from architect (tier_1 specialist trust) and that BA cross-validated some via live Read. However, the inventory does NOT enumerate `systemctl reload`, `systemctl kill`, `systemctl try-restart`, `systemctl reload-or-restart` as separate bypass categories — they are absent from B1-B23. BA inherits architect's gap rather than catching it. This is the kind of completeness check BA exists to perform: cross-reference the user's verbatim `任何途径` against the actual systemd verb manual, not just the architect's curated list.",
+      "required_evidence": "BA must add B24-B27 entries to bypass_surface_inventory.bash_paths covering (24) `systemctl reload happy-daemon-*`, (25) `systemctl kill happy-daemon-*` and `systemctl kill -s <sig> happy-daemon-*`, (26) `systemctl try-restart happy-daemon-*`, (27) `systemctl reload-or-restart happy-daemon-*`. Each must show current=ALLOWED-due-to-verb-not-in-regex, after_C3=BLOCKED-via-extended-verb-set."
+    },
+    {
+      "dimension": "spec_text_vs_execution_drift",
+      "claim": "AC8: 'GIVEN orchestrator (or subagent) is preparing to invoke the Agent tool ... THEN the prompt-purity hook exits with code 2 ... AND stderr contains literal substring BLOCKED: AND daemon-restart-prompt'.",
+      "problem": "Verified by reading /root/.claude/hooks/pretool-orchestrator-prompt-purity.py lines 327-339: the current prompt-purity hook's main() function ALWAYS returns 0, even when a hit is detected (line 339 `return 0` after `_emit_block(category, snippet)`). Furthermore, the existing STDERR_HEADER (line 57-59) reads `⚠ prompt-purity warning: HOW prescription detected (not blocking).` — explicitly self-describing as warning-only. AC8 as written assumes the hook can produce exit code 2 today, but this requires a behavioral change to the hook itself: dev would need to introduce a code path that returns 2 specifically for the new daemon-restart-prescription category while leaving the existing categories at warn-mode 0 (or escalate all categories — broader behavioral change). BA's R6 implicitly acknowledges this asymmetry ('Hard hits → exit 2. Soft hits → exit 0 with WARN'), but AC8's pass condition does not specify how the hit/exit-2 path is constructed in code, nor does it cite the existing warn-only behavior as the baseline that must be modified. QA verifying AC8 by running the current hook with a daemon-restart prompt would observe exit 0 (not 2) and have no clear way to know whether the implementation incorrectly preserved warn-mode or correctly added the exit-2 escalation.",
+      "required_evidence": "BA must update AC8 to read approximately: 'WHEN the prompt contains <regex> ... THEN the hook exits with code 2 (escalating from the existing warn-only mode for the daemon-restart-prescription category specifically; baseline behavior of other categories remains exit 0).' AC8 must also call out that dev's change must NOT regress other categories to exit-0 → exit-2 escalation. Additionally, BA's R6 stipulates the audit log is written for soft hits ('exit 0 with WARN to stderr that lands in audit log'), but the current prompt-purity hook does NOT write to any audit log; dev would need to add audit-log wiring as a new requirement. AC for audit-log writes on soft-hits is missing entirely from AC1-AC15."
+    },
+    {
+      "dimension": "evidence_quality",
+      "claim": "BA evidence section asserts: 'settings.json:237-238 allow-lists Write/Edit(.claude/hooks/**) — Claude can rewrite the very hooks that block it.' (Spec line 40, also context JSON evidence.measured)",
+      "problem": "Verified at /root/.claude/settings.json:237-238 — exact match. HOWEVER, BA's investigation is incomplete because settings.json ALSO contains at lines 195-196 `Bash(systemctl stop:*)` and `Bash(systemctl disable:*)` in the `deny` array, AND at lines 201-202 `Bash(*happy-session-recovery*)` and `Bash(*happy-restart*)` in `deny`. BA's spec narrative repeatedly asserts that the existing settings.json grants Claude wide latitude to restart daemons, but does not document that `systemctl stop` and `systemctl disable` are already in the deny list — a relevant context that affects the precise scope of what R7 (demote .claude/hooks/**) actually changes vs what is already blocked elsewhere. More critically, BA's R7 demotes `.claude/hooks/**` but does NOT propose adding `Bash(systemctl restart:*)` or `Bash(systemctl reload:*)` or `Bash(systemctl kill:*)` to the settings.json deny array as a defense-in-depth layer — these are the verbs that R1's policy reversal targets, yet R7 leaves the settings.json permission table silent on them.",
+      "required_evidence": "BA must (a) acknowledge the existing deny entries at settings.json:195-196 and :201-202 in the evidence section so the scope of new vs existing protection is clear; (b) add a requirement (R7.5 or similar) extending settings.json deny to include `Bash(systemctl restart:*)`, `Bash(systemctl reload:*)`, `Bash(systemctl kill:*)`, `Bash(systemctl try-restart:*)`, `Bash(systemctl reload-or-restart:*)` — settings.json deny is a Claude-internal permission gate distinct from hooks, and adding them creates a redundant defense layer that costs nothing yet hardens against hook-bypass scenarios. Without this, the settings.json table remains a parallel surface BA's spec ignores."
+    },
+    {
+      "dimension": "scope_alignment",
+      "claim": "BA spec R3 'block daemon HTTP /stop' covers `(curl|wget|nc|ncat).*localhost:.*\\b/stop\\b` (and 127.0.0.1) when the URL also references daemon OR when COMMAND mentions happy-daemon.",
+      "problem": "Two scope-alignment issues: (1) R3 covers `nc|ncat` with localhost: but BA's wrapper-class rule R2 already covers `nc/ncat (when targeting localhost: / 127.0.0.1:)` — partial duplication that may produce ambiguous routing of which BLOCKED label is emitted (`daemon-restart-wrapper` vs the new `daemon HTTP /stop` label which BA's R13 stable-substring list does NOT enumerate). The R13 stable-substring list contains `daemon-restart-prohibition`, `daemon-restart-wrapper`, `daemon-restart-prompt`, `daemon-restart-edit`, `daemon-restart-sentinel-write`, `hook-self-modification`, `daemon-restart-allow-decoupled` — but NO label for the daemon-HTTP-/stop block. AC4 says 'stderr contains literal substring BLOCKED:' but does NOT specify a stable label for grep, leaving QA unable to test for a specific stderr substring as the rest of AC1-AC15 do. (2) R3's URL trigger `references daemon` is ambiguous: does the URL string `http://localhost:9000/stop` qualify (no literal 'daemon' word)? BA's R3 says 'when the URL also references daemon OR when the COMMAND text mentions happy-daemon' — the daemon's HTTP control port is just a localhost port number (controlPort in daemon.state.json), so URLs typically look like `http://127.0.0.1:42173/stop` with no 'daemon' word in path/host. BA's R3 OR-condition saves this only when COMMAND mentions 'happy-daemon' as a separate token, but a determined bypass `curl -X POST http://127.0.0.1:42173/stop` from a script context with no 'happy-daemon' word in the surrounding command would slip through.",
+      "required_evidence": "BA must (a) add a `daemon-restart-http-stop` stable substring to R13's list, and update AC4 to assert it; (b) revise R3 to block ANY POST/PUT/DELETE to `localhost:[0-9]+/stop` and `127.0.0.1:[0-9]+/stop` regardless of whether 'daemon' appears in surrounding text — the daemon HTTP /stop endpoint exists by design only at random localhost ports, and there is no legitimate reason for Claude to ever hit `/stop` on a localhost service through any HTTP client; the cost of false-positives is acceptable per the user's `彻底永久根本禁止` directive."
+    },
+    {
+      "dimension": "affected_file_accuracy",
+      "claim": "BA's affected_files include /var/log/claude-daemon-restart-grants.log as 'created by first invocation; permissions 0644 root:root' (development_approach.files_to_create line 386).",
+      "problem": "(a) /var/log is owned by root with 755 perms; first invocation by claude-allow-restart from a non-root TTY will fail to create the file. The CLI's contract says 'owner: user (must run from real TTY)' — the user's TTY may not have root privileges. BA does not specify the user is expected to run the CLI as root or via sudo, which would require the user to type `sudo claude-allow-restart dev` — friction beyond what the user-sim specialist endorsed. (b) The audit-log path is hardcoded to /var/log/...; many production environments restrict writes to /var/log to specific log daemons (rsyslog, journald). A safer default is `~/.claude/logs/claude-daemon-restart-grants.log` (user-owned, follows existing bash-consent.log location pattern at $HOME/.claude/logs/bash-consent.log which BA already references at context JSON line 379).",
+      "required_evidence": "BA must (a) clarify whether claude-allow-restart is expected to be invoked as root (and document so in the CLI contract) OR (b) relocate the audit log to `~/.claude/logs/claude-daemon-restart-grants.log` and update R-block requirements (technical_hints, allow_command_contract.audit_log_format.path, all AC references to /var/log/claude-daemon-restart-grants.log) accordingly. Without this fix, AC9 and AC10 cannot be verified by QA — the audit log entries will not be writable on first invocation."
+    }
+  ],
+  "verified_facts_supporting_ba": [
+    {
+      "fact": "DEV_SYSTEMD=\"happy-daemon-dev\" at /root/.claude/hooks/pretool-bash-safety.sh:35",
+      "verification": "Read of file confirms exact match"
+    },
+    {
+      "fact": "check_systemctl_targets_all_dev at lines 81-105",
+      "verification": "Read of file confirms exact match — function returns 0 when all targets in whitelist"
+    },
+    {
+      "fact": "Generic /allow short-circuit at line 325 runs BEFORE systemctl gate at line 428",
+      "verification": "Read of file confirms line 325 = `check_and_consume_allowlist \"$COMMAND\" && exit 0`, and line 428 begins systemctl block"
+    },
+    {
+      "fact": "happy-restart substring block at lines 345-350",
+      "verification": "Read of file confirms grep -qE 'happy-restart' BLOCKED at lines 345-350"
+    },
+    {
+      "fact": "settings.json:237-238 allows Write/Edit(.claude/hooks/**)",
+      "verification": "Read of file confirms exact lines"
+    },
+    {
+      "fact": "Project hook /dev/shm/dev-workspace/happy-dev/.claude/hooks/pretool-bash-safety.sh is 52 lines and does NOT contain systemctl rules",
+      "verification": "Read of full file confirms 52 lines, only sensitive-file/destructive-disk/recursive-rm/git-push warnings; no systemctl block"
+    },
+    {
+      "fact": "/root/bin/safe-daemon-restart.sh does not exist",
+      "verification": "Glob returned no files"
+    },
+    {
+      "fact": "/root/bin/claude-allow-restart does not yet exist (NEW)",
+      "verification": "Glob returned no files"
+    },
+    {
+      "fact": "Architect report exists at cited path",
+      "verification": "Glob confirmed docs/dev/architect-happy-restart-and-daemon-prohibition-20260504-223115.md exists"
+    },
+    {
+      "fact": "Subagent exemption in prompt-purity hook at line 315 (data.get('agent_id') check)",
+      "verification": "Read confirms _extract_prompt at lines 314-324; line 315 has `if data.get(\"agent_id\"): return None` exempting subagent dispatches. BA cites line 316 (the return None body) which is essentially correct."
+    },
+    {
+      "fact": "happy-daemon-* systemd unit files exist at /etc/systemd/system/",
+      "verification": "Glob confirmed happy-daemon-jade.service, happy-daemon-qijie.service, happy-daemon-dev.service exist"
+    }
+  ],
+  "scope_authorization_check": {
+    "user_authorized_global_hook_edits": true,
+    "ba_scope_includes_global_hook_edits": true,
+    "scope_alignment_verdict": "BA's spec already includes global hook edits as Must Have items M1-M11; no AC depends on a conditional 'if user authorizes' wording. User's Option A grant is consistent with BA's pre-emptive scoping, and no rescoping is needed."
+  },
+  "summary": "BA's investigation correctly localized the root cause (DEV_SYSTEMD whitelist hole + /allow short-circuit + missing Edit/Write coverage of unit files + hook-self-modification permission grant) and produced an evidence-grounded multi-layer defense + grant-channel design. Most factual claims about hook line numbers, file existence, and architectural surface are independently verified. HOWEVER, three substantive objections block PASS: (1) [investigation_completeness] BA inherits architect's verb-set blind spot — the policy reversal in R1 leaves `systemctl reload|kill|try-restart|reload-or-restart` as live bypass paths because the existing systemctl gate regex at line 428 only matches {stop,restart,disable,enable}, and the wrapper-class rule R2 only fires under wrapper-token co-occurrence; (2) [spec_text_vs_execution_drift] AC8 asserts the prompt-purity hook exits 2 on hit, but the live hook's main() always returns 0 (warn-only mode) — dev must change behavior for daemon-restart-prescription specifically and BA must update AC8 to reflect that escalation requirement and add an audit-log AC for soft hits; (3) [affected_file_accuracy] /var/log/claude-daemon-restart-grants.log requires root-owned writes that conflict with the CLI's 'user runs from TTY' contract, breaking AC9/AC10 verifiability. Three additional minor objections strengthen the spec without blocking: settings.json deny extension for systemctl verbs (R7.5), stable substring for daemon-HTTP-/stop label, R3 URL trigger ambiguity. Recommend BA revise spec addressing the three blocking objections before dev cycle starts; the four-layer architecture and CLI grant channel design are otherwise sound."
+}

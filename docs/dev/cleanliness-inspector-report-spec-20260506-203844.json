@@ -1,0 +1,54 @@
+{
+  "request_id": "spec-20260506-203844",
+  "timestamp": "2026-05-07T00:00:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "changed-files",
+  "diff_scope": {
+    "files_modified": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "qa_artifacts_dir": "docs/dev/qa-artifacts/20260507-060647/"
+  },
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB",
+    "notes": [
+      "All 9 diff-scope files are clean. No temp/debug markers (TODO/FIXME/HACK/debugger/console.log) introduced.",
+      "All new modules properly referenced: codexToolRendering imported by 7 call sites; codex sessionProtocolMapper imported by runCodex.ts; dev fixtures route registered in _layout.tsx + dev/index.tsx.",
+      "Spec file follows naming convention spec-YYYYMMDD-HHMMSS.md.",
+      "qa-artifacts/20260507-060647/ contains only the expected verification screenshots (matrix-desktop.png 134KB, matrix-mobile.png 63KB) — no stray temp/build artifacts.",
+      "Pre-existing issues outside diff scope (e.g., spec-20260425-094312.md.bak-* files, root proposal-c1-*.sh.md) are out of scope per spec-20260503-091826 Section 5.4 rule 3 and intentionally not flagged."
+    ]
+  }
+}

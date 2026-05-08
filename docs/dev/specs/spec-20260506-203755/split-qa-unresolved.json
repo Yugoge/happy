@@ -1,0 +1,42 @@
+{
+  "spec_id": "spec-20260506-203755",
+  "rounds_run": 3,
+  "final_verdict": "fail",
+  "exhausted": true,
+  "auto_proceed": true,
+  "verifier_metrics": {
+    "coverage_pct": 100.0,
+    "overlap_max_pct": 16.7,
+    "uniqueness_min_pct": 83.3,
+    "structural": "PASS",
+    "fabrication": "PASS"
+  },
+  "issues": [
+    {
+      "severity": "major",
+      "claim": "CORE BUG CONTENT: ba.md should contain full Section 5 + bug tables + Confirmed-working baseline + Background Explore",
+      "finding": "ba.md (19 lines) contains ONLY Section 5.1 verbatim + section scaffolding. Missing: full Section 5 (5.2/5.3/5.4 absent), all 6 subsystem bug tables, Confirmed-working baseline, Background Explore findings.",
+      "location": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203755/views/ba.md"
+    },
+    {
+      "severity": "major",
+      "claim": "CORE BUG CONTENT: ui-specialist.md should contain visual subsystems A/B/D/F + Section 5.1 + 5.3 + 5.4",
+      "finding": "ui-specialist.md (17 lines) contains ONLY Section 5.3. Missing: visual subsystems A/B/D/F bug tables, Section 5.1, Section 5.4. grep for 'Subsystem [A-F]:' returns zero matches.",
+      "location": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203755/views/ui-specialist.md"
+    },
+    {
+      "severity": "minor",
+      "claim": "CORE BUG CONTENT: dev.md should contain bug tables + Background Explore findings + Section 5.4 strategy",
+      "finding": "dev.md contains Background Explore findings and Section 5.4 but does NOT contain the 6 subsystem bug tables (only in qa.md).",
+      "location": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203755/views/dev.md",
+      "tradeoff": "Duplicating bug tables would push overlap above the validator's 16.7% tolerance. Spec subagent chose overlap PASS over content duplication."
+    },
+    {
+      "severity": "info",
+      "claim": "Validator PASS on coverage/overlap/uniqueness",
+      "finding": "spec-verify.py reports coverage=100.0% PASS, overlap PASS (3.6-16.7%), uniqueness PASS (83-97%).",
+      "structural_tension": "The validator's overlap-PASS requirement and the QA prompt's content-duplication requirements are structurally INCOMPATIBLE. Asking for bug tables in dev.md AND qa.md AND ba.md would push pairwise overlap above 16.7%."
+    }
+  ],
+  "recommendation_for_human_review": "Either (a) accept the trade-off — bug tables live exclusively in qa.md and consumer agents fall back to monolith for bug content; or (b) loosen overlap tolerance to allow bug-table duplication into ba.md / ui-specialist.md / dev.md. Round 1 fail (functional incompleteness) and round 3 fail (overlap-uniqueness vs content-duplication tension) are inverse defects of the same axis."
+}

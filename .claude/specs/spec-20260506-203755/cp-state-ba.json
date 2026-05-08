@@ -1,0 +1,96 @@
+{
+  "spec_id": "spec-20260506-203755",
+  "agent_type": "ba",
+  "instance_id": null,
+  "generation": 2,
+  "agent_id": null,
+  "is_running": false,
+  "checked_in_at": "2026-05-07T10:46:00Z",
+  "checked_out_at": "2026-05-07T14:27:54Z",
+  "cycle": 2,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Confirm spec frame: Section 5.1 user request + 8 placeholder sections present",
+      "state": "waived-with-reason",
+      "waived_reason": "refreshed by spec round 3 for downstream ba agent — not executed by spec subagent (waived by a1425686140dfcb8f at 2026-05-06T21:41:42Z)",
+      "updated_at": "2026-05-06T21:41:42Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Decompose 17 bugs across 6 subsystems into actionable per-bug items",
+      "state": "waived-with-reason",
+      "waived_reason": "refreshed by spec round 3 for downstream ba agent — not executed by spec subagent (waived by a1425686140dfcb8f at 2026-05-06T21:41:42Z)",
+      "updated_at": "2026-05-06T21:41:42Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Anchor each fix item to Section 5.2 verbatim user feedback signal",
+      "state": "waived-with-reason",
+      "waived_reason": "refreshed by spec round 3 for downstream ba agent — not executed by spec subagent (waived by a1425686140dfcb8f at 2026-05-06T21:41:42Z)",
+      "updated_at": "2026-05-06T21:41:42Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Write ba-report JSON listing per-bug acceptance criteria + user-feedback anchors",
+      "state": "waived-with-reason",
+      "waived_reason": "refreshed by spec round 3 for downstream ba agent — not executed by spec subagent (waived by a1425686140dfcb8f at 2026-05-06T21:41:42Z)",
+      "updated_at": "2026-05-06T21:41:42Z"
+    },
+    {
+      "id": "cp-c2-01",
+      "action": "Cycle 2: Read predecessor close-report-20260507-055611.md and confirm CLOSE: NO + branch 2+4 + AC-NEW-1 / AC-NEW-2 prescription",
+      "state": "done",
+      "updated_at": "2026-05-07T10:31:29Z",
+      "evidence": "docs/dev/close-report-20260507-055611.md read; verdict and branches confirmed; AC-NEW-1/AC-NEW-2 quoted verbatim into ba-cycle2-append-20260507-103129.md and context-20260507-103129.json."
+    },
+    {
+      "id": "cp-c2-02",
+      "action": "Cycle 2: Localize the regression in MarkdownView.tsx — identify <td>/<th> wrapper-less RenderSpans on web path and corresponding parent-<Text> wrapper on native path",
+      "state": "done",
+      "updated_at": "2026-05-07T10:31:29Z",
+      "evidence": "MarkdownView.tsx lines 412-461 (web) and 463-486 (native) read; web at 419-426 + 444-447 confirmed wrapper-less; native at 478-482 confirmed wrapped in <Text style={style.tableCellText}>; documented in context.component_chain[] and root_cause_analysis."
+    },
+    {
+      "id": "cp-c2-03",
+      "action": "Cycle 2: Git-localize the regression diff (working-tree HEAD vs Cycle 1) and confirm uncommitted Cycle 1 change introduced the wrapper-less spans",
+      "state": "done",
+      "updated_at": "2026-05-07T10:31:29Z",
+      "evidence": "git diff HEAD on packages/happy-app/sources/components/markdown/MarkdownView.tsx confirms working-tree Cycle 1 added <RenderSpans/> inside <td>/<th> on web without parent <Text>, while native path was simultaneously updated WITH parent <Text>. git log --oneline -L 412,461:MarkdownView.tsx prior history shows 0dd09cc3 as the empty-cell-preservation baseline."
+    },
+    {
+      "id": "cp-c2-04",
+      "action": "Cycle 2: Author ba-cycle2-append document inside docs/dev/specs/spec-20260506-203755/ with Section 1/Section 5/Section 7 Cycle 2 content (BA tool-policy denies direct edits to spec-*.md, so the append is BA-owned)",
+      "state": "done",
+      "updated_at": "2026-05-07T10:31:29Z",
+      "evidence": "docs/dev/specs/spec-20260506-203755/ba-cycle2-append-20260507-103129.md written with Section 1 (Cycle 2 regression restatement), Section 5 (verbatim AC-NEW-1 + AC-NEW-2 from close-report), Section 7 (wrapper-Text fix prescription, x-coordinate flow test recipe, explicit out-of-scope list)."
+    },
+    {
+      "id": "cp-c2-05",
+      "action": "Cycle 2: Write JSON context at docs/dev/context-20260507-103129.json with full predecessor chaining, AC-NEW-1/AC-NEW-2 verbatim, SPEC_ID, scope_boundary, root_cause_analysis (observed evidence type), prior_attempts/novelty_check (L4 to L2)",
+      "state": "done",
+      "updated_at": "2026-05-07T10:31:29Z",
+      "evidence": "docs/dev/context-20260507-103129.json written; spec_id=spec-20260506-203755; predecessor_cycle includes spec_path / dev_report_path / qa_report_path / close_report_path / close_verdict; ac_new_1 and ac_new_2 keys carry verbatim text; scope_boundary in_user_path = [MarkdownView.tsx]."
+    },
+    {
+      "id": "cp-c2-06",
+      "action": "Cycle 2: Update cp-state-ba.json with Cycle 2 checkpoints reflecting Cycle 2 scope while preserving Cycle 1 checkpoint state untouched",
+      "state": "done",
+      "updated_at": "2026-05-07T10:31:29Z",
+      "evidence": "Self-referential — this checkpoint records the cp-state update itself. Cycle 1 cp-01..cp-04 retain waived-with-reason state from 2026-05-06T21:41:42Z; Cycle 2 cp-c2-01..cp-c2-06 added at 2026-05-07T10:31:29Z."
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/context-20260507-103129.json",
+    "exists": true,
+    "validated_at": "2026-05-07T10:31:29Z",
+    "companion_artifacts": [
+      "docs/dev/specs/spec-20260506-203755/ba-cycle2-append-20260507-103129.md"
+    ]
+  },
+  "prior_terminal_artifact": {
+    "path": "docs/dev/ba-report-20260506-205811.json",
+    "exists": false,
+    "validated_at": "2026-05-06T21:15:10Z"
+  }
+}

@@ -4,7 +4,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import { getToolViewComponent } from './views/_all';
 import { Message, ToolCall } from '@/sync/typesMessage';
-import { CodeView } from '../CodeView';
 import { ToolSectionView } from './ToolSectionView';
 import { useElapsedTime } from '@/hooks/useElapsedTime';
 import { ToolError } from './ToolError';
@@ -16,7 +15,11 @@ import { useDetailView } from '@/stores/detailViewStore';
 import { PermissionFooter } from './PermissionFooter';
 import { parseToolUseError } from '@/utils/toolErrorParser';
 import { formatMCPTitle } from './views/MCPToolView';
-import { t } from '@/text';
+import {
+    shouldRenderToolContent,
+    buildGenericToolSummary,
+    stringifyInspectableValue,
+} from '@/utils/codexToolRendering';
 
 interface ToolViewProps {
     metadata: Metadata | null;
@@ -81,6 +84,17 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
     }
 
     const cfg = buildToolConfig(tool, props.metadata, props.messages, knownTool, theme);
+    const shouldRenderContent = shouldRenderToolContent(tool, hasSpecializedView, cfg.minimal, props.metadata);
+    const content = (
+        <ToolContent
+            tool={tool}
+            metadata={props.metadata}
+            messages={props.messages}
+            sessionId={sessionId}
+            hideDefaultError={cfg.hideDefaultError}
+            isToolUseError={cfg.isToolUseError}
+        />
+    );
 
     const headerContent = (
         <View style={styles.headerLeft}>
@@ -115,26 +129,10 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
                 <View style={styles.header}>{headerContent}</View>
             )}
 
-            {hasSpecializedView && onContentPress ? (
-                <Pressable onPress={handleContentPress}>
-                    <ToolContent
-                        tool={tool}
-                        metadata={props.metadata}
-                        messages={props.messages}
-                        sessionId={sessionId}
-                        hideDefaultError={cfg.hideDefaultError}
-                        isToolUseError={cfg.isToolUseError}
-                    />
-                </Pressable>
-            ) : !cfg.minimal ? (
-                <ToolContent
-                    tool={tool}
-                    metadata={props.metadata}
-                    messages={props.messages}
-                    sessionId={sessionId}
-                    hideDefaultError={cfg.hideDefaultError}
-                    isToolUseError={cfg.isToolUseError}
-                />
+            {shouldRenderContent ? (
+                hasSpecializedView && onContentPress && sessionId ? (
+                    <Pressable onPress={handleContentPress}>{content}</Pressable>
+                ) : content
             ) : null}
 
             {tool.permission && sessionId && tool.name !== 'AskUserQuestion' && (
@@ -198,14 +196,14 @@ function buildStatusIcon(tool: ToolCall, noStatus: boolean, theme: any): React.R
 
 // Resolves title from knownTool definition
 function resolveTitle(tool: ToolCall, metadata: Metadata | null, knownTool: any) {
-    if (tool.name.startsWith('mcp__')) {
-        return { toolTitle: formatMCPTitle(tool.name), isMcp: true };
-    }
     if (knownTool?.title) {
         const title = typeof knownTool.title === 'function'
             ? knownTool.title({ tool, metadata })
             : knownTool.title;
-        return { toolTitle: title as string, isMcp: false };
+        return { toolTitle: title as string, isMcp: tool.name.startsWith('mcp__') };
+    }
+    if (tool.name.startsWith('mcp__')) {
+        return { toolTitle: formatMCPTitle(tool.name), isMcp: true };
     }
     return { toolTitle: tool.name, isMcp: false };
 }
@@ -284,35 +282,31 @@ const ToolContent = React.memo<{
             <View style={styles.content}>
                 <SpecificToolView tool={tool} metadata={metadata} messages={messages ?? []} sessionId={sessionId} />
                 {tool.state === 'error' && tool.result && !isDeniedOrCanceled && !hideDefaultError && (
-                    <ToolError message={String(tool.result)} />
+                    <ToolError message={stringifyInspectableValue(tool.result)} />
                 )}
-            </View>
-        );
-    }
-
-    if (tool.state === 'error' && tool.result && !isDeniedOrCanceled && !isToolUseError) {
-        return (
-            <View style={styles.content}>
-                <ToolError message={String(tool.result)} />
             </View>
         );
     }
 
     return (
         <View style={styles.content}>
-            {tool.input && (
-                <ToolSectionView title={t('toolView.input')}>
-                    <CodeView code={JSON.stringify(tool.input, null, 2)} />
-                </ToolSectionView>
-            )}
-            {tool.state === 'completed' && tool.result && (
-                <ToolSectionView title={t('toolView.output')}>
-                    <CodeView
-                        code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
-                    />
-                </ToolSectionView>
-            )}
+            <GenericToolPreview tool={tool} />
         </View>
+    );
+});
+
+const GenericToolPreview = React.memo<{ tool: ToolCall }>(({ tool }) => {
+    const summary = buildGenericToolSummary(tool);
+    if (summary.lines.length === 0 && !summary.detailsHint) return null;
+    return (
+        <ToolSectionView>
+            <View style={styles.genericSummary}>
+                {summary.lines.map((line, index) => (
+                    <Text key={`${index}-${line}`} style={styles.genericLine}>{line}</Text>
+                ))}
+                {summary.detailsHint ? <Text style={styles.genericHint}>{summary.detailsHint}</Text> : null}
+            </View>
+        </ToolSectionView>
     );
 });
 
@@ -380,5 +374,20 @@ const styles = StyleSheet.create((theme) => ({
         overflow: 'visible',
         borderTopWidth: 1,
         borderTopColor: theme.colors.divider,
+    },
+    genericSummary: {
+        gap: 4,
+        paddingVertical: 2,
+    },
+    genericLine: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.text,
+    },
+    genericHint: {
+        fontSize: 12,
+        lineHeight: 16,
+        color: theme.colors.textSecondary,
+        fontStyle: 'italic',
     },
 }));

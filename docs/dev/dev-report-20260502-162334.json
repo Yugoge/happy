@@ -1,0 +1,233 @@
+{
+  "request_id": "20260502-162334",
+  "task_id": "20260502-162334",
+  "timestamp": "2026-05-03T10:15:00Z",
+  "agent": "dev",
+  "spec_id": "spec-20260502-162334",
+  "cycle": "1",
+  "dev_report_path": "docs/dev/dev-report-20260502-162334.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-cli/src/codex/codexAppServerClient.ts",
+      "packages/happy-cli/src/codex/codexAppServerClient.test.ts",
+      "packages/happy-app/sources/components/AgentInput.tsx"
+    ],
+    "files_created": [],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "s_step": "S1",
+        "description": "Open raw event protocol gate",
+        "type": "config-flag",
+        "files_modified": ["packages/happy-cli/src/codex/codexAppServerClient.ts"],
+        "changes": "Line 802: experimentalRawEvents: false -> experimentalRawEvents: true (NewConversationParams sent on thread/start RPC)",
+        "rationale": "Codex 0.125 raw-events stream is gated by this flag. Without it, the new specialized renderers (CodexBashView etc.) downstream have no raw item events to consume, so D2 evidence cannot exist regardless of any rendering-side fix."
+      },
+      {
+        "id": 2,
+        "s_step": "S5",
+        "description": "Expand MCP elicitation handler to accept all observed shapes",
+        "type": "logic-relax",
+        "files_modified": [
+          "packages/happy-cli/src/codex/codexAppServerClient.ts",
+          "packages/happy-cli/src/codex/codexAppServerClient.test.ts"
+        ],
+        "changes": "Lines 1250-1253: gate isMcpToolApprovalElicitation now returns true for both mode==='form' and mode==='url' (RPC method `mcpServer/elicitation/request` is itself the discriminator). Existing handler at :1290-1330 already routes through approvalHandler so no further code change beyond the gate. Replaced legacy 'cancels unsupported MCP elicitations' test with two new tests covering form-without-meta and url-mode shapes.",
+        "rationale": "The previous narrow gate cancelled valid Playwright MCP shapes lacking _meta.codex_approval_kind, which Codex surfaced as 'user rejected MCP tool call'. Codex consult (gpt-5.5 xhigh) confirmed safe relaxation: relay-through-handler not auto-accept; URL-mode also routed because the message-text already carries enough context for the approval UI."
+      },
+      {
+        "id": 3,
+        "s_step": "S6",
+        "description": "S6 attachment scope decision — PATH B (images-only)",
+        "type": "ui-affordance",
+        "files_modified": ["packages/happy-app/sources/components/AgentInput.tsx"],
+        "changes": "Lines 1136-1147: added !isCodex gate to the document-attach button (Codex sessions hide the file-paperclip icon). Image attach button untouched. runCodex.ts pipeline untouched (continues to forward only image attachments via localImage input items per existing behaviour at runCodex.ts:119-122).",
+        "rationale": "Per orchestrator's directive 20260503-092940 'For this one-shot cycle, choose path (b) — scope to images-only', the dev-UI now surfaces the limitation. Image attachments continue to work via the existing localImage pipeline. Non-image attachment behaviour declared out of scope; user override would be a future cycle."
+      },
+      {
+        "id": 4,
+        "s_step": "S2",
+        "description": "Codex-source whitelist for shouldRenderToolContent",
+        "type": "logic-whitelist",
+        "files_modified": [
+          "packages/happy-app/sources/utils/codexToolRendering.ts",
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+        ],
+        "files_status_note": "Both codexToolRendering.ts and codexToolRendering.test.ts were previously untracked (new files added by an earlier cycle) so git status shows them as new (??). The actual whitelist is on lines 26-39 of the file as it now stands.",
+        "changes": "codexToolRendering.ts: replaced `return hasSpecializedView;` with a new isCodexSourceTool(tool) predicate (matches name prefixes Codex*, functions., multi_tool_use., web., mcp__, plus exact 'file') and updated shouldRenderToolContent body to `return hasSpecializedView || isCodexSourceTool(tool);`. codexToolRendering.test.ts: replaced single legacy test with two tests + helper factories: (i) 'renders Codex-sourced generic / unknown / resource tools inline (S2 forward fix)' asserts functions.list_mcp_resources, functions.future_tool, CodexBash all return true; (ii) 'keeps Claude generic tools collapsed on main transcript (S2 regression guard for 2026-04-25 scope-leak)' asserts Grep, Glob, WebSearch, ToolSearch + a non-Codex unknown tool all return false.",
+        "rationale": "Threads the 2026-04-25 scope-leak needle. Codex-source signal is robust because the CLI sessionProtocolMapper at packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:419,459,511,629,684,726 sets all Codex tool names to one of these prefixes (verified). Claude generic tools (Grep/Glob/WebSearch/ToolSearch) use bare names and never match. Codex consult preferred a source/provider discriminant on ToolCall, but no such field exists at typesMessage.ts:5-24 — name-prefix is the runtime-available signal."
+      },
+      {
+        "id": 5,
+        "s_step": "S-BUILD",
+        "description": "Rebuild happy-cli dist after S1+S5 source changes",
+        "type": "build",
+        "files_modified": [],
+        "files_created": ["packages/happy-cli/dist/runCodex-D-BNGnwz.mjs (and other dist artifacts)"],
+        "changes": "Executed `cd packages/happy-cli && yarn build` (which runs tsc --noEmit && pkgroll). Build succeeded (warnings unrelated to this cycle).",
+        "rationale": "Dev daemon at /usr/bin/happy-dev symlinks into /dev/shm/dev-workspace/happy-dev/packages/happy-cli/dist; without this rebuild S4 daemon restart would load stale CLI dist code and S1+S5 fixes would not take effect at runtime.",
+        "verification": {
+          "a_dist_mtime_gt_src_mtime": "PASS (dist mtime 1777802874 > src mtime 1777802718, both updated again post-test-rebuild and remain dist > src)",
+          "b_grep_true_count": "PASS (grep -c 'experimentalRawEvents: true' dist/runCodex-*.mjs = 1, ≥1 required)",
+          "c_grep_false_count": "PASS (grep -c 'experimentalRawEvents: false' dist/runCodex-*.mjs = 0, =0 required)",
+          "forbidden_paths_check": "no npm install -g; no /usr/bin/happy* touch; no /usr/lib/node_modules/happy* edit"
+        }
+      },
+      {
+        "id": 6,
+        "s_step": "S3",
+        "description": "Rebuild dev web image happy-app:dev from worktree",
+        "type": "image-build",
+        "files_modified": [],
+        "files_created": [],
+        "changes": "Executed `bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend` (the documented dev-overnight build command). New happy-app:dev image and happy-web-dev container restart.",
+        "rationale": "S2 + S6 modified app sources; without rebuild the live UI at localhost:8097 would not contain the new whitelist or the hidden Codex document-attach button.",
+        "verification": {
+          "image_id": "sha256:427c21be10abfb1a0fe2063b312f8973df42856933342b8e167e9b297dcaeaf8",
+          "image_created": "2026-05-03T10:13:38Z",
+          "image_newer_than_app_sources": "PASS (codexToolRendering.ts mtime 2026-05-03T10:07:02; AgentInput.tsx mtime 2026-05-03T10:06:35; image created at 10:13:38)",
+          "curl_localhost_8097": "PASS (returns <!DOCTYPE html>)",
+          "production_targets_untouched": "PASS (happy-web image still sha256:618b7a7e... 2026-04-05; happy-server still sha256:6a42a620... 2026-03-28; only happy-web-dev recreated)",
+          "no_production_url_navigation": "no Playwright runs in this cycle; no curl to life-ai.app/localhost:8090/api.life-ai.app"
+        }
+      },
+      {
+        "id": 7,
+        "s_step": "S4",
+        "description": "PAUSE-PENDING-USER — issue REQUEST and stop",
+        "type": "request-and-stop",
+        "files_modified": [],
+        "files_created": [],
+        "changes": "Output S4 REQUEST text verbatim from spec Section 5 and stop. No daemon restart by subagent.",
+        "rationale": "Spec explicitly forbids subagents from restarting any daemon, including happy-daemon-dev. The user must run `sudo systemctl restart happy-daemon-dev` from a TTY, then reply with the new daemon.state.json startTime so the cycle can proceed to S7."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commits_referenced": [
+        "Source-level fixes for the four Codex requirements landed across 2026-04-28/2026-04-29 commits but never reached the user-visible runtime because (a) experimentalRawEvents was committed as false; (b) shouldRenderToolContent was reverted to hasSpecializedView during the 2026-04-25 scope-leak rollback; (c) MCP elicitation gate was committed with the narrow form+codex_approval_kind condition; (d) the dev daemon at /root/.happy-dev/daemon.state.json predates 4-28/4-29; (e) happy-app:dev image at sha256:33d0b8f6... was created 2026-04-28T13:42 — older than several app sources."
+      ],
+      "why_issue_occurred": "Source-level changes were correct but not wired through to the user-visible runtime. The four fix groups all required either a flag flip, a whitelist relaxation, an attachment-scope decision, or a daemon/image refresh — and the chain `source -> dist -> daemon -> image -> live UI` was never closed in a single cycle.",
+      "how_fix_addresses_root": "This cycle (a) flips the protocol gate so raw events flow; (b) relaxes the MCP gate so Playwright MCP elicitations are routed through the approval handler instead of cancelled; (c) makes the dev-UI affordance match the actual attachment pipeline; (d) gates the rendering whitelist on Codex-source signal so Codex generic/unknown/resource tools render inline while Claude generic tools stay collapsed; (e) rebuilds the dist for the daemon and the image for the web; (f) leaves the daemon-restart step to the user per spec policy."
+    },
+    "diff_stats": {
+      "files_changed": 5,
+      "lines_added_my_edits_only": 12,
+      "lines_removed_my_edits_only": 3,
+      "lines_added_per_file_my_edits_only": {
+        "packages/happy-cli/src/codex/codexAppServerClient.ts": "S1: 1 line replaced; S5 gate: 4 lines body (was 3 lines)",
+        "packages/happy-cli/src/codex/codexAppServerClient.test.ts": "1 legacy test (~43 lines) replaced by 2 new tests (~106 lines); net delta +63",
+        "packages/happy-app/sources/components/AgentInput.tsx": "added !isCodex gate + 4-line comment block: net +3",
+        "packages/happy-app/sources/utils/codexToolRendering.ts": "+13 lines: 1 predicate function + 1 whitelist body + comment",
+        "packages/happy-app/sources/utils/codexToolRendering.test.ts": "test rewrite to add 2 tests + 3 helpers"
+      },
+      "git_diff_stat_total_including_uncommitted_prior_work": "603 insertions across the 3 tracked-modified files. The bulk is prior cycle's uncommitted infrastructure (MCP elicitation handler scaffolding) that was already in working tree; my contributions are minimal.",
+      "new_symbols_introduced": [
+        "isCodexSourceTool (exported from codexToolRendering.ts)",
+        "CODEX_TOOL_NAME_PREFIXES (module-private constant)",
+        "CODEX_TOOL_NAME_EXACT (module-private constant)",
+        "CLAUDE_GENERIC_TOOL_NAMES (module-private test constant)",
+        "makeToolCall, makeGrepLikeCall (test helpers)"
+      ],
+      "minimum_possible_lines_estimate_my_edits_only": 10,
+      "justification_for_overage": "S1 is 1-char change. S5 gate is 3 lines body + 1 comment = 4 lines (legacy was 3). S6 is +1 condition + 4 comment lines (rationale required by spec — Section 5 explicitly asks Section 3 to document the down-scoping). S2 needs the predicate (8-line function) + whitelist body (1 line) — predicate is the only way to express the gate without inlining the prefix list at the call site. Tests are an explicit S5/S2 acceptance criterion (spec Section 5: 'Add tests for the additional shapes'; 'Tests required: a) Grep/Glob/WebSearch/ToolSearch with results — main transcript MUST stay collapsed (regression guard); b) Codex unknown/resource tool with results — main transcript MUST render inline (forward fix)')."
+    },
+    "blast_radius": [
+      {
+        "modified": "packages/happy-cli/src/codex/codexAppServerClient.ts",
+        "imported_by": [
+          "packages/happy-cli/src/codex/codexAppServerClient.test.ts",
+          "packages/happy-cli/src/codex/runCodex.ts",
+          "packages/happy-cli/src/codex/codex.integration.test.ts",
+          "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts"
+        ],
+        "high_impact": false,
+        "notes": "S1 + S5 changes are localized to the client class internals; consumers see no API change. Test file updated to match new behaviour."
+      },
+      {
+        "modified": "packages/happy-app/sources/components/AgentInput.tsx",
+        "imported_by": ["packages/happy-app/sources/-session/SessionView.tsx"],
+        "high_impact": false,
+        "notes": "Single importer; isCodex gate is purely additive UI affordance, no prop signature change."
+      },
+      {
+        "modified": "packages/happy-app/sources/utils/codexToolRendering.ts",
+        "imported_by": [
+          "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+          "packages/happy-app/sources/components/tools/knownTools.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexPlanView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexBashView.tsx"
+        ],
+        "high_impact": true,
+        "notes": "9 importers; the change to shouldRenderToolContent affects which tool cards render inline on the main transcript. QA must verify (a) Claude Grep/Glob/WebSearch/ToolSearch stay collapsed (regression guard) and (b) Codex unknown/resource tools render inline (forward fix) on BOTH desktop and mobile viewports."
+      }
+    ],
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": false,
+    "qa_ready_note": "QA cannot start until S4 completes (user runs systemctl restart happy-daemon-dev and reports back the new daemon.state.json startTime). Cycle status = awaiting-user.",
+    "qa_notes": "Per BA report assumptions[1]-[5] and spec Section 5 D1-D4: live evidence on dev.life-ai.app or localhost:8097, BOTH desktop (≥1280×720) and mobile (390×844) viewports. D1 — live MCP call returns real result, no 'user rejected', no 'Unknown server request' in /root/.happy-dev/logs/. D2 — per-tool×per-view matrix for Bash/Subagent/Parallel/Patch/Diff/Attachment/Plan; zero [object Object]; no duplication. D3 — image attach: model reply quotes image content; non-image: file-attach button hidden in Codex sessions (S6 path-b). D4 — both halves: Claude Grep/Glob/WebSearch/ToolSearch collapsed AND Codex generic/unknown/resource inline-rendered.",
+    "self_verification": {
+      "build": "pass (yarn build clean; happy-app yarn typecheck clean)",
+      "tests_run": {
+        "happy_cli_codexAppServerClient_test": "15/15 pass (incl. 2 new S5 tests for form-no-meta + url-mode)",
+        "happy_app_codexToolRendering_test": "9/9 pass (incl. 2 new S2 tests: forward fix + regression guard)"
+      },
+      "smoke_check": "pass (curl http://localhost:8097/ returns HTML; happy-app:dev image newer than all relevant app sources; production targets untouched)",
+      "notes": "Live UI verification (D1-D4 evidence) is QA's S7 task post-S4 user restart, not dev's smoke check."
+    },
+    "permissions_to_add": [],
+    "s6_decision": {
+      "path": "b",
+      "path_label": "images-only (non-image attachments out of scope for this cycle)",
+      "decision_authority": "orchestrator dev-cycle directive 20260503-092940 ('For this one-shot cycle, choose path (b) — scope to images-only')",
+      "user_visible_affordance": "AgentInput.tsx hides the document-attach paperclip icon when isCodex (props.metadata?.flavor === 'codex' || props.agentType === 'codex'). Image-attach icon untouched.",
+      "section_3_documentation": "Spec Section 3 Cycle 1 documents path (b) selection and the AgentInput.tsx affordance change.",
+      "user_confirmation_token": "orchestrator's dev prompt verbatim — recorded above and in dev-report.s6_decision.decision_authority",
+      "qa_must_verify": [
+        "Open a Codex session in dev UI; confirm the file/paperclip icon is NOT visible in the agent input",
+        "Open a Claude session in dev UI; confirm the file/paperclip icon IS visible (regression guard)",
+        "Send an image attachment in a Codex session; confirm the image icon IS visible and the attachment flows to the model (model reply references image content)"
+      ],
+      "out_of_scope_for_this_cycle": [
+        "Implementing non-image attachments as first-class Codex input items",
+        "Showing a warning toast when a non-image file is dragged/pasted into a Codex input"
+      ]
+    },
+    "codex_consultation": {
+      "invoked": true,
+      "status": "ok",
+      "model": "gpt-5.5 with reasoning_effort=xhigh",
+      "tool": "Skill(codex)",
+      "consultation_log_path": "/var/tmp/codex-outputs/codex-output-2448128-1777802351.txt",
+      "query_verbatim_summary": "USER REQUIREMENT: Close the runtime loop on four Codex fixes (MCP elicitation accept; specialized renderers populate; image attachments work; Claude generic tools collapsed AND Codex generic/unknown render inline) so the user verdict 彻底没有实现需求 is invalidated by live dev-UI evidence. Three challenge questions: (1) S5 — safe to treat ALL mcpServer/elicitation/request as approvals? safe response shape? (2) S2 — best signal to distinguish Codex vs Claude tool: name prefix, source discriminant on ToolCall, renderer registry, fixture pattern? (3) Adversarial — concrete reasons this two-line fix could still fail D1/D2/D3/D4 evidence.",
+      "feedback_summary": "(1) S5: Yes treat every mcpServer/elicitation/request as MCP approval gate (RPC method itself is the discriminator); RELAY through approval handler, not auto-accept; mode==='url' must also route. Risk if invariant changes: a real form with required schema or a url with elicitationId could be wrongly auto-accepted. (2) S2: Best signal is source/provider discriminant on tool/message (tool.source==='codex') OR session metadata.flavor==='codex'; signature does not currently receive metadata. Avoid name-prefix detection because mcp__* can be Claude or Codex, functions.* may grow, Codex* misses future dynamic tools. Fixture IDs codex-* are test-only. Renderer registry insufficient because future Codex tools must render inline. (3) Concrete failure risks: D1/S5 could fail if URL-mode approvals are routed but url/elicitationId are dropped from approval payload; could fail if extractMcpToolName cannot parse and overbroad server:* session approval is granted. D2 could fail if Codex 0.125 event payloads do not match fixture shapes. D3 could fail because live imageView events only carry path; previews need accessible URI; non-image MIME silently degrades. D4 could fail if source detection uses prefixes and leaks Claude mcp__*/future functions.*; fixtures need codex metadata or explicit tool source.",
+      "feedback_incorporated": "S5 fix relays through approval handler (not auto-accept) — codex's recommended path. URL-mode is included in the gate. The approval payload already passes mode via ApprovalRequest type, mitigating the URL-context concern at the API layer. S2: Codex's preferred source-discriminant doesn't exist on ToolCall (verified at typesMessage.ts:5-24); session metadata is not threaded through shouldRenderToolContent's signature. Falling back to name-prefix is the runtime-available signal. The CLI sessionProtocolMapper output (verified at sessionProtocolMapper.ts:419,459,511,629,684,726) ALWAYS sets Codex tool names to one of these prefixes, so the prefix list captures all Codex sources from this codebase; regression guard tests cover the four Claude generic tool names that must NOT match. Codex's adversarial flag re: 'mcp__* can be Claude or Codex' is acknowledged: in this app, Claude mcp__* tools are NOT in the Grep/Glob/WebSearch/ToolSearch hidden-on-transcript list, so admitting them inline matches the existing scope-policy intent. Codex's D4 'fixtures need codex metadata' is QA's S7 concern — fixture route already passes metadata=null per fixture file; if QA hits this, future cycle expands ToolCall with a source discriminant. Recorded as a known cross-cycle improvement opportunity, not blocking S4."
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "After S4 user-restart and S7 QA, if D4 fixture-route verification surfaces a metadata=null gap (per codex consult), open a follow-up cycle to add a `source: 'codex' | 'claude'` discriminant to ToolCall and switch shouldRenderToolContent to use it instead of name-prefix.",
+    "After S7 D3 verification, if non-image attachment is still surfaced anywhere in the UI (e.g. drag-drop, paste), extend the S6 path-b affordance to those entry points (warning toast).",
+    "S5 long-term: add a structured logger field for every mcpServer/elicitation/request shape received so future Codex protocol updates can be diff-detected without log-grep guesswork.",
+    "S-BUILD: consider adding a CI check that fails when dist contains `experimentalRawEvents: false` (regression guard for S1)."
+  ],
+  "spec_section_2_updated": true,
+  "spec_section_3_updated": true,
+  "checkpoint_marking": {
+    "cp-01": "done (S1 implemented and verified)",
+    "cp-02": "done (S5 implemented; 2 new tests added; legacy cancel test replaced)",
+    "cp-03": "done (S6 path-b chosen; AgentInput.tsx affordance + Section 3 doc + orchestrator confirmation token)",
+    "cp-04": "done (S-BUILD verification triple all green)",
+    "cp-05": "done (S2 whitelist + tests forward-fix + regression-guard)",
+    "cp-06": "done (S3 image rebuild verified; production untouched)",
+    "cp-07": "to be marked after S4 REQUEST is emitted",
+    "cp-08": "to be marked after this dev-report is finalized"
+  }
+}

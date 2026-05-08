@@ -8,6 +8,7 @@ interface CommandViewProps {
     stdout?: string | null;
     stderr?: string | null;
     error?: string | null;
+    status?: string | null;
     // Legacy prop for backward compatibility
     output?: string | null;
     maxHeight?: number;
@@ -24,6 +25,7 @@ export const CommandView = React.memo<CommandViewProps>(({
     stdout,
     stderr,
     error,
+    status,
     output,
     maxHeight,
     fullWidth,
@@ -94,6 +96,13 @@ export const CommandView = React.memo<CommandViewProps>(({
             marginTop: 8,
             fontStyle: 'italic',
         },
+        status: {
+            fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+            fontSize: 12,
+            color: theme.colors.terminal.emptyOutput,
+            lineHeight: 18,
+            marginTop: 8,
+        },
     });
 
     return (
@@ -125,8 +134,12 @@ export const CommandView = React.memo<CommandViewProps>(({
                         <Text style={[styles.error, wrapTextStyle]}>{error}</Text>
                     )}
 
+                    {status && (
+                        <Text style={[styles.status, wrapTextStyle]}>{status}</Text>
+                    )}
+
                     {/* Empty output indicator */}
-                    {!stdout && !stderr && !error && !hideEmptyOutput && (
+                    {!stdout && !stderr && !error && !status && !hideEmptyOutput && (
                         <Text style={styles.emptyOutput}>[Command completed with no output]</Text>
                     )}
                 </>
@@ -139,4 +152,3 @@ export const CommandView = React.memo<CommandViewProps>(({
         </View>
     );
 });
-

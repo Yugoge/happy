@@ -17,6 +17,7 @@ import { LatexRenderer } from './LatexRenderer';
 import { t } from '@/text';
 import { isHttpMarkdownLink } from './linkUtils';
 import { downloadCodeOnWeb } from './codeDownload';
+import { parseMarkdownSpans } from './parseMarkdownSpans';
 
 // Option type for callback
 export type Option = {
@@ -408,7 +409,10 @@ function useTableStyles() {
     }), [theme]);
 }
 
-function WebTableRow(props: { row: string[], colCount: number, isLast: boolean, tdStyle: React.CSSProperties }) {
+function WebTableRow(props: {
+    row: string[], colCount: number, isLast: boolean, tdStyle: React.CSSProperties,
+    selectable: boolean, onLinkPress: (url: string) => void,
+}) {
     return (
         <tr>
             {Array.from({ length: props.colCount }, (_, colIndex) => (
@@ -416,14 +420,17 @@ function WebTableRow(props: { row: string[], colCount: number, isLast: boolean, 
                     ...props.tdStyle,
                     borderBottom: props.isLast ? 'none' : props.tdStyle.borderBottom,
                     borderRight: colIndex === props.colCount - 1 ? 'none' : props.tdStyle.borderRight,
-                }}>{props.row[colIndex] ?? ''}</td>
+                }}>
+                    <RenderSpans spans={parseMarkdownSpans(props.row[colIndex] ?? '', false)}
+                        selectable={props.selectable} onLinkPress={props.onLinkPress} />
+                </td>
             ))}
         </tr>
     );
 }
 
 function RenderTableBlockWeb(props: {
-    headers: string[], rows: string[][], selectable: boolean,
+    headers: string[], rows: string[][], selectable: boolean, onLinkPress: (url: string) => void,
 }) {
     const s = useTableStyles();
     return (
@@ -434,13 +441,18 @@ function RenderTableBlockWeb(props: {
                 <thead>
                     <tr>
                         {props.headers.map((header, i) => (
-                            <th key={i} style={{ ...s.th, borderRight: i === props.headers.length - 1 ? 'none' : s.th.borderRight }}>{header}</th>
+                            <th key={i} style={{ ...s.th, borderRight: i === props.headers.length - 1 ? 'none' : s.th.borderRight }}>
+                                <RenderSpans spans={parseMarkdownSpans(header, false)}
+                                    selectable={props.selectable} onLinkPress={props.onLinkPress} />
+                            </th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
                     {props.rows.map((row, i) => (
-                        <WebTableRow key={i} row={row} colCount={props.headers.length} isLast={i === props.rows.length - 1} tdStyle={s.td} />
+                        <WebTableRow key={i} row={row} colCount={props.headers.length}
+                            isLast={i === props.rows.length - 1} tdStyle={s.td}
+                            selectable={props.selectable} onLinkPress={props.onLinkPress} />
                     ))}
                 </tbody>
             </table>
@@ -450,17 +462,23 @@ function RenderTableBlockWeb(props: {
 
 function NativeTableColumn(props: {
     header: string, colIndex: number, columnCount: number,
-    rows: string[][], rowCount: number, selectable: boolean,
+    rows: string[][], rowCount: number, selectable: boolean, onLinkPress: (url: string) => void,
 }) {
     return (
         <View style={[style.tableColumn, props.colIndex === props.columnCount - 1 && style.tableColumnLast]}>
             <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
-                <Text selectable={props.selectable} style={style.tableHeaderText}>{props.header}</Text>
+                <Text selectable={props.selectable} style={style.tableHeaderText}>
+                    <RenderSpans spans={parseMarkdownSpans(props.header, false)}
+                        baseStyle={style.tableHeaderText} selectable={props.selectable} onLinkPress={props.onLinkPress} />
+                </Text>
             </View>
             {props.rows.map((row, rowIndex) => (
                 <View key={`cell-${rowIndex}-${props.colIndex}`}
                     style={[style.tableCell, rowIndex === props.rowCount - 1 && style.tableCellLast]}>
-                    <Text selectable={props.selectable} style={style.tableCellText}>{row[props.colIndex] ?? ''}</Text>
+                    <Text selectable={props.selectable} style={style.tableCellText}>
+                        <RenderSpans spans={parseMarkdownSpans(row[props.colIndex] ?? '', false)}
+                            baseStyle={style.tableCellText} selectable={props.selectable} onLinkPress={props.onLinkPress} />
+                    </Text>
                 </View>
             ))}
         </View>
@@ -469,6 +487,7 @@ function NativeTableColumn(props: {
 
 function RenderTableBlockNative(props: {
     headers: string[], rows: string[][], selectable: boolean, first: boolean, last: boolean,
+    onLinkPress: (url: string) => void,
 }) {
     return (
         <View style={[style.tableContainer, props.first && style.first, props.last && style.last]}>
@@ -478,7 +497,8 @@ function RenderTableBlockNative(props: {
                     {props.headers.map((header, colIndex) => (
                         <NativeTableColumn key={`column-${colIndex}`} header={header} colIndex={colIndex}
                             columnCount={props.headers.length} rows={props.rows}
-                            rowCount={props.rows.length} selectable={props.selectable} />
+                            rowCount={props.rows.length} selectable={props.selectable}
+                            onLinkPress={props.onLinkPress} />
                     ))}
                 </View>
             </ScrollView>

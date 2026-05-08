@@ -1,0 +1,52 @@
+{
+  "spec_id": "spec-20260506-203844",
+  "agent_type": "ui-specialist",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": "spec-finalization-spec-20260506-203844-ui-specialist-20260506T204809Z",
+  "is_running": false,
+  "checked_in_at": "2026-05-06T20:48:09Z",
+  "checked_out_at": "2026-05-07T06:04:22Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Design inline image preview card hierarchy",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T06:04:22Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Design patch diff card hierarchy without header duplication",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T06:04:22Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Design subagent lifecycle card completed state and details disclosure",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T06:04:22Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Design fallback cards for web tools MCP resources and unavailable input",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T06:04:22Z"
+    },
+    {
+      "id": "cp-05",
+      "action": "Check desktop and mobile layout constraints for tool cards",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-07T06:04:22Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/specs/spec-20260506-203844/artifacts/ui-specialist-report.json",
+    "exists": false,
+    "validated_at": "2026-05-07T06:04:22Z"
+  }
+}

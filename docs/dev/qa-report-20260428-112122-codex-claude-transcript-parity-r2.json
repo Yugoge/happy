@@ -1,0 +1,344 @@
+{
+  "request_id": "20260428-112122-codex-claude-transcript-parity",
+  "task_id": "20260428-112122-codex-claude-transcript-parity",
+  "timestamp": "2026-04-28T13:40:00Z",
+  "qa": {
+    "status": "fail",
+    "user_verbatim_complaint": "Happy dev transcript rendering for Bash/tool-call content and subagent lifecycle/content should match current Claude Code rendering when the underlying session source is Codex. Claude Code current rendering is the source of truth.",
+    "verified_against_complaint": true,
+    "verified_location_keywords": [
+      "happy-dev",
+      "transcript",
+      "rendering",
+      "bash",
+      "tool-call",
+      "subagent",
+      "lifecycle",
+      "content",
+      "codex",
+      "claude",
+      "codexAppServerClient",
+      "sessionProtocolMapper",
+      "typesRaw",
+      "CodexBashView",
+      "CodexSubagentView",
+      "SidebarAgentConversation",
+      "final_answer",
+      "task_complete",
+      "turn-end"
+    ],
+    "location_overlap": [
+      "happy",
+      "dev",
+      "transcript",
+      "rendering",
+      "bash",
+      "tool-call",
+      "content",
+      "subagent",
+      "lifecycle",
+      "codex",
+      "claude"
+    ],
+    "complaint_resolution_evidence": "Code/test evidence now covers the previously missing declined Codex command state and keeps the child subagent final-answer lifecycle contract intact, but live browser evidence for Claude-vs-Codex rendering parity was not captured.",
+    "complaint_element_pointer": {
+      "selector": "not captured; intended live targets are CodexBash tool cards and functions.spawn_agent SidebarAgentConversation on dev sessions",
+      "how_located": "Code/test target mapping only. Browser MCP was unavailable, direct Playwright packages were absent, and the headless Chrome setup command was hook-rejected before DOM capture.",
+      "found_in_dom": false,
+      "page_url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk was the intended dev-only Codex Bash route, but was not opened in a browser after automation was blocked."
+    },
+    "element_screenshots": {
+      "before_selector": null,
+      "before_path": null,
+      "after_path": null,
+      "same_element_verified": false
+    },
+    "overall_assessment": "Code/test status: PASS for the previous major declined-status coverage gap, the previous minor hardcoded-color issue, and the child final-answer lifecycle contract. Final workflow status: FAIL because AC3 still requires live desktop/mobile browser rendering evidence on a changed dev web surface, and no screenshots/DOM metrics/trace were captured.",
+    "code_test_status": "pass",
+    "workflow_status": "fail_live_ui_evidence_missing",
+    "success_criteria_results": [
+      {
+        "requirement_id": "R1",
+        "source_phrase": "Bash/tool-call content",
+        "criterion": "Codex command cards preserve/render command once, structured output/status/exit/failure/empty-output/full detail with bounded inline preview.",
+        "verification_method": "Inspected declined-status fixtures and reran happy-wire, happy-cli mapper/app-server, happy-app normalizer/reducer/render-helper tests plus typecheck.",
+        "status": "pass",
+        "result": "pass",
+        "details": "The previous major issue is resolved: explicit declined command coverage now exists at mapper, wire schema, app normalizer, and render-helper layers. Structured success/failed/empty/long-output coverage remains present.",
+        "evidence": "sessionProtocolMapper.test.ts:202-218 checks status='declined' and stderr; sessionProtocol.test.ts:24-32 accepts structured result status='declined'; typesRaw.spec.ts:1851-1874 marks declined result is_error=true; codexToolRendering.test.ts:31-45 shows status line 'exit 2 · status: declined'. Targeted suites passed."
+      },
+      {
+        "requirement_id": "R2",
+        "source_phrase": "subagent lifecycle/content",
+        "criterion": "Codex child thread identity propagates for text and all child transcript item families; root-thread events remain top-level; child final_answer never emits top-level task_complete/turn-end or clears parent turn linkage; one Claude-equivalent child conversation renders prompt, child text/tools, lifecycle/status, and final answer when available.",
+        "verification_method": "Inspected root/child gating and reran app-server, mapper, reducer, and reducerTracer focused tests.",
+        "status": "pass",
+        "result": "pass",
+        "details": "The child final-answer lifecycle contract remains intact in code/test evidence: child final_answer is emitted as child content/result, no task_complete appears until root completion, mapper keeps currentTurnId through child final_answer, and reducer sidechain linkage remains tied to the parent spawn card.",
+        "evidence": "codexAppServerClient.ts:206-218 records receiver child thread ids; codexAppServerClient.ts:417 gates final_answer completion with isRootThreadNotification; codexAppServerClient.test.ts:569-713 asserts zero task_complete for child final answer then one after root final answer; sessionProtocolMapper.test.ts:52-125 and 222-267 assert no child turn-end and displayable parent result across ordering; reducer.spec.ts:3046-3094 keeps spawn_agent sidechain and string final result."
+      },
+      {
+        "requirement_id": "R3",
+        "source_phrase": "match current Claude Code rendering",
+        "criterion": "Cited Claude mapper/renderers define expected behavior; Claude Bash and Agent/Task do not regress.",
+        "verification_method": "Ran targeted app reducer/render-helper suites and app typecheck; attempted live browser parity verification after loading the dev web image.",
+        "status": "fail",
+        "result": "fail",
+        "details": "No automated regression failed, but live Claude-vs-Codex visual parity/non-regression remains unverified because browser automation did not reach the DOM.",
+        "evidence": "happy-app targeted Vitest passed: 4 files / 132 tests; happy-app typecheck passed; Docker happy-app:dev build and happy-web-dev startup passed; no desktop/mobile screenshots, DOM metrics, or trace exist."
+      },
+      {
+        "requirement_id": "R4",
+        "source_phrase": "underlying session source is Codex",
+        "criterion": "Codex-specific raw events are adapted into the shared protocol contract rather than handled by lossy UI-only fallback.",
+        "verification_method": "Inspected protocol boundary changes and reran focused app-server/mapper/wire/normalizer tests.",
+        "status": "pass",
+        "result": "pass",
+        "details": "Code/test evidence shows Codex command and subagent data are transported through app-server, mapper, wire schema, and app normalizer rather than relying on UI-only fallback.",
+        "evidence": "happy-wire build passed; happy-wire sessionProtocol.test.ts passed 10 tests; happy-cli codexAppServerClient/sessionProtocolMapper tests passed 28 tests; happy-app typesRaw/reducer/render-helper tests passed 132 tests."
+      },
+      {
+        "requirement_id": "R5",
+        "source_phrase": "Happy dev",
+        "criterion": "All work/evidence stays in dev web/dev account without production/API-created sessions.",
+        "verification_method": "Used dev-only build args and dev-only compose service, then attempted browser verification without creating sessions through API/code.",
+        "status": "fail",
+        "result": "fail",
+        "details": "No production domains/ports were used and no sessions were created through API/code. The changed happy-app dev image was built with HAPPY_SERVER_URL=https://api-dev.life-ai.app and happy-web-dev became healthy on localhost:8097. However live dev-session evidence was not captured.",
+        "evidence": "docker build -f /dev/shm/dev-workspace/happy-dev/Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev /dev/shm/dev-workspace/happy-dev completed; docker compose up -d happy-web-dev completed; curl http://localhost:3005/health returned {\"status\":\"ok\"}; curl http://localhost:8097/ returned HTML."
+      }
+    ],
+    "_success_criteria_rule": "Context requirements_decomposition has 5 items; QA produced 5 success_criteria_results entries.",
+    "root_cause_verification": {
+      "addressed": "code_test_verified_not_live_verified",
+      "confidence": "medium",
+      "rationale": "Targeted evidence supports structured Bash result preservation, declined/failure/empty states, wrapper thread/turn propagation, CUID2 child mapping, and root-vs-child final_answer completion gating. Confidence remains capped because the user-visible rendering parity was not observed in a browser."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "docker build -f /dev/shm/dev-workspace/happy-dev/Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev /dev/shm/dev-workspace/happy-dev",
+      "deploy_command": "docker compose up -d happy-web-dev from /root/deploy",
+      "build_output_summary": "Expo web export bundled successfully and Docker image happy-app:dev was written as sha256:f1e26c7a0bc64a024736bd5f2963f3a5cbf191f38ca0bfba6b27a3ab1cf06a25. Docker emitted the pre-existing POSTHOG_API_KEY ARG lint warning.",
+      "service_healthy": true,
+      "changes_verified_live": false,
+      "skip_reason": "Browser automation was blocked before DOM/screenshot capture, so the running changed bundle was not visually verified."
+    },
+    "script_quality_results": [],
+    "regression_test_results": [
+      {
+        "test": "happy-wire build",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-wire build completed successfully in 5.20s."
+      },
+      {
+        "test": "happy-wire session protocol tests",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-wire vitest run src/sessionProtocol.test.ts passed: 1 file / 10 tests."
+      },
+      {
+        "test": "happy-cli Codex app-server and mapper tests",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-cli vitest run src/codex/codexAppServerClient.test.ts src/codex/__tests__/sessionProtocolMapper.test.ts passed: 2 files / 28 tests."
+      },
+      {
+        "test": "happy-app targeted normalizer/reducer/render-helper tests",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-app vitest run sources/sync/typesRaw.spec.ts sources/sync/reducer/reducerTracer.spec.ts sources/sync/reducer/reducer.spec.ts sources/utils/codexToolRendering.test.ts passed: 4 files / 132 tests."
+      },
+      {
+        "test": "happy-app typecheck",
+        "result": "pass",
+        "details": "yarn --cwd packages/happy-app typecheck completed successfully."
+      },
+      {
+        "test": "scoped git diff whitespace check",
+        "result": "pass",
+        "details": "git diff --check over issue-scoped files and dev report produced no output."
+      }
+    ],
+    "code_quality_findings": [],
+    "previous_qa_findings_resolution": [
+      {
+        "previous_issue": "Missing explicit declined-status Codex command fixture.",
+        "status": "resolved",
+        "evidence": "Mapper, wire, normalizer, and render-helper declined fixtures are present and targeted tests pass."
+      },
+      {
+        "previous_issue": "CodexPlanView hardcoded #007AFF color.",
+        "status": "resolved",
+        "evidence": "CodexPlanView.tsx:71 now uses theme.colors.status.connecting; grep found no #007AFF in the file."
+      },
+      {
+        "previous_issue": "Missing live desktop/mobile changed-bundle rendering evidence.",
+        "status": "not_resolved",
+        "evidence": "Dev web changed bundle was built/deployed and healthy, but browser DOM/screenshot capture failed before verification."
+      }
+    ],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 20,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      },
+      "notes": "Automated grep flagged /tmp paths in test fixtures/comments, zod discussion URLs in comments, and example.com in a render-helper test fixture. These are allowlisted test/comment/example data, not hardcoded runtime configuration. No credential patterns were found."
+    },
+    "standards_compliance": {
+      "checked": true,
+      "role_table": "absent",
+      "role_table_source": "CLAUDE.md and package CLAUDE.md searches found theme guidance but no strict role-token table such as CTA=brand-500.",
+      "violations": []
+    },
+    "band_aid_scan": {
+      "checked": true,
+      "patterns_found": [],
+      "notes": "Iteration-focused checks found added fixtures/assertions and theme-token usage, not threshold lowering, validation skips, severity downgrades, check removal, default substitution, or role-token downgrade."
+    },
+    "app_understanding_flow": {
+      "executed": false,
+      "core_flow_completed": false,
+      "steps_completed": 0,
+      "baseline_screenshots": [],
+      "errors_found_during_flow": [
+        "Playwright MCP browser_navigate to localhost:8097 returned: user rejected MCP tool call.",
+        "Direct Node Playwright fallback was unavailable: require('playwright') failed; @playwright/test and playwright-core were missing.",
+        "Headless Chrome CDP setup command was hook-rejected because it included rm -rf on a /tmp browser profile path; per hook discipline no rewritten browser setup command was attempted."
+      ],
+      "app_not_running": false
+    },
+    "live_verification_setup_attempt": {
+      "attempted_create_via_ui": false,
+      "ui_action_taken": "No sessions were created. QA intended to use the existing dev Codex Bash route /session/cmohltq0n2c8rpc153k0h9pvk after loading happy-web-dev, but browser automation was blocked before page interaction.",
+      "result": "Changed dev web bundle loaded and services were healthy, but live UI verification was blocked by browser-tool unavailability and a hook rejection for the fallback headless Chrome setup command.",
+      "screenshots_of_attempt": []
+    },
+    "ui_test_results": [
+      {
+        "scenario": "AC3 desktop/mobile changed-bundle parity check for Codex Bash, Codex subagent, Claude Bash, and Claude Agent/Task sessions",
+        "url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk plus representative existing dev Codex subagent and Claude oracle sessions",
+        "status": "fail",
+        "reason": "Browser verification could not be performed. MCP was rejected, local Playwright packages were unavailable, and the headless Chrome fallback command was hook-rejected; no source-only fallback was used.",
+        "steps_performed": [
+          "Built happy-app:dev from /dev/shm/dev-workspace/happy-dev with HAPPY_SERVER_URL=https://api-dev.life-ai.app.",
+          "Started happy-web-dev via docker compose up -d happy-web-dev from /root/deploy.",
+          "Verified dev API health at http://localhost:3005/health and dev web HTML at http://localhost:8097/.",
+          "Attempted browser_navigate to http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk; tool returned user rejected MCP tool call.",
+          "Checked direct Playwright package availability; playwright, @playwright/test, and playwright-core were absent.",
+          "Attempted headless Chrome CDP setup; command was blocked by PreToolUse hook due rm -rf /tmp profile cleanup; did not retry with a rewritten command."
+        ],
+        "assertions": [
+          {
+            "expected": "Desktop and mobile screenshots/DOM metrics for changed dev web bundle.",
+            "actual": "No screenshots, DOM measurements, or trace captured.",
+            "passed": false
+          },
+          {
+            "expected": "Codex Bash and subagent rendering parity observed in live dev UI.",
+            "actual": "Not observed.",
+            "passed": false
+          }
+        ],
+        "evidence": "Build/deploy/health command outputs plus browser-blocker messages listed above.",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": null,
+          "user_visible_change_confirmed": false
+        }
+      }
+    ],
+    "ui_evidence": {
+      "target_route": "/session/cmohltq0n2c8rpc153k0h9pvk plus representative existing dev Codex subagent and Claude oracle sessions",
+      "target_element": "CodexBash tool card and functions.spawn_agent SidebarAgentConversation",
+      "viewports": {
+        "desktop": {
+          "viewport": "1440x900",
+          "screenshot": null,
+          "dom_measurement": null
+        },
+        "mobile": {
+          "viewport": "390x844",
+          "screenshot": null,
+          "dom_measurement": null
+        }
+      },
+      "evidence_map": {
+        "AC1": [],
+        "AC2": [],
+        "AC2b": [],
+        "AC3": []
+      },
+      "trace": null,
+      "captured_at": null,
+      "complete": false
+    },
+    "output_quality_verification": {
+      "checked": false,
+      "output_type": "transcript rendering",
+      "completeness": "not verified live",
+      "quality_assessment": "not verified live",
+      "specific_checks": [],
+      "verdict": "fail"
+    },
+    "generated_tests": [],
+    "all_findings": [
+      {
+        "severity": "critical",
+        "location": "AC3 live UI verification",
+        "issue": "Changed dev web bundle was built/deployed and healthy, but desktop/mobile live rendering evidence is still missing because browser automation did not reach the DOM.",
+        "recommendation": "Re-run QA in an environment where Playwright MCP is allowed, or have the user explicitly permit a safe browser automation command after the hook rejection. Use only dev routes, existing dev sessions or UI-created sessions, and capture desktop/mobile screenshots, DOM metrics, and trace for Codex Bash, Codex subagent, Claude Bash, and Claude Agent/Task.",
+        "blocks_release": true
+      }
+    ],
+    "summary": {
+      "critical_issues": 1,
+      "major_issues": 0,
+      "minor_issues": 0,
+      "total_findings": 1,
+      "release_recommendation": "reject"
+    },
+    "self_verification": {
+      "claims_total": 15,
+      "claims_with_evidence": 14,
+      "claims_superficial": 1,
+      "superficial_details": [
+        "End-to-end user-visible rendering parity remains unverified because browser evidence is missing."
+      ],
+      "adversarial_questions": [
+        "Did I verify the previous major declined-status fixture gap at all required layers? Yes: mapper, wire, normalizer, and render-helper fixtures are present and tests passed.",
+        "Did I verify the previous minor hardcoded color issue? Yes: CodexPlanView uses theme.colors.status.connecting and #007AFF is absent.",
+        "Did I preserve the child final_answer lifecycle contract? Code/test evidence says yes: child final_answer emits no task_complete/turn-end before root completion and parent result stays displayable.",
+        "Can AC3 pass without screenshots/DOM metrics? No. The final verdict remains fail.",
+        "Did I create sessions through API/code? No.",
+        "Did I access production domains or production ports? No.",
+        "Did I bypass a hook after rejection? No. The fallback browser command was rejected and I did not retry it with rewritten shell.",
+        "Would this pass /close debate? No, because mandatory live UI evidence is missing."
+      ],
+      "confidence": "medium"
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "failed_parse",
+      "feedback_summary": "Skill(codex) is not available in this Codex harness/toolset, and after the hook rejection I did not attempt a shell-based external consultation. Self-review substituted with adversarial questions focused on scope, live UI evidence, child lifecycle, declined coverage, production safety, and hook discipline.",
+      "feedback_incorporated": "Self-review kept the final verdict at fail despite code/test pass, because live browser rendering evidence is a hard AC3 blocker."
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_criteria": [
+      "R3/AC3 live Claude-vs-Codex UI parity",
+      "R5 Happy dev live evidence"
+    ],
+    "critical_issues": [
+      "No desktop/mobile screenshots, DOM measurements, or trace for the changed happy-web-dev bundle."
+    ],
+    "recommended_approach": "No further application code change is indicated by the rechecked unit/type evidence. Next action is verification-only: enable/permit Playwright MCP or provide explicit approval for a safe browser automation command, then capture desktop 1440x900 and mobile 390x844 evidence on dev-only routes using existing dev sessions or sessions created through the normal dev UI.",
+    "additional_context": "The changed dev web image was built and happy-web-dev is running on localhost:8097 with api-dev. Do not touch production, do not restart daemons, and do not create sessions through API/code."
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "request_id": "20260428-112122-codex-claude-transcript-parity",
+  "task_id": "20260428-112122-codex-claude-transcript-parity",
+  "timestamp": "2026-04-28T12:32:08Z",
+  "status": "ready",
+  "qa_report_path": "docs/dev/ba-qa-report-20260428-112122-codex-claude-transcript-parity-r2.json",
+  "updated_artifacts": {
+    "ba_spec_path": "docs/dev/ba-spec-20260428-112122-codex-claude-transcript-parity.md",
+    "context_json_path": "docs/dev/context-20260428-112122-codex-claude-transcript-parity.json",
+    "ba_qa_response_path": "docs/dev/ba-qa-response-20260428-112122-codex-claude-transcript-parity.json"
+  },
+  "objections_addressed_count": 3,
+  "cumulative_objections_addressed_count": 13,
+  "remaining_objections": [],
+  "objections": [
+    {
+      "id": "R2-OBJ-1",
+      "severity": "major",
+      "resolution": "Resolved by adding an explicit app-server root-vs-child final_answer lifecycle contract: child receiver-thread final_answer is child content/result only and must not call emitRawTurnCompletion, emit task_complete/turn-end, clear _turnId/currentTurnId, or clear parent child-CUID2 linkage; root/current final_answer and root turn/completed still complete exactly once.",
+      "evidence": [
+        "docs/dev/ba-qa-report-20260428-112122-codex-claude-transcript-parity-r2.json:127-140",
+        "packages/happy-cli/src/codex/codexAppServerClient.ts:214-247,364-381",
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:236-260",
+        "docs/dev/ba-spec-20260428-112122-codex-claude-transcript-parity.md Must Have + AC2b",
+        "docs/dev/context-20260428-112122-codex-claude-transcript-parity.json expected_normalized_contract.app_server_final_answer_lifecycle_contract + verification_plan"
+      ]
+    },
+    {
+      "id": "R2-OBJ-2",
+      "severity": "minor",
+      "resolution": "Resolved by removing stale CUID2 identity false flag and replacing it with single_cuid2_lookup_linkage_invariant_required:true plus a note that reducer sidechain storage-key equality is not required.",
+      "evidence": [
+        "docs/dev/context-20260428-112122-codex-claude-transcript-parity.json standards_to_enforce.single_cuid2_lookup_linkage_invariant_required",
+        "docs/dev/context-20260428-112122-codex-claude-transcript-parity.json standards_to_enforce.single_cuid2_lookup_linkage_note"
+      ]
+    },
+    {
+      "id": "R2-OBJ-3",
+      "severity": "minor",
+      "resolution": "Resolved by replacing stale draft wording with Final/Updated R3 wording in this response summary.",
+      "evidence": [
+        "docs/dev/ba-qa-response-20260428-112122-codex-claude-transcript-parity.json summary",
+        "docs/dev/ba-spec-20260428-112122-codex-claude-transcript-parity.md revised heading/timestamp"
+      ]
+    }
+  ],
+  "prior_objections_reference": "Prior OBJ-1..OBJ-10 remain addressed by the previous amendment; R3 is a narrow correction for the latest QA R2 report.",
+  "external_consultation": {
+    "invoked": false,
+    "reason": "User explicitly instructed no optional external/adversarial consultation; R3 used the QA R2 report and repository evidence only."
+  },
+  "post_r2_amendments": [
+    "Added child final_answer lifecycle contract to spec Goal, Evidence, Scope, Must Have, AC2b, Technical Hints, and QA Objections Addressed.",
+    "Added context root_cause_analysis observations for codexAppServerClient.ts final_answer -> emitRawTurnCompletion and mapper task_complete -> turn-end.",
+    "Added expected_normalized_contract.app_server_final_answer_lifecycle_contract.",
+    "Added explicit acceptance_criteria and verification_plan sections in context JSON, including app-server, mapper, reducer, schema, and live dev UI checks.",
+    "Removed stale false CUID2 standards flag and clarified lookup-linkage invariant.",
+    "Corrected stale draft summary wording."
+  ],
+  "summary": "Final R3 amendment resolves all latest QA R2 objections by requiring child subagent final_answer events to remain child content/result only, never top-level task_complete/turn-end, while preserving root/current turn completion exactly once and correcting artifact-hygiene issues."
+}

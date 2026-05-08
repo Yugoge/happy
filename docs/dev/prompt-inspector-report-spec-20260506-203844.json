@@ -1,0 +1,29 @@
+{
+  "request_id": "spec-20260506-203844",
+  "timestamp": "2026-05-07T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "--changed-files",
+  "scope_contract": "diff-scoped cleanliness audit; file-level findings tagged with introduced_in_diff per AC-12.1 Mechanism (ii); absent/null tag => default-safe pre-existing/advisory",
+  "cycle_diff_files": [
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+    "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts",
+    "packages/happy-app/sources/utils/codexToolRendering.ts",
+    "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+    "packages/happy-app/sources/components/tools/ToolView.tsx",
+    "packages/happy-app/sources/components/tools/knownTools.tsx",
+    "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+    "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+    "docs/dev/specs/spec-20260506-203844.md"
+  ],
+  "findings": [],
+  "summary": {
+    "files_inspected": 9,
+    "files_in_enforcement_domain": 0,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "rationale": "Cycle diff contains 8 TypeScript/TSX source + test + fixture files (outside prompt-inspector's enforcement domain, which targets .claude/commands/*.md and .claude/agents/*.md execution prompts) and 1 spec markdown (docs/dev/specs/spec-20260506-203844.md, a project planning artifact, not a Claude command/agent/skill prompt). No prompt-style documentation present in diff. Empty findings is the correct outcome per inspector domain scope."
+  }
+}

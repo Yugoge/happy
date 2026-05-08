@@ -257,6 +257,12 @@ export default function RootLayout() {
                 }}
             />
             <Stack.Screen
+                name="dev/codex-render-fixtures"
+                options={{
+                    headerTitle: 'Codex Render Fixtures',
+                }}
+            />
+            <Stack.Screen
                 name="dev/masked-progress"
                 options={{
                     headerTitle: 'Masked Progress',

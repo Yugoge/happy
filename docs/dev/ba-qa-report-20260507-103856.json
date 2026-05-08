@@ -1,0 +1,90 @@
+{
+  "request_id": "20260507-103856",
+  "task_id": "20260507-103856",
+  "spec_id": "spec-20260506-203844",
+  "cycle_index": 3,
+  "timestamp": "2026-05-07T10:55:00Z",
+  "mode": "ba_validation",
+  "verdict": "pass",
+  "objections": [],
+  "verification_evidence": {
+    "evidence_quality": {
+      "ba_claim_1": "web.open is absent from packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "ba_claim_1_verified": true,
+      "verification_method": "Grep pattern 'web\\.open' on the file returned 0 matches; only 'web.search_query' (line 217), 'web-search' (line 492), 'web-weather' (line 506) appear.",
+      "ba_claim_2": "Renderer for web.open exists at packages/happy-app/sources/components/tools/knownTools.tsx:982",
+      "ba_claim_2_verified": true,
+      "verification_method": "Read of knownTools.tsx lines 975-994 confirms 'web.open' renderer entry at line 982 with input zod schema input: z.object({ url: z.string().optional() }).partial().passthrough() at line 986, and t('tools.desc.webOpening', { url }) at line 990 — exactly as BA cited.",
+      "ba_claim_3": "Reference schema at codex-render-fixtures-data.ts:216-238 (factories) and :491-518 (entries)",
+      "ba_claim_3_verified": true,
+      "verification_method": "Read of lines 210-245 confirms webSearchTool factory at 216-228 and webWeatherTool factory at 230-238; grep confirms 'web-search' fixture entry at 492 and 'web-weather' fixture entry at 506 — exact line references match.",
+      "ba_claim_4": "docs/dev/qa-artifacts/20260507-060647/ contains only matrix-desktop.png and matrix-mobile.png; no per-row screenshots",
+      "ba_claim_4_verified": true,
+      "verification_method": "ls of directory shows exactly two files: matrix-desktop.png (136875 bytes) and matrix-mobile.png (64396 bytes) — exact match to BA's claim of 134 KB / 63 KB respectively.",
+      "ba_claim_5": "Close-report verdict NO with web.open as single dispositive finding plus secondary per-row screenshot finding",
+      "ba_claim_5_verified": true,
+      "verification_method": "Read of docs/dev/close-report-spec-20260506-203844.md lines 65-118 confirms (a) 5.3.G web.open omission is dispositive (line 91), (b) per-row screenshots for §5.3.B image_gen/view_image/browser_take_screenshot is the secondary 'Required for next cycle' step 2 (line 118). BA's two-finding mapping is exact."
+    },
+    "scope_alignment": {
+      "close_report_finding_1": "Add web.open row to codex-render-fixtures-data.ts",
+      "ba_addresses_1": "M1 in ticket — webOpenTool factory + web-open fixture entry — exact match",
+      "close_report_finding_2": "Capture per-row screenshots for 5.3.B image preview rows under docs/dev/qa-artifacts/<next-task-id>/",
+      "ba_addresses_2": "M2 in ticket — three per-row screenshots saved under docs/dev/qa-artifacts/20260507-103856/ — exact match",
+      "scope_narrowing": false,
+      "scope_renaming": false,
+      "scope_over_expansion": false,
+      "out_of_scope_correctly_excluded": [
+        "Mapper changes (WH1)",
+        "Renderer changes (WH2)",
+        "Daemon restart / global install (WH3)",
+        "Live daemon stream verification (WH4 — spec section K + Round 2 ruling)",
+        "Other web-family tools not in 5.3.G (WH5)",
+        "i18n key additions (WH6 — keys already exist)"
+      ],
+      "notes": "BA correctly identified that the renderer at knownTools.tsx:982 is already correct (read-only reference), avoiding the cycle-2 over-expansion trap. M3 (top-of-matrix screenshots for diff comparison) and M4 (build/health verification) are appropriate scaffolding required to land the two close-report findings, not scope expansion. M5 (DOM literal 'web.open' string check) is the mechanical verification that AC2 mandates. No scope drift detected."
+    },
+    "investigation_completeness": {
+      "ba_verified_fixture_gap_independently": true,
+      "verification_evidence": "BA reports inline 'grep -n \"web.open\" returned 0 matches (verified inline this cycle)' in ticket Evidence section — confirmed by my own grep showing 0 matches.",
+      "ba_verified_renderer_exists_independently": true,
+      "verification_evidence": "BA reports 'Read of lines 975-1005 confirmed renderer key, zod schema, and t() keys used' — confirmed by my own Read of lines 975-994 showing exact match.",
+      "ba_identified_insertion_point": true,
+      "verification_evidence": "BA cited the exact reference schema at lines 216-228 (factory) and 491-504 (entry) for web-search, with line-for-line guidance to copy. Insertion point is implicit: alongside webWeatherTool (line 230) and after web-weather entry (line 518). This is sufficient guidance for dev.",
+      "ba_identified_renderer_constraints": true,
+      "verification_evidence": "BA documented in pre_existing_guards (context JSON) the zod schema at line 986 and noted dev MUST keep input.url present for renderer's title computation — accurate based on lines 988-990 of knownTools.tsx."
+    },
+    "affected_file_accuracy": {
+      "primary_file": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "exists": true,
+      "currently_lacks_web_open_row": true,
+      "currently_has_web_search_query_row": true,
+      "all_three_§5.3.B_rows_exist_in_file": true,
+      "rows_found": [
+        "functions.view_image at line 148 (entry at line 396-397)",
+        "mcp__playwright__browser_take_screenshot at line 160 (entry at line 410-411)",
+        "image_gen.imagegen at line 171 (entry at line 424-425)"
+      ],
+      "renderer_file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "renderer_line": 982,
+      "renderer_key": "web.open",
+      "renderer_key_match": "exact lowercase dotted",
+      "verified": true
+    },
+    "spec_text_vs_execution_drift": {
+      "ac1_mechanical_check": "grep -n 'web.open' on the file returns >= 1 match — directly executable, no drift",
+      "ac2_mechanical_check": "DOM count of literal 'web.open' string >= 1 + screenshot file existence — directly executable",
+      "ac3_mechanical_check": "Three named files exist + non-empty + visible content — directly executable (visual content judgment is acceptable per close-report Round 2 'rendered preview content visible in DOM' allowance documented in E2)",
+      "ac4_mechanical_check": "Inspector reports return 0 findings + yarn typecheck success + git diff scope check — directly executable",
+      "ac5_mechanical_check": "Dev report self-attestation review — directly executable",
+      "drift_detected": false,
+      "notes": "All five ACs are stated in mechanically-verifiable form. AC3's 'visibly shows rendered preview content or inline affordance (not a blank row)' is a soft judgment but the close-report Round 2 explicitly accepted this latitude (E2 risk mitigation cites 'whatever the renderer produces — image element, completed summary, or fallback affordance — captured and labeled accurately'). No drift requiring AC text rewrite."
+    }
+  },
+  "summary": "BA's analysis exactly matches the close-report's two findings, all factual claims verified by independent grep/read of cited files, scope precisely bounded with explicit Won't-Have list ruling out cycle-2 over-expansion areas, and all five ACs are mechanically verifiable. Verdict PASS.",
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  }
+}

@@ -12,11 +12,13 @@ import { TaskViewFull } from './TaskViewFull';
 import { BashViewFull } from './BashViewFull';
 import { EditViewFull } from './EditViewFull';
 import { MultiEditViewFull } from './MultiEditViewFull';
-import { CodexBashView } from './CodexBashView';
-import { CodexPatchView } from './CodexPatchView';
-import { CodexDiffView } from './CodexDiffView';
+import { CodexBashView, CodexBashViewFull } from './CodexBashView';
+import { CodexPatchView, CodexPatchViewFull } from './CodexPatchView';
+import { CodexDiffView, CodexDiffViewFull } from './CodexDiffView';
 import { CodexSubagentView } from './CodexSubagentView';
 import { CodexParallelView } from './CodexParallelView';
+import { CodexPlanView } from './CodexPlanView';
+import { CodexAttachmentView } from './CodexAttachmentView';
 import { AskUserQuestionView } from './AskUserQuestionView';
 import { GeminiEditView } from './GeminiEditView';
 import { GeminiExecuteView } from './GeminiExecuteView';
@@ -38,6 +40,11 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     CodexBash: CodexBashView,
     CodexPatch: CodexPatchView,
     CodexDiff: CodexDiffView,
+    'functions.update_plan': CodexPlanView,
+    'functions.view_image': CodexAttachmentView,
+    file: CodexAttachmentView,
+    'mcp__playwright__browser_take_screenshot': CodexAttachmentView,
+    'image_gen.imagegen': CodexAttachmentView,
     Write: WriteView,
     TodoWrite: TodoView,
     ExitPlanMode: ExitPlanToolView,
@@ -60,6 +67,15 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
 };
 
 export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
+    CodexBash: CodexBashViewFull,
+    CodexPatch: CodexPatchViewFull,
+    CodexDiff: CodexDiffViewFull,
+    'functions.update_plan': CodexPlanView,
+    'functions.view_image': CodexAttachmentView,
+    file: CodexAttachmentView,
+    'mcp__playwright__browser_take_screenshot': CodexAttachmentView,
+    'image_gen.imagegen': CodexAttachmentView,
+    'multi_tool_use.parallel': CodexParallelView,
     MultiEdit: MultiEditViewFull,
 };
 
@@ -77,10 +93,12 @@ export function getToolFullViewComponent(toolName: string): ToolViewComponent | 
 export { EditView } from './EditView';
 export { BashView } from './BashView';
 export { CodexBashView } from './CodexBashView';
-export { CodexPatchView } from './CodexPatchView';
-export { CodexDiffView } from './CodexDiffView';
+export { CodexPatchView, CodexPatchViewFull } from './CodexPatchView';
+export { CodexDiffView, CodexDiffViewFull } from './CodexDiffView';
 export { CodexSubagentView } from './CodexSubagentView';
 export { CodexParallelView } from './CodexParallelView';
+export { CodexPlanView } from './CodexPlanView';
+export { CodexAttachmentView } from './CodexAttachmentView';
 export { BashViewFull } from './BashViewFull';
 export { EditViewFull } from './EditViewFull';
 export { MultiEditViewFull } from './MultiEditViewFull';

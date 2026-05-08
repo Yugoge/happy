@@ -1,0 +1,663 @@
+{
+  "request_id": "20260507-060647",
+  "task_id": "20260507-060647",
+  "timestamp": "2026-05-07T06:33:10Z",
+  "requirement": {
+    "original": "/dev --spec /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844.md",
+    "clarified": "Revise BA deliverables for Happy dev tool rendering so QA BA-validation objections are resolved: live claims without artifacts are downgraded, restart-script existence verification is mandatory, dotted Playwright screenshot tool name is crosswalked to the normalized renderer key, and occurrence coverage is corrected/qualified.",
+    "what": "Happy dev tool/non-text rendering and lifecycle-state correctness for the Section 5.3 tool families.",
+    "why": "The user evaluates what Happy UI shows, not whether tools executed. Prior BA live claims lacked durable artifacts and the spec's restart-script existence lesson and screenshot name normalization were under-specified.",
+    "where": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-wire/src/sessionProtocol.ts",
+      "packages/happy-app/sources/sync/typesRaw.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx"
+    ],
+    "scope": {
+      "included": [
+        "Section 5.3 tool rendering matrix fields",
+        "subagent control lifecycle state and call-id matching",
+        "view_image/imagegen/Playwright screenshot inline preview payload/rendering",
+        "patch/update card de-duplication",
+        "compact fallback/empty states for Web, MCP resource, unknown, and unavailable tools",
+        "dev-only live UI verification requirements",
+        "Section 5.3 tool rendering matrix fields, including both user_tool_token and renderer_tool_key",
+        "restart/reload script path existence verification before any citation",
+        "durable live UI evidence requirement for any runtime claims"
+      ],
+      "excluded": [
+        "Broad markdown/Mermaid/context-window bugs from spec-20260506-203755",
+        "production web/API/daemon changes",
+        "retroactive repair of old messages with missing payload fields",
+        "API/daemon-created test sessions",
+        "treating unsaved prior Playwright text assertions as proof"
+      ]
+    },
+    "success_criteria": [
+      "Every Section 5.3 tool family has a matrix row with user token, renderer key, visibility/location/inline/raw-json/state classification.",
+      "Fresh subagent control cards complete and do not keep spinner/duration running, proven by saved desktop/mobile artifacts.",
+      "Fresh view_image, imagegen, and browser screenshot outputs show inline preview or explicit unavailable reason, proven by saved desktop/mobile artifacts.",
+      "Patch and generic fallback cards avoid duplicated header/raw JSON in the main flow.",
+      "Any restart/reload script path is verified before citation; /root/bin/safe-daemon-restart.sh is not named as available unless verification passes."
+    ],
+    "constraints": [
+      "Do not modify code during BA phase.",
+      "Dev/QA must use dev web/API only, never production.",
+      "No API-created sessions; trigger content through UI or deterministic dev fixture route.",
+      "If CLI mapper reload is needed, subagents must use sandbox verification or stop with a user-run REQUEST.",
+      "No production/full restart script for dev rendering.",
+      "Live UI claims require durable screenshot/snapshot/DOM/trace artifacts; otherwise classify as unverified.",
+      "Before citing any restart/reload script path, verify exact path existence in the current environment."
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-wire/src/sessionProtocol.ts",
+      "packages/happy-app/sources/sync/typesRaw.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+      "packages/happy-app/sources/app/(app)/_layout.tsx"
+    ],
+    "path_dependent_shared_infra": [
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPlanView.tsx",
+      "packages/happy-app/sources/components/tools/ToolSectionView.tsx",
+      "packages/happy-app/sources/utils/codexUnifiedDiff.ts",
+      "packages/happy-app/sources/utils/pathUtils.ts"
+    ],
+    "out_of_path_observed_but_not_touched": [
+      "docs/dev/specs/spec-20260506-203755.md broader markdown/Mermaid/context catalog is separate scope"
+    ]
+  },
+  "out_of_scope_observations": [],
+  "root_cause_analysis": {
+    "symptom": "Happy dev main panel reportedly shows several subagent control cards as permanently running and lacks complete rich/fallback rendering for Section 5.3 tool families.",
+    "root_cause": "Inferred from current source plus user/spec observations: collab-agent control starts/ends can be correlated under different visible call ids and spawn-agent ends are suppressed; renderer/fixture coverage lacks several Section 5.3 rows; and generic fallback/minimal behavior can expose raw INPUT/OUTPUT instead of compact summaries. Previous live Playwright numeric claims are downgraded because no durable browser artifact was saved.",
+    "root_cause_commit": "N/A - retry/dedup issue with uncommitted current work; not a bisected regression.",
+    "why_introduced": "Prior attempts focused on broad fixtures and image preview extraction but did not bind every collab-agent control start to a matching visible end, did not require user-token/renderer-key crosswalks, and did not include restart-script existence verification as acceptance.",
+    "why_problematic": "Tool execution can succeed while Happy UI appears stuck, hides rich output, or mislabels unavailable modes; dev could also repeat the user-challenged unsafe assumption about a restart script path.",
+    "timeline": "2026-04-28 broad Codex rendering attempts were partial; 2026-05-06 image preview fix remained warning/pending; 2026-05-07 Section 5 and QA BA-validation identify missing evidence, safety, and name-normalization requirements.",
+    "affected_files": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-wire/src/sessionProtocol.ts",
+      "packages/happy-app/sources/sync/typesRaw.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx"
+    ],
+    "evidence_type": "inferred",
+    "observations": [
+      "user_observed: user reports subagent display is badly wrong and view image/update file overlap; docs/dev/specs/spec-20260506-203844.md:268-288,343-422 carry binding user/spec phrases.",
+      "measured_source: fixture data exports eight rows at packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:154-285 and lacks screenshot/imagegen/subagent/PTY/Web/request-input/read-resource fixture rows found in Section 5.3.",
+      "measured_source: mcp_tool_call_begin builds internal key mcp__${server}__${tool}; for user token mcp__playwright__.browser_take_screenshot this maps to mcp__playwright__browser_take_screenshot at packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:762-768 and packages/happy-app/sources/components/tools/views/_all.tsx:46,76.",
+      "measured_source: collab verbs map to spawn_agent/wait_agent/close_agent at sessionProtocolMapper.ts:637-650; start visibleCall and end mappedCall/suppression logic at :661-706 are the inferred lifecycle-correlation suspect.",
+      "measured_source: app normalization/reducer completion depends on matching call/tool_use_id at typesRaw.ts:650-687 and reducer.ts:886-908.",
+      "downgraded_unverified: previous BA Playwright claims about 10 running cards and fixture raw JSON have no saved screenshot/snapshot/DOM/trace artifact and must not be treated as proof until QA recaptures them."
+    ],
+    "diagnosis_completeness": "incomplete until QA/dev captures durable live browser evidence; source localization is complete enough for dev scoping, but runtime proof is a hard AC.",
+    "complaint_location_keywords": [
+      "subagent",
+      "view image",
+      "update file",
+      "spawn_agent",
+      "wait_agent",
+      "close_agent",
+      "image_gen.imagegen",
+      "browser_take_screenshot",
+      "apply_patch",
+      "request_user_input",
+      "list_mcp_resources",
+      "mcp__playwright__.browser_take_screenshot",
+      "mcp__playwright__browser_take_screenshot",
+      "safe-daemon-restart.sh"
+    ],
+    "localization_evidence": "Source-localized from Section 5 user tokens to mapper/protocol/app renderer chain; live UI proof is deliberately deferred to QA artifacts because prior BA did not save durable browser evidence.",
+    "located_source": "sessionProtocolMapper.ts:637-706 shares spawn_agent/wait_agent/close_agent tokens; _all.tsx:46,76 contains normalized screenshot renderer key; fixture data lines 154-285 show current row set.",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "N/A",
+      "commit_message": "N/A",
+      "confirmed_by": "source-localization-plus-user-spec; live proof deferred",
+      "bisect_blocked": null,
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "真正的图片内联预览 / image_gen.imagegen / functions.view_image",
+      "classification": "user-need",
+      "acceptance_criterion": "Image-like tools show inline previews or explicit unavailable reason."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "mcp__playwright__.browser_take_screenshot",
+      "classification": "user-need",
+      "acceptance_criterion": "Matrix and fixtures record both dotted user token and normalized renderer key mcp__playwright__browser_take_screenshot, then screenshot renders inline."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "Patch/diff 渲染 / apply_patch",
+      "classification": "user-need",
+      "acceptance_criterion": "Patch/update cards are clear, non-overlapping, and details contain patch data."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "子代理生命周期渲染 / spawn_agent / wait_agent / close_agent",
+      "classification": "user-need",
+      "acceptance_criterion": "Subagent control cards complete/merge correctly and child tools are detail-only by default."
+    },
+    {
+      "id": "R5",
+      "source_phrase": "request_user_input",
+      "classification": "user-need",
+      "acceptance_criterion": "Default-mode unavailability is visible and classified unavailable."
+    },
+    {
+      "id": "R6",
+      "source_phrase": "Web 类工具卡 / MCP resource 工具 / write_stdin",
+      "classification": "user-need",
+      "acceptance_criterion": "Results or empty states are visible without default-expanded raw JSON."
+    },
+    {
+      "id": "R7",
+      "source_phrase": "不要假设 /root/bin/safe-daemon-restart.sh 存在；引用脚本前必须先验证。",
+      "classification": "user-need",
+      "acceptance_criterion": "Any restart/reload instruction verifies exact path existence before naming it. The path is not treated as available by default."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "line_range": "637-706",
+      "role": "Maps Codex collab_agent_call_begin/end into functions.spawn_agent / wait_agent / close_agent starts/ends; visibleCall/mappedCall/suppression are lifecycle suspects.",
+      "imports_from": [
+        "packages/happy-wire/src/sessionProtocol.ts"
+      ],
+      "evidence": "nl -ba lines 637-706 showed COLLAB_VERB_MAP, visibleCall, mappedCall, and spawn_agent end suppression.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "line_range": "762-768",
+      "role": "Normalizes MCP server/tool to internal renderer key mcp__server__tool, causing user token mcp__playwright__.browser_take_screenshot to become mcp__playwright__browser_take_screenshot.",
+      "imports_from": [
+        "packages/happy-wire/src/sessionProtocol.ts"
+      ],
+      "evidence": "nl -ba lines 762-768 showed name = server.length > 0 ? `mcp__${server}__${tool}` : `functions.${tool}`.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "line_range": "43-61,69-80",
+      "role": "Registers specialized views for functions.view_image, image_gen.imagegen, normalized Playwright screenshot key, and subagent verbs.",
+      "imports_from": [
+        "CodexAttachmentView.tsx",
+        "CodexPatchView.tsx",
+        "CodexSubagentView.tsx"
+      ],
+      "evidence": "nl -ba lines 43-61 and 69-80 showed exact registry rows.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "line_range": "154-285",
+      "role": "Current deterministic fixture matrix contains eight rows; missing Section 5.3 classes must be added or classified unverified.",
+      "imports_from": [
+        "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx"
+      ],
+      "evidence": "nl -ba lines 154-285 listed fixture ids markdown-rich-detail through unknown-future-tool.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "line_range": "886-908",
+      "role": "Completes running tools only when tool-result.tool_use_id maps to an existing running tool message.",
+      "imports_from": [
+        "packages/happy-app/sources/components/tools/ToolView.tsx"
+      ],
+      "evidence": "Previous BA read plus QA positive finding cite these lines as accurate lifecycle state evidence.",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "line": 379,
+      "type": "if",
+      "code_snippet": "if (type !== 'image_view_end' && !/(screenshot|image)/.test(name)) return undefined;",
+      "purpose": "Limits image-preview derivation to image/screenshot-like tool ends.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "line": 362,
+      "type": "if",
+      "code_snippet": "if (stat.size > IMAGE_PREVIEW_MAX_BYTES) return { path, size: stat.size, preview_unavailable_reason: 'image file is too large to preview inline' };",
+      "purpose": "Prevents huge local images from being inlined into tool payloads.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/sync/typesRaw.ts",
+      "line": 730,
+      "type": "validator",
+      "code_snippet": "function isSessionToolEndError(output: unknown): boolean { ... }",
+      "purpose": "Infers error state from status/success/exit_code/error in tool-end payloads.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line": 84,
+      "type": "if",
+      "code_snippet": "if (knownTool?.hidden) { return null; }",
+      "purpose": "Hides tools deliberately configured as hidden.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "line": 29,
+      "type": "if",
+      "code_snippet": "{attachment.previewUri ? <Image source={{ uri: attachment.previewUri }} ... /> : hasResult ? <Text>Preview unavailable</Text> : null}",
+      "purpose": "Shows preview only with a browser-loadable URI and falls back explicitly when result exists.",
+      "removal_authorized": false
+    }
+  ],
+  "setup": {
+    "applicability": "applicable",
+    "viewport": "QA target desktop 1440x900 and mobile 390x844; previous 1280x720 live claim downgraded due no artifact",
+    "theme": "light",
+    "locale": "zh user requirement; app UI mostly en",
+    "auth_state": "logged-in dev account cmi5mv9eh00wzpg14ph73jj3n",
+    "data_state": "fresh dev session plus /dev/codex-render-fixtures",
+    "browser": "Chromium/Playwright against localhost:8097 or dev.life-ai.app dev web only",
+    "url_path": "/session/<fresh-dev-session> and /dev/codex-render-fixtures"
+  },
+  "evidence": {
+    "observed": "`我只看到了这些和mcp。subagent显示有大问题，同时view image和update file也有重叠显示的问题`; `好的我确认我看不到，但是你的三个subagent的command被分别展示到了不同的地方`; `不要假设 /root/bin/safe-daemon-restart.sh 存在；引用脚本前必须先验证。`",
+    "measured": {
+      "value": "Current fixture source has eight rows; screenshot user token maps to normalized renderer key; Section 5.3K explicitly requires path verification before citing safe-daemon script; BA existence check found /root/bin/safe-daemon-restart.sh missing as of this revision.",
+      "location": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:154-285; packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:762-768; packages/happy-app/sources/components/tools/views/_all.tsx:46,76; docs/dev/specs/spec-20260506-203844.md:417-422; shell test -e /root/bin/safe-daemon-restart.sh returned missing in this BA run."
+    },
+    "expected": {
+      "value": "Section 5.3 matrix fields complete; subagent cards completed; image previews inline; unavailable modes classified separately; restart/reload script paths verified before citation; live claims backed by saved artifacts.",
+      "source": "docs/dev/specs/spec-20260506-203844.md:343-422 and QA BA-validation OBJ-1..OBJ-4 in docs/dev/ba-qa-report-20260507-060647.json"
+    },
+    "gap": "Previous BA overstated unsaved live observations; fixture/source coverage lacks several required rows; screenshot name crosswalk and restart-script existence AC were missing; occurrence ledger was too compressed."
+  },
+  "scope_expansion": {
+    "search_pattern": "functions.view_image|image_gen.imagegen|mcp__playwright__.browser_take_screenshot|mcp__playwright__browser_take_screenshot|functions.spawn_agent|functions.wait_agent|functions.close_agent|functions.request_user_input|functions.list_mcp_resources|functions.list_mcp_resource_templates|functions.read_mcp_resource|functions.write_stdin|CodexPatch|multi_tool_use.parallel|web.search_query",
+    "search_scope": "packages/happy-cli/src/**, packages/happy-app/sources/**, packages/happy-wire/src/**, docs/dev/specs/spec-20260506-203844.md",
+    "user_reported": [
+      "docs/dev/specs/spec-20260506-203844.md Section 5"
+    ],
+    "additional_found": [
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "packages/happy-app/sources/sync/typesRaw.ts",
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts"
+    ],
+    "coverage_note": "all_occurrences below is complete for the in-scope source anchors BA is binding to dev and includes QA-identified knownTools rows; broad docs/history grep hits are intentionally not scope-expanding and remain representative.",
+    "all_occurrences": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:637-706",
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:762-768",
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:852-884",
+      "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts:362-383",
+      "packages/happy-app/sources/components/tools/views/_all.tsx:43-61",
+      "packages/happy-app/sources/components/tools/views/_all.tsx:69-80",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:961",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:974",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1006",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1019",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1051",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1064",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1077",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1107",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1151",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1190",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1237",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1278",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1296",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1312",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1328",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1377",
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx:20,25",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx:26",
+      "packages/happy-app/sources/utils/codexToolRendering.ts:44-50",
+      "packages/happy-app/sources/utils/codexToolRendering.ts:265-285",
+      "packages/happy-app/sources/components/tools/ToolView.tsx:88-138",
+      "packages/happy-app/sources/sync/typesRaw.ts:650-687",
+      "packages/happy-app/sources/sync/reducer/reducer.ts:886-908",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:154-285"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Binding Section 5 acceptance text plus BA-read source anchors; previous unsaved live Playwright text is separately marked unverified and copy-disallowed.",
+    "url_or_location": "docs/dev/specs/spec-20260506-203844.md:343-422; docs/dev/ba-qa-report-20260507-060647.json objections; source anchors in scope_expansion.all_occurrences",
+    "copy_allowed": true,
+    "role_table": {
+      "_status": "no strict visual role-token map declared in root/package CLAUDE files; use existing Unistyles theme tokens, not hardcoded colors",
+      "_source": "CLAUDE.md and packages/happy-app/CLAUDE.md read in this BA revision; grep for role/CTA/brand found no role table"
+    },
+    "live_claim_reference": {
+      "tier": "tier_3_tainted",
+      "copy_allowed": false,
+      "reason": "Previous live Playwright claims had no saved screenshot/snapshot/DOM/trace artifact."
+    }
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "dedup_hit",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ba-spec-20260428-063343-codex-rendering.md plus iter dev/qa reports",
+        "proposed_solution": "Broad Codex rendering matrix and deterministic fixture route.",
+        "actual_change": "App fixture route, renderer registration, ToolView/ToolFullView/sidebar/helper changes across later iterations.",
+        "outcome": "Partial; QA found missing live rows and incomplete evidence/coverage.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L2"
+      },
+      {
+        "artifact_path": "docs/dev/ticket-20260506-124632.md; docs/dev/dev-report-20260506-124632.json; docs/dev/qa-report-20260506-124632.json",
+        "proposed_solution": "Add inline preview extraction for image-like tool results.",
+        "actual_change": "CLI mapper image path/preview extraction and tests.",
+        "outcome": "Warning; live future screenshot/imagegen verification remained pending and non-image rows were outside scope.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "live session cmov2oc5938gzqj15rfjkd3le / current spec-20260506-203844",
+        "proposed_solution": "Demonstrate/fix all visible tool rendering classes.",
+        "actual_change": "No code change in BA; observed current UI state.",
+        "outcome": "User and Playwright observe running subagent control cards and incomplete matrix coverage.",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "docs/dev/ticket-20260507-060647.md before QA revision",
+        "proposed_solution": "Demonstrate/fix all visible tool rendering classes using source plus unsaved live observations.",
+        "actual_change": "BA docs only; no code change.",
+        "outcome": "QA rejected because live claims lacked durable artifacts, safe-daemon existence AC was missing, screenshot name crosswalk was absent, and occurrence ledger was compressed.",
+        "failure_category": "other",
+        "target_layer": "L4"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "This revision adds an evidence-control layer and explicit crosswalk/safety acceptance, not just another renderer or fixture tweak."
+    }
+  },
+  "tool_rendering_matrix_requirements": [
+    {
+      "family": "image_inline",
+      "tools": [
+        "functions.view_image",
+        "image_gen.imagegen",
+        "mcp__playwright__.browser_take_screenshot"
+      ],
+      "renderer_keys": [
+        "functions.view_image",
+        "image_gen.imagegen",
+        "mcp__playwright__browser_take_screenshot"
+      ],
+      "required_fields": [
+        "user_tool_token",
+        "renderer_tool_key",
+        "inline_preview",
+        "path",
+        "raw_json_in_details",
+        "viewport_bounds"
+      ],
+      "unavailable_rule": "missing/unreadable image is partial/unavailable with visible reason, not invisible failure"
+    },
+    {
+      "family": "patch_diff",
+      "tools": [
+        "apply_patch",
+        "CodexPatch",
+        "CodexDiff"
+      ],
+      "required_fields": [
+        "file_list",
+        "kind",
+        "header_dedup",
+        "detail_diff"
+      ],
+      "unavailable_rule": "no patch payload is unverified unless fixture/live call exists"
+    },
+    {
+      "family": "subagent_lifecycle",
+      "tools": [
+        "spawn_agent",
+        "wait_agent",
+        "close_agent",
+        "functions.spawn_agent",
+        "functions.wait_agent",
+        "functions.close_agent",
+        "functions.send_input",
+        "functions.resume_agent"
+      ],
+      "required_fields": [
+        "state",
+        "duration",
+        "spinner",
+        "main_vs_detail_child_tools",
+        "matching_start_end_call_id"
+      ],
+      "unavailable_rule": "not applicable only when tool not triggered"
+    },
+    {
+      "family": "interactive_input",
+      "tools": [
+        "functions.request_user_input"
+      ],
+      "required_fields": [
+        "mode",
+        "visible_reason",
+        "classification"
+      ],
+      "unavailable_rule": "Default mode limitation is unavailable, not failure"
+    },
+    {
+      "family": "web_tools",
+      "tools": [
+        "web.search_query",
+        "web.open",
+        "web.image_query",
+        "web.weather",
+        "web.finance",
+        "web.sports",
+        "web.time"
+      ],
+      "required_fields": [
+        "source_title_snippet_or_summary",
+        "raw_details"
+      ],
+      "unavailable_rule": "untriggered specialized variants are unverified"
+    },
+    {
+      "family": "pty_terminal",
+      "tools": [
+        "functions.exec_command",
+        "functions.write_stdin"
+      ],
+      "required_fields": [
+        "shared_session_or_explicit_partial",
+        "stdout",
+        "stderr",
+        "exit_status"
+      ],
+      "unavailable_rule": "write_stdin without live PTY is partial/unverified"
+    },
+    {
+      "family": "mcp_resource",
+      "tools": [
+        "functions.list_mcp_resources",
+        "functions.list_mcp_resource_templates",
+        "functions.read_mcp_resource"
+      ],
+      "required_fields": [
+        "empty_state",
+        "resource_uri",
+        "raw_details"
+      ],
+      "unavailable_rule": "empty arrays are success empty-state when visibly rendered"
+    }
+  ],
+  "context": {
+    "codebase_state": "main branch with large dirty worktree (git status shows many modified/untracked files from prior cycles); BA only created docs/dev/ticket-20260507-060647.md and docs/dev/context-20260507-060647.json.",
+    "recent_commits": "Relevant provided commits: 4f4c90a5, dd963663, c1012d9a, dc4eef5b, 36bcc1cb; path log includes 4381eaf5 and older agent rendering commits.",
+    "file_contents": {
+      "sessionProtocolMapper": "collab begin/end lines 646-706; image view lines 852-884; image preview derivation lines 356-398",
+      "ToolView": "content gate/running elapsed lines 88-138",
+      "codexToolRendering": "shouldRenderToolContent lines 44-50; extractAttachmentSummary lines 265-285",
+      "fixture_data": "current fixture ids asserted in test lines 147-156; data file rows 154-285 contain eight rows"
+    },
+    "dependencies": {
+      "package_manager": "yarn",
+      "app_framework": "Expo React Native web with Unistyles",
+      "validation": "Vitest/typecheck; QA must use live browser"
+    },
+    "environment": {
+      "dev_web": "http://localhost:8097 and https://dev.life-ai.app only",
+      "dev_api": "https://api-dev.life-ai.app / localhost:3005",
+      "production_access": "forbidden"
+    }
+  },
+  "development_approach": {
+    "strategy": "Fix protocol/renderer contract and evidence contract: every visible tool-call-start must receive a matching end under the same call id, missing matrix rows must record both user/spec token and renderer key, raw JSON belongs in details, and runtime claims must be backed by desktop/mobile browser artifacts.",
+    "files_to_create": [
+      "Optional additional dev fixture data entries under packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "Optional focused tests in existing .test.ts files; avoid one-off scripts outside accepted test locations"
+    ],
+    "files_to_modify": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-cli/src/codex/__tests__/sessionProtocolMapper.test.ts",
+      "packages/happy-app/sources/sync/typesRaw.ts",
+      "packages/happy-app/sources/sync/typesRaw.spec.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.spec.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx"
+    ],
+    "validation_approach": "Dev runs focused mapper/app tests and typechecks. QA rebuilds/deploys dev web from happy-dev worktree as applicable and captures live desktop/mobile screenshots plus DOM/snapshot artifacts under docs/dev/qa-artifacts/20260507-060647/. If CLI mapper changes need proof, use sandbox daemon or user-run REQUEST; do not self-restart live daemon. Verify any restart/reload script path exists before citing it."
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Existing app/protocol bug with concrete local spec/source evidence; no external best-practice research materially needed for QA objection revision."
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true,
+    "strict_typescript": true,
+    "dev_web_api_only": true,
+    "live_desktop_mobile_ui_evidence_required": true,
+    "unavailable_tool_modes_are_not_failures": true,
+    "live_claims_require_durable_artifacts": true,
+    "restart_script_path_must_be_verified_before_citation": true,
+    "fixture_rows_record_user_and_renderer_tool_names": true
+  },
+  "tool_name_crosswalk": [
+    {
+      "user_tool_token": "mcp__playwright__.browser_take_screenshot",
+      "mapper_protocol_input": {
+        "server": "playwright",
+        "tool": "browser_take_screenshot"
+      },
+      "renderer_tool_key": "mcp__playwright__browser_take_screenshot",
+      "evidence": [
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:762-768",
+        "packages/happy-app/sources/components/tools/views/_all.tsx:46,76"
+      ],
+      "dot_vs_double_underscore_rule": "MCP server/tool display token in the user spec uses a dot between server namespace and tool; Happy protocol key joins server and tool with double underscores."
+    },
+    {
+      "user_tool_token": "functions.view_image",
+      "mapper_protocol_input": "image_view_begin/end",
+      "renderer_tool_key": "functions.view_image",
+      "evidence": [
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:852-884",
+        "packages/happy-app/sources/components/tools/views/_all.tsx:44,74"
+      ]
+    },
+    {
+      "user_tool_token": "image_gen.imagegen",
+      "mapper_protocol_input": "dynamic/image result payload or text",
+      "renderer_tool_key": "image_gen.imagegen",
+      "evidence": [
+        "packages/happy-app/sources/components/tools/views/_all.tsx:47,77"
+      ]
+    },
+    {
+      "user_tool_token": "spawn_agent / wait_agent / close_agent",
+      "mapper_protocol_input": "collab_agent_call_begin/end verbs",
+      "renderer_tool_key": "functions.spawn_agent / functions.wait_agent / functions.close_agent",
+      "evidence": [
+        "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:637-706",
+        "packages/happy-app/sources/components/tools/views/_all.tsx:57-61"
+      ]
+    }
+  ],
+  "restart_script_safety": {
+    "source_requirement": "docs/dev/specs/spec-20260506-203844.md:417-422",
+    "required_acceptance": "Before any restart/reload script path is cited or requested, verify exact path existence in the current environment; do not name /root/bin/safe-daemon-restart.sh as available unless verification passes.",
+    "ba_current_check": {
+      "path": "/root/bin/safe-daemon-restart.sh",
+      "checked_at": "2026-05-07T06:33:10Z",
+      "result": "missing",
+      "method": "test -e path through shell; no execution"
+    }
+  }
+}

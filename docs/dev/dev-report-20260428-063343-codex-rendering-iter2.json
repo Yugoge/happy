@@ -1,0 +1,315 @@
+{
+  "request_id": "20260428-063343-codex-rendering-iter2",
+  "task_id": "20260428-063343-codex-rendering-iter2",
+  "timestamp": "2026-04-28T13:36:22Z",
+  "dev_report_path": "docs/dev/dev-report-20260428-063343-codex-rendering-iter2.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/app/(app)/_layout.tsx",
+      "packages/happy-app/sources/app/(app)/dev/index.tsx",
+      "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+    ],
+    "files_created": [
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "docs/dev/evidence/20260428-063343-codex-rendering/iter2-ui-fixture-targets.json",
+      "docs/dev/dev-report-20260428-063343-codex-rendering-iter2.json"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Added a dev-only UI route with deterministic Codex rendering fixture rows.",
+        "type": "ui-fixture-route",
+        "files_created": [
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"
+        ],
+        "files_modified": [
+          "packages/happy-app/sources/app/(app)/_layout.tsx",
+          "packages/happy-app/sources/app/(app)/dev/index.tsx"
+        ],
+        "rationale": "QA lacked UI-reachable targets for missing Codex payload classes; the route uses ToolView, ToolFullView, MessageView, and RightSidebar rather than disconnected mock components."
+      },
+      {
+        "id": 2,
+        "description": "Made terminal fixture and renderer cover command, stdout, stderr, nonzero exit/status, and command-once detail semantics.",
+        "type": "renderer-fix",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/knownTools.tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"
+        ],
+        "rationale": "Codex feedback identified array-command duplicate descriptions; ToolFullView now normalizes command strings, shell wrappers, command arrays, and parsed_cmd before suppressing echoed descriptions."
+      },
+      {
+        "id": 3,
+        "description": "Fixed patch/detail rendering to show parsed unified diff content before any generic raw JSON surface.",
+        "type": "renderer-fix",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx",
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ],
+        "rationale": "Patch acceptance requires complete old/new diff rendering; CodexPatch detail/sidebar now parse unified_diff and specialized full views own their payload instead of leading with raw input/output JSON."
+      },
+      {
+        "id": 4,
+        "description": "Provided markdown/rich detail proof through the real message detail renderer.",
+        "type": "renderer-fix",
+        "files_modified": [
+          "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx"
+        ],
+        "rationale": "Agent/user text detail now uses MarkdownView, so rich markdown detail uses the same parser as the inline message surface."
+      },
+      {
+        "id": 5,
+        "description": "Added view-image fixture rendering with image preview and attachment metadata.",
+        "type": "renderer-fix",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+          "packages/happy-app/sources/utils/codexToolRendering.ts",
+          "packages/happy-app/sources/components/tools/knownTools.tsx",
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ],
+        "rationale": "Binary attachment evidence alone did not satisfy image/view-image acceptance; functions.view_image now has a reachable sample with previewUri, path, dimensions, and size."
+      },
+      {
+        "id": 6,
+        "description": "Added MCP resource rendering reachability and resource-specific title/subtitle behavior.",
+        "type": "renderer-fix",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/tools/knownTools.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx"
+        ],
+        "rationale": "MCP permission rows were insufficient; mcp__resources__read now exposes resources.read, file://fixture.md, and result content through inline/detail/sidebar renderers."
+      },
+      {
+        "id": 7,
+        "description": "Removed expectation-chip contamination and split manifest expectations by surface.",
+        "type": "qa-evidence-hardening",
+        "files_modified": [
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+          "docs/dev/evidence/20260428-063343-codex-rendering/iter2-ui-fixture-targets.json"
+        ],
+        "rationale": "Codex feedback noted that visible expected-string chips could falsely satisfy QA text searches; the UI no longer renders those oracle strings outside the real renderer surfaces."
+      }
+    ],
+    "qa_blockers_addressed": [
+      {
+        "blocker": "Dev UI lacks reachable update-plan, parallel tool, image-view, resource-read, and unknown/future-tool targets.",
+        "resolution": "Added /dev/codex-render-fixtures with fixture ids update-plan, parallel-tools, image-view, mcp-resource-read, and unknown-future-tool. Each tool fixture renders through ToolView, ToolFullView, and RightSidebar."
+      },
+      {
+        "blocker": "Terminal live evidence does not prove command/stdout/stderr/exit/status/command-once together.",
+        "resolution": "Added terminal-stdout-stderr-exit fixture with command array, parsed_cmd, stdout, stderr, exit_code 7, status failed, and duplicate shell-command description. ToolFullView suppresses shell-wrapper/array/parsed_cmd echoes."
+      },
+      {
+        "blocker": "Patch/detail appears as raw diff JSON rather than complete diff rendering.",
+        "resolution": "CodexPatch detail/sidebar parse unified_diff into ToolDiffView and ToolFullView suppresses generic Input/Output/Error sections for specialized payload-owning tools."
+      },
+      {
+        "blocker": "Markdown/rich content lacks separate detail-surface proof.",
+        "resolution": "Added markdown-rich-detail fixture and changed text message detail to render MarkdownView instead of plain Text."
+      },
+      {
+        "blocker": "Binary attachment evidence does not satisfy image/view-image acceptance.",
+        "resolution": "Added functions.view_image fixture with plot.png path, data-URI preview, 640×480 metadata, and CodexAttachmentView image preview rendering."
+      },
+      {
+        "blocker": "MCP-adjacent permission evidence does not satisfy resource rendering acceptance.",
+        "resolution": "Added mcp__resources__read fixture plus known tool title/subtitle/status and generic/sidebar output handling for resource URI and content."
+      }
+    ],
+    "qa_targets": {
+      "route": "/dev/codex-render-fixtures",
+      "route_test_id": "codex-render-fixtures-route",
+      "evidence_manifest": "docs/dev/evidence/20260428-063343-codex-rendering/iter2-ui-fixture-targets.json",
+      "fixture_ids": [
+        "markdown-rich-detail",
+        "terminal-stdout-stderr-exit",
+        "patch-unified-diff",
+        "update-plan",
+        "parallel-tools",
+        "image-view",
+        "mcp-resource-read",
+        "unknown-future-tool"
+      ],
+      "test_id_patterns": {
+        "fixture_card": "codex-fixture-<id>",
+        "inline_surface": "codex-fixture-inline-<id>",
+        "detail_surface": "codex-fixture-detail-<id>",
+        "open_detail_button": "codex-fixture-open-detail-<id>",
+        "open_sidebar_button": "codex-fixture-open-sidebar-<id>"
+      },
+      "qa_note": "Expected strings are in the manifest by inline/detail/sidebar surface and are not rendered as standalone checklist chips in the UI."
+    },
+    "automated_validation_outcomes": [
+      {
+        "command": "yarn workspace happy-app test sources/utils/codexToolRendering.test.ts --run",
+        "status": "pass",
+        "outcome": "1 test file passed; 7 tests passed."
+      },
+      {
+        "command": "yarn workspace happy-app typecheck",
+        "status": "pass",
+        "outcome": "tsc --noEmit completed successfully."
+      },
+      {
+        "command": "yarn workspace happy-app test --run",
+        "status": "pass",
+        "outcome": "31 test files passed, 1 skipped; 453 tests passed, 57 skipped."
+      }
+    ],
+    "remaining_work": [
+      {
+        "type": "qa_only_live_evidence",
+        "description": "QA still needs to rebuild/deploy happy-web-dev and capture desktop/mobile inline, detail, and sidebar evidence from /dev/codex-render-fixtures. Dev does not claim live UI pass."
+      }
+    ],
+    "environment_safety": {
+      "happy_daemon_restart_or_stop_occurred": false,
+      "production_happy_url_or_port_access_occurred": false,
+      "non_ui_session_creation_occurred": false,
+      "global_happy_cli_modification_occurred": false,
+      "hook_bypass_or_wrapper_occurred": false,
+      "docker_deploy_or_container_restart_occurred": false,
+      "live_ui_pass_claimed": false
+    },
+    "scripts_created": [],
+    "permissions_to_add": [],
+    "git_rationale": {
+      "root_cause_commit": "N/A - artifact analysis/evidence gap, not a code regression bisect.",
+      "why_issue_occurred": "Prior closure evidence focused too narrowly on terminal rendering and did not provide reachable UI targets for the full Codex payload matrix.",
+      "how_fix_addresses_root": "The happy-dev UI now has deterministic real-renderer fixture targets for missing rows, and renderer gaps exposed by those targets were patched."
+    },
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+        "imported_by": [
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/-session/SessionView.tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx",
+          "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx"
+        ],
+        "impact": "high - common tool detail surface"
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/ToolView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/ChatList.tsx",
+          "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx"
+        ],
+        "impact": "high - common inline tool card surface"
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/tools/ToolHeader.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarTodoView.tsx",
+          "packages/happy-app/sources/sync/storage.ts"
+        ],
+        "impact": "high - shared tool metadata registry"
+      },
+      {
+        "modified": "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/utils/codexToolRendering.ts",
+        "imported_by": [
+          "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/tools/knownTools.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexPlanView.tsx"
+        ],
+        "impact": "high - shared Codex rendering helpers"
+      }
+    ],
+    "dirty_scope_accounting": {
+      "note": "The worktree already contained many dirty/untracked files from prior iterations. git diff HEAD shortstat is not an iter2-only diff.",
+      "git_diff_head_shortstat": "40 files changed, 1926 insertions(+), 306 deletions(-)",
+      "iter2_scope": "This iteration stayed within happy-app renderer/dev-route/test/evidence files and did not edit happy-cli, happy-wire, production paths, daemon code, or deployment files."
+    },
+    "diff_stats": {
+      "files_changed": 40,
+      "lines_added": 1926,
+      "lines_removed": 306,
+      "new_symbols_introduced": [
+        "CODEX_RENDER_FIXTURE_SESSION_ID",
+        "CodexRenderFixture",
+        "codexRenderFixtures",
+        "SPECIALIZED_FULL_PAYLOAD_TOOLS",
+        "unwrapShellCommand",
+        "getCommandCandidates",
+        "previewUri"
+      ],
+      "minimum_possible_lines_estimate": 500,
+      "justification_for_overage": "The QA blockers required a UI-reachable deterministic fixture matrix, a per-surface evidence manifest, and small renderer fixes across inline/detail/sidebar surfaces. The recorded git diff includes pre-existing dirty changes, so it overstates iter2-only code size."
+    },
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Rebuild/deploy happy-web-dev from /dev/shm/dev-workspace/happy-dev only, then verify /dev/codex-render-fixtures on desktop and mobile. Do not use production URLs or non-UI session creation.",
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "Typecheck and happy-app Vitest suite passed. No Docker deploy, browser live pass, daemon restart, production access, or non-UI session creation was performed."
+    }
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex flagged five concrete issues: terminal duplicate-command suppression missed command arrays, visible expectation chips contaminated evidence, patch expectations needed surface-specific strings, MCP resource inline could miss URI/title, and generic full detail dropped falsey outputs.",
+    "feedback_incorporated": "Implemented command-array/shell-wrapper/parsed_cmd duplicate suppression, removed expectation chips from the UI, split manifest expectations by inline/detail/sidebar, made known MCP resource titles/subtitles reachable in ToolView, included URI in the resource fixture result, and changed ToolFullView to render own-property falsey results."
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should capture post-deploy desktop and mobile evidence for every fixture id listed in iter2-ui-fixture-targets.json.",
+    "If QA validates the fixture route, keep it dev-only and do not use it as production-session evidence.",
+    "Consider a follow-up cleanup after closure to separate pre-existing dirty Codex protocol changes from this renderer evidence iteration."
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "request_id": "20260507-060647",
+  "task_id": "20260507-060647",
+  "timestamp": "2026-05-07T06:44:14Z",
+  "mode": "ba_validation",
+  "verdict": "pass",
+  "qa": {
+    "status": "pass",
+    "analysis_quality_validation": true,
+    "live_ui_verification_performed": false,
+    "live_ui_verification_skip_reason": "BA-validation mode explicitly instructed: do not perform live UI verification.",
+    "artifacts_read": [
+      "/dev/shm/dev-workspace/happy-dev/.claude/dev-registry/dev-20260507-055629/qa.json",
+      "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203844/cp-state-qa.json",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844/views/qa.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/ticket-20260507-060647.md",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/context-20260507-060647.json",
+      "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-qa-report-20260507-060647.json (prior report, before overwrite)"
+    ],
+    "binding_user_acceptance_words_checked": [
+      "/dev 修复以上渲染问题",
+      "真正的图片内联预览",
+      "image_gen.imagegen",
+      "mcp__playwright__.browser_take_screenshot",
+      "functions.view_image",
+      "Patch/diff 渲染",
+      "apply_patch",
+      "子代理生命周期渲染",
+      "spawn_agent",
+      "wait_agent",
+      "close_agent",
+      "不要假设 /root/bin/safe-daemon-restart.sh 存在；引用脚本前必须先验证。",
+      "我只看到了这些和mcp。subagent显示有大问题，同时view image和update file也有重叠显示的问题",
+      "好的我确认我看不到，但是你的三个subagent的command被分别展示到了不同的地方"
+    ],
+    "dimension_results": {
+      "evidence_quality": "pass",
+      "scope_alignment": "pass",
+      "investigation_completeness": "pass",
+      "affected_file_accuracy": "pass",
+      "spec_text_vs_execution_drift": "pass"
+    },
+    "prior_objection_rechecks": [
+      {
+        "prior_id": "OBJ-1",
+        "dimension": "evidence_quality",
+        "status": "resolved",
+        "evidence": [
+          "ticket-20260507-060647.md:13 says prior live Playwright observations are downgraded to unverified targets and durable BA evidence is limited to user/spec text plus source-localization reads.",
+          "ticket-20260507-060647.md:30 says prior live UI claims lack durable artifacts and live state remains a QA proof obligation.",
+          "context-20260507-060647.json:58 requires durable screenshot/snapshot/DOM/trace artifacts for live UI claims; context lines 125 and 376-380 mark previous live Playwright claims as unverified/tainted.",
+          "AC1-AC4 require fresh desktop/mobile screenshot and DOM artifacts under docs/dev/qa-artifacts/20260507-060647/."
+        ],
+        "qa_conclusion": "BA no longer treats unsaved live observations as binding evidence; it correctly shifts them into unverified/fresh-QA proof obligations."
+      },
+      {
+        "prior_id": "OBJ-2",
+        "dimension": "scope_alignment",
+        "status": "resolved",
+        "evidence": [
+          "ticket-20260507-060647.md:46,73 require verifying any restart/reload script path before citation and forbid naming /root/bin/safe-daemon-restart.sh as available unless verified.",
+          "ticket-20260507-060647.md:92 adds R7 from the user's verbatim safe-daemon complaint.",
+          "ticket-20260507-060647.md:127-132 adds AC5 Restart-script safety.",
+          "context-20260507-060647.json:653-661 records the restart-script safety requirement and a current non-executing existence check; QA independently ran `test -e /root/bin/safe-daemon-restart.sh` and observed `missing`."
+        ],
+        "qa_conclusion": "The specific Section 5.3K safe-daemon existence lesson is now binding in requirements, ACs, constraints, and context."
+      },
+      {
+        "prior_id": "OBJ-3",
+        "dimension": "spec_text_vs_execution_drift",
+        "status": "resolved",
+        "evidence": [
+          "ticket-20260507-060647.md:48-57 adds a Tool Name Crosswalk mapping user token mcp__playwright__.browser_take_screenshot to renderer key mcp__playwright__browser_take_screenshot.",
+          "ticket-20260507-060647.md:87 and 115-119 require matrix/fixture rows and preview checks to carry both the dotted user token and normalized renderer key.",
+          "context-20260507-060647.json:612-624 adds the same explicit crosswalk with evidence anchors.",
+          "QA source spot-check confirmed sessionProtocolMapper.ts:762-768 constructs mcp__${server}__${tool} and _all.tsx:46,76 registers mcp__playwright__browser_take_screenshot."
+        ],
+        "qa_conclusion": "The literal user token and executable renderer key are now both represented, preventing dotted-vs-double-underscore AC drift."
+      },
+      {
+        "prior_id": "OBJ-4",
+        "dimension": "affected_file_accuracy",
+        "status": "resolved_with_nonblocking_caveat",
+        "evidence": [
+          "ticket-20260507-060647.md:38 explicitly qualifies the occurrence ledger as in-scope source anchors and says docs/history grep hits are representative only.",
+          "context-20260507-060647.json:333 qualifies all_occurrences as complete for in-scope anchors BA is binding to dev, not a universal grep dump.",
+          "context-20260507-060647.json:341-356 includes the prior missing knownTools rows for web.search_query, write_stdin, request_user_input, list_mcp_resources, list_mcp_resource_templates, read_mcp_resource, and related rows."
+        ],
+        "qa_conclusion": "The prior blocking defect is resolved because the ledger is explicitly qualified and includes the QA-identified omitted knownTools rows. Non-blocking caveat: the JSON key remains named all_occurrences, but the adjacent coverage_note narrows its meaning enough for dev handoff."
+      }
+    ],
+    "source_spot_checks": [
+      {
+        "claim": "Playwright screenshot user token maps to normalized renderer key.",
+        "method": "Source read only; no live UI.",
+        "result": "pass",
+        "evidence": "sessionProtocolMapper.ts:762-768 builds mcp__${server}__${tool}; _all.tsx:46,76 registers mcp__playwright__browser_take_screenshot."
+      },
+      {
+        "claim": "Current fixture data has eight rows and lacks several Section 5.3 families.",
+        "method": "Source read only; no live UI.",
+        "result": "pass",
+        "evidence": "codex-render-fixtures-data.ts:154-285 lists eight rows: markdown, terminal, patch, plan, parallel, view_image, mcp-resource list, unknown future tool."
+      },
+      {
+        "claim": "/root/bin/safe-daemon-restart.sh is not assumed present.",
+        "method": "Non-executing existence check.",
+        "result": "pass",
+        "evidence": "QA ran test -e /root/bin/safe-daemon-restart.sh and observed missing; BA does not cite it as available."
+      }
+    ],
+    "objections": [],
+    "non_blocking_observations": [
+      {
+        "dimension": "affected_file_accuracy",
+        "observation": "The context JSON still uses the key name all_occurrences. This is acceptable for this revision because context-20260507-060647.json:333 qualifies it as in-scope anchors BA is binding to dev rather than every rg hit, but renaming to representative_or_bound_occurrences would reduce future ambiguity.",
+        "blocking": false
+      }
+    ],
+    "summary": {
+      "verdict_reason": "PASS: the revised BA deliverables resolve all prior blocking BA-validation objections. Unsaved live observations are now downgraded/tainted unless recaptured with artifacts, restart-script path existence is an explicit safety requirement including /root/bin/safe-daemon-restart.sh, the dotted Playwright screenshot user token is crosswalked to the normalized renderer key, and the occurrence ledger is corrected/qualified enough for dev handoff.",
+      "release_recommendation": "approve_ba_deliverables_for_dev_iteration",
+      "required_next_action": "Proceed to dev implementation against ticket/context. Later QA implementation verification must still rebuild/deploy dev web and capture fresh desktop/mobile live UI evidence; this BA-validation pass is not a UI behavior pass."
+    },
+    "codex_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null,
+  "checkpoint_handling": {
+    "cp_state_file": "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260506-203844/cp-state-qa.json",
+    "status_checked": true,
+    "pending_checkpoints": [],
+    "terminal_states_seen": {
+      "cp-01": "waived-with-reason",
+      "cp-02": "waived-with-reason",
+      "cp-03": "waived-with-reason",
+      "cp-04": "waived-with-reason",
+      "cp-05": "done"
+    },
+    "note": "All checkpoints were already in done or waived-with-reason state when read at startup and rechecked with spec-check status; no live UI checkpoints were reopened in BA-validation mode."
+  }
+}

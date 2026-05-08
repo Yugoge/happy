@@ -1,0 +1,64 @@
+{
+  "task_id": "20260507-055611",
+  "request_id": "20260507-055611",
+  "timestamp": "2026-05-07T07:36:00Z",
+  "inspector": "prompt-inspector",
+  "spec_id": "spec-20260506-203755",
+  "spec_path": "docs/dev/specs/spec-20260506-203755.md",
+  "mode": "changed-files",
+  "filtering_contract": "tagged",
+  "jurisdiction": {
+    "scope": "Skill/command/agent prompt-style markdown files (.claude/commands/*.md, .claude/agents/*.md, .claude/skills/*.md). Detects verbose non-functional content per the 'rules not stories' principle.",
+    "out_of_scope": [
+      "Application source code (.ts, .tsx, .js)",
+      "Test files",
+      "Workflow artifacts (spec markdown under docs/dev/specs/, cp-state JSON, dev/QA/close report JSON)",
+      "General project documentation"
+    ]
+  },
+  "changed_files": [
+    "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+    "docs/dev/specs/spec-20260506-203755.md",
+    ".claude/specs/spec-20260506-203755/cp-state-dev.json",
+    "docs/dev/dev-report-20260507-055611.json"
+  ],
+  "in_scope_files": [],
+  "out_of_scope_files": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "reason": "TypeScript source code (parser implementation), not a prompt-style file"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "reason": "TypeScript/React source code (renderer component), not a prompt-style file"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "reason": "TypeScript test file (Vitest), not a prompt-style file"
+    },
+    {
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "reason": "Spec/workflow artifact under docs/dev/specs/. Dispatch instructions explicitly noted spec markdown is a workflow artifact, not a skill/command/agent prompt file. Verbosity rules (Philosophy/Overview/Quality Standards section detection) do not apply to spec lifecycle docs."
+    },
+    {
+      "file": ".claude/specs/spec-20260506-203755/cp-state-dev.json",
+      "reason": "Checkpoint state JSON, not a prompt-style markdown file"
+    },
+    {
+      "file": "docs/dev/dev-report-20260507-055611.json",
+      "reason": "Dev report JSON workflow artifact, not a prompt-style markdown file"
+    }
+  ],
+  "findings": [],
+  "notes": "None of the 6 changed files in this cycle are skill/command/agent prompt-style files. The diff consists of (a) three application source files in packages/happy-app/sources/components/markdown/ — TypeScript parser/renderer/test code, outside prompt-inspector jurisdiction; (b) one spec lifecycle markdown (docs/dev/specs/spec-20260506-203755.md) — a workflow artifact, explicitly called out by the dispatch as a workflow artifact rather than a skill/command/agent prompt; (c) two JSON workflow artifacts (cp-state-dev.json, dev-report-20260507-055611.json) — not markdown prompts. No .claude/commands/*.md, .claude/agents/*.md, or .claude/skills/*.md file appears in the changed-file list. Per the file-level NEW vs pre-existing tagging contract (Mechanism (ii)), findings would carry introduced_in_diff tags; with zero in-scope files there is nothing to tag. Cleanliness verdict for THIS diff under prompt-inspector scope: clean (no in-scope violations introduced).",
+  "summary": {
+    "total_findings": 0,
+    "new_in_diff": 0,
+    "pre_existing_or_untagged": 0,
+    "files_inspected": 0,
+    "files_in_scope": 0,
+    "files_out_of_scope": 6
+  }
+}

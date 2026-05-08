@@ -60,6 +60,7 @@ const sessionToolCallEndEventSchema = z.object({
     t: z.literal('tool-call-end'),
     call: z.string(),
     output: z.string().optional(),
+    result: z.unknown().optional(),
 });
 
 const sessionFileEventSchema = z.object({
@@ -542,8 +543,8 @@ function normalizeSessionEnvelope(
     meta: MessageMeta | undefined,
 ): NormalizedMessage | null {
     // Session protocol requires turn id on all agent-originated envelopes.
-    // Drop malformed agent events without turn to avoid attaching stray messages.
-    if (envelope.role === 'agent' && !envelope.turn) {
+    // Service events may be global; drop other malformed agent events without turn.
+    if (envelope.role === 'agent' && !envelope.turn && envelope.ev.t !== 'service') {
         return null;
     }
 
@@ -595,9 +596,14 @@ function normalizeSessionEnvelope(
             id: messageId,
             localId,
             createdAt: messageCreatedAt,
-            role: 'event',
+            role: 'agent',
             isSidechain: false,
-            content: { type: 'message', message: envelope.ev.text } as AgentEvent,
+            content: [{
+                type: 'text',
+                text: envelope.ev.text,
+                uuid: contentUUID,
+                parentUUID
+            }],
             meta
         } satisfies NormalizedMessage;
     }
@@ -662,6 +668,7 @@ function normalizeSessionEnvelope(
     }
 
     if (envelope.ev.t === 'tool-call-end') {
+        const result = envelope.ev.result ?? envelope.ev.output ?? null;
         return {
             id: messageId,
             localId,
@@ -671,8 +678,8 @@ function normalizeSessionEnvelope(
             content: [{
                 type: 'tool-result',
                 tool_use_id: envelope.ev.call,
-                content: envelope.ev.output ?? null,
-                is_error: false,
+                content: result,
+                is_error: isSessionToolEndError(result),
                 uuid: contentUUID,
                 parentUUID
             }],
@@ -720,6 +727,26 @@ function normalizeSessionEnvelope(
     return null;
 }
 
+function isSessionToolEndError(output: unknown): boolean {
+    let parsed: unknown = output;
+    if (typeof output === 'string') {
+        if (!output.trim().startsWith('{')) return false;
+        try {
+            parsed = JSON.parse(output);
+        } catch {
+            return false;
+        }
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    const record = parsed as Record<string, unknown>;
+    const status = typeof record.status === 'string' ? record.status.toLowerCase() : '';
+    if (['failed', 'error', 'declined'].includes(status)) return true;
+    if (record.success === false) return true;
+    const code = record.exit_code ?? record.exitCode ?? record.code;
+    if (typeof code === 'number' && code !== 0) return true;
+    if (typeof code === 'string' && code !== '' && code !== '0') return true;
+    return record.error !== undefined && record.error !== null && record.error !== '';
+}
 
 export function normalizeRawMessage(id: string, localId: string | null, createdAt: number, raw: RawRecord): NormalizedMessage | null {
     // Skip legacy duplex messages — these are backward-compatibility copies sent alongside

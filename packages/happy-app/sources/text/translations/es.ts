@@ -550,6 +550,9 @@ export const es: TranslationStructure = {
             other: 'Otro',
             otherDescription: 'Escribe tu propia respuesta',
             otherPlaceholder: 'Escribe tu respuesta...',
+        },
+        attachment: {
+            staleAdvisory: 'Vuelve a activar en esta o una nueva sesión para ver la previsualización inline.',
         }
     },
 

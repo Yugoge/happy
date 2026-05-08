@@ -550,6 +550,9 @@ export const zhHant: TranslationStructure = {
             modifyingFiles: ({ count }: { count: number }) => `正在修改 ${count} 個檔案`,
             modifyingMultipleFiles: ({ file, count }: { file: string; count: number }) => `${file} 和其他 ${count} 個`,
             showingDiff: '顯示更改',
+        },
+        attachment: {
+            staleAdvisory: '在此會話或新的會話中再次觸發以查看 inline 預覽。',
         }
     },
 

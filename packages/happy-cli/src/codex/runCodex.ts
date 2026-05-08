@@ -1,11 +1,14 @@
 import { render } from "ink";
 import React from "react";
+import axios from 'axios';
 import { ApiClient } from '@/api/api';
 import { CodexAppServerClient } from './codexAppServerClient';
 import { CodexPermissionHandler } from './utils/permissionHandler';
 import { ReasoningProcessor } from './utils/reasoningProcessor';
 import { DiffProcessor } from './utils/diffProcessor';
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { logger } from '@/ui/logger';
 import { Credentials, readSettings } from '@/persistence';
 import { initialMachineMetadata } from '@/daemon/run';
@@ -27,9 +30,11 @@ import { stopCaffeinate } from "@/utils/caffeinate";
 import { connectionState } from '@/utils/serverConnectionErrors';
 import { setupOfflineReconnection } from '@/utils/setupOfflineReconnection';
 import type { ApiSessionClient } from '@/api/apiSession';
+import type { AttachmentMetadata } from '@/api/types';
 import { resolveCodexExecutionPolicy } from './executionPolicy';
 import { mapCodexMcpMessageToSessionEnvelopes, mapCodexProcessorMessageToSessionEnvelopes } from './utils/sessionProtocolMapper';
 import { resumeExistingThread } from './resumeExistingThread';
+import type { InputItem } from './codexAppServerTypes';
 
 type ReadyEventOptions = {
     pending: unknown;
@@ -37,6 +42,11 @@ type ReadyEventOptions = {
     shouldExit: boolean;
     sendReady: () => void;
     notify?: () => void;
+};
+
+type CodexAttachmentInput = {
+    metadata: AttachmentMetadata;
+    localPath: string;
 };
 
 /**
@@ -59,6 +69,62 @@ export function emitReadyIfIdle({ pending, queueSize, shouldExit, sendReady, not
     return true;
 }
 
+async function downloadAttachments(
+    attachments: AttachmentMetadata[],
+): Promise<CodexAttachmentInput[]> {
+    const tmpDir = join(tmpdir(), 'happy-attachments');
+    mkdirSync(tmpDir, { recursive: true });
+    const localAttachments: CodexAttachmentInput[] = [];
+
+    for (const attachment of attachments) {
+        try {
+            const sanitized = attachment.filename
+                .replace(/[/\\]/g, '_')
+                .replace(/\.\./g, '_')
+                .slice(0, 100) || 'file';
+            const localPath = join(tmpDir, `${attachment.id}-${sanitized}`);
+            const response = await axios.get(
+                attachment.url,
+                { responseType: 'arraybuffer', timeout: 30000 },
+            );
+            writeFileSync(localPath, Buffer.from(response.data));
+            localAttachments.push({ metadata: attachment, localPath });
+            logger.debug(`[Codex][attachments] Downloaded ${attachment.filename} → ${localPath}`);
+        } catch (error) {
+            logger.debug(
+                `[Codex][attachments] Failed to download ${attachment.filename}: ${error}`,
+            );
+        }
+    }
+
+    return localAttachments;
+}
+
+function buildCodexInputItems(prompt: string, attachments?: CodexAttachmentInput[]): InputItem[] {
+    if (!attachments || attachments.length === 0) {
+        return [{ type: 'text', text: prompt }];
+    }
+
+    const attachmentList = attachments
+        .map(({ metadata, localPath }) => (
+            `- ${metadata.filename} (${metadata.mimeType}): ${localPath}`
+        ))
+        .join('\n');
+    const text = prompt
+        ? `${prompt}\n\nAttachments are available locally:\n${attachmentList}`
+        : `Attachments are available locally:\n${attachmentList}`;
+    const inputItems: InputItem[] = [{ type: 'text', text }];
+
+    // Codex app-server has a first-class image item but no generic local-file item.
+    for (const attachment of attachments) {
+        if (attachment.metadata.mimeType.startsWith('image/')) {
+            inputItems.push({ type: 'localImage', path: attachment.localPath });
+        }
+    }
+
+    return inputItems;
+}
+
 /**
  * Main entry point for the codex command with ink UI
  */
@@ -73,6 +139,7 @@ export async function runCodex(opts: {
     interface EnhancedMode {
         permissionMode: PermissionMode;
         model?: string;
+        attachments?: CodexAttachmentInput[];
     }
 
     //
@@ -192,7 +259,28 @@ export async function runCodex(opts: {
             permissionMode: messagePermissionMode || 'default',
             model: messageModel,
         };
-        messageQueue.push(message.content.text, enhancedMode);
+        const attachments = message.meta?.attachments;
+        if (attachments && attachments.length > 0) {
+            downloadAttachments(attachments).then((localAttachments) => {
+                messageQueue.push(message.content.text, {
+                    ...enhancedMode,
+                    attachments: localAttachments.length > 0 ? localAttachments : undefined,
+                });
+                logger.debug(
+                    `[Codex] User message pushed with `
+                    + `${localAttachments.length}/${attachments.length} attachment(s)`,
+                );
+            }).catch((error) => {
+                logger.debug(
+                    `[Codex][WARN] Attachment download failed: ${error?.message}, `
+                    + `sending message without attachments`,
+                );
+                messageQueue.push(message.content.text, enhancedMode);
+            });
+        } else {
+            messageQueue.push(message.content.text, enhancedMode);
+            logger.debugLargeJson('[Codex] User message pushed to queue:', message);
+        }
     });
     let thinking = false;
     let currentTurnId: string | null = null;
@@ -415,10 +503,27 @@ export async function runCodex(opts: {
 
     // Approval handler: routes server → client approval requests to our permission handler
     client.setApprovalHandler(async (params) => {
-        const toolName = params.type === 'exec' ? 'CodexBash' : 'CodexPatch';
-        const input = params.type === 'exec'
-            ? { command: params.command, cwd: params.cwd }
-            : { changes: params.fileChanges };
+        let toolName: string;
+        let input: unknown;
+
+        if (params.type === 'exec') {
+            toolName = 'CodexBash';
+            input = { command: params.command, cwd: params.cwd };
+        } else if (params.type === 'patch') {
+            toolName = 'CodexPatch';
+            input = { changes: params.fileChanges };
+        } else {
+            toolName = params.toolName
+                ? `mcp__${params.serverName}__${params.toolName}`
+                : `mcp__${params.serverName}`;
+            input = {
+                serverName: params.serverName,
+                toolName: params.toolName,
+                description: params.toolDescription,
+                arguments: params.toolArguments,
+                message: params.message,
+            };
+        }
 
         try {
             const result = await permissionHandler.handleToolCall(params.callId, toolName, input);
@@ -611,11 +716,13 @@ export async function runCodex(opts: {
                 const turnPrompt = first
                     ? message.message + '\n\n' + CHANGE_TITLE_INSTRUCTION
                     : message.message;
+                const inputItems = buildCodexInputItems(turnPrompt, message.mode.attachments);
 
                 const result = await client.sendTurnAndWait(turnPrompt, {
                     model: message.mode.model,
                     approvalPolicy: executionPolicy.approvalPolicy,
                     sandbox: executionPolicy.sandbox,
+                    inputItems,
                 });
                 first = false;
 

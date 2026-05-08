@@ -1,0 +1,831 @@
+{
+  "request_id": "20260428-063343-codex-rendering-iter1-live-rerun",
+  "task_id": "20260428-063343-codex-rendering-iter1-live-rerun",
+  "timestamp": "2026-04-28T13:02:00Z",
+  "qa": {
+    "status": "fail",
+    "user_verbatim_complaint": "继续修复 happy-dev 直到彻底让 Codex 在 happy-dev 的渲染完整。",
+    "verified_against_complaint": true,
+    "verified_location_keywords": [
+      "happy",
+      "dev",
+      "codex",
+      "localhost",
+      "8097",
+      "happy-web-dev"
+    ],
+    "location_overlap": [
+      "happy",
+      "dev",
+      "codex"
+    ],
+    "complaint_resolution_evidence": "happy-web-dev is now serving the iter1 image and live desktop/mobile browser evidence was captured. The evidence proves some Codex surfaces render, but not the full Codex rendering matrix: multiple required rows are target-missing in existing dev UI sessions, and several found rows are only partial evidence.",
+    "complaint_element_pointer": {
+      "selector": "text(\"Terminal\") + text(\"python3 -m unittest tests.test_codex_native_harness\") within /session/cmohltq0n2c8rpc153k0h9pvk",
+      "how_located": "Chrome/CDP DOM text search after authenticated dev-only navigation to localhost:8097; recorded selector path and bounding box in live-rerun-cdp-trace.json",
+      "found_in_dom": true,
+      "page_url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk"
+    },
+    "matrix_target_pointers": [
+      {
+        "row": "terminal_stdout_stderr_exit",
+        "selector": "text(\"Terminal\") + text(\"python3 -m unittest tests.test_codex_native_harness\")",
+        "route": "/session/cmohltq0n2c8rpc153k0h9pvk",
+        "found_in_dom": true
+      },
+      {
+        "row": "patch_diff",
+        "selector": "text(\"Update file\") + text(\"typesRaw.ts\")",
+        "route": "/session/cmoiiq8603117pc15ppj1llfx",
+        "found_in_dom": true,
+        "note": "This is a live file-update/patch card, not the exact CodexPatch fixture from iter1-qa-fixture-targets.json."
+      },
+      {
+        "row": "markdown_rich_text",
+        "selector": "text(\"一级标题 demo\") + text(\"Inline LaTeX\") + text(\"A wide table\")",
+        "route": "/session/cmoedofgz86n5nz15xsldnk35",
+        "found_in_dom": true
+      },
+      {
+        "row": "image_attachment",
+        "selector": "text(\"file-10mb.bin\") + text(\"10.0 MB\")",
+        "route": "/session/cmoedofgz86n5nz15xsldnk35",
+        "found_in_dom": true,
+        "note": "Binary attachment target only; image/view_image target remains missing."
+      },
+      {
+        "row": "dynamic_mcp_resource_tools",
+        "selector": "text(\"permission required\") in MCP-related session",
+        "route": "/session/cmoiit0f4315rpc15muzexzqx",
+        "found_in_dom": true,
+        "note": "Permission card only; mcp/resource result target remains missing."
+      },
+      {
+        "row": "plan_update",
+        "selector": "functions.update_plan / update_plan fixture strings",
+        "route": null,
+        "found_in_dom": false,
+        "classification": "target-missing"
+      },
+      {
+        "row": "multi_tool_sequences",
+        "selector": "Parallel tool / multi_tool_use fixture strings",
+        "route": null,
+        "found_in_dom": false,
+        "classification": "target-missing"
+      },
+      {
+        "row": "unknown_fallback",
+        "selector": "functions.future_tool fixture string",
+        "route": null,
+        "found_in_dom": false,
+        "classification": "target-missing"
+      }
+    ],
+    "element_screenshots": {
+      "before_selector": null,
+      "before_path": null,
+      "after_path": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-detail-after-click.png",
+      "same_element_verified": false,
+      "note": "This rerun validates the redeployed image only; no new pre-deploy screenshot was captured in this invocation."
+    },
+    "overall_assessment": "FAIL. The redeploy blocker from the previous QA report is resolved: happy-web-dev runs image sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd and localhost:8097 served the app. Live desktop/mobile browser evidence exists for Terminal, a file-update/patch card, markdown/rich text, a binary attachment, and an MCP-related permission card. However, the live evidence does not close Codex rendering completeness: exact target rows for plan/update, multi-tool, image/view_image, MCP/resource result, and unknown/fallback were not found in existing dev UI sessions; patch evidence is a file-update card showing diff JSON rather than the exact CodexPatch fixture; markdown has no separate detail surface evidence; attachment is not image/view_image; and the Terminal AC is only partial because stdout/stderr/exit and command-once semantics were not fully proven.",
+    "success_criteria_results": [
+      {
+        "requirement_id": "R1",
+        "source_phrase": "继续修复 happy-dev",
+        "criterion": "Only happy-dev app artifacts and dev evidence are changed; production and daemons remain untouched.",
+        "verification_method": "Confirmed image/container identity with docker inspect, probed localhost:8097, used dev-only localhost browser sessions, and reviewed the executed verification actions.",
+        "status": "pass",
+        "result": "pass",
+        "details": "No Happy daemon restart/stop, no production Happy URL/port/service, no global Happy CLI modification, no non-UI session creation, and no application source edit was performed by this QA rerun. Browser auth targeted localhost:8097 with api-dev localStorage.",
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/iter1-dev-web-deployment-result.json",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/live-rerun-cdp-trace.json"
+        ]
+      },
+      {
+        "requirement_id": "R2",
+        "source_phrase": "直到彻底让 Codex … 渲染完整",
+        "criterion": "Every matrix row has a pass result or an explicit intentionally-hidden rationale; unmeasured rows block closure.",
+        "verification_method": "Scanned 10 existing dev UI sessions through the live app and searched exact fixture target strings from iter1-qa-fixture-targets.json, then opened found targets on desktop and mobile.",
+        "status": "fail",
+        "result": "fail",
+        "details": "The scan found no UI-reachable exact targets for functions.update_plan, multi_tool_use/Parallel tool, view_image/plot.png, resources.read/file://fixture.md, or functions.future_tool. These rows are target-missing, not pass.",
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/explore-cmoiiq8603117pc15ppj1llfx.json",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/explore-cmoiit0f4315rpc15muzexzqx.json"
+        ]
+      },
+      {
+        "requirement_id": "R3",
+        "source_phrase": "Markdown and rich Codex content need concrete analysis",
+        "criterion": "Markdown/rich source paths, cases, and desktop/mobile evidence are included.",
+        "verification_method": "Opened the existing markdown-rich dev session on desktop and mobile and captured screenshots/DOM metrics for headings, lists, task boxes, blockquote, wide table, and inline/block LaTeX.",
+        "status": "fail",
+        "result": "fail",
+        "details": "Inline desktop/mobile evidence exists and shows rich content, but no separate detail surface was found or proven intentionally hidden for plain text; AC2 asks for inline/detail/mobile unless the surface is intentionally absent by design.",
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-markdown-rich-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-markdown-rich-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/live-rerun-cdp-trace.json"
+        ]
+      },
+      {
+        "requirement_id": "R4",
+        "source_phrase": "Scope cannot be centered only on CodexBash",
+        "criterion": "Scope expansion uses all listed Codex patterns, not only CodexBash.",
+        "verification_method": "Looked for non-Terminal target cards/surfaces in existing UI sessions and compared them to the fixture target manifest.",
+        "status": "fail",
+        "result": "fail",
+        "details": "The rerun did broaden beyond Terminal, but live UI evidence is still incomplete: patch/file-update is partial, attachment is binary-only, MCP evidence is permission-only, and plan/multi-tool/image-view/resource/unknown fixture rows are missing.",
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-patch-file-update-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-attachment-binary-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-mcp-permission-card-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json"
+        ]
+      },
+      {
+        "requirement_id": "R5",
+        "source_phrase": "Terminal/detail live verification remains a closure blocker",
+        "criterion": "Expanded Terminal/detail/sidebar has exact-target desktop/mobile screenshots and metrics before closure.",
+        "verification_method": "Opened the Terminal card in desktop detail and mobile detail, captured screenshots and DOM measurements.",
+        "status": "fail",
+        "result": "fail",
+        "details": "Terminal live screenshots now exist, including mobile detail. However, AC3 is not fully proven: the selected card has no substantive stdout/stderr/exit example, command text appears both in the detail title/subtitle and body shell line, and element-level scroll/overflow for long stdout/stderr was not measured.",
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-detail-after-click.png"
+        ]
+      }
+    ],
+    "_success_criteria_rule": "BA requirements_decomposition has 5 items; QA produced 5 entries.",
+    "root_cause_verification": {
+      "addressed": false,
+      "confidence": "medium",
+      "rationale": "The redeploy/root live-image blocker is addressed, and some surfaces render live. The product-level root cause, complete Codex rendering across all payload classes and surfaces, is not addressed/proven because required matrix rows remain target-missing or only partially evidenced."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "Not rerun in this QA; verified deployed artifact recorded by docs/dev/evidence/20260428-063343-codex-rendering/iter1-dev-web-deployment-result.json",
+      "deploy_command": "Previously performed dev-only happy-web-dev redeploy; QA confirmed container identity read-only",
+      "build_output_summary": "happy-app:dev image sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd created 2026-04-28T12:24:45.684205533Z; happy-web-dev container started 2026-04-28T12:33:00.691562576Z with the same image ID.",
+      "service_healthy": true,
+      "changes_verified_live": true,
+      "skip_reason": null,
+      "evidence": [
+        "docker image inspect happy-app:dev reported sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd",
+        "docker inspect happy-web-dev container reported the same image ID and running status",
+        "curl http://localhost:8097/ returned status=200 content_type=text/html bytes=1603"
+      ]
+    },
+    "script_quality_results": [],
+    "regression_test_results": [
+      {
+        "test": "Live app load on redeployed happy-web-dev",
+        "result": "pass",
+        "details": "Authenticated live browser sessions loaded existing dev sessions on localhost:8097 at desktop and mobile viewport sizes."
+      },
+      {
+        "test": "Prior automated checks from iter1 QA",
+        "result": "not_rerun",
+        "details": "This task was a live rerun after redeploy. The prior iter1 QA report recorded happy-app suite, app typecheck, CLI typecheck, mapper test, and focused app rendering tests as passing."
+      }
+    ],
+    "code_quality_findings": [],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 0,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      },
+      "skip_reason": "QA rerun did not modify application source files; live evidence/report artifacts only."
+    },
+    "standards_compliance": {
+      "checked": false,
+      "role_table": "not_applicable_to_live_rerun",
+      "violations": []
+    },
+    "band_aid_detection": {
+      "checked": false,
+      "violations": [],
+      "skip_reason": "No new source changes were introduced by this QA rerun."
+    },
+    "app_understanding_flow": {
+      "executed": true,
+      "core_flow_completed": true,
+      "steps_completed": 4,
+      "baseline_screenshots": [
+        "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/explore-desktop-session.png",
+        "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/explore-cmohltq0n2c8rpc153k0h9pvk-desktop-full.png",
+        "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/explore-cmoedofgz86n5nz15xsldnk35-desktop-full.png"
+      ],
+      "errors_found_during_flow": [
+        "MCP Playwright tools were rejected by the harness; QA switched to headless Chrome/CDP live browser verification rather than source-only fallback."
+      ],
+      "app_not_running": false
+    },
+    "target_matrix_results": [
+      {
+        "matrix_row": "terminal_stdout_stderr_exit",
+        "classification": "partial-live-evidence",
+        "target_found": true,
+        "desktop_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-detail-after-click.png"
+        ],
+        "mobile_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-detail-after-click.png"
+        ],
+        "measurements": {
+          "desktop_inline_bbox": {
+            "x": 503,
+            "y": 382,
+            "width": 784,
+            "height": 57
+          },
+          "mobile_inline_bbox": {
+            "x": 8,
+            "y": 354,
+            "width": 374,
+            "height": 57
+          },
+          "page_overflow": "documentScrollWidth == documentClientWidth for both viewports"
+        },
+        "blocker": "stdout/stderr/exit status and command-once semantics not fully proven for the long Terminal acceptance case."
+      },
+      {
+        "matrix_row": "patch_diff",
+        "classification": "partial-live-evidence",
+        "target_found": true,
+        "desktop_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-patch-file-update-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-patch-file-update-detail-after-click.png"
+        ],
+        "mobile_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-patch-file-update-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-patch-file-update-detail-after-click.png"
+        ],
+        "measurements": {
+          "desktop_inline_bbox": {
+            "x": 503,
+            "y": 382,
+            "width": 784,
+            "height": 57
+          },
+          "mobile_inline_bbox": {
+            "x": 8,
+            "y": 354,
+            "width": 374,
+            "height": 57
+          }
+        },
+        "blocker": "Exact CodexPatch fixture strings were absent. Detail shows diff JSON/input parameters, which may be raw JSON leakage rather than a specialized, complete diff view."
+      },
+      {
+        "matrix_row": "markdown_rich_text",
+        "classification": "partial-live-evidence",
+        "target_found": true,
+        "desktop_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-markdown-rich-inline.png"
+        ],
+        "mobile_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-markdown-rich-inline.png"
+        ],
+        "measurements": {
+          "desktop_bbox": {
+            "x": 511,
+            "y": -59.4375,
+            "width": 800,
+            "height": 807.4375
+          },
+          "mobile_bbox": {
+            "x": 0,
+            "y": -97.4375,
+            "width": 390,
+            "height": 809.4375
+          }
+        },
+        "blocker": "Inline rich text is evidenced, but no detail surface evidence or intentionally-hidden rationale was found."
+      },
+      {
+        "matrix_row": "image_attachment",
+        "classification": "partial-live-evidence",
+        "target_found": true,
+        "desktop_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-attachment-binary-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-attachment-binary-detail-after-click.png"
+        ],
+        "mobile_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-attachment-binary-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-attachment-binary-detail-after-click.png"
+        ],
+        "blocker": "The live target is a binary file attachment, not an image/view_image target. view_image/plot.png fixture strings are target-missing."
+      },
+      {
+        "matrix_row": "dynamic_mcp_resource_tools",
+        "classification": "target-missing-for-required-resource-row",
+        "target_found": false,
+        "nearby_evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-mcp-permission-card-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-mcp-permission-card-inline.png"
+        ],
+        "blocker": "An MCP-related permission card exists, but resources.read/file://fixture.md and mcp/resource result rendering were not found."
+      },
+      {
+        "matrix_row": "plan_update",
+        "classification": "target-missing",
+        "target_found": false,
+        "searched_strings": [
+          "functions.update_plan",
+          "update_plan",
+          "Plan: 2 steps",
+          "Inspect payload",
+          "Render fallback"
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json"
+        ]
+      },
+      {
+        "matrix_row": "multi_tool_sequences",
+        "classification": "target-missing",
+        "target_found": false,
+        "searched_strings": [
+          "Parallel tool",
+          "multi_tool_use",
+          "functions.exec_command",
+          "mcp__resources__read"
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json"
+        ]
+      },
+      {
+        "matrix_row": "unknown_fallback",
+        "classification": "target-missing",
+        "target_found": false,
+        "searched_strings": [
+          "functions.future_tool",
+          "payload",
+          "\"ok\": true"
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json"
+        ]
+      }
+    ],
+    "ui_test_results": [
+      {
+        "scenario": "Confirm happy-web-dev is serving the new dev image",
+        "url": "http://localhost:8097/",
+        "status": "pass",
+        "reason": null,
+        "steps_performed": [
+          "Read deployment result artifact",
+          "Read-only inspected happy-app:dev image",
+          "Read-only inspected happy-web-dev container image ID",
+          "Probed localhost:8097"
+        ],
+        "assertions": [
+          {
+            "expected": "happy-web-dev container image equals deployment artifact image sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd",
+            "actual": "Container image matched sha256:aac5f6d54351410a79e9b1c2adf4754bc4e48542e2babdb44ff20393e7a241dd and status was running.",
+            "passed": true
+          },
+          {
+            "expected": "localhost:8097 serves web app",
+            "actual": "HTTP 200 text/html, 1603 bytes.",
+            "passed": true
+          }
+        ],
+        "evidence": "docs/dev/evidence/20260428-063343-codex-rendering/iter1-dev-web-deployment-result.json",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": null,
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "Desktop/mobile Terminal inline/detail target",
+        "url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk",
+        "status": "fail",
+        "reason": "Live detail evidence exists, but the full AC3 Terminal condition is not proven.",
+        "steps_performed": [
+          "Authenticated dev browser via localStorage",
+          "Opened route on desktop and mobile",
+          "Scrolled Terminal card into view",
+          "Clicked Terminal card to open detail",
+          "Captured inline/detail screenshots and DOM metrics"
+        ],
+        "assertions": [
+          {
+            "expected": "Terminal inline and detail are visible on desktop and mobile",
+            "actual": "Visible in all four screenshots.",
+            "passed": true
+          },
+          {
+            "expected": "No page-level horizontal overflow",
+            "actual": "documentScrollWidth equals documentClientWidth on both desktop and mobile.",
+            "passed": true
+          },
+          {
+            "expected": "stdout/stderr/exit and command-once semantics are proven",
+            "actual": "Selected Terminal card had no substantive stdout/stderr example and detail displayed command in title/subtitle plus shell body.",
+            "passed": false
+          }
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-detail-after-click.png"
+        ],
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-detail-after-click.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "Desktop/mobile patch/file-update target",
+        "url": "http://localhost:8097/session/cmoiiq8603117pc15ppj1llfx",
+        "status": "fail",
+        "reason": "A file-update patch card exists, but the exact CodexPatch fixture target is missing and detail appears as diff JSON/input parameters rather than clearly specialized diff rendering.",
+        "steps_performed": [
+          "Opened route on desktop and mobile",
+          "Located Update file typesRaw.ts card",
+          "Clicked card to open detail",
+          "Captured screenshots and DOM measurements"
+        ],
+        "assertions": [
+          {
+            "expected": "Patch/file-update card is visible and bounded",
+            "actual": "Desktop bbox 784x57; mobile bbox 374x57; page-level no horizontal overflow.",
+            "passed": true
+          },
+          {
+            "expected": "CodexPatch fixture strings old/new or specialized patch detail are live-proven",
+            "actual": "Exact CodexPatch fixture strings were not found; detail shows JSON changes/diff.",
+            "passed": false
+          }
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-patch-file-update-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-patch-file-update-detail-after-click.png"
+        ],
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-patch-file-update-detail-after-click.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "Desktop/mobile markdown-rich target",
+        "url": "http://localhost:8097/session/cmoedofgz86n5nz15xsldnk35",
+        "status": "fail",
+        "reason": "Inline desktop/mobile evidence exists, but no separate detail surface was found or justified as intentionally hidden.",
+        "steps_performed": [
+          "Opened route on desktop and mobile",
+          "Located rich markdown message with headings, task boxes, blockquote, wide table, and LaTeX",
+          "Captured screenshots and DOM measurements"
+        ],
+        "assertions": [
+          {
+            "expected": "Markdown primitives render live on desktop and mobile",
+            "actual": "Rich message visible with heading/list/task/blockquote/table/LaTeX text.",
+            "passed": true
+          },
+          {
+            "expected": "Detail surface is evidenced or intentionally hidden",
+            "actual": "No separate detail target was found in this rerun.",
+            "passed": false
+          }
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-markdown-rich-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-markdown-rich-inline.png"
+        ],
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-markdown-rich-inline.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "Desktop/mobile attachment and MCP-adjacent targets",
+        "url": "http://localhost:8097/session/cmoedofgz86n5nz15xsldnk35 and /session/cmoiit0f4315rpc15muzexzqx",
+        "status": "fail",
+        "reason": "Binary attachment and MCP permission cards were found, but image/view_image and mcp/resource result rows remain target-missing.",
+        "steps_performed": [
+          "Opened attachment session on desktop/mobile",
+          "Located file-10mb.bin attachment card",
+          "Opened MCP-related session on desktop/mobile",
+          "Located permission required card"
+        ],
+        "assertions": [
+          {
+            "expected": "Attachment card visible on desktop and mobile",
+            "actual": "file-10mb.bin 10.0 MB visible.",
+            "passed": true
+          },
+          {
+            "expected": "image/view_image or plot.png target is found",
+            "actual": "No plot.png/view_image target was found.",
+            "passed": false
+          },
+          {
+            "expected": "mcp/resource result target is found",
+            "actual": "Only MCP permission-related content was found; no resources.read/file://fixture.md result target.",
+            "passed": false
+          }
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-attachment-binary-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-attachment-binary-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-mcp-permission-card-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-mcp-permission-card-inline.png"
+        ],
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-attachment-binary-inline.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "Existing dev UI session target discovery for missing fixture rows",
+        "url": "http://localhost:8097/",
+        "status": "fail",
+        "reason": "Required exact fixture target strings were not found in the UI-reachable sessions scanned.",
+        "steps_performed": [
+          "Authenticated dev browser",
+          "Clicked and scanned visible existing dev UI sessions via the session list",
+          "Compared body text against fixture target strings"
+        ],
+        "assertions": [
+          {
+            "expected": "functions.update_plan or update_plan target exists",
+            "actual": "Not found in scanned UI-reachable sessions.",
+            "passed": false
+          },
+          {
+            "expected": "multi_tool_use / Parallel tool target exists",
+            "actual": "Not found in scanned UI-reachable sessions.",
+            "passed": false
+          },
+          {
+            "expected": "view_image / plot.png target exists",
+            "actual": "Not found in scanned UI-reachable sessions.",
+            "passed": false
+          },
+          {
+            "expected": "resources.read / file://fixture.md target exists",
+            "actual": "Not found in scanned UI-reachable sessions.",
+            "passed": false
+          },
+          {
+            "expected": "functions.future_tool / unknown fallback target exists",
+            "actual": "Not found in scanned UI-reachable sessions.",
+            "passed": false
+          }
+        ],
+        "evidence": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json"
+        ],
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": null,
+          "user_visible_change_confirmed": false
+        }
+      }
+    ],
+    "ui_evidence": {
+      "target_route": "/session/cmohltq0n2c8rpc153k0h9pvk, /session/cmoiiq8603117pc15ppj1llfx, /session/cmoedofgz86n5nz15xsldnk35, /session/cmoiit0f4315rpc15muzexzqx on localhost:8097",
+      "target_element": "text-based DOM targets recorded in matrix_target_pointers and live-rerun-cdp-trace.json",
+      "viewports": {
+        "desktop": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "screenshot": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-detail-after-click.png",
+          "dom_measurement": {
+            "terminal_inline_bbox": {
+              "x": 503,
+              "y": 382,
+              "width": 784,
+              "height": 57
+            },
+            "patch_inline_bbox": {
+              "x": 503,
+              "y": 382,
+              "width": 784,
+              "height": 57
+            },
+            "markdown_bbox": {
+              "x": 511,
+              "y": -59.4375,
+              "width": 800,
+              "height": 807.4375
+            },
+            "document_scroll_width": 1440,
+            "document_client_width": 1440
+          }
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "screenshot": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-detail-after-click.png",
+          "dom_measurement": {
+            "terminal_inline_bbox": {
+              "x": 8,
+              "y": 354,
+              "width": 374,
+              "height": 57
+            },
+            "patch_inline_bbox": {
+              "x": 8,
+              "y": 354,
+              "width": 374,
+              "height": 57
+            },
+            "markdown_bbox": {
+              "x": 0,
+              "y": -97.4375,
+              "width": 390,
+              "height": 809.4375
+            },
+            "document_scroll_width": 390,
+            "document_client_width": 390
+          }
+        }
+      },
+      "evidence_map": {
+        "AC-1": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/live-rerun-cdp-trace.json"
+        ],
+        "AC-2": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-markdown-rich-inline.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-markdown-rich-inline.png"
+        ],
+        "AC-3": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-terminal-long-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-terminal-long-detail-after-click.png"
+        ],
+        "AC-4": [
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/desktop-patch-file-update-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/mobile-patch-file-update-detail-after-click.png",
+          "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/ui-session-scan.json"
+        ]
+      },
+      "trace": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/live-rerun-cdp-trace.zip",
+      "captured_at": "2026-04-28T12:51:48.298Z",
+      "note": "Trace is a zipped CDP interaction log, not a Playwright trace, because MCP Playwright tool calls were rejected and no local Playwright package was installed."
+    },
+    "output_quality_verification": {
+      "checked": true,
+      "output_type": "ui_rendering",
+      "completeness": "partial",
+      "quality_assessment": "insufficient_for_closure",
+      "specific_checks": [
+        {
+          "check": "new image live",
+          "result": "pass",
+          "details": "happy-web-dev image ID matched the deployment artifact."
+        },
+        {
+          "check": "desktop/mobile live evidence captured",
+          "result": "pass",
+          "details": "Screenshots and DOM measurements were captured through a live browser for found targets."
+        },
+        {
+          "check": "all matrix rows represented",
+          "result": "fail",
+          "details": "plan/update, multi-tool, image/view_image, mcp/resource, and unknown/fallback exact targets were not found."
+        },
+        {
+          "check": "found rows fully satisfy row criteria",
+          "result": "fail",
+          "details": "Terminal, patch, markdown, attachment, and MCP-adjacent evidence are partial and should not be over-credited as row passes."
+        }
+      ],
+      "verdict": "fail"
+    },
+    "tooling_notes": {
+      "playwright_mcp_attempted": true,
+      "playwright_mcp_result": "browser_resize and browser_navigate were rejected by the MCP harness before navigation.",
+      "local_playwright_package": "not installed in repo node_modules",
+      "browser_fallback": "Headless Google Chrome 147 via Chrome DevTools Protocol",
+      "network_proof_attempt": {
+        "attempted": true,
+        "status": "blocked_by_hook",
+        "hook_message": "Command blocked by PreToolUse hook: BLOCKED: Attempting to write to sensitive file via Bash. Edit sensitive files manually — never via AI-driven Bash redirection.",
+        "action_taken": "Stopped; did not wrap, bypass, or rerun the rejected command. Existing live evidence remains sufficient for a FAIL verdict but dev-only network proof is weaker than desired."
+      }
+    },
+    "generated_tests": [],
+    "codex_consult": {
+      "invoked": true,
+      "status": "ok",
+      "feedback_summary": "Codex agreed with FAIL and warned not to over-credit partial row evidence. It specifically flagged incomplete Terminal AC3 proof, page-level overflow being weaker than element-level overflow, markdown lacking detail evidence, patch detail potentially being raw JSON leakage, binary attachment not satisfying image/view_image, MCP permission not satisfying mcp/resource, target-missing search not necessarily exhaustive, image identity not proving uncached JS bundle, and missing network proof.",
+      "feedback_incorporated": "Report now records found rows as partial-live-evidence rather than pass, makes target-missing rows blockers, adds the Playwright/CDP limitation, documents the blocked network-proof attempt without bypass, and keeps the final verdict FAIL.",
+      "artifact": "docs/dev/evidence/20260428-063343-codex-rendering/live-rerun/codex-adversarial-consult.txt"
+    },
+    "self_verification": {
+      "claims_total": 18,
+      "claims_with_evidence": 17,
+      "claims_superficial": 1,
+      "superficial_details": [
+        "Dev-only network claim is based on configured URL, localhost origin, and no production commands; the additional network capture attempt was blocked by a hook and was not bypassed."
+      ],
+      "confidence": "high for FAIL verdict; medium for negative network proof"
+    },
+    "all_findings": [
+      {
+        "severity": "critical",
+        "location": "AC1 / R2 matrix completeness",
+        "issue": "Required live matrix rows are target-missing in existing dev UI sessions: plan/update, multi-tool sequence, image/view_image, mcp/resource result, and unknown/fallback.",
+        "recommendation": "Provision UI-created dev sessions containing these exact payload classes or provide intentionally-hidden product rationale; rerun desktop/mobile live QA.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "AC4 non-Terminal tools",
+        "issue": "Non-Terminal proof is incomplete. Patch/file-update evidence is partial and shows diff JSON; attachment evidence is binary-only; MCP evidence is permission-only.",
+        "recommendation": "Capture exact specialized/fallback render evidence for CodexPatch/CodexDiff, view_image/image attachment, mcp/resource result, and unknown tool fallback on inline/detail/sidebar/mobile.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "AC3 Terminal detail",
+        "issue": "Terminal live screenshots exist but do not fully prove command-once, stdout/stderr/exit reachability, or element-level overflow/scroll behavior for the long Terminal acceptance case.",
+        "recommendation": "Use an existing or UI-created Terminal target with stdout, stderr, and exit status; capture exact inline/detail/sidebar/mobile screenshots and element-level scroll metrics.",
+        "blocks_release": true
+      },
+      {
+        "severity": "major",
+        "location": "AC2 markdown/rich detail",
+        "issue": "Markdown/rich inline desktop/mobile evidence exists, but no detail surface was found or documented as intentionally hidden.",
+        "recommendation": "Either capture the markdown/rich detail surface or document that plain-text messages intentionally have no separate detail surface and update the acceptance matrix accordingly.",
+        "blocks_release": true
+      },
+      {
+        "severity": "major",
+        "location": "QA evidence completeness",
+        "issue": "Live browser evidence was collected via Chrome/CDP rather than Playwright because MCP Playwright calls were rejected and local Playwright was absent. The CDP trace is live browser evidence but not a Playwright trace.",
+        "recommendation": "If closure gate strictly requires Playwright trace format, enable Playwright MCP or install a local Playwright test harness and rerun the same target matrix.",
+        "blocks_release": false
+      },
+      {
+        "severity": "major",
+        "location": "QA network proof",
+        "issue": "An additional dev-only network request proof attempt was blocked by the safety hook; QA did not bypass it. Existing evidence uses localhost:8097 and api-dev configuration, but request-level proof of no production/default API calls is incomplete.",
+        "recommendation": "Collect network evidence through an approved, non-sensitive method in the next rerun.",
+        "blocks_release": false
+      }
+    ],
+    "summary": {
+      "critical_issues": 3,
+      "major_issues": 3,
+      "minor_issues": 0,
+      "total_findings": 6,
+      "release_recommendation": "reject",
+      "another_dev_iteration_required": true,
+      "another_dev_iteration_rationale": "A further iteration is required at least to provide UI-reachable target data/evidence for missing rows; code changes are required only if those targets reveal rendering failures, but closure cannot proceed from current evidence."
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_criteria": [
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "AC1",
+      "AC2",
+      "AC3",
+      "AC4"
+    ],
+    "critical_issues": [
+      "target-missing plan/update, multi-tool, image/view_image, mcp/resource, and unknown/fallback rows",
+      "non-Terminal evidence is partial and not sufficient to prove specialized/fallback rendering",
+      "Terminal detail evidence does not fully prove stdout/stderr/exit and command-once semantics"
+    ],
+    "recommended_approach": "Do not declare closure from current evidence. First create or locate normal UI-origin dev sessions containing the exact missing payload rows, then rerun desktop/mobile live QA. If live targets fail visually or semantically, hand those exact row failures to dev.",
+    "additional_context": "The previous stale-image blocker is resolved. Current failure is live-evidence completeness, not deployment identity."
+  }
+}

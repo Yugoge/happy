@@ -5,6 +5,7 @@ import { ToolCall } from '@/sync/typesMessage';
 import { CodeView } from '@/components/CodeView';
 import { ToolSectionView } from '@/components/tools/ToolSectionView';
 import { t } from '@/text';
+import { stringifyInspectableValue } from '@/utils/codexToolRendering';
 
 interface SidebarGenericViewProps {
     tool: ToolCall;
@@ -12,28 +13,25 @@ interface SidebarGenericViewProps {
 
 export const SidebarGenericView = React.memo<SidebarGenericViewProps>(({ tool }) => {
     const hasInput = tool.input && Object.keys(tool.input).length > 0;
-    const hasResult = tool.state === 'completed' && tool.result;
-    const hasError = tool.state === 'error' && tool.result;
+    const hasOutput = Object.prototype.hasOwnProperty.call(tool, 'result') && tool.result !== undefined;
+    const hasResult = tool.state === 'completed' && hasOutput;
+    const hasError = tool.state === 'error' && hasOutput;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             {hasInput && (
                 <ToolSectionView title={t('toolView.input')}>
-                    <CodeView code={JSON.stringify(tool.input, null, 2)} />
+                    <CodeView code={stringifyInspectableValue(tool.input)} />
                 </ToolSectionView>
             )}
             {hasResult && (
                 <ToolSectionView title={t('toolView.output')}>
-                    <CodeView
-                        code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
-                    />
+                    <CodeView code={stringifyInspectableValue(tool.result)} />
                 </ToolSectionView>
             )}
             {hasError && (
                 <ToolSectionView title={t('toolView.output')}>
-                    <CodeView
-                        code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
-                    />
+                    <CodeView code={stringifyInspectableValue(tool.result)} />
                 </ToolSectionView>
             )}
         </ScrollView>

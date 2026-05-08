@@ -5,8 +5,7 @@ import { ToolViewProps } from './_all';
 import { ToolCall } from '@/sync/typesMessage';
 import { TaskStatusRow, useFilteredTools } from './TaskView';
 
-// §5.15 Phase C — Codex subagent lifecycle verbs renderer (closes §5.13).
-// Shared inline view for five Codex subagent verbs:
+// Shared inline view for Codex subagent verbs:
 //   functions.spawn_agent  -- full TaskStatusRow primitive (mirrors Agent/Task tool)
 //   functions.send_input   -- degenerate (inline card via knownTools handles it)
 //   functions.wait_agent   -- degenerate
@@ -17,10 +16,6 @@ import { TaskStatusRow, useFilteredTools } from './TaskView';
 // Parameters / Output sections automatically for all five verbs. The §5.7
 // guard in ToolFullView.tsx (lines 22-29) suppresses raw-command echoes.
 //
-// DORMANT: Codex protocol (codexAppServerClient.ts) does NOT yet emit events
-// for these verbs. This renderer ships dormant until the protocol is extended;
-// see sessionProtocolMapper.ts TODO at file end.
-
 const SPAWN_AGENT = 'functions.spawn_agent';
 
 export const CodexSubagentView = React.memo<ToolViewProps & { onSubToolPress?: (tool: ToolCall) => void }>(

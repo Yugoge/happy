@@ -1,0 +1,964 @@
+{
+  "request_id": "20260507-055611",
+  "task_id": "20260507-055611",
+  "timestamp": "2026-05-07T05:56:11Z",
+  "requirement": {
+    "original": "好的，3 个 Edit diff 块没有问题。将以上全部内容总结为一个超级清单，并且给出我的原文详细反馈以及你对图形渲染和工具调用的反馈",
+    "clarified": "For this /dev cycle, implement only the current P0 inline Markdown/table slice from spec-20260506-203755: #5 emphasis leakage, #5b table-cell inline rendering, and selected #12 backslash escapes needed for that path. Do not claim #10 reference links, #11 footnotes, or #13 nested ordered-list repair are fixed in this cycle.",
+    "what": "Fix inline Markdown leakage and table-cell inline rendering in happy-app MarkdownView pipeline.",
+    "why": "Daily message reading is degraded when strikethrough, links, code, and table-cell formatting display raw or inherit the wrong style.",
+    "where": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+    ],
+    "scope": {
+      "included": [
+        "inline emphasis leakage after ***...***",
+        "strikethrough/link/code parsing after emphasis",
+        "backslash escapes for punctuation touched by the selected emphasis/link path",
+        "inline Markdown rendering in table headers/cells",
+        "table empty-cell, column-count, and horizontal-scroll non-regression with a super-wide table fixture",
+        "parser regression coverage for text/header/unordered-list/task-list/numbered-list call sites",
+        "non-regression fixtures for LaTeX, kbd, autolinks, code-span precedence, and escapes"
+      ],
+      "excluded": [
+        "reference links [text][ref] (#10) — deferred same-subsystem P0 parser bug",
+        "footnotes [^1] (#11) — deferred same-subsystem P0 parser bug",
+        "nested ordered-list repair (#13) — deferred same-subsystem P0 parser bug",
+        "Mermaid renderer scaling/type failures",
+        "mobile sibling overflow flex-chain fix",
+        "context-capacity display/manual switch UI",
+        "Skill/Command/MCP/zero-arg tool-card rendering",
+        "mhchem and broad HTML-inline support"
+      ]
+    },
+    "success_criteria": [
+      "***bold italic*** does not cause later text to inherit unintended italic/bold styles",
+      "~~strike~~, [link](url), and `code` parse/render correctly after prior emphasis tokens",
+      "backslash-escaped * and [ remain literal/plain in the selected inline path",
+      "table headers/cells render inline bold/italic/strikethrough/code/link without changing string table data shape",
+      "super-wide table probe has tableContainer.scrollWidth > tableContainer.clientWidth and overflow-x auto/scroll on desktop 1440x900 and mobile 390x844",
+      "empty table cells and header column count remain intact",
+      "QA captures desktop and mobile screenshots from dev.life-ai.app only"
+    ],
+    "constraints": [
+      "Do not modify production web/API or create sessions outside the UI",
+      "Keep 0dd09cc3 empty-cell behavior; do not restore lossy cell filtering",
+      "Preserve isHttpMarkdownLink, latex dollar guards, and code-span precedence",
+      "Follow happy-app Unistyles/project rules for UI styling if styles change"
+    ]
+  },
+  "specialists_assessed": {
+    "ui-specialist": "RELEVANT — visual rendering, Markdown/Mermaid/tool-card UI, and mobile viewport issues; current slice uses its P0 inline/table evidence.",
+    "architect": "RELEVANT — parser/renderer/data-shape boundaries inspected; no substantive additional finding provided.",
+    "product-owner": "RELEVANT — priority alignment reviewed; no substantive additional finding provided.",
+    "user": "RELEVANT — user feedback line 5.2 #6 is the selected binding symptom for this cycle."
+  },
+  "affected_files": [
+    "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+  ],
+  "scope_boundary": {
+    "in_user_path": [
+      "packages/happy-app/sources/components/MessageView.tsx",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts"
+    ],
+    "path_dependent_shared_infra": [
+      "packages/happy-app/sources/components/markdown/linkUtils.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+    ],
+    "out_of_path_observed_but_not_touched": [
+      "docs/dev/specs/spec-20260506-203755.md:23 (#10 reference links — same-subsystem deferred)",
+      "docs/dev/specs/spec-20260506-203755.md:24 (#11 footnotes — same-subsystem deferred)",
+      "docs/dev/specs/spec-20260506-203755.md:26 (#13 nested ordered-list repair — same-subsystem deferred)",
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+      "packages/happy-app/sources/components/AgentInput.tsx",
+      "packages/happy-app/sources/components/modelModeOptions.ts",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-07T05:56:11Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "29",
+      "observation": "Mermaid scaling/failure-label work is outside the selected inline Markdown/table-cell slice; keep for a later MermaidRenderer cycle.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T05:56:11Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "44",
+      "observation": "Mobile sibling overflow after super-wide tables is a layout/flex-chain issue, not the current inline parser/rendering slice.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T05:56:11Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "37",
+      "observation": "Context-capacity denominator/manual switch UI is a separate AgentInput/modelModeOptions product slice.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T05:56:11Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "50",
+      "observation": "Skill/Command/MCP/zero-arg tool-card visual mapping is a separate ToolView dispatch slice.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T05:56:11Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "59",
+      "observation": "mhchem and broad HTML-inline support are outside this P0 inline Markdown regression slice.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T06:37:57Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "23",
+      "observation": "P0 same-subsystem #10 reference links are deferred: same parser package but not required to satisfy the selected #5/#5b/#12 leak/table slice; schedule a separate parser cycle to avoid mixing delimiter repair with reference-definition state.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T06:37:57Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "24",
+      "observation": "P0 same-subsystem #11 footnotes are deferred: require block/reference collection and renderer UI decisions outside this cycle's inline span/table-cell path.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-07T06:37:57Z",
+      "task_id": "20260507-055611",
+      "file": "docs/dev/specs/spec-20260506-203755.md",
+      "line": "26",
+      "observation": "P0 same-subsystem #13 nested ordered-list repair is deferred: list block structure/indentation is separate from the selected inline span/table-cell data-flow fix.",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+  "root_cause_analysis": {
+    "symptom": "Inline Markdown after ***...*** is swallowed into unintended italic text; table cells render literal Markdown delimiters.",
+    "root_cause": "parseMarkdownSpans.ts uses a regex-only token walk whose bold/italic alternatives accept end-of-string as a closing delimiter, so an overlapping * run can consume following tokens instead of preserving independent token boundaries. Separately, table text flows from parseMarkdownBlock as string[]/string[][] into MarkdownView table cell renderers and bypasses RenderSpans, so cell contents never enter the inline parser.",
+    "root_cause_commit": "0dd09cc3 for table-cell inline regression (restored string table rows to fix empty cells); no single confirmed commit for *** leakage because bisect is blocked and the fragile emphasis regex predates the current task.",
+    "why_introduced": "0dd09cc3 intentionally prioritized preserving empty table cells and native web table behavior after 3311f7ec used MarkdownSpan cells with lossy filtering. The regex parser was extended incrementally for LaTeX/strikethrough/kbd without a full delimiter-stack/tokenizer pass.",
+    "why_problematic": "The renderer now has two correctness gaps on common Claude output: cell text bypasses inline parsing, and one emphasis edge case corrupts all downstream inline tokens in a line.",
+    "timeline": "Table inline support added in 3311f7ec, removed by 0dd09cc3. Current parser probe on 2026-05-07 reproduces both current failures.",
+    "affected_files": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "observed: user line 5.2 #6 reports table-cell markdown, strikethrough, link, and suspected italic/escape leakage failures.",
+      "inferred/source-measured: parseMarkdownSpans.ts:6 regex handles bold/italic/link/code/latex/strike/kbd with one shared global token walk at 114-133.",
+      "inferred/source-measured: parseMarkdownBlock.ts:47/57/127/229/273 are all parseMarkdownSpans call sites for task-list, unordered-list, header, numbered-list, and text blocks.",
+      "inferred/source-measured: parseMarkdown.ts:39-41 and parseMarkdownBlock.ts:85-111 keep table headers/rows as strings.",
+      "inferred/source-measured: MarkdownView.tsx:411-419,436-443,451-463 renders table header/cell strings directly rather than through RenderSpans.",
+      "observed/git: git show 3311f7ec added span-array table cells; git show 0dd09cc3 restored string rows to preserve empty cells."
+    ],
+    "diagnosis_completeness": "complete for source-search/data-flow semantic localization; strict token-overlap proof is blocked/empty and is not used as pass evidence; QA still must collect live desktop/mobile visual evidence after implementation.",
+    "complaint_location_keywords": [
+      "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？"
+    ],
+    "localization_evidence": "Strict location-overlap proof is blocked (exact intersection is empty under the mandated tokenizer). Semantic localization uses only source-search/data-flow evidence: MessageView renders MarkdownView; MarkdownView calls parseMarkdown at line 96 and RenderTableBlock at line 70; parseMarkdown returns parseMarkdownBlock; parseMarkdownBlock calls parseMarkdownSpans at 47/57/127/229/273 and keeps table rows as strings at 85-111; MarkdownView table paths render strings directly through WebTableRow/RenderTableBlockWeb/NativeTableColumn/RenderTableBlock at 411,425-443,451-496. This is not a token-overlap pass.",
+    "located_source": "Semantic located source (source-search/data-flow only; not token-overlap pass): packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:6,94-133,114; packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:47,57,85-111,127,229,273; packages/happy-app/sources/components/markdown/MarkdownView.tsx:70,411,425-443,451-496. Strict complaint/source token overlap is empty; mismatch is explained by the Chinese mixed-script complaint remaining one token under the mandated tokenizer.",
+    "localization_blocked": {
+      "scope": "strict tokenizer overlap proof only",
+      "status": "blocked",
+      "reason": "Under the mandated tokenizer (lowercase, split only on / . - _), the Chinese mixed-script complaint remains one token and exact_intersection=[]; no localization field may claim a markdown/table token overlap pass.",
+      "what_would_unblock": "A user-provided/source-facing location token that intersects under the mandated tokenizer, or an explicitly approved tokenizer that extracts mixed-script substrings. Until then, use source-search/data-flow only as semantic localization evidence.",
+      "semantic_localization_available": true,
+      "semantic_localization_basis": "source-search/data-flow evidence only; not a token-overlap pass"
+    },
+    "git_bisect_result": {
+      "triggered": true,
+      "suspect_commit": "0dd09cc3 for table inline regression; unresolved for *** leakage",
+      "commit_message": "fix: align table rendering with prod — empty first cell no longer drops last column",
+      "confirmed_by": "git-log-diff + parser-probe",
+      "bisect_blocked": "Worktree has 186 uncommitted files; safe bisect would require checkout/stash/reset of unrelated user/dev work, which BA is not authorized to perform.",
+      "reproducibility_verified": true
+    },
+    "localization_overlap": {
+      "tokenization_rule": "lowercase, split only on / . - _, exact set intersection only; mixed-script substrings are not extracted",
+      "raw_complaint": "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？",
+      "complaint_tokens_under_rule": [
+        "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？"
+      ],
+      "source_location_tokens_under_rule": [
+        "packages",
+        "happy",
+        "app",
+        "sources",
+        "components",
+        "markdown",
+        "parsemarkdownspans",
+        "ts",
+        "markdownview",
+        "tsx",
+        "parsemarkdownblock",
+        "webtablerow",
+        "rendertableblockweb",
+        "nativetablecolumn",
+        "renderspans"
+      ],
+      "exact_intersection": [],
+      "status": "localization_overlap_blocked",
+      "blocked_reason": "Under the mandated tokenizer the Chinese mixed-script complaint remains one token, so the prior substring overlap {markdown} is invalid.",
+      "semantic_localization_evidence_not_used_for_overlap_pass": "The selected source path is localized semantically by source-search/data-flow evidence only: table rows are strings in parseMarkdown.ts:40-41 and parseMarkdownBlock.ts:85-111, table renderers output raw strings through MarkdownView.tsx:70/411/425-443/451-496, and shared parseMarkdownSpans call sites are at parseMarkdownBlock.ts:47/57/127/229/273. This evidence does not count as a strict tokenizer overlap pass."
+    }
+  },
+  "diagnosis_layer": "L4",
+  "target_layer": "L4",
+  "complaint_location_keywords": [
+    "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？"
+  ],
+  "located_source": "Semantic located source (source-search/data-flow only; not token-overlap pass): packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:6,94-133; packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:47,57,85-111,127,229,273; packages/happy-app/sources/components/markdown/MarkdownView.tsx:70,411,425-443,451-496. Strict tokenizer intersection is empty and localization_overlap.status=localization_overlap_blocked; no markdown/table token overlap is claimed.",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "表格内部没有markdown字体格式渲染，比如粗体等",
+      "classification": "user-need clause",
+      "acceptance_criterion": "Table cells/headers render inline Markdown spans instead of raw delimiters."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "删除线为什么这么显示失败？...超链接也显示失败了？",
+      "classification": "user-need clause",
+      "acceptance_criterion": "Strikethrough and links parse/render correctly after adjacent emphasis."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "是因为被转义成了斜体？",
+      "classification": "user-need clause",
+      "acceptance_criterion": "Backslash-escaped punctuation and adjacent emphasis cannot leak italic into following tokens."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "引用式链接 `[text][ref]` 不解析",
+      "classification": "out-of-path observation for this cycle",
+      "acceptance_criterion": "N/A — #10 deferred and ledgered."
+    },
+    {
+      "id": "R5",
+      "source_phrase": "脚注 `[^1]` 不解析",
+      "classification": "out-of-path observation for this cycle",
+      "acceptance_criterion": "N/A — #11 deferred and ledgered."
+    },
+    {
+      "id": "R6",
+      "source_phrase": "嵌套有序列表层级错乱",
+      "classification": "out-of-path observation for this cycle",
+      "acceptance_criterion": "N/A — #13 deferred and ledgered."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line_range": "4,89,109",
+      "role": "Session user/agent text enters MarkdownView.",
+      "imports_from": [
+        "./markdown/MarkdownView"
+      ],
+      "evidence": "grep MarkdownView + Read MessageView.tsx lines 4,89,109",
+      "verified_via": "grep | Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line_range": "1,69-70,91-96,379-385,411-496",
+      "role": "Parses markdown, renders generic spans, and renders table web/native cells.",
+      "imports_from": [
+        "./parseMarkdown"
+      ],
+      "evidence": "Read MarkdownView.tsx: parseMarkdown useMemo at 96, RenderSpans at 379-385, table renderers output string cells at 411-463, platform dispatch at 489-496.",
+      "verified_via": "grep | Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "line_range": "39-57",
+      "role": "Defines table headers/rows as strings and exports parser.",
+      "imports_from": [
+        "./parseMarkdownBlock"
+      ],
+      "evidence": "Read parseMarkdown.ts lines 39-57: table headers:string[] rows:string[][] and parseMarkdown delegates to parseMarkdownBlock.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "line_range": "2,47,57,85-111,127,229,273",
+      "role": "Builds table blocks and invokes parseMarkdownSpans for task-list, list, header, numbered-list, and text block surfaces.",
+      "imports_from": [
+        "./parseMarkdownSpans"
+      ],
+      "evidence": "rg -n parseMarkdownSpans found call sites at 47/57/127/229/273; Read lines 85-111 confirmed string table extraction.",
+      "verified_via": "grep | Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "line_range": "6,94-133",
+      "role": "Shared inline token parser where emphasis/escape leakage fix must land.",
+      "imports_from": [
+        "leaf"
+      ],
+      "evidence": "Read regex pattern at 6, token dispatch at 94-111, token loop at 114-133.",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/linkUtils.ts",
+      "line": 3,
+      "type": "validator",
+      "code_snippet": "export function isHttpMarkdownLink(url: string): boolean { return HTTP_URL_PATTERN.test(url.trim()); }",
+      "purpose": "Prevents non-http(s) markdown links from opening.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "line": 56,
+      "type": "guard",
+      "code_snippet": "isEscapedDollar(source, matchIndex) / isPriceLikeDollar(source, matchIndex)",
+      "purpose": "Protects LaTeX parsing from escaped dollars and price-like dollars.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "line": 103,
+      "type": "validator",
+      "code_snippet": "if (tableLines.length < 2) return ...; isSeparator ...; if (!isSeparator) return ...; if (headers.length === 0) return ...",
+      "purpose": "Ensures only valid table-looking blocks become table blocks.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "line": 90,
+      "type": "parser-shape-guard",
+      "code_snippet": "rowLine.replace(/^\\||\\|$/g, '').split('|').map(cell => cell.trim())",
+      "purpose": "Preserves empty cells/column positions; do not replace with filtering parser.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": true,
+    "items": [
+      {
+        "check": "git bisect performed",
+        "status": "blocked",
+        "evidence": "186 uncommitted files make safe checkout/stash/reset unauthorized for BA."
+      },
+      {
+        "check": "globals.css reviewed",
+        "status": "skipped",
+        "finding": "Not a CSS/layout slice; parser probe reproduces source-level failure."
+      },
+      {
+        "check": "middleware / root layout / providers audited",
+        "status": "skipped",
+        "findings": [
+          "Not involved in Markdown span parsing/table cell rendering."
+        ]
+      },
+      {
+        "check": "getComputedStyle() read on target element",
+        "status": "skipped",
+        "computed": null,
+        "finding": "Visual CSS verification belongs to QA after dev implementation; BA localized parser output."
+      },
+      {
+        "check": "build / deploy / dependency changes ruled out",
+        "status": "done",
+        "evidence": "git log/diff isolates parser/render source changes; no dependency/build changes required for this slice."
+      }
+    ]
+  },
+  "setup": {
+    "applicability": "applicable",
+    "viewport": "desktop 1440x900 and mobile 390x844",
+    "theme": "both",
+    "locale": "zh-Hans user report; app may render en/zh depending account setting",
+    "auth_state": "logged-in dev account",
+    "data_state": "dev session with Markdown probe message; create/send through UI if missing",
+    "browser": "Chrome via Playwright",
+    "url_path": "https://dev.life-ai.app/session/cmoedofgz86n5nz15xsldnk35 if available; otherwise dev.life-ai.app/session/<UI-created-id>"
+  },
+  "evidence": {
+    "observed": "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？",
+    "measured": {
+      "value": "Source-search/data-flow measurement: table type is headers:string[] and rows:string[][]; parseMarkdownBlock.extractTableRows returns string[][]; MarkdownView web/native table renderers output header/cell strings directly; parseMarkdownSpans is shared by task-list/list/header/numbered-list/text call sites.",
+      "location": "parseMarkdown.ts:40-41; parseMarkdownBlock.ts:47,57,86,127,229,273; MarkdownView.tsx:70,411,425-443,451-496; parseMarkdownSpans.ts:6,94-133,114"
+    },
+    "expected": {
+      "value": "GFM-style expectations for the selected slice: table cells parse inline content and preserve empty cells; code spans take precedence; backslash escapes work outside code/autolinks; matching tildes render strikethrough; inline links/autolinks remain links.",
+      "source": "https://github.github.com/gfm/ sections 4.10, 6.1, 6.3, 6.5, 6.6, 6.9"
+    },
+    "gap": "Table cells/headers currently bypass RenderSpans, while parser changes to fix emphasis/escape leakage can regress five parseMarkdownSpans call sites unless exact probes cover them."
+  },
+  "scope_expansion": {
+    "search_pattern": "parseMarkdownSpans; rows: string[][]|headers: string[]; WebTableRow|RenderTableBlockWeb|NativeTableColumn|RenderTableBlock",
+    "search_scope": "packages/happy-app/sources/components/markdown/**/*.{ts,tsx} plus MarkdownView caller chain",
+    "user_reported": [
+      "spec-20260506-203755 Section 5.2 #6"
+    ],
+    "additional_found": [
+      "parseMarkdownBlock.ts:47 task-list parseMarkdownSpans call site",
+      "parseMarkdownBlock.ts:57 unordered-list parseMarkdownSpans call site",
+      "parseMarkdownBlock.ts:127 header parseMarkdownSpans call site",
+      "parseMarkdownBlock.ts:229 numbered-list parseMarkdownSpans call site",
+      "parseMarkdownBlock.ts:273 text parseMarkdownSpans call site",
+      "MarkdownView.tsx table renderer raw string surfaces"
+    ],
+    "all_occurrences": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:114 export function parseMarkdownSpans(markdown: string, header: boolean)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:2 import parseMarkdownSpans",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:47 task-list spans: parseMarkdownSpans(i.content, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:57 unordered-list spans: parseMarkdownSpans(i.content, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:127 header content: parseMarkdownSpans(..., true)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:229 numbered-list spans: parseMarkdownSpans(l.content, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:273 text content: parseMarkdownSpans(trimmed, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts:40 headers: string[]",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts:41 rows: string[][]",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:86 const rows: string[][] = []",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:70 RenderTableBlock receives block.headers/block.rows",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:411 WebTableRow row:string[]",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:425 RenderTableBlockWeb definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:426 headers:string[] rows:string[][] selectable:boolean",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:443 WebTableRow maps raw row",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:451 NativeTableColumn definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:453 rows:string[][] rowCount:number selectable:boolean",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:470 RenderTableBlockNative definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:471 headers:string[] rows:string[][] selectable:boolean",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:479 NativeTableColumn receives header/rows",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:489 RenderTableBlock definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:490 headers:string[] rows:string[][] onLinkPress",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:494 RenderTableBlockWeb dispatch",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:496 RenderTableBlockNative dispatch"
+    ],
+    "key_relevant_occurrences": [
+      {
+        "location": "parseMarkdownBlock.ts:47",
+        "classification": "relevant task-list call site",
+        "probe": "- [x] ***done*** then `code`"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:57",
+        "classification": "relevant unordered-list call site",
+        "probe": "- ***item*** then ~~strike~~ and [docs](https://example.com)"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:127",
+        "classification": "relevant header call site; header=true suppresses bold/italic by design",
+        "probe": "# ***Heading*** then [docs](https://example.com) and `code`"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:229",
+        "classification": "relevant numbered-list call site",
+        "probe": "1. ***first*** then ~~strike~~"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:273",
+        "classification": "primary text call site",
+        "probe": "***bold italic*** then ~~strike~~ and [link](https://example.com) and `code` and \\*literal\\*"
+      },
+      {
+        "location": "MarkdownView.tsx:411-463",
+        "classification": "primary table render path",
+        "probe": "super-wide table fixture in AC2"
+      }
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_1_external",
+    "description": "GitHub Flavored Markdown Spec for inline/table syntax; project CLAUDE files for happy-app constraints. No design role-token color table present in project CLAUDE files.",
+    "url_or_location": "https://github.github.com/gfm/ sections 4.10, 6.1, 6.3, 6.5, 6.6, 6.9; CLAUDE.md:12-19,35-43; packages/happy-app/CLAUDE.md:138-150",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "No design role-token map found by grep for role_table/CTA/brand-/ink- in CLAUDE.md or packages/happy-app/CLAUDE.md; use theme/Typography references only."
+    }
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing + git_log + existing_specs",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/context-20260424-143000-0.json and docs/dev/specs/spec-20260424-084848.md §5.17",
+        "proposed_solution": "Add Markdown primitives including strikethrough; preserve bold/italic/code/link behavior.",
+        "actual_change": "Added strikethrough/kbd/entity/list/blockquote parser+renderer primitives across markdown pipeline.",
+        "outcome": "QA later observed strikethrough/link pass; current complaint is a delimiter leakage edge case not covered then.",
+        "failure_category": "other",
+        "target_layer": "L3",
+        "target_location": "parseMarkdown.ts MarkdownSpan.styles + parseMarkdownSpans.ts regex group additions for ~~/<kbd>/entity handling + parseMarkdownBlock.ts blockquote/task-list branches + MarkdownView.tsx primitive renderer/style additions",
+        "target_location_tokens": [
+          "parsemarkdown",
+          "markdownspan_styles",
+          "parsemarkdownspans",
+          "regex_groups",
+          "strikethrough",
+          "kbd",
+          "entities",
+          "parsemarkdownblock",
+          "blockquote",
+          "task_list",
+          "nested_list",
+          "markdownview",
+          "render_styles"
+        ]
+      },
+      {
+        "artifact_path": "commit 3311f7ec",
+        "proposed_solution": "Support inline Markdown in table cells by changing table data to MarkdownSpan arrays.",
+        "actual_change": "parseMarkdown.ts table type became MarkdownSpan[][]/[][][]; MarkdownView rendered table cell spans.",
+        "outcome": "Superseded by 0dd09cc3 because the data-shape parser filtered/dropped empty cells.",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L3",
+        "target_location": "parseMarkdown.ts table type MarkdownSpan[][][] + parseMarkdownBlock.ts parseTable/buildTableHeaders/buildTableRows cell filtering + MarkdownView.tsx RenderTableBlock reading span arrays",
+        "target_location_tokens": [
+          "parsemarkdown",
+          "table_type_markdownspan",
+          "parsemarkdownblock",
+          "parsetable",
+          "buildtableheaders",
+          "buildtablerows",
+          "cell_filtering",
+          "markdownview",
+          "rendertableblock",
+          "render_spans_from_cell_arrays"
+        ]
+      },
+      {
+        "artifact_path": "commit 0dd09cc3",
+        "proposed_solution": "Preserve empty table cells by restoring string rows and native web table rendering.",
+        "actual_change": "Table headers/rows reverted to string[]/string[][] and renderer outputs raw strings.",
+        "outcome": "Empty cells fixed, inline Markdown in cells regressed.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L3",
+        "target_location": "parseMarkdown.ts table type string[]/string[][] + parseMarkdownBlock.ts extractTableRows replace/split empty-cell preservation + MarkdownView.tsx WebTableRow/RenderTableBlockWeb/NativeTableColumn raw string cells",
+        "target_location_tokens": [
+          "parsemarkdown",
+          "table_type_string",
+          "parsemarkdownblock",
+          "extracttablerows",
+          "replace_split_empty_cells",
+          "markdownview",
+          "webtablerow",
+          "rendertableblockweb",
+          "nativetablecolumn",
+          "raw_string_cells",
+          "native_web_table_renderer"
+        ]
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "this_attempt_target_location": "parseMarkdownSpans.ts parseMarkdownSpans/handleMatchedToken delimiter-boundary token walk + MarkdownView.tsx WebTableRow/RenderTableBlockWeb/NativeTableColumn render-time parsing of preserved string table cells + parseMarkdown.test.ts regression probes",
+      "this_attempt_target_location_tokens": [
+        "parsemarkdownspans",
+        "parsemarkdownspans_loop",
+        "handlematchedtoken",
+        "delimiter_state",
+        "emphasis_leakage",
+        "markdownview",
+        "webtablerow",
+        "rendertableblockweb",
+        "nativetablecolumn",
+        "render_spans_in_string_cells",
+        "parsemarkdown_test"
+      ],
+      "comparison_method": "Function/symbol-level target-location token Jaccard; tokens are lowercased semantic target identifiers, excluding shared package-path boilerplate. Equivalent threshold follows /dev Contract D: same layer AND jaccard >= 0.5 would be non-novel; novelty requires layer difference OR jaccard < 0.5.",
+      "prior_attempt_comparisons": [
+        {
+          "attempt": "Attempt 1",
+          "prior_layer": "L3",
+          "prior_target_location": "parseMarkdown.ts MarkdownSpan.styles + parseMarkdownSpans.ts regex group additions for ~~/<kbd>/entity handling + parseMarkdownBlock.ts blockquote/task-list branches + MarkdownView.tsx primitive renderer/style additions",
+          "prior_target_location_tokens": [
+            "parsemarkdown",
+            "markdownspan_styles",
+            "parsemarkdownspans",
+            "regex_groups",
+            "strikethrough",
+            "kbd",
+            "entities",
+            "parsemarkdownblock",
+            "blockquote",
+            "task_list",
+            "nested_list",
+            "markdownview",
+            "render_styles"
+          ],
+          "target_location_jaccard": 0.09,
+          "same_layer": false,
+          "same_or_similar_location": false,
+          "novelty_dimension_satisfied": [
+            "layer_difference",
+            "target_location_difference"
+          ],
+          "rationale": "Prior primitive work added missing syntax categories; this cycle changes delimiter-boundary behavior and table-cell render flow."
+        },
+        {
+          "attempt": "Attempt 2",
+          "prior_layer": "L3",
+          "prior_target_location": "parseMarkdown.ts table type MarkdownSpan[][][] + parseMarkdownBlock.ts parseTable/buildTableHeaders/buildTableRows cell filtering + MarkdownView.tsx RenderTableBlock reading span arrays",
+          "prior_target_location_tokens": [
+            "parsemarkdown",
+            "table_type_markdownspan",
+            "parsemarkdownblock",
+            "parsetable",
+            "buildtableheaders",
+            "buildtablerows",
+            "cell_filtering",
+            "markdownview",
+            "rendertableblock",
+            "render_spans_from_cell_arrays"
+          ],
+          "target_location_jaccard": 0.05,
+          "same_layer": false,
+          "same_or_similar_location": false,
+          "novelty_dimension_satisfied": [
+            "layer_difference",
+            "target_location_difference"
+          ],
+          "rationale": "Prior table fix changed parser data shape and filtered cells; this cycle keeps string[][] data shape and parses strings at render time."
+        },
+        {
+          "attempt": "Attempt 3",
+          "prior_layer": "L3",
+          "prior_target_location": "parseMarkdown.ts table type string[]/string[][] + parseMarkdownBlock.ts extractTableRows replace/split empty-cell preservation + MarkdownView.tsx WebTableRow/RenderTableBlockWeb/NativeTableColumn raw string cells",
+          "prior_target_location_tokens": [
+            "parsemarkdown",
+            "table_type_string",
+            "parsemarkdownblock",
+            "extracttablerows",
+            "replace_split_empty_cells",
+            "markdownview",
+            "webtablerow",
+            "rendertableblockweb",
+            "nativetablecolumn",
+            "raw_string_cells",
+            "native_web_table_renderer"
+          ],
+          "target_location_jaccard": 0.22,
+          "same_layer": false,
+          "same_or_similar_location": false,
+          "novelty_dimension_satisfied": [
+            "layer_difference",
+            "target_location_difference"
+          ],
+          "rationale": "Prior rollback intentionally restored raw string cells; this cycle preserves that data contract but changes the render-time flow so strings enter RenderSpans."
+        }
+      ],
+      "differs_from_all_priors": true,
+      "novelty_satisfied_by": [
+        "layer_difference",
+        "target_location_difference"
+      ],
+      "rationale": "Current scope is not a replay of prior L3 data-shape/regex-addition fixes. It targets L4 parser/data-flow behavior: independent delimiter boundaries plus render-time span parsing for existing string table cells. All prior attempts are L3 and every target-location comparison is < 0.5, so the same-layer/similar-location rejection rule is not triggered."
+    }
+  },
+  "context": {
+    "codebase_state": "Dirty worktree: git status --short shows 186 entries during BA-QA correction; BA modified only docs/dev/ticket-20260507-055611.md, docs/dev/context-20260507-055611.json, and observations ledger Markdown, not application source.",
+    "recent_commits": "3311f7ec inline table cells; 0dd09cc3 empty-cell table fix; 0ba2ddfc/27733ff6 parser primitive/latex changes.",
+    "file_contents": {
+      "parseMarkdownSpans.ts": "pattern at line 6; dispatch at 94-111; parse loop at 114-133 where delimiter-boundary behavior is localized",
+      "MarkdownView.tsx": "parseMarkdown call at 96; RenderSpans at 379-385; WebTableRow/RenderTableBlockWeb/NativeTableColumn raw string table rendering at 411-463; platform table dispatch at 489-496",
+      "parseMarkdownBlock.ts": "parseMarkdownSpans call sites at 47(task-list), 57(list), 127(header), 229(numbered-list), 273(text); table extraction/string rows at 85-111"
+    },
+    "dependencies": {
+      "markdown_reference": "GFM spec",
+      "package_manager": "yarn"
+    },
+    "environment": {
+      "project": "/dev/shm/dev-workspace/happy-dev",
+      "dev_web_only": "https://dev.life-ai.app / localhost:8097"
+    }
+  },
+  "development_approach": {
+    "strategy": "Add exact regression tests first. Implement the selected L4 parser/data-flow fix only: repair delimiter/escape boundaries in parseMarkdownSpans and route existing string table header/cell values through RenderSpans at render time. Preserve parseMarkdown.ts string table data shape and empty-cell behavior from 0dd09cc3. Do not implement reference links, footnotes, or nested ordered-list repair in this cycle.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+    ],
+    "validation_approach": "Unit/parser probes for AC1/AC3/AC4; live dev web QA on desktop 1440x900 and mobile 390x844 for AC1/AC2 with screenshot evidence; AC2 must measure tableContainer.scrollWidth > clientWidth and overflow-x auto/scroll using the WIDE_TABLE_SENTINEL fixture."
+  },
+  "research_findings": {
+    "searched": true,
+    "queries": [
+      "GitHub Flavored Markdown specification tables backslash escapes code spans strikethrough links autolinks"
+    ],
+    "key_insights": [
+      "GFM table cells contain inline-parsed text and missing short-row cells are inserted as empty cells.",
+      "Code spans have higher precedence than emphasis and links.",
+      "Backslash escapes work outside code spans/autolinks/raw HTML.",
+      "Strikethrough is a GFM inline extension using matching tildes.",
+      "Extended autolinks trim trailing punctuation."
+    ],
+    "sources": [
+      "https://github.github.com/gfm/"
+    ],
+    "how_applied": "Set exact AC2/AC3 fixtures and the empty-cell/scroll preservation constraints."
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true,
+    "live_desktop_and_mobile_ui_evidence": true,
+    "do_not_touch_production": true,
+    "do_not_create_sessions_via_api": true,
+    "strict_localization_overlap_no_substrings": true,
+    "super_wide_table_scroll_measurement": true,
+    "deferred_same_subsystem_p0_ledgered": true,
+    "localization_overlap_blocked_consistently": true
+  },
+  "localization_overlap": {
+    "tokenization_rule": "lowercase, split only on / . - _, exact set intersection only; mixed-script substrings are not extracted",
+    "raw_complaint": "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？",
+    "complaint_tokens_under_rule": [
+      "表格内部没有markdown字体格式渲染，比如粗体等，然后就是删除线为什么这么显示失败？我记得删除线之前没有问题的啊？超链接也显示失败了？是因为被转义成了斜体？"
+    ],
+    "source_location_tokens_under_rule": [
+      "packages",
+      "happy",
+      "app",
+      "sources",
+      "components",
+      "markdown",
+      "parsemarkdownspans",
+      "ts",
+      "markdownview",
+      "tsx",
+      "parsemarkdownblock",
+      "webtablerow",
+      "rendertableblockweb",
+      "nativetablecolumn",
+      "renderspans"
+    ],
+    "exact_intersection": [],
+    "status": "localization_overlap_blocked",
+    "blocked_reason": "Under the mandated tokenizer the Chinese mixed-script complaint remains one token, so the prior substring overlap {markdown} is invalid.",
+    "semantic_localization_evidence_not_used_for_overlap_pass": "The selected source path is localized semantically by source-search/data-flow evidence only: table rows are strings in parseMarkdown.ts:40-41 and parseMarkdownBlock.ts:85-111, table renderers output raw strings through MarkdownView.tsx:70/411/425-443/451-496, and shared parseMarkdownSpans call sites are at parseMarkdownBlock.ts:47/57/127/229/273. This evidence does not count as a strict tokenizer overlap pass."
+  },
+  "qa_correction_timestamp": "2026-05-07T06:37:57Z",
+  "same_subsystem_deferred_p0": [
+    {
+      "bug": "#10 reference links",
+      "spec_location": "docs/dev/specs/spec-20260506-203755.md:23",
+      "reason_deferred": "Requires reference-definition collection/state beyond the selected delimiter/table-cell flow; mixing it with this parser-boundary fix would widen the cycle.",
+      "priority": "P0 original parser group",
+      "security_relevant": false
+    },
+    {
+      "bug": "#11 footnotes",
+      "spec_location": "docs/dev/specs/spec-20260506-203755.md:24",
+      "reason_deferred": "Requires block/reference collection and renderer UI decisions outside the selected inline span/table-cell path.",
+      "priority": "P0 original parser group",
+      "security_relevant": false
+    },
+    {
+      "bug": "#13 nested ordered-list repair",
+      "spec_location": "docs/dev/specs/spec-20260506-203755.md:26",
+      "reason_deferred": "List indentation/block-structure repair is separate from delimiter leakage and table-cell inline rendering.",
+      "priority": "P0 original parser group",
+      "security_relevant": false
+    }
+  ],
+  "source_search_evidence": {
+    "commands_run": [
+      "rg -n --glob '*.{ts,tsx}' \"parseMarkdownSpans\" packages/happy-app/sources/components/markdown packages/happy-app/sources/components/MessageView.tsx",
+      "rg -n --glob '*.{ts,tsx}' \"rows: string\\[\\]\\[\\]|headers: string\\[\\]|cell: string|WebTableRow|RenderTableBlockWeb|NativeTableColumn|RenderTableBlock\" packages/happy-app/sources/components/markdown/MarkdownView.tsx packages/happy-app/sources/components/markdown/parseMarkdown.ts packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts"
+    ],
+    "results": [
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts:114 export function parseMarkdownSpans(markdown: string, header: boolean)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:2 import parseMarkdownSpans",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:47 task-list spans: parseMarkdownSpans(i.content, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:57 unordered-list spans: parseMarkdownSpans(i.content, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:127 header content: parseMarkdownSpans(..., true)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:229 numbered-list spans: parseMarkdownSpans(l.content, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:273 text content: parseMarkdownSpans(trimmed, false)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts:40 headers: string[]",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts:41 rows: string[][]",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts:86 const rows: string[][] = []",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:70 RenderTableBlock receives block.headers/block.rows",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:411 WebTableRow row:string[]",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:425 RenderTableBlockWeb definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:426 headers:string[] rows:string[][] selectable:boolean",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:443 WebTableRow maps raw row",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:451 NativeTableColumn definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:453 rows:string[][] rowCount:number selectable:boolean",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:470 RenderTableBlockNative definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:471 headers:string[] rows:string[][] selectable:boolean",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:479 NativeTableColumn receives header/rows",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:489 RenderTableBlock definition",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:490 headers:string[] rows:string[][] onLinkPress",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:494 RenderTableBlockWeb dispatch",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx:496 RenderTableBlockNative dispatch"
+    ],
+    "omitted_prior_call_sites_now_classified": [
+      {
+        "location": "parseMarkdownBlock.ts:47",
+        "classification": "relevant task-list call site",
+        "probe": "- [x] ***done*** then `code`"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:57",
+        "classification": "relevant unordered-list call site",
+        "probe": "- ***item*** then ~~strike~~ and [docs](https://example.com)"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:127",
+        "classification": "relevant header call site; header=true suppresses bold/italic by design",
+        "probe": "# ***Heading*** then [docs](https://example.com) and `code`"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:229",
+        "classification": "relevant numbered-list call site",
+        "probe": "1. ***first*** then ~~strike~~"
+      },
+      {
+        "location": "parseMarkdownBlock.ts:273",
+        "classification": "primary text call site",
+        "probe": "***bold italic*** then ~~strike~~ and [link](https://example.com) and `code` and \\*literal\\*"
+      },
+      {
+        "location": "MarkdownView.tsx:411-463",
+        "classification": "primary table render path",
+        "probe": "super-wide table fixture in AC2"
+      }
+    ]
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "name": "Inline leakage fixed",
+      "fixture": "***bold italic*** then ~~strike~~ and [link](https://example.com) and `code` and \\*literal\\*",
+      "expected": [
+        "bold italic is bold+italic or equivalent nested emphasis",
+        "strike has strikethrough style",
+        "link url=https://example.com and clickable",
+        "code has code style",
+        "*literal* is plain text",
+        "no following span inherits unintended italic/bold"
+      ],
+      "visual_evidence": [
+        "desktop 1440x900 screenshot",
+        "mobile 390x844 screenshot"
+      ]
+    },
+    {
+      "id": "AC2",
+      "name": "Super-wide table inline rendering and scroll preservation",
+      "fixture": "| Format | SuperWide | Empty |\n| --- | --- | --- |\n| **bold** ~~strike~~ [link](https://example.com) `code` | WIDE_TABLE_SENTINEL_ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ | |",
+      "expected": [
+        "row has exactly 3 cells",
+        "third data cell is present and empty",
+        "inline formatting/link/code render in table",
+        "tableContainer.scrollWidth > tableContainer.clientWidth at desktop and mobile",
+        "computed overflow-x is auto or scroll"
+      ],
+      "visual_evidence": [
+        "desktop 1440x900 screenshot",
+        "mobile 390x844 screenshot"
+      ]
+    },
+    {
+      "id": "AC3",
+      "name": "Existing inline primitive bounded fixtures",
+      "fixtures": {
+        "latex": {
+          "input": "Inline math $E=mc^2$ after.",
+          "expected": "contains inline latex span text=E=mc^2 latex=true; raw $ delimiters not visible"
+        },
+        "kbd": {
+          "input": "<kbd>Ctrl</kbd> + <kbd>C</kbd>",
+          "expected": "Ctrl and C spans include kbd style; literal tags not visible"
+        },
+        "autolink": {
+          "input": "Visit https://example.com/docs.",
+          "expected": "URL span text/url https://example.com/docs plus trailing . plain text"
+        },
+        "code_precedence": {
+          "input": "`**not bold** [not](https://bad.example)` then **bold**",
+          "expected": "first span is code text with no nested URL/bold; following bold span still bold"
+        },
+        "escapes": {
+          "input": "Escaped \\*literal\\* and \\[not a link](https://example.com)",
+          "expected": "visible plain *literal* and [not a link](https://example.com); no italic and no clickable escaped link"
+        }
+      }
+    },
+    {
+      "id": "AC4",
+      "name": "Shared parseMarkdownSpans call-site probes",
+      "fixtures": [
+        "# ***Heading*** then [docs](https://example.com) and `code`",
+        "- ***item*** then ~~strike~~ and [docs](https://example.com)",
+        "- [x] ***done*** then `code`",
+        "1. ***first*** then ~~strike~~"
+      ],
+      "expected": "block types header/list/task-list/numbered-list remain correct; links/code/strike parse where present; task checked state and list numbering remain intact; no raw *** leakage"
+    }
+  ],
+  "qa_objection_resolution": [
+    {
+      "objection": 1,
+      "resolution": "Replaced substring overlap pass with strict tokenizer raw tokens and exact empty intersection; marked localization_overlap_blocked with reason."
+    },
+    {
+      "objection": 2,
+      "resolution": "Separated current-cycle #5/#5b/#12 scope from original P0 parser group and ledgered deferred #10/#11/#13 same-subsystem P0 bugs."
+    },
+    {
+      "objection": 3,
+      "resolution": "Added actual source-search occurrences for parseMarkdownSpans call sites 47/57/127/229/273 and table renderer/type surfaces; classified call sites and added AC4 probes."
+    },
+    {
+      "objection": 4,
+      "resolution": "Rewrote AC2 with WIDE_TABLE_SENTINEL super-wide table fixture, scrollWidth/clientWidth and overflow-x measurable conditions, plus desktop/mobile screenshots."
+    },
+    {
+      "objection": 5,
+      "resolution": "Rewrote AC3 into exact fixtures/assertions for LaTeX, kbd, autolink, code-span precedence, and escapes."
+    },
+    {
+      "objection": "BA-QA iteration 2 remaining objection",
+      "resolution": "Removed stale overlap-pass implications: top-level and root_cause_analysis complaint_location_keywords now contain only the single mandated-token complaint string, located_source prose states semantic source-search/data-flow localization only, and localization_blocked is a non-null object aligned with localization_overlap.status=localization_overlap_blocked."
+    }
+  ],
+  "localization_blocked": {
+    "scope": "strict tokenizer overlap proof only",
+    "status": "blocked",
+    "reason": "Under the mandated tokenizer (lowercase, split only on / . - _), the Chinese mixed-script complaint remains one token and exact_intersection=[]; no localization field may claim a markdown/table token overlap pass.",
+    "what_would_unblock": "A user-provided/source-facing location token that intersects under the mandated tokenizer, or an explicitly approved tokenizer that extracts mixed-script substrings. Until then, use source-search/data-flow only as semantic localization evidence.",
+    "semantic_localization_available": true,
+    "semantic_localization_basis": "source-search/data-flow evidence only; not a token-overlap pass"
+  },
+  "qa_iteration_2_correction_timestamp": "2026-05-07T06:51:02Z"
+}

@@ -1,0 +1,242 @@
+{
+  "request_id": "20260507-142748",
+  "task_id": "20260507-142748",
+  "timestamp": "2026-05-07T17:55:00Z",
+  "spec_id": "spec-20260506-203844",
+  "cycle_ordinal": 4,
+  "dev_report_path": "docs/dev/dev-report-20260507-142748.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/text/_default.ts",
+      "packages/happy-app/sources/text/translations/en.ts",
+      "packages/happy-app/sources/text/translations/ca.ts",
+      "packages/happy-app/sources/text/translations/es.ts",
+      "packages/happy-app/sources/text/translations/it.ts",
+      "packages/happy-app/sources/text/translations/ja.ts",
+      "packages/happy-app/sources/text/translations/pl.ts",
+      "packages/happy-app/sources/text/translations/pt.ts",
+      "packages/happy-app/sources/text/translations/ru.ts",
+      "packages/happy-app/sources/text/translations/zh-Hans.ts",
+      "packages/happy-app/sources/text/translations/zh-Hant.ts",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+      "docs/dev/specs/spec-20260506-203844.md"
+    ],
+    "files_created": [
+      "scripts/cycle-4-dom-probe.js",
+      "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-desktop.png",
+      "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-mobile.png",
+      "docs/dev/dev-report-20260507-142748.json"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "M1 (C.2): CodexPatch.extractSubtitle returns null to suppress duplicate basename in outer header",
+        "type": "code",
+        "files_modified": ["packages/happy-app/sources/components/tools/knownTools.tsx"],
+        "rationale": "CodexPatchView.tsx:150-157 inner fileHeader already renders full path + kindLabel; outer subtitle was duplicating the basename. Setting extractSubtitle to return null leaves a single header path."
+      },
+      {
+        "id": 2,
+        "description": "M2 (F.4): Added four NEW Playwright knownTools entries with extractSubtitle truncation",
+        "type": "code",
+        "files_modified": ["packages/happy-app/sources/components/tools/knownTools.tsx"],
+        "rationale": "browser_navigate / _evaluate / _run_code / _type had zero knownTools entries. Each new entry truncates >120-char inputs to 60-char prefix + ellipsis; browser_navigate synthesizes a `data: <mime> (<size> KB)` synopsis for data URLs. Full input remains accessible in the expanded details panel."
+      },
+      {
+        "id": 3,
+        "description": "M3 (G.4): Added three NEW fixture rows for web.time, web.finance, web.sports",
+        "type": "fixture",
+        "files_modified": ["packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"],
+        "rationale": "Renderer keys already registered at knownTools.tsx:1027/1072/1085 but no fixture rows. New rows use the array shape (`time`/`finance`/`sports`) that summarizeWebResult() in codexToolRendering.ts:147-155 reads, so distinguishing literals (Asia/Tokyo / AAPL / NBA+Lakers) surface in the inline card."
+      },
+      {
+        "id": 4,
+        "description": "M4 (B.7): Replaced inline 'Preview unavailable' literal with t('tools.attachment.staleAdvisory'); added i18n key in 10 translation files",
+        "type": "code+i18n+fixture",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+          "packages/happy-app/sources/text/_default.ts",
+          "packages/happy-app/sources/text/translations/en.ts",
+          "packages/happy-app/sources/text/translations/ca.ts",
+          "packages/happy-app/sources/text/translations/es.ts",
+          "packages/happy-app/sources/text/translations/it.ts",
+          "packages/happy-app/sources/text/translations/ja.ts",
+          "packages/happy-app/sources/text/translations/pl.ts",
+          "packages/happy-app/sources/text/translations/pt.ts",
+          "packages/happy-app/sources/text/translations/ru.ts",
+          "packages/happy-app/sources/text/translations/zh-Hans.ts",
+          "packages/happy-app/sources/text/translations/zh-Hant.ts",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"
+        ],
+        "rationale": "TranslationStructure type from _default.ts requires every key to be present in every translation file; adding only en.ts would have broken typecheck. English value contains `new session` AND `inline preview` substrings; mapper-supplied previewUnavailableReason still wins via the `??` operator. Added image-stale-no-preview fixture row (functions.view_image with no preview_uri / preview_unavailable_reason) to demonstrate the advisory."
+      },
+      {
+        "id": 5,
+        "description": "M5 (F.4 fixture): Added playwright-data-url fixture row with 200+ char data:text/html URL",
+        "type": "fixture",
+        "files_modified": ["packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"],
+        "rationale": "Demonstrates M2 truncation. expectedVisibleStrings.inline contains 'data:' but deliberately omits the long encoded HTML suffix so QA can grep statically. Live DOM verified subtitle renders as `data: text/html (0.3 KB)` and not the raw URL."
+      },
+      {
+        "id": 6,
+        "description": "S1/S2 (E.2/I.2): Edited fixture description fields to include scope-limitation substrings",
+        "type": "doc",
+        "files_modified": ["packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"],
+        "rationale": "pty-write-stdin description now contains `static fixture` + `streaming`; request-user-input-unavailable description now contains `Plan mode` + `outside`. Acknowledges these spec items are external to dev-frontend scope (real Codex sessions / CLI behavior)."
+      },
+      {
+        "id": 7,
+        "description": "Test stable-id list extended for 5 new fixtures",
+        "type": "test",
+        "files_modified": ["packages/happy-app/sources/utils/codexToolRendering.test.ts"],
+        "rationale": "Test 'keeps every QA Codex fixture row reachable by stable UI identifiers' enumerates expected ids; without extending the list the test would fail. Length 20 -> 25."
+      },
+      {
+        "id": 8,
+        "description": "Spec sections 2/3/4 updated with cycle-4 sub-sections",
+        "type": "doc",
+        "files_modified": ["docs/dev/specs/spec-20260506-203844.md"],
+        "rationale": "Cycle-4 sub-sections appended (never overwriting Cycles 1/2/3) per dev.md spec-driven workflow contract. Records strategy, exact file:line changes, and post-cycle measurements (typecheck pass, build pass, AC1-AC4 live DOM pass on desktop+mobile)."
+      }
+    ],
+    "scripts_created": [
+      {
+        "path": "scripts/cycle-4-dom-probe.js",
+        "purpose": "Live DOM probe for AC1-AC4 on the dev fixture page using globally-installed Playwright (the dev-role-policy-blocked Playwright MCP is forbidden per CLAUDE.md). Prints structured JSON to stdout with per-viewport AC results.",
+        "parameters": ["DEV_AUTH_CREDENTIALS_JSON env var (optional; defaults to dev account)"],
+        "usage": "node scripts/cycle-4-dom-probe.js",
+        "exit_codes": {
+          "0": "All probes succeeded (does not assert pass/fail; consumer reads JSON)",
+          "1": "Playwright threw an error during probe"
+        }
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A — multi-item residual closure; no single regression commit",
+      "why_issue_occurred": "Six §5.3 super-checklist sub-items remained unaddressed after cycle 3. C.2 had a duplicated basename because outer ToolView.extractSubtitle and inner CodexPatchViewFull fileHeader both surfaced the file identity. F.4 had no knownTools entries for browser_navigate / _evaluate / _run_code / _type. G.4 had renderer keys but no fixture rows. B.7 had a generic literal fallback instead of a user-actionable advisory. E.2/I.2 fixture descriptions described rendering quality, not the out-of-frontend-scope nature of those spec items.",
+      "how_fix_addresses_root": "Each fix targets the smallest necessary change at the correct layer. C.2 sets extractSubtitle to null instead of refactoring the patch view (preserves both rendering paths' guards). F.4 adds four discrete knownTools entries adjacent to the existing browser_take_screenshot entry — the canonical extension point — rather than broadening buildGenericToolSummary's responsibilities. G.4 adds fixture rows that match summarizeWebResult's existing array-shape scan; no helper changes. B.7 replaces only the generic fallback literal, preserving the ?? precedence so mapper-supplied reasons still win. E.2/I.2 are description-only edits to fixture rows."
+    },
+    "diff_stats": {
+      "files_changed": 16,
+      "lines_added": 290,
+      "lines_removed": 18,
+      "new_symbols_introduced": [
+        "knownTools['mcp__playwright__browser_navigate']",
+        "knownTools['mcp__playwright__browser_evaluate']",
+        "knownTools['mcp__playwright__browser_run_code']",
+        "knownTools['mcp__playwright__browser_type']",
+        "tools.attachment (i18n namespace)",
+        "tools.attachment.staleAdvisory (i18n key)",
+        "webTimeTool / webFinanceTool / webSportsTool / playwrightDataUrlTool / imageStaleTool (fixture factories)",
+        "5 fixture row entries (web-time, web-finance, web-sports, playwright-data-url, image-stale-no-preview)"
+      ],
+      "minimum_possible_lines_estimate": 250,
+      "justification_for_overage": "The 9-language i18n key copy adds ~20 baseline lines that cannot be avoided — TranslationStructure is a strict required type. The four Playwright knownTools entries are minimal (~17 lines each) and cannot be merged. The five new fixture rows + factories together account for ~80 lines and each is required by a specific AC. No refactoring of adjacent code occurred; only the targeted edits required by the BA spec. Note: the diff_stats counts above include both my line edits AND the new content of files that were untracked (CodexAttachmentView.tsx, codex-render-fixtures-data.ts, codexToolRendering.test.ts, spec markdown additions, scripts/cycle-4-dom-probe.js) — the actual cycle-4 contribution to those files is bounded by the BA must-haves."
+    },
+    "fix_layer": "L1+L3+L0",
+    "scope_review_requested": false,
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx (indirect via _all.tsx)",
+          "Many other tool view files via knownTools resolution"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/tools/views/_all.tsx"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/text/_default.ts",
+        "imported_by": [
+          "packages/happy-app/sources/text/index.ts",
+          "All translation files (TranslationStructure type)"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/text/translations/*.ts",
+        "imported_by": [
+          "packages/happy-app/sources/text/index.ts (locale fan-in)"
+        ]
+      },
+      {
+        "modified": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+        "imported_by": [
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx (route)",
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts (test)"
+        ]
+      }
+    ],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "yarn typecheck pass on happy-app + happy-cli; codexToolRendering.test.ts 10/10 pass; dev frontend rebuild succeeded; localhost:8097 serves HTML; localhost:3005/health returns ok; live DOM probe AC1-AC4 all pass on both desktop 1440x900 and mobile 390x844."
+    },
+    "live_dom_results": {
+      "desktop": {
+        "ac1_examplesCount": 1,
+        "ac1_editCount": 1,
+        "ac2_dataPresent": true,
+        "ac2_longSuffixAbsent": true,
+        "ac3_tokyo": true,
+        "ac3_aapl": true,
+        "ac3_nba": true,
+        "ac3_lakers": true,
+        "ac4_newSession": true,
+        "ac4_inlinePreview": true
+      },
+      "mobile": {
+        "ac1_examplesCount": 1,
+        "ac1_editCount": 1,
+        "ac2_dataPresent": true,
+        "ac2_longSuffixAbsent": true,
+        "ac3_tokyo": true,
+        "ac3_aapl": true,
+        "ac3_nba": true,
+        "ac3_lakers": true,
+        "ac4_newSession": true,
+        "ac4_inlinePreview": true
+      },
+      "screenshot_paths": [
+        "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-desktop.png",
+        "docs/dev/qa-artifacts/20260507-142748/cycle4-fixture-mobile.png"
+      ]
+    },
+    "qa_ready": true,
+    "qa_notes": "All AC1-AC6 pass at the static + live DOM level. Fixture page route http://localhost:8097/dev/codex-render-fixtures contains 5 new rows: web-time, web-finance, web-sports (G.4), playwright-data-url (F.4 truncation demo), image-stale-no-preview (B.7 advisory demo). Patch row (patch-unified-diff) renders example.ts and EDIT exactly once each. The four new Playwright knownTools entries take effect for browser_navigate inputs (>120 chars truncated, data: URLs synthesized). For QA: the dev daemon and production stack were not touched; all changes are pure dev-frontend; rebuild used the mandated scripts/dev-overnight-build-deploy.sh path; production access (life-ai.app, localhost:8090, api.life-ai.app) was not invoked. Recommend running the same scripts/cycle-4-dom-probe.js to independently verify; expected output mirrors live_dom_results above.",
+    "permissions_to_add": [
+      {
+        "section": "allow",
+        "pattern": "Bash(node /dev/shm/dev-workspace/happy-dev/scripts/cycle-4-dom-probe.js:*)",
+        "reason": "Allow QA to run the cycle-4 live DOM probe script for independent AC1-AC4 verification."
+      }
+    ],
+    "implementation_notes": [
+      "Initial probe showed AC3 strings absent because web-time/finance/sports tool results were flat objects; summarizeWebResult() in codexToolRendering.ts:147-155 reads array entries under keys time/finance/sports/etc. Switched the fixture results to the array shape and AC3 then passed on both viewports. Did not modify summarizeWebResult — followed the existing data contract.",
+      "Per BA assumption W4, English translation contains the verbatim AC4 substrings; the other 9 languages use localized phrasing. A follow-up i18n-translator pass is recommended to align the non-English strings (tracked as out-of-scope for this cycle).",
+      "Did not introduce any guard removals. CodexPatchView.tsx pre_existing_guards (lines 101 and 134) are untouched.",
+      "Did not invoke codex (codex_required: false in dispatch). Self-review covered: minimum-diff (each edit traced to a specific Must-have), build pass, live DOM pass on both viewports, no scope creep, role-token guard (no new colored badges introduced; new advisory uses existing attachmentStyles.meta which uses theme.colors.textSecondary)."
+    ],
+    "codex_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Follow-up i18n-translator pass to align the 9 non-English staleAdvisory translations with native-speaker phrasing (English-only verbatim AC4 was acceptable per BA W4).",
+    "Consider adding unit tests for the four new Playwright knownTools entries' extractSubtitle (data: synopsis, 60-char truncation) — the static fixture verifies one path but vitest coverage would prevent silent regression.",
+    "D.5 three-card subagent merge remains the next /spec candidate (architectural; deferred per BA Out-of-Scope Observations)."
+  ]
+}

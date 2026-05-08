@@ -1,0 +1,74 @@
+{
+  "request_id": "20260506-124632",
+  "task_id": "20260506-124632",
+  "requirement": "修复以上渲染问题",
+  "status": "ready_fallback_after_ba_timeout",
+  "evidence": {
+    "measured": {
+      "value": "Title/status and Terminal cards render; Playwright screenshot and generated image artifacts do not appear inline in the Happy conversation view observed by the user."
+    },
+    "expected": {
+      "source": "User request and completed specialist findings require screenshot/generated-image outputs to render as inline visual artifacts while existing text/terminal/generic tool rendering stays intact."
+    }
+  },
+  "root_cause_analysis": {
+    "summary": "Image-capable renderer exists for preview URI payloads, but screenshot/generated-image tool outputs are normalized/rendered as generic JSON/path-only records without a browser-loadable image preview.",
+    "layer": "L4 logic",
+    "confidence": "medium_high",
+    "evidence_paths": [
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts"
+    ]
+  },
+  "development_approach": {
+    "target_layer": "L4 logic",
+    "summary": "Add or connect canonical image preview handling for image-like tool outputs while preserving existing generic tool rendering.",
+    "constraints": [
+      "No production access",
+      "No API-created sessions",
+      "Do not redesign general Happy rendering quality",
+      "Do not regress title/status, Terminal, or generic non-image tool cards"
+    ]
+  },
+  "affected_files": [
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+    "packages/happy-app/sources/utils/codexToolRendering.ts",
+    "packages/happy-app/sources/components/tools/views/_all.tsx"
+  ],
+  "acceptance_criteria": [
+    "Playwright screenshot result displays an inline image in conversation view.",
+    "AI-generated image result displays an inline image in conversation view.",
+    "Path-only image-view result is explicitly handled and verified.",
+    "Existing title/status, Terminal, and generic non-image MCP tool-card rendering remains intact.",
+    "Desktop and mobile layouts avoid page-level horizontal overflow.",
+    "Verification uses dev web only; no production access; no API-created sessions."
+  ],
+  "scope_expansion": {
+    "all_occurrences": [
+      "Playwright screenshot MCP tool output",
+      "AI image generation output",
+      "functions.view_image/image-view path-only output"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_1_observed_user_evidence",
+    "copy_allowed": false
+  },
+  "specialists_assessed": {
+    "ui-specialist": "RELEVANT — UI/non-text rendering issue; completed",
+    "architect": "RELEVANT — message/envelope/rendering pipeline issue; completed",
+    "product-owner": "RELEVANT — product behavior boundary; completed",
+    "user": "RELEVANT — end-to-end user journey; completed"
+  },
+  "prior_attempt_signals": {
+    "retry_phrase": null,
+    "recent_commits": [],
+    "existing_specs": [
+      "docs/dev/ba-spec-20260428-063343-codex-rendering.md",
+      "docs/dev/context-20260428-063343-codex-rendering.json"
+    ]
+  },
+  "ba_timeout_note": "BA subagent was invoked twice and timed out; orchestrator wrote fallback BA artifacts from completed specialist reports to keep the user-requested fix moving.",
+  "created_at": "2026-05-06T13:13:11Z"
+}

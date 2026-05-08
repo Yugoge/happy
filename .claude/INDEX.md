@@ -1,12 +1,185 @@
 # .claude
 
-*Last updated: 2026-04-05T19:55:14Z*
-**Total entries**: 542
+*Last updated: 2026-05-07T19:24:08Z*
+**Total entries**: 284
 **Convention**: kebab
 
 ## Tree
 ```
 .claude/
+├── dev-registry/
+│   ├── 21d24e89-e5f4-41f4-90f9-7ec3b025fc44/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260503-092940/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260504-223115/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260506-124632/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260507-055611/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260507-055629/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260507-103856/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260507-142748/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── dev-20260507-191304/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── redev-c1-20260505-001500/
+│   │   ├── `architect.json` - json config
+│   │   ├── `ba.json` - json config
+│   │   ├── `cleaner.json` - json config
+│   │   ├── `cleanliness-inspector.json` - json config
+│   │   ├── `dev.json` - json config
+│   │   ├── `git-edge-case-analyst.json` - json config
+│   │   ├── `pm.json` - json config
+│   │   ├── `product-owner.json` - json config
+│   │   ├── `prompt-inspector.json` - json config
+│   │   ├── `qa.json` - json config
+│   │   ├── `rule-inspector.json` - json config
+│   │   ├── `style-inspector.json` - json config
+│   │   ├── `test-executor.json` - json config
+│   │   ├── `test-validator.json` - json config
+│   │   ├── `ui-specialist.json` - json config
+│   │   └── `user.json` - json config
+│   ├── `agent-index.json` - json config
+│   └── `agent-index.json.lock` - lock file
 ├── hooks/
 │   ├── `posttool-git-checkpoint.sh` - smart-checkpoint.sh - Intelligent auto-checkpoint system
 │   ├── `posttool-git-warn.sh` - post-commit-warn.sh - Warn about untracked files after commit
@@ -27,528 +200,97 @@
 │   │   └── `SKILL.md` - Browser automation CLI for AI agents. Use this when asked to test something in a real browser.
 │   └── terminal-emulator/
 │       └── `SKILL.md` - Test interactive CLI/TUI applications using @microsoft/tui-test. Use when you need to test CLI tools with interactive prompts, TUI rendering, arrow key navigation, or any command that requires a TTY. Triggers include "test CLI", "test TUI", "run interactively", "automate terminal input", "simulate user input in terminal".
+├── specs/
+│   ├── spec-20260502-162334/
+│   │   ├── `cp-state-ba-2.json` - json config
+│   │   ├── `cp-state-ba-2.json.lock` - lock file
+│   │   ├── `cp-state-ba-3.json` - json config
+│   │   ├── `cp-state-ba-3.json.lock` - lock file
+│   │   ├── `cp-state-ba-4.json` - json config
+│   │   ├── `cp-state-ba-4.json.lock` - lock file
+│   │   ├── `cp-state-ba.json` - json config
+│   │   ├── `cp-state-ba.json.lock` - lock file
+│   │   ├── `cp-state-dev-2.json` - json config
+│   │   ├── `cp-state-dev-2.json.lock` - lock file
+│   │   ├── `cp-state-dev-3.json` - json config
+│   │   ├── `cp-state-dev-3.json.lock` - lock file
+│   │   ├── `cp-state-dev-4.json` - json config
+│   │   ├── `cp-state-dev-4.json.lock` - lock file
+│   │   ├── `cp-state-dev.json` - json config
+│   │   ├── `cp-state-dev.json.lock` - lock file
+│   │   ├── `cp-state-pm-2.json` - json config
+│   │   ├── `cp-state-pm-2.json.lock` - lock file
+│   │   ├── `cp-state-pm-3.json` - json config
+│   │   ├── `cp-state-pm-3.json.lock` - lock file
+│   │   ├── `cp-state-pm.json` - json config
+│   │   ├── `cp-state-pm.json.lock` - lock file
+│   │   ├── `cp-state-qa-2.json` - json config
+│   │   ├── `cp-state-qa-2.json.lock` - lock file
+│   │   ├── `cp-state-qa-3.json` - json config
+│   │   ├── `cp-state-qa-3.json.lock` - lock file
+│   │   ├── `cp-state-qa.json` - json config
+│   │   ├── `cp-state-qa.json.lock` - lock file
+│   │   ├── `cp-state-user-2.json` - json config
+│   │   ├── `cp-state-user-2.json.lock` - lock file
+│   │   ├── `cp-state-user-3.json` - json config
+│   │   ├── `cp-state-user-3.json.lock` - lock file
+│   │   ├── `cp-state-user.json` - json config
+│   │   └── `cp-state-user.json.lock` - lock file
+│   ├── spec-20260506-203755/
+│   │   ├── `cp-state-ba.json` - json config
+│   │   ├── `cp-state-ba.json.lock` - lock file
+│   │   ├── `cp-state-dev.json` - json config
+│   │   ├── `cp-state-dev.json.lock` - lock file
+│   │   ├── `cp-state-pm.json` - json config
+│   │   ├── `cp-state-pm.json.lock` - lock file
+│   │   ├── `cp-state-qa.json` - json config
+│   │   ├── `cp-state-qa.json.lock` - lock file
+│   │   ├── `cp-state-ui-specialist.json` - json config
+│   │   └── `cp-state-ui-specialist.json.lock` - lock file
+│   ├── spec-20260506-203844/
+│   │   ├── `cp-state-ba-2.json` - json config
+│   │   ├── `cp-state-ba-2.json.lock` - lock file
+│   │   ├── `cp-state-ba.json` - json config
+│   │   ├── `cp-state-ba.json.lock` - lock file
+│   │   ├── `cp-state-dev.json` - json config
+│   │   ├── `cp-state-dev.json.lock` - lock file
+│   │   ├── `cp-state-pm.json` - json config
+│   │   ├── `cp-state-pm.json.lock` - lock file
+│   │   ├── `cp-state-qa-2.json` - json config
+│   │   ├── `cp-state-qa-2.json.lock` - lock file
+│   │   ├── `cp-state-qa.json` - json config
+│   │   ├── `cp-state-qa.json.lock` - lock file
+│   │   ├── `cp-state-ui-specialist.json` - json config
+│   │   ├── `cp-state-ui-specialist.json.lock` - lock file
+│   │   ├── `cp-state-user.json` - json config
+│   │   └── `cp-state-user.json.lock` - lock file
+│   └── spec-20260507-142952/
+│       ├── `cp-state-ba.json` - json config
+│       └── `cp-state-ba.json.lock` - lock file
 ├── worktrees/
-│   ├── overnight-20260329-9ae57c91/
-│   │   ├── docs/
-│   │   ├── environments/
-│   │   ├── packages/
-│   │   ├── patches/
-│   │   ├── screenshots/
-│   │   ├── scripts/
-│   │   ├── `01-connected-no-sessions.png` - png file
-│   │   ├── `02-settings-page.png` - png file
-│   │   ├── `03-session-appeared.png` - png file
-│   │   ├── `04-session-messages-loaded.png` - png file
-│   │   ├── `05-session-full-view.png` - png file
-│   │   ├── `06-session-top.png` - png file
-│   │   ├── `07-taskview-visible.png` - png file
-│   │   ├── `08-taskview-expanded.png` - png file
-│   │   ├── `09-table-area.png` - png file
-│   │   ├── `10-taskview-detail-duplicate-title.png` - png file
-│   │   ├── `11-table-scroll-indicator.png` - png file
-│   │   ├── `12-table-view.png` - png file
-│   │   ├── `13-table-scroll-test.png` - png file
-│   │   ├── `14-table-in-view.png` - png file
-│   │   ├── `15-navigation-instability.png` - png file
-│   │   ├── `16-input-bar-attachments.png` - png file
-│   │   ├── `17-mermaid-message-typed.png` - png file
-│   │   ├── `18-mermaid-rendered.png` - png file
-│   │   ├── `bun.lock` - lock file
-│   │   ├── `CLAUDE.md` - CLAUDE.md
-│   │   ├── `desktop-appearance-1440.png` - png file
-│   │   ├── `desktop-code-block-1440.png` - png file
-│   │   ├── `desktop-codeblock-area.png` - png file
-│   │   ├── `desktop-home-1440.png` - png file
-│   │   ├── `desktop-session-1440.png` - png file
-│   │   ├── `desktop-session-top-1440.png` - png file
-│   │   ├── `desktop-settings-1440.png` - png file
-│   │   ├── `desktop-table-area.png` - png file
-│   │   ├── `desktop-table-view-1440.png` - png file
-│   │   ├── `desktop-taskview-desktop.png` - png file
-│   │   ├── `desktop-taskview-detail.png` - png file
-│   │   ├── `dev-connected-no-active.png` - png file
-│   │   ├── `Dockerfile` - unknown file
-│   │   ├── `Dockerfile.server` - server file
-│   │   ├── `Dockerfile.server-slim` - server-slim file
-│   │   ├── `Dockerfile.webapp` - webapp file
-│   │   ├── `fix-tools2-chips.py` - Python script
-│   │   ├── `LICENCE` - unknown file
-│   │   ├── `logo.png` - png file
-│   │   ├── `mobile-home-375.png` - png file
-│   │   ├── `mobile-mermaid-area.png` - png file
-│   │   ├── `mobile-mermaid-full.png` - png file
-│   │   ├── `mobile-raw-markdown-table.png` - png file
-│   │   ├── `mobile-session-375.png` - png file
-│   │   ├── `mobile-session-bottom.png` - png file
-│   │   ├── `mobile-settings-375.png` - png file
-│   │   ├── `mobile-table-context.png` - png file
-│   │   ├── `mobile-taskview-375.png` - png file
-│   │   ├── `mobile-taskview-900.png` - png file
-│   │   ├── `mobile-taskview-current.png` - png file
-│   │   ├── `mobile-taskview-final.png` - png file
-│   │   ├── `mobile-taskview-found.png` - png file
-│   │   ├── `mobile-taskview-rocket.png` - png file
-│   │   ├── `mobile-taskview-scroll.png` - png file
-│   │   ├── `package-lock.json` - json config
-│   │   ├── `package.json` - json config
-│   │   ├── `pm-after-send-2.png` - png file
-│   │   ├── `pm-after-send.png` - png file
-│   │   ├── `pm-desktop-authenticated.png` - png file
-│   │   ├── `pm-desktop-session.png` - png file
-│   │   ├── `pm-desktop-terminals.png` - png file
-│   │   ├── `pm-landing-authenticated.png` - png file
-│   │   ├── `pm-landing-empty.png` - png file
-│   │   ├── `pm-landing.png` - png file
-│   │   ├── `pm-mobile-view.png` - png file
-│   │   ├── `pm-new-session-page.png` - png file
-│   │   ├── `pm-prod-landing.png` - png file
-│   │   ├── `pm-session-response.png` - png file
-│   │   ├── `pm-session-view.png` - png file
-│   │   ├── `pm-settings.png` - png file
-│   │   ├── `pm-tool-views.png` - png file
-│   │   ├── `po-01-initial-load.png` - png file
-│   │   ├── `po-01-landing-connected.png` - png file
-│   │   ├── `po-01-landing-connecting.png` - png file
-│   │   ├── `po-01-landing.png` - png file
-│   │   ├── `po-02-account-settings.png` - png file
-│   │   ├── `po-02-session-view-empty.png` - png file
-│   │   ├── `po-02-sessions-loaded.png` - png file
-│   │   ├── `po-03-appearance.png` - png file
-│   │   ├── `po-03-redirected.png` - png file
-│   │   ├── `po-03-terminals-list.png` - png file
-│   │   ├── `po-04-sessions-list.png` - png file
-│   │   ├── `po-04-sitemap.png` - png file
-│   │   ├── `po-05-dev-no-sessions.png` - png file
-│   │   ├── `po-05-settings-localhost.png` - png file
-│   │   ├── `po-06-appearance-localhost.png` - png file
-│   │   ├── `po-06-empty-snapshot.png` - png file
-│   │   ├── `po-07-settings.png` - png file
-│   │   ├── `po-07-usage.png` - png file
-│   │   ├── `po-08-features.png` - png file
-│   │   ├── `po-08-inbox.png` - png file
-│   │   ├── `po-09-session-deleted.png` - png file
-│   │   ├── `po-09-unmatched-route.png` - png file
-│   │   ├── `po-10-applio-redirect.png` - png file
-│   │   ├── `po-10-session-appeared.png` - png file
-│   │   ├── `po-11-session-view.png` - png file
-│   │   ├── `po-12-session-desktop.png` - png file
-│   │   ├── `po-12-settings-mobile.png` - png file
-│   │   ├── `po-13-artifacts.png` - png file
-│   │   ├── `po-14-new-session.png` - png file
-│   │   ├── `po-15-inbox.png` - png file
-│   │   ├── `po-404-changelog.png` - png file
-│   │   ├── `po-appearance.png` - png file
-│   │   ├── `po-bug62-title-header.png` - png file
-│   │   ├── `po-changelog.png` - png file
-│   │   ├── `po-desktop-terminals.png` - png file
-│   │   ├── `po-features.png` - png file
-│   │   ├── `po-final-state.png` - png file
-│   │   ├── `po-inbox.png` - png file
-│   │   ├── `po-new-session-desktop.png` - png file
-│   │   ├── `po-new-session-page.png` - png file
-│   │   ├── `po-new-session.png` - png file
-│   │   ├── `po-session-desktop-full.png` - png file
-│   │   ├── `po-session-desktop-view.png` - png file
-│   │   ├── `po-session-desktop.png` - png file
-│   │   ├── `po-session-fullpage.png` - png file
-│   │   ├── `po-session-info.png` - png file
-│   │   ├── `po-session-messages.png` - png file
-│   │   ├── `po-session-reload.png` - png file
-│   │   ├── `po-session-view.png` - png file
-│   │   ├── `po-settings-full.png` - png file
-│   │   ├── `po-settings-redirect.png` - png file
-│   │   ├── `po-step0-landing.png` - png file
-│   │   ├── `po-usage.png` - png file
-│   │   ├── `qa-bug64-conversation-view.png` - png file
-│   │   ├── `qa-bug64-detail-page-no-duplication.png` - png file
-│   │   ├── `qa-bug64-tool-calls-divider.png` - png file
-│   │   ├── `qa-dev-app-state.png` - png file
-│   │   ├── `qa-latex-inline-closeup.png` - png file
-│   │   ├── `qa-latex-inline-rendering.png` - png file
-│   │   ├── `qa-session-latex-view.png` - png file
-│   │   ├── `qa-session-overview.png` - png file
-│   │   ├── `qa-task-detail-view.png` - png file
-│   │   ├── `screenshot-01-initial-state.png` - png file
-│   │   ├── `screenshot-02-loading.png` - png file
-│   │   ├── `screenshot-03-new-session-form.png` - png file
-│   │   ├── `screenshot-04-localhost8097.png` - png file
-│   │   ├── `screenshot-05-new-form-direct.png` - png file
-│   │   ├── `screenshot-06-before-redirect.png` - png file
-│   │   ├── `screenshot-07-stable-happy-app.png` - png file
-│   │   ├── `screenshot-08-new-session-form.png` - png file
-│   │   ├── `screenshot-09-production-sessions.png` - png file
-│   │   ├── `screenshot-10-session-open.png` - png file
-│   │   ├── `screenshot-11-message-typed.png` - png file
-│   │   ├── `screenshot-12-message-sent.png` - png file
-│   │   ├── `screenshot-13-task-detail-view.png` - png file
-│   │   ├── `screenshot-14-mobile-session.png` - png file
-│   │   ├── `screenshot-15-mobile-home-tabs.png` - png file
-│   │   ├── `screenshot-16-new-session-form-mobile.png` - png file
-│   │   ├── `screenshot-17-empty-send-test.png` - png file
-│   │   ├── `step-01-landing-page.png` - png file
-│   │   ├── `step-02-sessions-list.png` - png file
-│   │   ├── `step-03-session-deleted.png` - png file
-│   │   ├── `step1-home-authenticated.png` - png file
-│   │   ├── `step1-initial-load.png` - png file
-│   │   ├── `step10-session-view2.png` - png file
-│   │   ├── `step10-settings-features.png` - png file
-│   │   ├── `step11-home-final.png` - png file
-│   │   ├── `step11-session-bottom.png` - png file
-│   │   ├── `step12-taskview-no-divider.png` - png file
-│   │   ├── `step2-new-session-form.png` - png file
-│   │   ├── `step2-session-view.png` - png file
-│   │   ├── `step3-session-top.png` - png file
-│   │   ├── `step3-settings.png` - png file
-│   │   ├── `step4-inbox.png` - png file
-│   │   ├── `step4-session-middle.png` - png file
-│   │   ├── `step5-dev-redirect-401.png` - png file
-│   │   ├── `step5-settings-appearance.png` - png file
-│   │   ├── `step6-new-session.png` - png file
-│   │   ├── `step6-reconnected.png` - png file
-│   │   ├── `step7-mobile-home.png` - png file
-│   │   ├── `step7-taskview-expanded.png` - png file
-│   │   ├── `step8-settings-full.png` - png file
-│   │   ├── `step8-taskview-full.png` - png file
-│   │   ├── `step9-settings-account.png` - png file
-│   │   ├── `step9-settings.png` - png file
-│   │   ├── `user-01-landing-mobile.png` - png file
-│   │   ├── `user-02-session-view-mobile.png` - png file
-│   │   ├── `user-03-message-typed.png` - png file
-│   │   ├── `user-04-message-sent-clauding.png` - png file
-│   │   ├── `user-05-session-mobile-after-send.png` - png file
-│   │   ├── `user-06-terminals-mobile-back.png` - png file
-│   │   ├── `user-07-new-session-redirect.png` - png file
-│   │   ├── `user-08-mobile-375-layout-check.png` - png file
-│   │   ├── `user-09-session-info-page.png` - png file
-│   │   ├── `user-10-usage-page.png` - png file
-│   │   ├── `user-11-settings-appearance.png` - png file
-│   │   ├── `user-12-desktop-after-wait.png` - png file
-│   │   ├── `user-13-start-new-session-goes-to-changelog.png` - png file
-│   │   ├── `user-14-new-session-composer.png` - png file
-│   │   ├── `user-15-new-session-composer-typed.png` - png file
-│   │   ├── `user-16-new-session-created.png` - png file
-│   │   ├── `user-17-new-session-active.png` - png file
-│   │   ├── `user-18-inbox-empty.png` - png file
-│   │   ├── `user-19-settings-main.png` - png file
-│   │   ├── `user-20-settings-account.png` - png file
-│   │   ├── `user-21-quick-action-response.png` - png file
-│   │   ├── `user-22-404-page.png` - png file
-│   │   ├── `user-23-sitemap.png` - png file
-│   │   ├── `user-24-settings-features.png` - png file
-│   │   ├── `user-25-terminals-two-sessions.png` - png file
-│   │   ├── `user-26-double-submit-test.png` - png file
-│   │   ├── `user-27-long-text-input.png` - png file
-│   │   ├── `user-28-new-session-info.png` - png file
-│   │   ├── `user-29-settings-voice.png` - png file
-│   │   └── `yarn.lock` - lock file
-│   └── overnight-20260403-d6f1eea4/
-│       ├── docs/
-│       ├── environments/
-│       ├── packages/
-│       ├── patches/
-│       ├── screenshots/
-│       ├── scripts/
-│       ├── `01-connected-no-sessions.png` - png file
-│       ├── `02-settings-page.png` - png file
-│       ├── `03-session-appeared.png` - png file
-│       ├── `04-session-messages-loaded.png` - png file
-│       ├── `05-session-full-view.png` - png file
-│       ├── `06-session-top.png` - png file
-│       ├── `07-taskview-visible.png` - png file
-│       ├── `08-taskview-expanded.png` - png file
-│       ├── `09-table-area.png` - png file
-│       ├── `10-taskview-detail-duplicate-title.png` - png file
-│       ├── `11-table-scroll-indicator.png` - png file
-│       ├── `12-table-view.png` - png file
-│       ├── `13-table-scroll-test.png` - png file
-│       ├── `14-table-in-view.png` - png file
-│       ├── `15-navigation-instability.png` - png file
-│       ├── `16-input-bar-attachments.png` - png file
-│       ├── `17-mermaid-message-typed.png` - png file
-│       ├── `18-mermaid-rendered.png` - png file
-│       ├── `bun.lock` - lock file
-│       ├── `CLAUDE.md` - CLAUDE.md
-│       ├── `cycle2-landing.png` - png file
-│       ├── `cycle2-session-open.png` - png file
-│       ├── `cycle2-session2.png` - png file
-│       ├── `cycle2-sidebar-collapse.png` - png file
-│       ├── `cycle2-sidebar-restored.png` - png file
-│       ├── `cycle3-initial-load.png` - png file
-│       ├── `desktop-appearance-1440.png` - png file
-│       ├── `desktop-code-block-1440.png` - png file
-│       ├── `desktop-codeblock-area.png` - png file
-│       ├── `desktop-home-1440.png` - png file
-│       ├── `desktop-session-1440.png` - png file
-│       ├── `desktop-session-top-1440.png` - png file
-│       ├── `desktop-settings-1440.png` - png file
-│       ├── `desktop-table-area.png` - png file
-│       ├── `desktop-table-view-1440.png` - png file
-│       ├── `desktop-taskview-desktop.png` - png file
-│       ├── `desktop-taskview-detail.png` - png file
-│       ├── `dev-connected-no-active.png` - png file
-│       ├── `Dockerfile` - unknown file
-│       ├── `Dockerfile.server` - server file
-│       ├── `Dockerfile.server-slim` - server-slim file
-│       ├── `Dockerfile.webapp` - webapp file
-│       ├── `LICENCE` - unknown file
-│       ├── `logo.png` - png file
-│       ├── `mobile-home-375.png` - png file
-│       ├── `mobile-mermaid-area.png` - png file
-│       ├── `mobile-mermaid-full.png` - png file
-│       ├── `mobile-raw-markdown-table.png` - png file
-│       ├── `mobile-session-375.png` - png file
-│       ├── `mobile-session-bottom.png` - png file
-│       ├── `mobile-settings-375.png` - png file
-│       ├── `mobile-table-context.png` - png file
-│       ├── `mobile-taskview-375.png` - png file
-│       ├── `mobile-taskview-900.png` - png file
-│       ├── `mobile-taskview-current.png` - png file
-│       ├── `mobile-taskview-final.png` - png file
-│       ├── `mobile-taskview-found.png` - png file
-│       ├── `mobile-taskview-rocket.png` - png file
-│       ├── `mobile-taskview-scroll.png` - png file
-│       ├── `package-lock.json` - json config
-│       ├── `package.json` - json config
-│       ├── `pm-after-send-2.png` - png file
-│       ├── `pm-after-send.png` - png file
-│       ├── `pm-desktop-authenticated.png` - png file
-│       ├── `pm-desktop-session.png` - png file
-│       ├── `pm-desktop-terminals.png` - png file
-│       ├── `pm-files-page.png` - png file
-│       ├── `pm-landing-authenticated.png` - png file
-│       ├── `pm-landing-connecting.png` - png file
-│       ├── `pm-landing-empty.png` - png file
-│       ├── `pm-landing.png` - png file
-│       ├── `pm-mobile-view.png` - png file
-│       ├── `pm-new-session-page.png` - png file
-│       ├── `pm-prod-landing.png` - png file
-│       ├── `pm-session-response.png` - png file
-│       ├── `pm-session-view.png` - png file
-│       ├── `pm-session2.png` - png file
-│       ├── `pm-settings-mobile.png` - png file
-│       ├── `pm-settings.png` - png file
-│       ├── `pm-tool-views.png` - png file
-│       ├── `po-01-initial-load.png` - png file
-│       ├── `po-01-landing-connected.png` - png file
-│       ├── `po-01-landing-connecting.png` - png file
-│       ├── `po-01-landing.png` - png file
-│       ├── `po-02-account-settings.png` - png file
-│       ├── `po-02-session-view-empty.png` - png file
-│       ├── `po-02-sessions-loaded.png` - png file
-│       ├── `po-03-appearance.png` - png file
-│       ├── `po-03-redirected.png` - png file
-│       ├── `po-03-terminals-list.png` - png file
-│       ├── `po-04-sessions-list.png` - png file
-│       ├── `po-04-sitemap.png` - png file
-│       ├── `po-05-dev-no-sessions.png` - png file
-│       ├── `po-05-settings-localhost.png` - png file
-│       ├── `po-06-appearance-localhost.png` - png file
-│       ├── `po-06-empty-snapshot.png` - png file
-│       ├── `po-07-settings.png` - png file
-│       ├── `po-07-usage.png` - png file
-│       ├── `po-08-features.png` - png file
-│       ├── `po-08-inbox.png` - png file
-│       ├── `po-09-session-deleted.png` - png file
-│       ├── `po-09-unmatched-route.png` - png file
-│       ├── `po-10-applio-redirect.png` - png file
-│       ├── `po-10-session-appeared.png` - png file
-│       ├── `po-11-session-view.png` - png file
-│       ├── `po-12-session-desktop.png` - png file
-│       ├── `po-12-settings-mobile.png` - png file
-│       ├── `po-13-artifacts.png` - png file
-│       ├── `po-14-new-session.png` - png file
-│       ├── `po-15-inbox.png` - png file
-│       ├── `po-404-changelog.png` - png file
-│       ├── `po-appearance.png` - png file
-│       ├── `po-bug62-title-header.png` - png file
-│       ├── `po-changelog.png` - png file
-│       ├── `po-cycle2-chip-click-result.png` - png file
-│       ├── `po-cycle2-chip-navigation-bug.png` - png file
-│       ├── `po-cycle2-chip-sent-message.png` - png file
-│       ├── `po-cycle2-landing-desktop.png` - png file
-│       ├── `po-cycle2-landing.png` - png file
-│       ├── `po-cycle2-new-session.png` - png file
-│       ├── `po-cycle2-old-tool-detail.png` - png file
-│       ├── `po-cycle2-session1.png` - png file
-│       ├── `po-cycle2-session2-bottom.png` - png file
-│       ├── `po-cycle2-session2-bug62.png` - png file
-│       ├── `po-cycle2-session2-response.png` - png file
-│       ├── `po-cycle2-settings.png` - png file
-│       ├── `po-cycle2-tool-detail-view.png` - png file
-│       ├── `po-cycle2-tools2-full.png` - png file
-│       ├── `po-cycle2-tools2-other-empty.png` - png file
-│       ├── `po-cycle2-tools2-top.png` - png file
-│       ├── `po-cycle2-unmatched-route.png` - png file
-│       ├── `po-desktop-terminals.png` - png file
-│       ├── `po-features.png` - png file
-│       ├── `po-final-state.png` - png file
-│       ├── `po-inbox.png` - png file
-│       ├── `po-new-session-desktop.png` - png file
-│       ├── `po-new-session-page.png` - png file
-│       ├── `po-new-session.png` - png file
-│       ├── `po-session-desktop-full.png` - png file
-│       ├── `po-session-desktop-view.png` - png file
-│       ├── `po-session-desktop.png` - png file
-│       ├── `po-session-fullpage.png` - png file
-│       ├── `po-session-info.png` - png file
-│       ├── `po-session-messages.png` - png file
-│       ├── `po-session-reload.png` - png file
-│       ├── `po-session-view.png` - png file
-│       ├── `po-settings-full.png` - png file
-│       ├── `po-settings-redirect.png` - png file
-│       ├── `po-step0-landing.png` - png file
-│       ├── `po-usage.png` - png file
-│       ├── `qa-bug64-conversation-view.png` - png file
-│       ├── `qa-bug64-detail-page-no-duplication.png` - png file
-│       ├── `qa-bug64-tool-calls-divider.png` - png file
-│       ├── `qa-cycle2-p0-sidebar.png` - png file
-│       ├── `qa-cycle2-p3-tools2.png` - png file
-│       ├── `qa-cycle2-p6-other-tools-filtered.png` - png file
-│       ├── `qa-cycle2-p6-other-tools.png` - png file
-│       ├── `qa-dev-app-state.png` - png file
-│       ├── `qa-latex-inline-closeup.png` - png file
-│       ├── `qa-latex-inline-rendering.png` - png file
-│       ├── `qa-p12-after-collapse.png` - png file
-│       ├── `qa-p12-after-expand.png` - png file
-│       ├── `qa-p12-before-collapse.png` - png file
-│       ├── `qa-p2-machine-card.png` - png file
-│       ├── `qa-p9-files-loaded.png` - png file
-│       ├── `qa-pipeline3-collapsed.png` - png file
-│       ├── `qa-pipeline3-new-session.png` - png file
-│       ├── `qa-session-latex-view.png` - png file
-│       ├── `qa-session-overview.png` - png file
-│       ├── `qa-task-detail-view.png` - png file
-│       ├── `screenshot-01-initial-state.png` - png file
-│       ├── `screenshot-02-loading.png` - png file
-│       ├── `screenshot-03-new-session-form.png` - png file
-│       ├── `screenshot-04-localhost8097.png` - png file
-│       ├── `screenshot-05-new-form-direct.png` - png file
-│       ├── `screenshot-06-before-redirect.png` - png file
-│       ├── `screenshot-07-stable-happy-app.png` - png file
-│       ├── `screenshot-08-new-session-form.png` - png file
-│       ├── `screenshot-09-production-sessions.png` - png file
-│       ├── `screenshot-10-session-open.png` - png file
-│       ├── `screenshot-11-message-typed.png` - png file
-│       ├── `screenshot-12-message-sent.png` - png file
-│       ├── `screenshot-13-task-detail-view.png` - png file
-│       ├── `screenshot-14-mobile-session.png` - png file
-│       ├── `screenshot-15-mobile-home-tabs.png` - png file
-│       ├── `screenshot-16-new-session-form-mobile.png` - png file
-│       ├── `screenshot-17-empty-send-test.png` - png file
-│       ├── `step-01-landing-page.png` - png file
-│       ├── `step-02-sessions-list.png` - png file
-│       ├── `step-03-session-deleted.png` - png file
-│       ├── `step0-connected-sidebar.png` - png file
-│       ├── `step1-home-authenticated.png` - png file
-│       ├── `step1-initial-load.png` - png file
-│       ├── `step1-session-view.png` - png file
-│       ├── `step10-session-view2.png` - png file
-│       ├── `step10-settings-features.png` - png file
-│       ├── `step10-tools2-demo.png` - png file
-│       ├── `step11-home-final.png` - png file
-│       ├── `step11-session-bottom.png` - png file
-│       ├── `step11-tools2-scrolled.png` - png file
-│       ├── `step12-taskview-no-divider.png` - png file
-│       ├── `step12-tools2-more.png` - png file
-│       ├── `step13-other-tools.png` - png file
-│       ├── `step2-new-session-form.png` - png file
-│       ├── `step2-session-view.png` - png file
-│       ├── `step2-settings-page.png` - png file
-│       ├── `step3-files-not-git.png` - png file
-│       ├── `step3-session-top.png` - png file
-│       ├── `step3-settings.png` - png file
-│       ├── `step4-inbox.png` - png file
-│       ├── `step4-session-middle.png` - png file
-│       ├── `step4-session1-desktop.png` - png file
-│       ├── `step5-dev-redirect-401.png` - png file
-│       ├── `step5-messages-demo.png` - png file
-│       ├── `step5-settings-appearance.png` - png file
-│       ├── `step6-messages-demo-bottom.png` - png file
-│       ├── `step6-new-session.png` - png file
-│       ├── `step6-reconnected.png` - png file
-│       ├── `step7-demo-tool-calls.png` - png file
-│       ├── `step7-mobile-home.png` - png file
-│       ├── `step7-taskview-expanded.png` - png file
-│       ├── `step8-settings-full.png` - png file
-│       ├── `step8-taskview-full.png` - png file
-│       ├── `step8-tools-demo-top.png` - png file
-│       ├── `step9-settings-account.png` - png file
-│       ├── `step9-settings.png` - png file
-│       ├── `step9-tools-demo-examples.png` - png file
-│       ├── `test.txt` - txt file
-│       ├── `user-01-landing-mobile.png` - png file
-│       ├── `user-02-session-view-mobile.png` - png file
-│       ├── `user-03-message-typed.png` - png file
-│       ├── `user-04-message-sent-clauding.png` - png file
-│       ├── `user-05-session-mobile-after-send.png` - png file
-│       ├── `user-06-terminals-mobile-back.png` - png file
-│       ├── `user-07-new-session-redirect.png` - png file
-│       ├── `user-08-mobile-375-layout-check.png` - png file
-│       ├── `user-09-session-info-page.png` - png file
-│       ├── `user-10-usage-page.png` - png file
-│       ├── `user-11-settings-appearance.png` - png file
-│       ├── `user-12-desktop-after-wait.png` - png file
-│       ├── `user-13-start-new-session-goes-to-changelog.png` - png file
-│       ├── `user-14-new-session-composer.png` - png file
-│       ├── `user-15-new-session-composer-typed.png` - png file
-│       ├── `user-16-new-session-created.png` - png file
-│       ├── `user-17-new-session-active.png` - png file
-│       ├── `user-18-inbox-empty.png` - png file
-│       ├── `user-19-settings-main.png` - png file
-│       ├── `user-20-settings-account.png` - png file
-│       ├── `user-21-quick-action-response.png` - png file
-│       ├── `user-22-404-page.png` - png file
-│       ├── `user-23-sitemap.png` - png file
-│       ├── `user-24-settings-features.png` - png file
-│       ├── `user-25-terminals-two-sessions.png` - png file
-│       ├── `user-26-double-submit-test.png` - png file
-│       ├── `user-27-long-text-input.png` - png file
-│       ├── `user-28-new-session-info.png` - png file
-│       ├── `user-29-settings-voice.png` - png file
-│       ├── `user-c3-01-initial-connected.png` - png file
-│       ├── `user-c3-02-tools2-desktop.png` - png file
-│       ├── `user-c3-03-tools2-all-filter.png` - png file
-│       ├── `user-c3-04-tools2-read-filter.png` - png file
-│       ├── `user-c3-05-tools2-read-filter-result.png` - png file
-│       ├── `user-c3-06-tools2-edit-filter.png` - png file
-│       ├── `user-c3-07-tools2-bash-filter.png` - png file
-│       ├── `user-c3-08-tools2-other-filter.png` - png file
-│       ├── `user-c3-09-tools2-permission-filter.png` - png file
-│       ├── `user-c3-10-tools2-permission-states.png` - png file
-│       ├── `user-c3-11-tools2-status-icons-view.png` - png file
-│       ├── `user-c3-11-tools2-status-icons.png` - png file
-│       ├── `user-c3-12-tools2-all-expanded.png` - png file
-│       ├── `user-c3-13-read-card-expanded-view.png` - png file
-│       ├── `user-c3-13-read-card-expanded.png` - png file
-│       ├── `user-c3-14-bash-cards-scroll.png` - png file
-│       ├── `user-c3-14-bash-cards-scrolled.png` - png file
-│       ├── `user-c3-15-current-state.png` - png file
-│       ├── `user-c3-17-session-view-bottom.png` - png file
-│       ├── `user-c3-18-session-scrolled-top.png` - png file
-│       ├── `user-c3-18-session-top.png` - png file
-│       ├── `user-c3-19-session1-messages.png` - png file
-│       ├── `user-c3-19-session1-open.png` - png file
-│       ├── `user-c3-20-session2-open.png` - png file
-│       ├── `user-c3-20-session2-view.png` - png file
-│       ├── `user-c3-21-session-scroll-top.png` - png file
-│       ├── `user-c3-22-ctrl-b-result.png` - png file
-│       ├── `user-c3-22-ctrl-b-test.png` - png file
-│       ├── `user-c3-25-back-to-sessions.png` - png file
-│       ├── `user-c3-27-session-with-toolcalls.png` - png file
-│       ├── `user-c3-28-bash-card-toggle-result.png` - png file
-│       ├── `user-c3-28-bash-card-toggle.png` - png file
-│       ├── `user-c3-29-session-loading.png` - png file
-│       ├── `user-c3-30-tools2-mobile.png` - png file
-│       ├── `user-c3-31-mobile-sessions.png` - png file
-│       ├── `user-c3-32-desktop-sessions.png` - png file
-│       ├── `user-c3-33-settings-page.png` - png file
-│       └── `yarn.lock` - lock file
+├── `overnight-state-019dd0f1-dc85-70f0-9ca2-c789c3578c31.json` - json config
+├── `overnight-state-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.json` - json config
+├── `overnight-state-bfbc5f54-b231-4b52-b3bc-de01aeac0ccd.json` - json config
 ├── `settings.json` - json config
 ├── `settings.local.json` - json config
+├── `workflow-019dd0f1-dc85-70f0-9ca2-c789c3578c31.json` - json config
+├── `workflow-019dd3c2-af01-7533-b68b-c88930d1097b.json` - json config
+├── `workflow-019dfce3-b5e8-7ed2-862b-71caedeec631.json` - json config
+├── `workflow-019e0101-3683-7cf1-ad53-e1614d85826e.json` - json config
+├── `workflow-019e0101-9bc3-7c51-8da9-2ad0672ab82b.json` - json config
 ├── `workflow-049baf2c-547f-4a07-82af-06eb4ed42d8c.json` - json config
+├── `workflow-11a69111-8eda-4d34-b200-631b9bf26f29.json` - json config
+├── `workflow-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.json` - json config
+├── `workflow-34e65dc0-fa0f-46ee-a397-af10ae0e1810.json` - json config
+├── `workflow-4b446615-bfc2-4fb5-846f-18c1b0b370f1.json` - json config
+├── `workflow-6f2bb94f-f20c-4a55-8a76-6d9f6547fd2c.json` - json config
+├── `workflow-81c1a5b1-fb0d-404d-9baf-a1c417d38c04.json` - json config
 ├── `workflow-9ae57c91-b5ff-4178-b883-eba53319be14.json` - json config
+├── `workflow-b7050a85-2549-4e77-84f1-f0f0b190d929.json` - json config
+├── `workflow-bfbc5f54-b231-4b52-b3bc-de01aeac0ccd.json` - json config
 ├── `workflow-d12e561c-040d-484b-9e82-66c46dd5c95b.json` - json config
-└── `workflow-d6f1eea4-7769-4384-bd28-deae1ba26177.json` - json config
+├── `workflow-d6f1eea4-7769-4384-bd28-deae1ba26177.json` - json config
+└── `workflow-f5726ada-5cd3-4fef-8b44-4fee09eb266e.json` - json config
 ```
 
 ---

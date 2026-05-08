@@ -2,6 +2,7 @@ import { Metadata } from '@/sync/storageTypes';
 import { ToolCall, Message } from '@/sync/typesMessage';
 import { resolvePath } from '@/utils/pathUtils';
 import { stringifyToolCommand } from '@/utils/toolCommand';
+import { extractAttachmentSummary, extractPlanItems, summarizePlanItems } from '@/utils/codexToolRendering';
 import * as z from 'zod';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import React from 'react';
@@ -35,6 +36,14 @@ function getPatchFiles(input: any): string[] {
         return Object.keys(input.fileChanges);
     }
     return [];
+}
+
+function codexToolStateStatus(opts: { metadata: Metadata | null, tool: ToolCall }): string | null {
+    if (opts.tool.state === 'completed') return 'completed';
+    if (opts.tool.state === 'error') {
+        return typeof opts.tool.result?.status === 'string' ? opts.tool.result.status : 'error';
+    }
+    return null;
 }
 
 const taskLikeTool = {
@@ -492,14 +501,7 @@ export const knownTools = {
                     return cmd.length > 50 ? cmd.substring(0, 50) + '...' : cmd;
                 }
             }
-            // Show the actual command being executed for other cases
-            if (opts.tool.input?.parsed_cmd && Array.isArray(opts.tool.input.parsed_cmd) && opts.tool.input.parsed_cmd.length > 0) {
-                const parsedCmd = opts.tool.input.parsed_cmd[0];
-                if (parsedCmd.cmd) {
-                    return parsedCmd.cmd;
-                }
-            }
-            return stringifyToolCommand(opts.tool.input?.command);
+            return null;
         },
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             // Provide a description based on the parsed command type
@@ -747,20 +749,10 @@ export const knownTools = {
                 }).optional()
             }).passthrough()).describe('File changes to apply')
         }).partial().passthrough(),
-        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Show the first file being modified
-            const files = getPatchFiles(opts.tool.input);
-            if (files.length > 0) {
-                const path = resolvePath(files[0], opts.metadata);
-                const fileName = path.split('/').pop() || path;
-                if (files.length > 1) {
-                    return t('tools.desc.modifyingMultipleFiles', {
-                        file: fileName,
-                        count: files.length - 1
-                    });
-                }
-                return fileName;
-            }
+        // C.2 (cycle 4): outer ToolView subtitle suppressed because CodexPatchViewFull's
+        // inner fileHeader (CodexPatchView.tsx:150-157) already renders the full path +
+        // kindLabel. Returning null avoids duplicating the file identity in the header.
+        extractSubtitle: (_opts: { metadata: Metadata | null, tool: ToolCall }) => {
             return null;
         },
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
@@ -1109,16 +1101,20 @@ export const knownTools = {
             return t('tools.names.webScreenshot');
         }
     },
-    // §5.15 Phase C — Codex subagent lifecycle verbs (DORMANT until protocol emits events; closes §5.13)
+    // Codex subagent lifecycle verbs.
     'functions.spawn_agent': {
         title: 'Spawn Agent',
         icon: ICON_TASK,
-        minimal: true,
+        minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
+            const messages = opts.messages || [];
+            return !messages.some((message) => message.kind === 'tool-call' || message.kind === 'agent-text');
+        },
         isMutable: true,
         input: z.object({
             agent_name: z.string().optional(),
             name: z.string().optional(),
-            prompt: z.string().optional()
+            prompt: z.string().optional(),
+            sessionSubagent: z.string().optional()
         }).partial().passthrough(),
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             const input = opts.tool.input || {};
@@ -1126,7 +1122,8 @@ export const knownTools = {
                 || (typeof input.name === 'string' && input.name)
                 || 'agent';
             return `Spawn: ${name}`;
-        }
+        },
+        extractStatus: codexToolStateStatus
     },
     'functions.send_input': {
         title: 'Send Input',
@@ -1148,7 +1145,8 @@ export const knownTools = {
                 || '';
             const truncated = text.length > 60 ? text.substring(0, 60) + '...' : text;
             return truncated ? `Send to ${name}: ${truncated}` : `Send to ${name}`;
-        }
+        },
+        extractStatus: codexToolStateStatus
     },
     'functions.wait_agent': {
         title: 'Wait for Agent',
@@ -1171,7 +1169,8 @@ export const knownTools = {
             return timeoutVal !== null
                 ? `Wait for ${name} (${timeoutVal}s)`
                 : `Wait for ${name}`;
-        }
+        },
+        extractStatus: codexToolStateStatus
     },
     'functions.resume_agent': {
         title: 'Resume Agent',
@@ -1187,7 +1186,8 @@ export const knownTools = {
                 || (typeof input.name === 'string' && input.name)
                 || 'agent';
             return `Resume: ${name}`;
-        }
+        },
+        extractStatus: codexToolStateStatus
     },
     'functions.close_agent': {
         title: 'Close Agent',
@@ -1203,7 +1203,8 @@ export const knownTools = {
                 || (typeof input.name === 'string' && input.name)
                 || 'agent';
             return `Close: ${name}`;
-        }
+        },
+        extractStatus: codexToolStateStatus
     },
     // §5.15 Phase D — Codex tool-suggest / parallel renderers (DORMANT until protocol emits events)
     'functions.tool_suggest': {
@@ -1257,16 +1258,21 @@ export const knownTools = {
     'functions.update_plan': {
         title: 'Update plan',
         icon: ICON_TODO,
-        minimal: true,
+        minimal: false,
+        noStatus: true,
         input: z.object({
-            plan: z.string().optional(),
+            plan: z.union([z.string(), z.array(z.object({
+                step: z.string().optional(),
+                status: z.string().optional()
+            }).passthrough())]).optional(),
+            steps: z.array(z.any()).optional(),
             text: z.string().optional()
         }).partial().passthrough(),
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             const input = opts.tool.input || {};
-            const plan = (typeof input.plan === 'string' && input.plan)
-                || (typeof input.text === 'string' && input.text)
-                || '';
+            const items = extractPlanItems(input);
+            if (items.length > 0) return summarizePlanItems(items);
+            const plan = (typeof input.text === 'string' && input.text) || '';
             return plan
                 ? `Update plan: ${plan.length > 60 ? plan.substring(0, 60) + '...' : plan}`
                 : 'Update plan';
@@ -1288,7 +1294,8 @@ export const knownTools = {
             return prompt
                 ? `Ask: ${prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt}`
                 : 'Request user input';
-        }
+        },
+        extractStatus: codexToolStateStatus
     },
     'functions.list_mcp_resources': {
         title: 'List MCP resources',
@@ -1325,7 +1332,7 @@ export const knownTools = {
     'functions.read_mcp_resource': {
         title: 'Read MCP resource',
         icon: ICON_READ,
-        minimal: true,
+        minimal: false,
         input: z.object({
             uri: z.string().optional(),
             resourceUri: z.string().optional()
@@ -1338,24 +1345,174 @@ export const knownTools = {
             return uri
                 ? `Read: ${uri.length > 80 ? uri.substring(0, 80) + '...' : uri}`
                 : 'Read MCP resource';
+        },
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const uri = (typeof input.uri === 'string' && input.uri)
+                || (typeof input.resourceUri === 'string' && input.resourceUri)
+                || '';
+            return uri || null;
+        },
+        extractStatus: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return typeof opts.tool.result?.status === 'string' ? opts.tool.result.status : null;
+        }
+    },
+    'mcp__resources__read': {
+        title: 'resources.read',
+        icon: ICON_READ,
+        minimal: false,
+        input: z.object({
+            uri: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const uri = typeof opts.tool.input?.uri === 'string' ? opts.tool.input.uri : '';
+            return uri
+                ? `Read: ${uri.length > 80 ? uri.substring(0, 80) + '...' : uri}`
+                : 'resources.read';
+        },
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const uri = typeof opts.tool.input?.uri === 'string' ? opts.tool.input.uri : '';
+            return uri || null;
+        },
+        extractStatus: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return typeof opts.tool.result?.status === 'string' ? opts.tool.result.status : null;
+        }
+    },
+    'mcp__playwright__browser_take_screenshot': {
+        title: 'Playwright screenshot',
+        icon: ICON_SCAN,
+        minimal: false,
+        input: z.object({
+            filename: z.string().optional(),
+            path: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const p = extractAttachmentSummary(opts.tool.input, opts.tool.result).path || '';
+            return p ? `Screenshot: ${p.length > 80 ? p.substring(0, 80) + '...' : p}` : 'Playwright screenshot';
+        }
+    },
+    // F.4 (cycle 4): Playwright long-input compact summary entries. The four
+    // tools below have potentially huge `input` strings (data: URLs, JS source,
+    // typed text). The inline card subtitle is truncated; full input remains
+    // accessible in the expanded details panel via standard ToolView behavior.
+    'mcp__playwright__browser_navigate': {
+        title: 'Playwright navigate',
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({
+            url: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const url = typeof opts.tool.input?.url === 'string' ? opts.tool.input.url : '';
+            if (!url) return null;
+            if (url.startsWith('data:')) {
+                // Synthesize a "data: <mime>" synopsis with size when computable.
+                const mimeMatch = url.match(/^data:([^;,]+)/);
+                const mime = mimeMatch ? mimeMatch[1] : 'data';
+                const sizeKb = (url.length / 1024).toFixed(1);
+                return `data: ${mime} (${sizeKb} KB)`;
+            }
+            if (url.length > 120) {
+                return url.substring(0, 60) + '…';
+            }
+            return url;
+        }
+    },
+    'mcp__playwright__browser_evaluate': {
+        title: 'Playwright evaluate',
+        icon: ICON_TERMINAL,
+        minimal: true,
+        input: z.object({
+            function: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const fn = typeof opts.tool.input?.function === 'string' ? opts.tool.input.function : '';
+            if (!fn) return null;
+            if (fn.length > 120) {
+                return fn.substring(0, 60) + '…';
+            }
+            return fn;
+        }
+    },
+    'mcp__playwright__browser_run_code': {
+        title: 'Playwright run code',
+        icon: ICON_TERMINAL,
+        minimal: true,
+        input: z.object({
+            code: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const code = typeof opts.tool.input?.code === 'string' ? opts.tool.input.code : '';
+            if (!code) return null;
+            if (code.length > 120) {
+                return code.substring(0, 60) + '…';
+            }
+            return code;
+        }
+    },
+    'mcp__playwright__browser_type': {
+        title: 'Playwright type',
+        icon: ICON_EDIT,
+        minimal: true,
+        input: z.object({
+            text: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const text = typeof opts.tool.input?.text === 'string' ? opts.tool.input.text : '';
+            if (!text) return null;
+            if (text.length > 120) {
+                return text.substring(0, 60) + '…';
+            }
+            return text;
+        }
+    },
+    'image_gen.imagegen': {
+        title: 'Generated image',
+        icon: ICON_IMAGE,
+        minimal: false,
+        input: z.object({
+            prompt: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ? `Generated: ${summary.path.length > 80 ? summary.path.substring(0, 80) + '...' : summary.path}` : summary.label;
         }
     },
     'functions.view_image': {
         title: 'View image',
         icon: ICON_IMAGE,
-        minimal: true,
+        minimal: false,
         input: z.object({
             path: z.string().optional(),
             image_path: z.string().optional()
         }).partial().passthrough(),
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            const input = opts.tool.input || {};
-            const p = (typeof input.path === 'string' && input.path)
-                || (typeof input.image_path === 'string' && input.image_path)
-                || '';
+            const p = extractAttachmentSummary(opts.tool.input, opts.tool.result).path || '';
             return p
                 ? `View: ${p.length > 80 ? p.substring(0, 80) + '...' : p}`
                 : 'View image';
+        }
+    },
+    'file': {
+        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return extractAttachmentSummary(opts.tool.input, opts.tool.result).label;
+        },
+        icon: ICON_IMAGE,
+        minimal: false,
+        noStatus: true,
+        input: z.object({
+            ref: z.string().optional(),
+            name: z.string().optional(),
+            size: z.number().optional(),
+            image: z.object({
+                width: z.number().optional(),
+                height: z.number().optional(),
+                thumbhash: z.string().optional(),
+            }).partial().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return [summary.path, summary.dimensions, summary.size].filter(Boolean).join(' · ') || summary.label;
         }
     },
     // Internal Claude Code tool for loading deferred tools - no user-visible output

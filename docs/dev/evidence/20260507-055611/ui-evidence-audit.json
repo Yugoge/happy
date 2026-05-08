@@ -1,0 +1,92 @@
+{
+  "ui_pipeline": true,
+  "report_path": "docs/dev/qa-report-20260507-055611.json",
+  "strict": false,
+  "counts": {
+    "PASS": 13,
+    "WARN": 0,
+    "FAIL": 0,
+    "N/A": 0
+  },
+  "auto_fail_hit": false,
+  "results": [
+    {
+      "id": "FP-1",
+      "name": "target_element_present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-2",
+      "name": "viewports_desktop_and_mobile_present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-3",
+      "name": "screenshot_paths_present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-4",
+      "name": "screenshot_files_exist",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-5",
+      "name": "screenshot_size_above_floor",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-6",
+      "name": "screenshot_freshness_within_6h",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-7",
+      "name": "screenshot_png_signature",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-8",
+      "name": "trace_zip_integrity",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-9",
+      "name": "dom_measurement_present",
+      "status": "PASS",
+      "detail": "per-viewport dom_measurement present: ['desktop', 'mobile']"
+    },
+    {
+      "id": "FP-10",
+      "name": "evidence_map_present_with_paths",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-11",
+      "name": "evidence_map_paths_exist_on_disk",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-12",
+      "name": "route_in_screenshot_filename",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "FP-13",
+      "name": "png_dimensions_match_viewport",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "spec_id": "spec-20260506-203755",
+  "agent_type": "qa",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": "ab7061a8fdf2bf7e7",
+  "is_running": false,
+  "checked_in_at": "2026-05-07T09:58:52Z",
+  "checked_out_at": "2026-05-07T10:08:15Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Verify all 6 subsystem bug tables (17 bugs) reproduce on dev web baseline",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by ab9961b6e1f524efe at 2026-05-07T06:47:49Z",
+      "updated_at": "2026-05-07T06:47:49Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Verify Confirmed-working baseline still passes after fixes (no regression)",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by ab9961b6e1f524efe at 2026-05-07T06:47:49Z",
+      "updated_at": "2026-05-07T06:47:49Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Re-run each Section 5.2 user-feedback expectation against post-fix dev web",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by ab9961b6e1f524efe at 2026-05-07T06:47:49Z",
+      "updated_at": "2026-05-07T06:47:49Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Write qa-report JSON listing per-bug PASS/FAIL with screenshot evidence",
+      "state": "waived-with-reason",
+      "waived_reason": "waived by ab9961b6e1f524efe at 2026-05-07T06:47:49Z",
+      "updated_at": "2026-05-07T06:47:49Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/ba-qa-report-20260507-055611.json",
+    "exists": true,
+    "validated_at": "2026-05-07T06:47:49Z"
+  }
+}

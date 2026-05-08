@@ -1,0 +1,38 @@
+{
+  "spec_id": "spec-20260502-162334",
+  "agent_type": "pm",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": "spec-bootstrap-pm",
+  "is_running": true,
+  "checked_in_at": "2026-05-02T21:33:19Z",
+  "checked_out_at": null,
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Capture Section 1 baseline: source layer status, dev daemon process state, dev web container image age, protocol gate state, scope policy state, MCP elicitation handler state, attachment path state, QA history fail verdicts, user verdict '彻底没有实现需求'",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T16:39:30Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Confirm scope boundaries enforce out-of-scope list (139 file cleanup deferred, /root/happy and production paths off-limits, no new features beyond S1-S7, no hook replacement)",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T16:39:30Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Populate Section 8 (Attention Notes) with issue-specific traps after first cycle completes",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-02T16:39:30Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/pm-report-20260502-162334.json",
+    "exists": false,
+    "validated_at": null
+  }
+}

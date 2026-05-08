@@ -1133,8 +1133,11 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                 {/* Git Status Badge */}
                                 <GitStatusButton sessionId={props.sessionId} onPress={props.onFileViewerPress} />
 
-                                {/* Attach file button */}
-                                {props.onAttachDocument && (
+                                {/* Attach file button — Codex sessions only support image attachments
+                                    (S6 of spec-20260502-162334: non-image attachments are out of scope; the
+                                    runCodex pipeline only forwards images via localImage input items, so the
+                                    UI hides the generic-file button to make the limitation visible). */}
+                                {props.onAttachDocument && !isCodex && (
                                     <Pressable onPress={props.onAttachDocument} hitSlop={8} style={{ marginLeft: 4, padding: 4 }}>
                                         <Ionicons name="attach-outline" size={20} color="#888" />
                                     </Pressable>

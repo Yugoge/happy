@@ -560,6 +560,9 @@ export const pl: TranslationStructure = {
             other: 'Inne',
             otherDescription: 'Wpisz własną odpowiedź',
             otherPlaceholder: 'Wpisz swoją odpowiedź...',
+        },
+        attachment: {
+            staleAdvisory: 'Wyzwól ponownie w tej lub nowej sesji, aby wyświetlić podgląd inline.',
         }
     },
 

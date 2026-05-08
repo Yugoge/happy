@@ -1,0 +1,660 @@
+{
+  "request_id": "20260428-063343-codex-rendering",
+  "task_id": "20260428-063343-codex-rendering",
+  "timestamp": "2026-04-28T07:20:00Z",
+  "requirement": {
+    "original": "continue fixing happy-dev until Codex rendering is complete",
+    "clarified": "Correct the BA artifacts after BA-QA rejection so downstream implementation covers complete Codex rendering, including markdown/rich content and non-Terminal payloads, while keeping expanded Terminal/detail live verification as a closure blocker.",
+    "what": "Revise BA analysis and dev context for Codex rendering completeness across payload classes and surfaces.",
+    "why": "The first BA analysis was rejected because it was too Terminal/CodexBash-centered and did not concretely analyze markdown/rich content, fallback, dynamic/MCP, image, plan, patch/diff, and multi-tool surfaces.",
+    "where": [
+      "packages/happy-app/sources/components/MessageView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "packages/happy-app/sources/components/CommandView.tsx",
+      "packages/happy-app/sources/components/CodeView.tsx",
+      "packages/happy-app/sources/utils/toolCommand.ts",
+      "packages/happy-app/sources/components/**/MarkdownView*.tsx",
+      "packages/happy-app/sources/components/**/LatexRenderer*.tsx",
+      "packages/happy-app/sources/components/**/markdown*",
+      "packages/happy-app/sources/components/tools/views/**/image*",
+      "packages/happy-app/sources/components/tools/views/**/plan*"
+    ],
+    "scope": {
+      "included": [
+        "Codex inline cards",
+        "desktop detail panel",
+        "desktop sidebar/session preview",
+        "mobile detail/modal",
+        "fallback/unknown tools",
+        "markdown/rich text",
+        "image/attachment",
+        "plan/update",
+        "dynamic/MCP/resource tools",
+        "terminal stdout/stderr/exit",
+        "patch/diff",
+        "multi-tool sequences"
+      ],
+      "excluded": [
+        "happy-cli daemon restart or deployment",
+        "production web/API access",
+        "non-UI session creation",
+        "source-only closure"
+      ]
+    },
+    "success_criteria": [
+      "Payload-by-surface matrix exists and is used as the implementation/QA contract.",
+      "Expanded Terminal/detail/sidebar is live-verified on desktop and mobile before closure.",
+      "Markdown/rich content has concrete affected paths, cases, and live evidence.",
+      "Every non-Terminal Codex payload class is measured or remains an explicit closure blocker.",
+      "Implementation remains within happy-app/happy-dev and does not require daemon restart."
+    ],
+    "constraints": [
+      "Do not modify application source files in the BA phase.",
+      "Do not restart or stop Happy daemons.",
+      "Do not access production URLs, ports, or services.",
+      "Do not create sessions through APIs or daemon-control paths.",
+      "Do not bypass hooks or wrap blocked operations."
+    ]
+  },
+  "setup": {
+    "applicability": "applicable",
+    "viewport": "desktop 1440x900 and mobile 390x844",
+    "theme": "light",
+    "locale": "zh user requirement; app content may be mixed en/zh",
+    "auth_state": "logged-in dev account cmi5mv9eh00wzpg14ph73jj3n",
+    "data_state": "existing dev Codex sessions including cmohltq0n2c8rpc153k0h9pvk and cmoedofgz86n5nz15xsldnk35",
+    "browser": "Chromium/Playwright against dev web only",
+    "url_path": "/session/cmohltq0n2c8rpc153k0h9pvk and /session/cmoedofgz86n5nz15xsldnk35"
+  },
+  "evidence": {
+    "observed": "继续修复 happy-dev 直到彻底让 Codex 在 happy-dev 的渲染完整。",
+    "measured": {
+      "value": "BA-QA rejected the prior BA analysis for Terminal-heavy evidence, CodexBash-centered scope, missing markdown/rich concrete analysis, and incomplete affected-file coverage. p05 QA measured the long Terminal target as still not closure-ready: expanded heights 2870px desktop and 3445px mobile, screenshot mismatch, and no live expanded detail proof.",
+      "location": "docs/dev/ba-qa-report-20260428-063343-codex-rendering.json; docs/dev/qa-report-20260427-230227-p05.json"
+    },
+    "expected": {
+      "value": "Complete Codex rendering means each payload class renders bounded inline, complete in detail/sidebar/mobile, and has fallback behavior; markdown/rich primitives and inline LaTeX are explicit expected cases.",
+      "source": "user requirement; docs/dev/ba-qa-report-20260428-063343-codex-rendering.json; docs/dev/specs.pre-merge-backup/spec-20260424-084848.md sections 5.16 and 5.17 as cited by BA-QA"
+    },
+    "gap": "The prior BA analysis directly measured Terminal only, leaving markdown/rich, image, plan, dynamic/MCP/resource, fallback/unknown, patch/diff, and multi-tool classes not concretely analyzed or evidenced.",
+    "per_payload_status": [
+      {
+        "payload": "markdown_rich_text",
+        "status": "not_yet_measured_critical",
+        "evidence": "BA-QA identifies omitted MarkdownView/LatexRenderer/parser and markdown primitive cases.",
+        "expected": "headings, lists, task lists, blockquotes, strikethrough, code, links, HTML/entities, and inline LaTeX render correctly on desktop/mobile."
+      },
+      {
+        "payload": "terminal_stdout_stderr_exit",
+        "status": "measured_broken_or_unverified_detail",
+        "evidence": "p05 QA measured long Terminal target dimensions and missing exact-target expanded evidence.",
+        "expected": "bounded inline plus complete detail/sidebar/mobile with command once and output/status reachable."
+      },
+      {
+        "payload": "patch_diff",
+        "status": "source_localized_risk",
+        "evidence": "Existing BA context localizes CodexPatch/CodexDiff mappings but no live row-specific proof.",
+        "expected": "compact summary and complete diff/patch detail without raw JSON leakage."
+      },
+      {
+        "payload": "plan_update",
+        "status": "source_localized_risk",
+        "evidence": "Existing BA context localizes update_plan/plan mapping but no live row-specific proof.",
+        "expected": "steps and statuses visible inline/detail/sidebar/mobile."
+      },
+      {
+        "payload": "dynamic_mcp_resource_tools",
+        "status": "source_localized_risk",
+        "evidence": "BA-QA requires functions.*, mcp__*, tool_suggest, resource helpers in scope.",
+        "expected": "tool name, args, result, state, and error visible through specialized or generic renderers."
+      },
+      {
+        "payload": "image_attachment",
+        "status": "not_yet_measured",
+        "evidence": "BA-QA requires imageView/image helper renderer coverage.",
+        "expected": "thumbnail/attachment affordance and full detail are visible and not clipped."
+      },
+      {
+        "payload": "multi_tool_sequences",
+        "status": "not_yet_measured",
+        "evidence": "User-required matrix includes multi-tool sequences; prior BA did not measure them.",
+        "expected": "sequence and child tools/results are discoverable and not collapsed into unreadable noise."
+      },
+      {
+        "payload": "fallback_unknown",
+        "status": "source_localized_risk",
+        "evidence": "Generic fallback paths were named but not measured for future/unknown Codex payloads.",
+        "expected": "bounded, readable, non-lossy fallback on all surfaces."
+      }
+    ]
+  },
+  "scope_expansion": {
+    "search_pattern": "Codex|commandExecution|CodexBash|fileChange|turn_diff|functions.|mcp__|update_plan|plan|imageView|terminal-output|multi_tool_use|MarkdownView|LatexRenderer|markdown|SidebarContentRenderer|ToolFullView|knownTools",
+    "search_patterns": [
+      "Codex",
+      "commandExecution",
+      "CodexBash",
+      "fileChange",
+      "turn_diff",
+      "functions.",
+      "mcp__",
+      "update_plan",
+      "plan",
+      "imageView",
+      "terminal-output",
+      "multi_tool_use",
+      "MarkdownView",
+      "LatexRenderer",
+      "markdown",
+      "SidebarContentRenderer",
+      "ToolFullView",
+      "knownTools"
+    ],
+    "search_scope": "packages/happy-app/sources/** plus protocol context from packages/happy-cli/src/codex/** and packages/happy-wire/src/**",
+    "user_reported": [
+      "happy-dev Codex rendering incomplete"
+    ],
+    "additional_found": [
+      "Terminal/detail/sidebar renderer paths",
+      "markdown/rich renderer paths",
+      "image/attachment renderer paths",
+      "plan/update renderer paths",
+      "dynamic/MCP/resource generic renderer paths",
+      "patch/diff renderer paths",
+      "fallback/unknown generic renderer paths",
+      "multi-tool sequence reducer/rendering paths"
+    ],
+    "all_occurrences": [
+      "packages/happy-cli/src/codex/codexAppServerClient.ts:280-509 emits structured Codex messages including commandExecution, fileChange, dynamic, MCP, plan, and imageView",
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:294-624 maps Codex events to tool-call-start/end envelopes including CodexBash/CodexPatch/functions/mcp/update_plan/view_image",
+      "packages/happy-app/sources/sync/typesRaw.ts:299-380,780-887,911-1158 normalizes raw Codex/ACP content and tool calls/results",
+      "packages/happy-app/sources/sync/reducer/reducer.ts:780-824,889-908,1005-1127 builds and updates ToolCallMessage state",
+      "packages/happy-app/sources/components/MessageView.tsx:183-204 routes tool-call messages to ToolView",
+      "packages/happy-app/sources/components/tools/ToolView.tsx:33-50,85-128,269-317 renders inline cards and opens detail/sidebar",
+      "packages/happy-app/sources/components/tools/views/_all.tsx:35-64 registers specialized tool views; prior BA noted no specialized CodexBash full-view registration at 62-64",
+      "packages/happy-app/sources/components/tools/views/CodexBashView.tsx:99-136 renders inline CodexBash",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx:21-39 contains full-detail duplicate-guarding logic",
+      "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx:35-40 handles sidebar command extraction",
+      "packages/happy-app/sources/components/**/MarkdownView*.tsx and **/LatexRenderer*.tsx are required candidate paths from BA-QA; exact paths must be verified before edit"
+    ],
+    "fresh_inspection_limit": "A broad local grep attempt was blocked by the Bash consecutive-use gate; the revision conservatively marks unresolved paths as candidates requiring Dev read-before-edit rather than claiming fresh line proof."
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Repository QA artifacts and prior spec references verified in this workflow.",
+    "url_or_location": "docs/dev/ba-qa-report-20260428-063343-codex-rendering.json; docs/dev/qa-report-20260427-230227-p05.json; docs/dev/specs.pre-merge-backup/spec-20260424-084848.md sections 5.16 and 5.17 as cited by BA-QA",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "CLAUDE.md and packages/happy-app/CLAUDE.md read; no color role-token table relevant to this rendering-completeness BA correction was found in the read excerpts."
+    }
+  },
+  "root_cause_analysis": {
+    "symptom": "BA-QA rejected the first BA artifacts; product closure is blocked because Codex rendering completeness was scoped and evidenced too narrowly.",
+    "root_cause": "The prior BA analysis treated the observed p05 long Terminal failure as the center of the whole Codex rendering problem, then inferred broad coverage without concrete markdown/rich, image, plan, dynamic/MCP/resource, fallback, patch/diff, and multi-tool evidence.",
+    "root_cause_commit": "N/A - artifact analysis correction, not a code regression bisect.",
+    "why_introduced": "The strongest available runtime evidence was the p05 Terminal failure, so analysis over-weighted CodexBash and under-weighted the rest of the user's 'rendering complete' scope.",
+    "why_problematic": "Downstream dev could fix Terminal and still fail user acceptance because other Codex payloads and rich text surfaces remain unmeasured or unmapped.",
+    "timeline": "First BA artifacts created 2026-04-28T06:33:43Z; BA-QA rejected them at 2026-04-28T06:45:00Z; this revision broadens the contract.",
+    "affected_files": [
+      "docs/dev/ba-spec-20260428-063343-codex-rendering.md",
+      "docs/dev/context-20260428-063343-codex-rendering.json",
+      "packages/happy-app/sources/components/MessageView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "packages/happy-app/sources/components/CommandView.tsx",
+      "packages/happy-app/sources/components/CodeView.tsx",
+      "packages/happy-app/sources/utils/toolCommand.ts",
+      "packages/happy-app/sources/components/**/MarkdownView*.tsx",
+      "packages/happy-app/sources/components/**/LatexRenderer*.tsx",
+      "packages/happy-app/sources/components/**/markdown*",
+      "packages/happy-app/sources/components/tools/views/**/image*",
+      "packages/happy-app/sources/components/tools/views/**/plan*",
+      "packages/happy-cli/src/codex/codexAppServerClient.ts",
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "packages/happy-app/sources/sync/typesRaw.ts",
+      "packages/happy-app/sources/sync/reducer/reducer.ts"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "observed: BA-QA report rejects the first BA artifacts for markdown/rich omission and CodexBash-centered scope.",
+      "observed: p05 QA reports exact long Terminal target heights 2870px desktop and 3445px mobile, hiddenDelta 0, and insufficient exact-target expanded evidence.",
+      "inferred from established source localization: ToolView/ToolFullView/sidebar/generic renderer paths are the app rendering choke points for Codex tools.",
+      "inferred with unresolved exact path: MarkdownView/LatexRenderer/parser paths must be verified before edits because fresh broad source search was blocked."
+    ],
+    "diagnosis_completeness": "complete (has observations) for the BA-artifact rejection; product rendering behavior remains partially unmeasured and must be completed by QA evidence.",
+    "complaint_location_keywords": [
+      "happy-dev",
+      "Codex",
+      "渲染完整",
+      "Markdown",
+      "rich",
+      "Terminal",
+      "detail",
+      "mobile",
+      "fallback"
+    ],
+    "localization_evidence": "BA-QA localized the artifact failure to missing markdown/rich analysis and narrow CodexBash scope. Existing BA context localized runtime Codex tool rendering from protocol mapping through sync normalization, reducer, MessageView, ToolView, ToolFullView, specialized views, and sidebar renderers.",
+    "located_source": "Primary product-rendering sources: MessageView.tsx, ToolView.tsx, ToolFullView.tsx, tools/views/_all.tsx, CodexBashView.tsx, SidebarBashView.tsx, SidebarGenericView.tsx, SidebarContentRenderer.tsx, CommandView.tsx, CodeView.tsx, toolCommand.ts, and markdown/rich/image/plan renderer paths to be resolved before edit.",
+    "localization_blocked": null,
+    "fresh_source_inspection_limit": "Fresh broad local grep was blocked by the Bash consecutive-use gate after prior shell inspection calls. Unresolved renderer paths are conservative candidates requiring Dev read-before-edit, not proven exact line locations.",
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "N/A",
+      "commit_message": "N/A",
+      "confirmed_by": "not_applicable_artifact_correction",
+      "bisect_blocked": null,
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L2",
+  "payload_by_surface_matrix": [
+    {
+      "payload": "markdown_rich_text",
+      "inline": "render markdown primitives without flattening",
+      "detail_panel": "preserve rich content and scroll",
+      "sidebar_session_preview": "preview readable without raw syntax leakage except intentional snippets",
+      "mobile": "headings/lists/code/links/LaTeX remain in viewport",
+      "fallback_unknown": "not applicable for plain text, but raw JSON must not leak",
+      "evidence_status": "not_yet_measured_critical",
+      "affected_paths": [
+        "packages/happy-app/sources/components/**/MarkdownView*.tsx",
+        "packages/happy-app/sources/components/**/LatexRenderer*.tsx",
+        "packages/happy-app/sources/components/**/markdown*",
+        "packages/happy-app/sources/components/MessageView.tsx"
+      ]
+    },
+    {
+      "payload": "terminal_stdout_stderr_exit",
+      "inline": "bounded summary",
+      "detail_panel": "command once, normalized, stdout/stderr/exit reachable",
+      "sidebar_session_preview": "normalized command and scrollable output",
+      "mobile": "same proof at 390x844",
+      "fallback_unknown": "generic fallback if shape unknown",
+      "evidence_status": "measured_broken_or_unverified_detail",
+      "affected_paths": [
+        "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+        "packages/happy-app/sources/utils/toolCommand.ts"
+      ]
+    },
+    {
+      "payload": "patch_diff",
+      "inline": "compact file/status summary",
+      "detail_panel": "complete diff/patch result reachable",
+      "sidebar_session_preview": "file/action preview",
+      "mobile": "wide diff scrollable/discoverable",
+      "fallback_unknown": "generic object fallback readable",
+      "evidence_status": "source_localized_risk",
+      "affected_paths": [
+        "packages/happy-app/sources/components/tools/views/_all.tsx",
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "packages/happy-app/sources/components/CodeView.tsx"
+      ]
+    },
+    {
+      "payload": "plan_update",
+      "inline": "steps/statuses visible",
+      "detail_panel": "full plan history/detail visible",
+      "sidebar_session_preview": "identifies plan update",
+      "mobile": "statuses and labels readable",
+      "fallback_unknown": "generic fallback if specialized view absent",
+      "evidence_status": "source_localized_risk",
+      "affected_paths": [
+        "packages/happy-app/sources/components/tools/views/**/plan*",
+        "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx"
+      ]
+    },
+    {
+      "payload": "dynamic_mcp_resource_tools",
+      "inline": "tool name, args summary, state",
+      "detail_panel": "full args/result/error visible",
+      "sidebar_session_preview": "server/tool/action identified",
+      "mobile": "detail reachable and bounded",
+      "fallback_unknown": "bounded readable unknown functions/mcp tools",
+      "evidence_status": "source_localized_risk",
+      "affected_paths": [
+        "packages/happy-app/sources/components/tools/ToolView.tsx",
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+        "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+        "packages/happy-app/sources/components/tools/knownTools.tsx"
+      ]
+    },
+    {
+      "payload": "image_attachment",
+      "inline": "thumbnail or attachment affordance",
+      "detail_panel": "full image metadata/error visible",
+      "sidebar_session_preview": "preview indicates image/attachment",
+      "mobile": "image not clipped or invisible",
+      "fallback_unknown": "text fallback for missing asset",
+      "evidence_status": "not_yet_measured",
+      "affected_paths": [
+        "packages/happy-app/sources/components/tools/views/**/image*",
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"
+      ]
+    },
+    {
+      "payload": "multi_tool_sequences",
+      "inline": "sequence children/state discoverable",
+      "detail_panel": "each child tool/result reachable",
+      "sidebar_session_preview": "sequence progress identifiable",
+      "mobile": "sequence navigation works",
+      "fallback_unknown": "generic sequence fallback readable",
+      "evidence_status": "not_yet_measured",
+      "affected_paths": [
+        "packages/happy-app/sources/sync/reducer/reducer.ts",
+        "packages/happy-app/sources/components/tools/ToolView.tsx",
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"
+      ]
+    }
+  ],
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "continue fixing happy-dev",
+      "acceptance_criterion": "Changes and evidence stay dev-only, within happy-app/happy-dev, with no production or daemon operations."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "until Codex rendering is complete",
+      "acceptance_criterion": "Every row in payload_by_surface_matrix is implemented and live-verified or explicitly documented as intentionally hidden."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "Markdown and rich Codex content need concrete analysis",
+      "acceptance_criterion": "Markdown/rich renderer paths, expected primitives, and desktop/mobile evidence are required."
+    },
+    {
+      "id": "R4",
+      "source_phrase": "Evidence cannot be concentrated only on long Terminal rendering",
+      "acceptance_criterion": "QA evidence manifest includes per-payload rows beyond Terminal."
+    },
+    {
+      "id": "R5",
+      "source_phrase": "Scope cannot be centered only on CodexBash",
+      "acceptance_criterion": "Scope expansion uses broad Codex/rendering search patterns and candidate affected paths."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-cli/src/codex/codexAppServerClient.ts",
+      "line_range": "280-509",
+      "role": "Emits structured Codex app-server messages for commandExecution, fileChange, dynamic/MCP, plan, and imageView.",
+      "imports_from": [
+        "packages/happy-cli/src/codex/runCodex.ts"
+      ],
+      "evidence": "Established in existing BA context; line range quoted in current artifact before revision.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+      "line_range": "294-624",
+      "role": "Maps Codex events into session protocol tool-call envelopes.",
+      "imports_from": [
+        "packages/happy-wire/src/sessionProtocol.ts"
+      ],
+      "evidence": "Existing BA context named CodexBash/CodexPatch/functions/mcp/update_plan/view_image mappings.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/typesRaw.ts",
+      "line_range": "299-380,780-887,911-1158",
+      "role": "Normalizes raw Codex/ACP content and tool calls/results for the app.",
+      "imports_from": [
+        "packages/happy-app/sources/sync/reducer/reducer.ts"
+      ],
+      "evidence": "Existing BA context source-localized raw schemas and normalization.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/reducer/reducer.ts",
+      "line_range": "780-824,889-908,1005-1127",
+      "role": "Builds ToolCallMessage objects and state/result transitions, including child-message sequencing risk.",
+      "imports_from": [
+        "packages/happy-app/sources/components/MessageView.tsx"
+      ],
+      "evidence": "Existing BA context source-localized tool-call creation/update.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line_range": "183-204",
+      "role": "Routes tool-call messages to ToolView.",
+      "imports_from": [
+        "packages/happy-app/sources/components/tools/ToolView.tsx"
+      ],
+      "evidence": "Tool-call route established by existing BA context; text/final markdown route is listed separately as a candidate affected path requiring Dev read-before-edit.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "line_range": "33-50,85-128,269-317",
+      "role": "Renders inline tool card, opens desktop/mobile detail, delegates to specialized or generic content renderer.",
+      "imports_from": [
+        "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+        "packages/happy-app/sources/components/tools/views/_all.tsx"
+      ],
+      "evidence": "Existing BA context established detail open behavior and ToolContent dispatch.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "line_range": "35-64",
+      "role": "Registers specialized tool views and determines fallback path when no specialized renderer exists.",
+      "imports_from": [
+        "CodexBashView and other specialized views"
+      ],
+      "evidence": "Existing BA context noted specialized registration gap around lines 62-64.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "line_range": "21-39",
+      "role": "Full detail renderer and duplicate-command guard; central for Terminal/detail and generic fallback.",
+      "imports_from": [
+        "specialized/generic content renderers"
+      ],
+      "evidence": "Existing BA context localized duplicate guarding here.",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+      "line_range": "35-40",
+      "role": "Handles sidebar command extraction for Terminal payloads; normalization consistency risk.",
+      "imports_from": [
+        "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"
+      ],
+      "evidence": "Existing BA context localized array command joining in this range.",
+      "verified_via": "Read"
+    }
+  ],
+  "candidate_renderer_paths_to_verify": [
+    "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+    "packages/happy-app/sources/components/**/MarkdownView*.tsx",
+    "packages/happy-app/sources/components/**/LatexRenderer*.tsx",
+    "packages/happy-app/sources/components/**/markdown*",
+    "packages/happy-app/sources/components/tools/views/**/image*",
+    "packages/happy-app/sources/components/tools/views/**/plan*",
+    "patch/diff specialized view paths under packages/happy-app/sources/components/tools/views/**"
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "line": 21,
+      "type": "guard",
+      "code_snippet": "duplicate command guard for string commands, exact code must be re-read before modification",
+      "purpose": "Avoid rendering the same command text multiple times in full detail.",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/**/markdown*",
+      "line": 0,
+      "type": "validator",
+      "code_snippet": "markdown parsing/sanitization guards must be located before edits",
+      "purpose": "Prevent unsafe/raw HTML or malformed markdown regressions while adding rich Codex coverage.",
+      "removal_authorized": false
+    }
+  ],
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ba-spec-20260406-tool-detail.md",
+        "proposed_solution": "Generic full tool detail sections for older tool cases.",
+        "actual_change": "Generic ToolFullView/detail plumbing.",
+        "outcome": "Older Agent/Read cases were addressed, but Codex Terminal/rich/fallback completeness was not in scope.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L2"
+      },
+      {
+        "artifact_path": "prior Codex protocol/rendering cycles 0ba2ddfc and 4381eaf5",
+        "proposed_solution": "Activate Codex protocol and dormant renderer registration.",
+        "actual_change": "CLI event mapping and app renderer registration work.",
+        "outcome": "p03/p04 deferred and p02 conditional; no final p05 pass.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L3"
+      },
+      {
+        "artifact_path": "docs/dev/qa-report-20260427-230227-p05.json",
+        "proposed_solution": "Fix long inline Codex Terminal clipping.",
+        "actual_change": "Inline Terminal summary behavior.",
+        "outcome": "QA failed; expanded long target was thousands of pixels tall and detail evidence was skipped/not exact.",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L1"
+      },
+      {
+        "artifact_path": "docs/dev/ba-spec-20260428-063343-codex-rendering.md before this revision",
+        "proposed_solution": "Broad Codex rendering scope in prose with Terminal-specific measured evidence.",
+        "actual_change": "BA analysis artifacts only.",
+        "outcome": "BA-QA rejected because markdown/rich content and non-Terminal payloads were not concretely analyzed.",
+        "failure_category": "wrong_scope",
+        "target_layer": "L2"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L2",
+      "differs_from_all_priors": true,
+      "rationale": "The revised BA contract is a payload-by-surface matrix covering Terminal and non-Terminal payloads, with markdown/rich content promoted to a first-class blocker rather than implied by Terminal evidence."
+    }
+  },
+  "context": {
+    "codebase_state": "Working tree contains uncommitted docs/dev artifacts; BA revision modifies only markdown/json artifacts.",
+    "recent_commits": "Prior Codex attempts referenced by artifacts include 0ba2ddfc and 4381eaf5; git history was not freshly inspected in this correction due Bash gate limits.",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "dev_web": "dev.life-ai.app / localhost:8097 only",
+      "dev_api": "api-dev.life-ai.app / localhost:3005 only",
+      "production_access": "forbidden"
+    }
+  },
+  "development_approach": {
+    "strategy": "Dev should first resolve exact renderer paths, then implement app-only rendering fixes by matrix row. Terminal normalization/detail/sidebar is critical but not sufficient; markdown/rich, fallback/unknown, image, plan, dynamic/MCP/resource, patch/diff, and multi-tool sequence paths must be addressed or explicitly justified as already correct with evidence. QA evidence collection is separate from implementation and remains required for closure.",
+    "files_to_create": [
+      "optional focused tests or evidence-manifest files under docs/dev if the workflow uses them"
+    ],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "packages/happy-app/sources/components/CommandView.tsx",
+      "packages/happy-app/sources/components/CodeView.tsx",
+      "packages/happy-app/sources/utils/toolCommand.ts",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/MessageView.tsx",
+      "packages/happy-app/sources/components/**/MarkdownView*.tsx",
+      "packages/happy-app/sources/components/**/LatexRenderer*.tsx",
+      "packages/happy-app/sources/components/**/markdown*",
+      "packages/happy-app/sources/components/tools/views/**/image*",
+      "packages/happy-app/sources/components/tools/views/**/plan*"
+    ],
+    "validation_approach": "Dev validates source-level correctness with typecheck/tests only. QA must rebuild/deploy happy-web-dev from the happy-dev worktree, then capture desktop and mobile live screenshots, DOM overflow/height metrics, console/network checks, and per-payload evidence. Expanded Terminal/detail live verification is a hard closure blocker."
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "name": "Payload matrix complete",
+      "given": "A dev Codex session with representative payloads",
+      "when": "QA opens inline, detail/sidebar, and mobile surfaces",
+      "then": "Every payload_by_surface_matrix row has live pass evidence or an explicit intentionally-hidden rationale; unmeasured rows block closure."
+    },
+    {
+      "id": "AC2",
+      "name": "Markdown/rich content",
+      "given": "Codex text/final content contains headings, lists, task lists, blockquotes, strikethrough, code, links, HTML/entities, and inline LaTeX",
+      "when": "The content is viewed inline and in detail/mobile",
+      "then": "Rich content renders correctly without raw JSON leakage or viewport overflow."
+    },
+    {
+      "id": "AC3",
+      "name": "Expanded Terminal/detail closure blocker",
+      "given": "The long Terminal target from cmohltq0n2c8rpc153k0h9pvk",
+      "when": "QA opens desktop detail/sidebar and mobile detail/modal",
+      "then": "Command text appears once, stdout/stderr/exit status are reachable, no page-level horizontal overflow occurs, and exact-target screenshots/DOM metrics pass."
+    },
+    {
+      "id": "AC4",
+      "name": "Non-Terminal tools and fallback",
+      "given": "Patch/diff, image/attachment, plan/update, dynamic/MCP/resource, multi-tool, and unknown payloads",
+      "when": "They render inline/detail/sidebar/mobile",
+      "then": "Specialized renderers are used where available and fallback remains bounded, readable, and non-lossy."
+    },
+    {
+      "id": "AC5",
+      "name": "Dev-only operational boundaries",
+      "given": "Implementation and QA occur in happy-dev",
+      "when": "The cycle runs",
+      "then": "No Happy daemon restart/stop, production URL/port/service access, or non-UI session creation occurs."
+    }
+  ],
+  "research_findings": {
+    "searched": false,
+    "reason": "Artifact correction and repo-local rendering scope analysis; no external best-practices research needed."
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "failed_parse",
+    "feedback_summary": "No Claude Skill(codex) tool is available in this Codex harness. Self-review substituted and challenged the revised artifacts for Terminal-only scope, markdown/rich omission, missing fallback payloads, affected-file overclaiming, daemon/prod boundary risk, and QA closure ambiguity.",
+    "feedback_incorporated": "Self-review added the payload-by-surface matrix, made markdown/rich content a critical not-yet-measured row, broadened scope patterns beyond CodexBash, separated implementation from QA evidence, preserved expanded Terminal/detail as a closure blocker, and marked unresolved renderer paths as verify-before-edit assumptions."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true,
+    "ui_live_evidence_required": true,
+    "source_only_closure_forbidden": true
+  },
+  "qa_objections_addressed": {
+    "markdown_and_rich_concrete_analysis": true,
+    "evidence_not_terminal_only": true,
+    "scope_not_codexbash_only": true,
+    "affected_files_include_required_renderer_paths": true,
+    "four_contracts_broadened": true
+  },
+  "remaining_assumptions": [
+    "Exact markdown/rich renderer file paths must be resolved by Dev before editing because fresh broad grep was blocked by the Bash consecutive-use gate.",
+    "Image and plan specialized view exact filenames are candidate globs until Dev reads the repo paths.",
+    "Non-Terminal payload behavior is treated as source-localized risk or not-yet-measured; QA must collect live desktop/mobile evidence before closure."
+  ]
+}

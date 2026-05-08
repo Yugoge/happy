@@ -1,0 +1,58 @@
+{
+  "task_id": "20260507-142952",
+  "inspector": "style-inspector",
+  "timestamp": "2026-05-07T14:55Z",
+  "spec_id": "spec-20260507-142952",
+  "scope_note": "Audit applied ONLY against the cycle diff (lines newly introduced in this cycle), per --changed-files mode. The line-level newness check was performed via `git -C /dev/shm/dev-workspace/dot-claude diff HEAD` for the 4 .claude tracked files and full-content review for the new pretool-cp-state-write-guard.py and the uncommitted happy-dev artifacts. Pre-existing violations in INDEX/README/.env.example etc. flagged by detect-merge-conflicts.sh are NOT in this diff and therefore NOT reported.",
+  "changed_files": [
+    "/root/.claude/hooks/lib/agent_resolver.py",
+    "/root/.claude/hooks/subagentstop-cp-enforce.py",
+    "/root/.claude/policies/tool-policy.v1.json",
+    "/root/.claude/settings.json",
+    "/root/.claude/hooks/pretool-cp-state-write-guard.py",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-spec-20260507-142952.md",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/context-20260507-142952.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/dev-report-20260507-142952.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/ba-qa-report-20260507-142952.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/qa-report-20260507-142952.json",
+    "/dev/shm/dev-workspace/happy-dev/docs/dev/completion-20260507-142952.md",
+    "/dev/shm/dev-workspace/happy-dev/.claude/specs/spec-20260507-142952/cp-state-ba.json"
+  ],
+  "standards_applied": {
+    "no-inline-code": "Hook is .py, not a command/agent .md — N/A. The 5 .md/.json artifacts under docs/dev/ are reports, not command/agent files — N/A.",
+    "no-hardcoded-values": "pretool-cp-state-write-guard.py references /root/.claude/scripts/spec-check.py inside a STDERR HELP MESSAGE only (lines 138/140/142/144). These are user-guidance strings, not file paths consumed by the hook itself. The hook resolves cp-state paths structurally (parts[-3]=='specs') with NO hardcoded project paths. tool-policy.v1.json is a config file — its path globs are the policy data itself, not parameterizable values.",
+    "use-source-venv": "The python3 strings in the guard hook stderr are help text quoting the canonical user command, not direct invocations. Hooks themselves are invoked by the Claude harness, not by scripts that need venv activation — N/A.",
+    "integer-step-numbering": "ba-spec/completion use AC-1/AC-2/AC-3 acceptance criteria identifiers (not Step decimals) and Markdown headings — no decimal step numbering found.",
+    "meaningful-naming": "pretool-cp-state-write-guard.py is descriptive; _finalize_orphans / _is_orphan_slot / _try_finalize_under_lock / _FAIL_CLOSED are descriptive; no enhance-/fast-/v2 patterns introduced.",
+    "english-only": "Source code files (.py, .json) are English. The 2 docs/dev/ Markdown artifacts contain Chinese (verbatim user quote and Bug-3 description) — but Standard 6 explicitly excludes docs/ from scope.",
+    "merge-similar-scripts": "pretool-cp-state-write-guard.py is structurally distinct from existing pretool-tool-policy.py (path-based vs role-based gating) and explicitly motivated as a backstop. No merge candidate identified.",
+    "concise-documentation": "Docstrings on the new hook and modified resolver are technical and rationale-driven (LOW-10 caveat, AC-1 wiring, codex-confirmed gap). Length is justified by load-bearing context. No marketing language ('amazing'/'fast'/'cutting-edge' etc.) detected. No pseudocode blocks.",
+    "parameterized-scripts": "Hooks read tool input via stdin (already parameterized by harness). Tool-policy is a config file — not a script. settings.json is config. No fixed values that should be CLI-parameterized.",
+    "dangling-references": "pretool-cp-state-write-guard.py imports lib.bash_write_targets — present at /root/.claude/hooks/lib/bash_write_targets.py. settings.json registers pretool-cp-state-write-guard.py and pretool-wrapper-userintent.py: the former exists; the latter is referenced but its presence is OUTSIDE this cycle's diff (settings.json registers it as part of an unrelated edit visible in the dot-claude HEAD diff but the hook file itself is not in this cycle's --changed-files list, so newness cannot be confirmed). Reported as advisory below.",
+    "merge-conflicts": "detect-merge-conflicts.sh found markers in pre-existing files (INDEX.md, hooks/INDEX.md, hooks/.env.example, etc.) — none of these are in this cycle's --changed-files list. NO conflict markers introduced in any of the 12 cycle-diff files."
+  },
+  "findings": [
+    {
+      "file": "/root/.claude/settings.json",
+      "line": 349,
+      "severity": "advisory",
+      "rule": "dangling-references",
+      "message": "Diff registers `pretool-wrapper-userintent.py` on PreToolUse Bash matcher (line ~349 of settings.json after edit). The cycle's --changed-files list does NOT include `pretool-wrapper-userintent.py` itself. If this file does not exist on disk, the harness will fail to load that hook block. This appears OUTSIDE the spec-20260507-142952 AC-1/AC-2/AC-3 scope and looks like an unrelated overlap edit. Recommend close.md verify file presence before merging.",
+      "introduced_in_diff": true,
+      "scope_note": "Out-of-cycle-scope concern (not part of AC-1/2/3) but introduced in the same settings.json diff hunk."
+    }
+  ],
+  "summary": {
+    "total_findings": 1,
+    "new_in_diff": 1,
+    "pre_existing": 0,
+    "critical": 0,
+    "advisory": 1,
+    "standards_checked": 11,
+    "files_audited": 12,
+    "files_total": 12,
+    "rounds_completed": 1
+  },
+  "verdict": "PASS-WITH-ADVISORY",
+  "verdict_explanation": "All 11 /dev quality standards pass against the cycle diff. Zero critical violations introduced. One advisory: settings.json registers `pretool-wrapper-userintent.py` which is not part of this cycle's --changed-files list — close.md should verify the referenced file exists before merging. This advisory is out-of-cycle-scope (unrelated to AC-1/AC-2/AC-3) and does not block /close per cleanliness-of-this-diff contract."
+}

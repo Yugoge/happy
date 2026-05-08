@@ -1,0 +1,38 @@
+{
+  "spec_id": "spec-20260506-203755",
+  "agent_type": "ui-specialist",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": "ab9961b6e1f524efe",
+  "is_running": false,
+  "checked_in_at": "2026-05-06T21:17:14Z",
+  "checked_out_at": "2026-05-06T21:17:41Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Audit Section 5.3 strengths-as-baseline: table scrollbar, code block scrollbar, KaTeX, mermaid 14/17",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-06T21:40:25Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Verify Section 5.3 weakness items (KaTeX delimiters, Mermaid Timeline label, fallback strategy) don't regress",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-06T21:40:25Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Write ui-specialist-report JSON listing visual-regression test results",
+      "state": "pending",
+      "waived_reason": null,
+      "updated_at": "2026-05-06T21:40:25Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/ui-specialist-report-20260506-205811.json",
+    "exists": false,
+    "validated_at": "2026-05-06T21:17:41Z"
+  }
+}

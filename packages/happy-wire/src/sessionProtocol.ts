@@ -42,6 +42,7 @@ export const sessionToolCallEndEventSchema = z.object({
   t: z.literal('tool-call-end'),
   call: z.string(),
   output: z.string().optional(),
+  result: z.unknown().optional(),
 });
 
 export const sessionFileEventSchema = z.object({

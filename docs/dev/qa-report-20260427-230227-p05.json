@@ -1,0 +1,412 @@
+{
+  "request_id": "20260427-230227-p05",
+  "task_id": "20260427-230227-p05",
+  "timestamp": "2026-04-28T02:30:00Z",
+  "qa": {
+    "status": "fail",
+    "user_verbatim_complaint": "inline card hides most of a long command summary in the visible one-line header",
+    "verified_against_complaint": true,
+    "verified_location_keywords": [
+      "codex",
+      "terminal",
+      "inline",
+      "card",
+      "command",
+      "summary",
+      "header",
+      "session",
+      "cmohltq0n2c8rpc153k0h9pvk"
+    ],
+    "location_overlap": [
+      "inline",
+      "card",
+      "command",
+      "summary",
+      "header"
+    ],
+    "complaint_resolution_evidence": "The dev measurement artifact contains a Codex Terminal inline card candidate with desktop hiddenDelta=0 and mobile hiddenDelta=0, but the associated screenshots do not show that exact long-card target and the wrapped target becomes 2870px tall on desktop and 3445px tall on mobile. That fails the compact/bounded header criterion and prevents a PASS.",
+    "complaint_element_pointer": {
+      "selector": "div.unistyles_frxy515jlj containing text \"Terminal /bin/bash -lc \\\"python3 - <<'PY'\"",
+      "how_located": "Existing dev measurement artifact candidates[1] for both desktop and mobile; text starts with Terminal and the long /bin/bash command summary, textLength=8608.",
+      "found_in_dom": true,
+      "page_url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk"
+    },
+    "element_screenshots": {
+      "before_selector": "not provided by this cycle",
+      "before_path": null,
+      "after_path": "docs/dev/evidence/dev-20260427-230227-p05/desktop.png and docs/dev/evidence/dev-20260427-230227-p05/mobile.png",
+      "same_element_verified": false
+    },
+    "overall_assessment": "FAIL. The implementation removes hidden horizontal clipping for the measured long Codex Terminal inline summary, but it does so by allowing an unbounded multi-thousand-pixel header. The provided screenshots show a different short Terminal card rather than the measured 8608-character target, no trace artifact exists, and QA could not complete the mandatory rebuild/live Playwright verification because Bash and MCP Playwright were blocked in this harness.",
+    "success_criteria_results": [
+      {
+        "requirement_id": "R1",
+        "source_phrase": "inline card hides most of a long command summary",
+        "criterion": "Desktop command-summary hidden inaccessible width is 0px, or the summary is horizontally scrollable to its end.",
+        "verification_method": "Inspected dev measurement artifact and screenshot artifacts for the Codex Terminal target.",
+        "status": "fail",
+        "result": "fail",
+        "details": "DOM measurement claims desktop hiddenDelta=0 and mobile hiddenDelta=0 for the 8608-character target, but the screenshots do not show that exact target card. Screenshot evidence is therefore invalid for the asserted element.",
+        "evidence": "docs/dev/evidence/dev-20260427-230227-p05/measurements.json candidates[1]; desktop.png/mobile.png viewed and found to show a short sed command card, not the measured long target."
+      },
+      {
+        "requirement_id": "R2",
+        "source_phrase": "visible one-line header",
+        "criterion": "The header remains compact and bounded within the message card while exposing the full summary through wrapping or scrolling.",
+        "verification_method": "Reviewed DOM measurements for target inline card dimensions.",
+        "status": "fail",
+        "result": "fail",
+        "details": "The target header/card candidate wraps to rectHeight=2870px on desktop and rectHeight=3445px on mobile. This is bounded horizontally but not compact; it turns an inline header into a multi-screen block.",
+        "evidence": "measurements.json desktop candidates[1].rectHeight=2870; mobile candidates[1].rectHeight=3445."
+      },
+      {
+        "requirement_id": "R3",
+        "source_phrase": "Do not require daemon restart",
+        "criterion": "Only happy-app UI files are modified; validation uses web rebuild and Playwright, not daemon restart.",
+        "verification_method": "Inspected dev report file list and QA actions.",
+        "status": "warning",
+        "result": "warning",
+        "details": "No daemon restart was performed. Source changes are happy-app UI files plus docs/evidence. However QA could not complete its own rebuild/Playwright validation, so the validation half is not satisfied for a release PASS.",
+        "evidence": "Dev report files_modified lists ToolView.tsx, knownTools.tsx, and docs spec only; QA did not run any daemon restart/stop/signal operation."
+      }
+    ],
+    "_success_criteria_rule": "BA output has 3 requirements_decomposition items; QA produced 3 success_criteria_results entries.",
+    "root_cause_verification": {
+      "addressed": false,
+      "confidence": "medium",
+      "rationale": "The one-line hidden overflow root cause is partly addressed by removing the line clamp for CodexBash. The replacement creates unbounded vertical growth and fails the compact inline-header requirement; live post-build reproduction was not completed."
+    },
+    "build_verification": {
+      "status": "fail",
+      "build_command": "docker build -f <worktree>/Dockerfile.webapp --build-arg HAPPY_SERVER_URL=https://api-dev.life-ai.app -t happy-app:dev <worktree>",
+      "deploy_command": "cd /root/deploy && docker compose up -d happy-web-dev",
+      "build_output_summary": "QA attempted the required dev-web rebuild, but the Bash pretool orchestrator gate blocked the command after consecutive Bash use. No QA rebuild/deploy evidence was produced.",
+      "service_healthy": false,
+      "changes_verified_live": false,
+      "skip_reason": "not skipped; blocked before execution"
+    },
+    "script_quality_results": [],
+    "regression_test_results": [
+      {
+        "test": "Static scope regression check",
+        "result": "warning",
+        "details": "Diff gates multiline behavior to knownTool.multilineHeader and CodexBash opts in; generic short non-Codex tools remain one-line. Full automated regression/build tests were not executed by QA due Bash gate."
+      },
+      {
+        "test": "Detail Description guard preservation",
+        "result": "warning",
+        "details": "ToolFullView guard code remains present in inspected source. Live detail-panel click verification was not completed because MCP Playwright calls were rejected."
+      }
+    ],
+    "code_quality_findings": [
+      {
+        "severity": "major",
+        "category": "ui-containment",
+        "location": "packages/happy-app/sources/components/tools/ToolView.tsx:89-97",
+        "issue": "CodexBash multilineHeader removes line limits from title and description, making long command summaries thousands of pixels tall instead of providing compact wrapping with an explicit affordance or horizontal reachability.",
+        "recommendation": "Keep the inline header compact while exposing full content via horizontal scroll, expand/collapse, or a bounded preview with an accessible detail affordance."
+      },
+      {
+        "severity": "major",
+        "category": "evidence",
+        "location": "docs/dev/evidence/dev-20260427-230227-p05/desktop.png and mobile.png",
+        "issue": "Screenshots do not show the same long 8608-character Codex Terminal target measured in measurements.json.",
+        "recommendation": "Capture desktop and mobile screenshots with the exact target inline card visible, plus DOM measurements for that same element."
+      }
+    ],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 2,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      }
+    },
+    "standards_compliance": {
+      "checked": true,
+      "role_table_source": "context.reference_source.role_table says no explicit role-token map found; project/package CLAUDE.md read enough to confirm no p05 role-token change was introduced.",
+      "role_table": "absent",
+      "violations": []
+    },
+    "app_understanding_flow": {
+      "executed": false,
+      "core_flow_completed": false,
+      "steps_completed": 0,
+      "baseline_screenshots": [],
+      "errors_found_during_flow": [
+        "MCP Playwright browser_navigate and browser_run_code returned user rejected MCP tool call."
+      ],
+      "app_not_running": false
+    },
+    "ui_test_results": [
+      {
+        "scenario": "Desktop Codex Terminal inline command summary containment",
+        "url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk",
+        "status": "fail",
+        "reason": "Existing DOM measurement reports hiddenDelta=0, but screenshot evidence does not show the measured long target and QA could not run live Playwright after rebuild.",
+        "steps_performed": [
+          "Read QA plan, BA spec, context, and dev report.",
+          "Inspected dev measurements.json.",
+          "Viewed desktop screenshot artifact."
+        ],
+        "assertions": [
+          {
+            "expected": "Exact long Codex Terminal inline card visible in desktop screenshot and hidden inaccessible width is 0px or scrollable.",
+            "actual": "measurements.json target hiddenDelta=0, but desktop.png shows a different short sed command card.",
+            "passed": false
+          },
+          {
+            "expected": "Header remains compact.",
+            "actual": "Measured target rectHeight=2870px.",
+            "passed": false
+          }
+        ],
+        "evidence": "docs/dev/evidence/dev-20260427-230227-p05/measurements.json; docs/dev/evidence/dev-20260427-230227-p05/desktop.png",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/dev-20260427-230227-p05/desktop.png",
+          "user_visible_change_confirmed": false
+        }
+      },
+      {
+        "scenario": "Mobile Codex Terminal inline command summary containment",
+        "url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk",
+        "status": "fail",
+        "reason": "Existing mobile measurement reports target hiddenDelta=0, but target screenshot mismatch and rectHeight=3445px fail compact inline-card behavior.",
+        "steps_performed": [
+          "Inspected dev measurements.json mobile candidates.",
+          "Viewed mobile screenshot artifact."
+        ],
+        "assertions": [
+          {
+            "expected": "Exact long Codex Terminal inline card visible in mobile screenshot with hidden inaccessible width 0px.",
+            "actual": "measurements.json target hiddenDelta=0, but mobile.png shows a short sed command card rather than the measured long target.",
+            "passed": false
+          },
+          {
+            "expected": "Mobile header remains bounded and compact within the card.",
+            "actual": "Measured target rectHeight=3445px.",
+            "passed": false
+          }
+        ],
+        "evidence": "docs/dev/evidence/dev-20260427-230227-p05/measurements.json; docs/dev/evidence/dev-20260427-230227-p05/mobile.png",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/evidence/dev-20260427-230227-p05/mobile.png",
+          "user_visible_change_confirmed": false
+        }
+      },
+      {
+        "scenario": "Open Terminal card detail panel and verify body/detail guard",
+        "url": "http://localhost:8097/session/cmohltq0n2c8rpc153k0h9pvk",
+        "status": "skipped",
+        "reason": "MCP Playwright calls were rejected and Bash-driven Playwright could not be run after the orchestrator gate blocked Bash.",
+        "steps_performed": [
+          "Tried MCP browser_navigate.",
+          "Tried MCP browser_run_code."
+        ],
+        "assertions": [
+          {
+            "expected": "Existing command body remains readable and detail Description guard is not weakened.",
+            "actual": "Only static guard/source inspection was available; no live detail panel evidence.",
+            "passed": false
+          }
+        ],
+        "evidence": "packages/happy-app/sources/components/tools/ToolFullView.tsx inspected; no live screenshot.",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": null,
+          "user_visible_change_confirmed": false
+        }
+      }
+    ],
+    "ui_evidence": {
+      "target_route": "/session/cmohltq0n2c8rpc153k0h9pvk",
+      "target_element": "Codex Terminal inline card summary candidate .unistyles_frxy515jlj",
+      "viewports": {
+        "desktop": {
+          "viewport": "1440x900",
+          "screenshot": "docs/dev/evidence/dev-20260427-230227-p05/desktop.png",
+          "dom_measurement": {
+            "textLength": 8608,
+            "clientWidth": 784,
+            "scrollWidth": 784,
+            "hiddenDelta": 0,
+            "rectHeight": 2870,
+            "overflowX": "hidden",
+            "whiteSpace": "normal",
+            "webkitLineClamp": "none"
+          }
+        },
+        "mobile": {
+          "viewport": "390x844",
+          "screenshot": "docs/dev/evidence/dev-20260427-230227-p05/mobile.png",
+          "dom_measurement": {
+            "textLength": 8608,
+            "clientWidth": 374,
+            "scrollWidth": 374,
+            "hiddenDelta": 0,
+            "rectHeight": 3445,
+            "overflowX": "hidden",
+            "whiteSpace": "normal",
+            "webkitLineClamp": "none"
+          }
+        }
+      },
+      "evidence_map": {
+        "AC-1": [
+          "docs/dev/evidence/dev-20260427-230227-p05/measurements.json",
+          "docs/dev/evidence/dev-20260427-230227-p05/desktop.png"
+        ],
+        "AC-2": [
+          "docs/dev/evidence/dev-20260427-230227-p05/measurements.json",
+          "docs/dev/evidence/dev-20260427-230227-p05/mobile.png"
+        ],
+        "AC-3": [
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx"
+        ]
+      },
+      "trace": null,
+      "captured_at": "2026-04-28T01:12:00Z",
+      "valid_for_pass": false,
+      "invalid_reason": "No trace file and screenshots do not show the exact measured long target element."
+    },
+    "output_quality_verification": {
+      "checked": true,
+      "output_type": "ui_rendering",
+      "completeness": "target DOM measurements present but exact-element screenshots missing",
+      "quality_assessment": "poor",
+      "specific_checks": [
+        {
+          "check": "all required output sections have target evidence",
+          "result": "fail",
+          "details": "No trace; screenshot mismatch for exact element."
+        },
+        {
+          "check": "content remains compact and readable",
+          "result": "fail",
+          "details": "Target wraps into 2870px/3445px high inline block."
+        }
+      ],
+      "verdict": "fail"
+    },
+    "focus_criteria_results": {
+      "criteria_provided": true,
+      "criteria_count": 5,
+      "results": [
+        {
+          "criterion": "Rendered dev UI evidence is required.",
+          "result": "fail",
+          "evidence": "Existing screenshots are not exact-target evidence; live MCP rejected.",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Verify on desktop 1440x900 and mobile 390x844.",
+          "result": "fail",
+          "evidence": "Measurement artifact has both viewport measurements, but screenshots do not show the measured target and QA could not reproduce live.",
+          "severity": "critical"
+        },
+        {
+          "criterion": "Do not access production domains or ports.",
+          "result": "pass",
+          "evidence": "QA did not access production. Existing evidence uses localhost:8097.",
+          "severity": "major"
+        },
+        {
+          "criterion": "Do not stop or restart any Happy daemon.",
+          "result": "pass",
+          "evidence": "QA did not stop, restart, or signal any daemon.",
+          "severity": "major"
+        },
+        {
+          "criterion": "Codex display checks use existing dev Codex sessions/cards unless the normal UI workflow supplies more evidence.",
+          "result": "pass",
+          "evidence": "QA used existing dev evidence/session only and did not create or mutate sessions through APIs.",
+          "severity": "major"
+        }
+      ],
+      "all_passed": false
+    },
+    "generated_tests": [],
+    "all_findings": [
+      {
+        "severity": "critical",
+        "location": "QA build/deploy step",
+        "issue": "Mandatory QA rebuild/deploy of happy-web-dev was not completed; Bash pretool orchestrator gate blocked the docker build command before execution.",
+        "recommendation": "Re-run QA in a context where the required dev-web rebuild and deployment can complete, then verify the rendered app.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "docs/dev/evidence/dev-20260427-230227-p05/desktop.png and mobile.png",
+        "issue": "Provided screenshots do not show the exact long Codex Terminal inline command target measured in measurements.json.",
+        "recommendation": "Capture screenshots after scrolling to the exact 8608-character Codex Terminal card on both desktop and mobile.",
+        "blocks_release": true
+      },
+      {
+        "severity": "major",
+        "location": "packages/happy-app/sources/components/tools/ToolView.tsx:89-97",
+        "issue": "Removing line limits for CodexBash makes the inline header multi-screen tall (2870px desktop, 3445px mobile), failing the compact header criterion.",
+        "recommendation": "Use a bounded summary presentation with explicit expansion/scroll affordance rather than unbounded header wrapping.",
+        "blocks_release": true
+      },
+      {
+        "severity": "major",
+        "location": "UI evidence bundle",
+        "issue": "No Playwright trace artifact was provided, and QA could not create one because MCP Playwright calls were rejected.",
+        "recommendation": "Provide a trace zip and exact-element screenshots from a successful desktop/mobile Playwright run.",
+        "blocks_release": true
+      }
+    ],
+    "summary": {
+      "critical_issues": 2,
+      "major_issues": 2,
+      "minor_issues": 0,
+      "total_findings": 4,
+      "release_recommendation": "reject"
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "failed_parse",
+      "feedback_summary": "Required Codex Skill tool is not available in this tool harness; no external Codex response could be parsed.",
+      "feedback_incorporated": "Self-review substituted. Adversarial checks added: screenshot exact-element mismatch, mandatory rebuild/live verification gap, unbounded wrapped-header height, missing trace, and AC3 detail-panel live verification gap."
+    },
+    "self_verification": {
+      "claims_total": 14,
+      "claims_with_evidence": 12,
+      "claims_superficial": 2,
+      "superficial_details": [
+        "No hardcode violations: based on inspected diff, not a full automated grep scan due Bash gate.",
+        "Detail guard preserved: based on source inspection, not live detail-panel interaction."
+      ],
+      "confidence": "medium"
+    },
+    "checkpoint_state": {
+      "cp_state_path": ".claude/specs/spec-20260424-084848/cp-state-qa.json",
+      "pending_checkpoints": 0,
+      "note": "cp-state was consulted as the second action; all listed checkpoints were already done or waived."
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_criteria": [
+      "R1/AC1 exact screenshot evidence for desktop target missing",
+      "R2 compact inline header not met",
+      "AC2 exact mobile screenshot evidence missing",
+      "AC3 live detail/body behavior not verified"
+    ],
+    "critical_issues": [
+      "QA rebuild/deploy could not be completed.",
+      "Evidence screenshots mismatch the measured long target."
+    ],
+    "recommended_approach": "Revise Codex Terminal inline summary presentation to keep the card compact while making the full command reachable, then rebuild happy-web-dev and capture desktop/mobile exact-target screenshots, DOM measurements, and a Playwright trace.",
+    "additional_context": "Current DOM measurements show hiddenDelta=0 but rectHeight=2870px desktop and 3445px mobile for the target; that is the core functional regression to address."
+  }
+}

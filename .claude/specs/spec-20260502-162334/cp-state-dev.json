@@ -1,0 +1,73 @@
+{
+  "spec_id": "spec-20260502-162334",
+  "agent_type": "dev",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": "spec-bootstrap-dev",
+  "is_running": false,
+  "checked_in_at": "2026-05-02T16:38:43Z",
+  "checked_out_at": "2026-05-03T10:18:35Z",
+  "checkpoints": [
+    {
+      "id": "cp-01",
+      "action": "Implement S1: change packages/happy-cli/src/codex/codexAppServerClient.ts:802 from experimentalRawEvents:false to experimentalRawEvents:true (flag is part of NewConversationParams sent on thread/start RPC, NOT turn/start)",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T09:58:13Z"
+    },
+    {
+      "id": "cp-02",
+      "action": "Implement S5: expand MCP elicitation handler in codexAppServerClient.ts and runCodex.ts to accept all Playwright MCP elicitation forms; add tests for additional shapes",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:05:58Z"
+    },
+    {
+      "id": "cp-03",
+      "action": "Implement or scope S6: non-image attachments either first-class input items with proof OR scope to images-only with explicit Section 3 + UI documentation; image attachments must continue to flow through localImage",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:06:41Z"
+    },
+    {
+      "id": "cp-04",
+      "action": "Implement S-BUILD: cd /dev/shm/dev-workspace/happy-dev/packages/happy-cli && yarn build. Verify dist/runCodex-*.mjs newer than src; grep 'experimentalRawEvents: true' >=1; grep 'experimentalRawEvents: false' = 0. FORBIDDEN: global CLI install (per Hard Prohibitions), /usr/bin/happy*, /usr/lib/node_modules/happy*",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:08:51Z"
+    },
+    {
+      "id": "cp-05",
+      "action": "Implement S2: replace return hasSpecializedView; in packages/happy-app/sources/utils/codexToolRendering.ts:26-28 with whitelist admitting specialized renderers AND Codex-sourced tools; add regression tests for Grep/Glob/WebSearch/ToolSearch hidden AND Codex unknown/resource shown",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:07:41Z"
+    },
+    {
+      "id": "cp-06",
+      "action": "Implement S3: bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend; verify image timestamp newer than app sources; curl http://localhost:8097/ returns HTML; production untouched",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:13:59Z"
+    },
+    {
+      "id": "cp-07",
+      "action": "S4 PAUSE-PENDING-USER: verify cp-04 (S-BUILD) and cp-06 (S3) complete; output REQUEST to user with the systemctl-based dev daemon restart SOP (referenced in spec S4); /root/bin/safe-daemon-restart.sh does NOT exist — do NOT use it; STOP",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:18:35Z"
+    },
+    {
+      "id": "cp-08",
+      "action": "Write dev-report-<ts>.json documenting Section 2 (attempts) and Section 3 (file changes line-numbered, including S6 attachment scope decision)",
+      "state": "done",
+      "waived_reason": null,
+      "updated_at": "2026-05-03T10:18:35Z"
+    }
+  ],
+  "terminal_artifact": {
+    "path": "docs/dev/dev-report-20260502-162334.json",
+    "exists": true,
+    "validated_at": "2026-05-03T10:18:35Z"
+  }
+}

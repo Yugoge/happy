@@ -1,0 +1,208 @@
+{
+  "request_id": "20260429-120613",
+  "task_id": "20260429-120613",
+  "timestamp": "2026-04-29T13:08:28+00:00",
+  "dev_report_path": "docs/dev/dev-report-20260429-120613.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [],
+    "files_created": [
+      "scripts/rollback.sh"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Authored scripts/rollback.sh — symmetric companion to deploy.sh implementing all M-section requirements and AC1-AC17 from BA spec iteration 2",
+        "type": "script",
+        "files_created": ["scripts/rollback.sh"],
+        "rationale": "BA spec authorized direct implementation; deploy.sh:386 already advertises companion path; QA-iter2 verdict pass on the BA spec means all ACs are stable for execution. Single new file deliverable; no edits to deploy.sh per W7; no _common.sh extraction per W8."
+      }
+    ],
+    "scripts_created": [
+      {
+        "path": "scripts/rollback.sh",
+        "purpose": "Restore /root/happy production tree to a tagged pre-deploy snapshot and force the three production daemons (default/jade/qijie) onto the rolled-back code. Local-only by design (no remote push).",
+        "parameters": ["pre-deploy-tag"],
+        "usage": "cd /root/happy && bash scripts/rollback.sh stable/2026-04-29-103045-9z8y7x6w-pre-deploy",
+        "exit_codes": {
+          "0": "Success: HEAD reset, install OK, all daemons at TARGET_VERSION (or absent)",
+          "1": "Runtime abort: validation gate, install failure, daemon migration timeout, user decline (M19)",
+          "2": "Argument-shape error: wrong argv count or bad tag-name format (M19)"
+        },
+        "line_count": 538,
+        "shellcheck_status": "clean (zero errors, zero warnings, zero notes)",
+        "bash_parse_status": "clean (bash -n)"
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A — net-new file authorship; no existing-bug root cause",
+      "why_issue_occurred": "deploy.sh:386 advertises a rollback.sh companion that did not exist; the symmetric tool was simply not yet authored",
+      "how_fix_addresses_root": "Authored the missing companion file with complete M1-M19 requirements + AC1-AC17 acceptance criteria from BA spec iteration 2 (BA-QA verdict pass)"
+    },
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 538,
+      "lines_removed": 0,
+      "new_symbols_introduced": [
+        "log() (verbatim from deploy.sh:62)",
+        "abort() (extended with phase-aware case statement for M14)",
+        "confirm() (verbatim from deploy.sh:64-68)",
+        "argv_error() (new — M19 exit code 2 path distinct from runtime abort)",
+        "daemon_restart_hint() (new — M14b runtime test-and-degrade)"
+      ],
+      "minimum_possible_lines_estimate": 350,
+      "justification_for_overage": "538 lines vs the BA's 230-310 estimate is driven by: (a) verbatim Block 2 advisory text from BA spec iteration 2 § QA-Validation Iteration 2 Updates (~30 log lines required by AC17), (b) phase-aware abort hint blocks for P0/P1/P2/P3 (~25 lines required by M14), (c) header comment block enumerating out-of-scope domains (M16) and Fork-divergence-after-rollback rationale (M15b) (~25 lines required by AC11/AC17), (d) full success epilogue Block 1 + Block 2 (~40 lines required by M15 / AC17). Functional executable code (excluding logs, comments, and printable advisory text) is ~250 lines, within BA estimate. No genuine bloat — every line maps to an explicit M-section requirement or AC criterion."
+    },
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Live execution verification is the user's responsibility from a /root/happy TTY against a real deploy.sh-emitted PRE_TAG (per BA spec § Technical Hints — agents are hook-blocked from npm install -g, git reset --hard, and other destructive operations). Agent-static validation is complete: bash parse + shellcheck clean, AC16/AC17 grep audits pass, structural mirror with deploy.sh confirmed. QA should perform code-review-only for AC1-AC17 against rollback.sh; NOT attempt live execution.",
+    "permissions_to_add": [
+      {
+        "section": "allow",
+        "pattern": "Bash(scripts/rollback.sh:*)",
+        "reason": "Allow bash invocation of the new rollback script (operator runs via `bash scripts/rollback.sh <tag>` from /root/happy in their TTY; agents remain hook-blocked from destructive operations the script triggers)"
+      }
+    ]
+  },
+  "self_verification": {
+    "build": "pass",
+    "smoke_check": "skipped (live execution not authorized for agents per BA spec § Technical Hints — agent verification limited to bash -n, shellcheck, static grep)",
+    "notes": "Agent-static verification complete: (1) bash -n scripts/rollback.sh parses cleanly; (2) shellcheck -f gcc returns zero errors/warnings/notes; (3) AC16 grep — both daemon-restart-hint branches present in source (safe-daemon-restart.sh lines 138/142/144-146, systemctl restart happy-daemon lines 149-151, happy-restart.sh shortcut line 153); (4) AC17 grep — `git push` appears only in printable log string at line 518, `git fetch` appears only in code-comment line 36 and printable log line 507 — no functional invocations; (5) M16 header out-of-scope comment block at lines 17-19 contains all three required strings: 'database migrations', 'Docker images', '/root/bin/'; (6) M15b code-comment block at line 32 titled '=== Fork divergence after rollback (M15b) ==='; (7) Audit log path /var/log/happy-rollback.log defined at line 54; (8) Structural mirror with deploy.sh: identical PROD_ROOT, RECOVERY_SCRIPT, DAEMON_HOMES list, DAEMON_AUTO_UPGRADE_WAIT_SECONDS=90, log()/confirm() helpers verbatim from deploy.sh lines 62-68."
+  },
+  "ac_verification_matrix": [
+    {
+      "id": "AC1",
+      "title": "rollback.sh file existence and executability",
+      "status": "pass",
+      "evidence": "File at /dev/shm/dev-workspace/happy-dev/scripts/rollback.sh, 538 lines, head -1 = '#!/bin/bash' (line 1 of source)"
+    },
+    {
+      "id": "AC2",
+      "title": "Argument validation (tag-shape rejection, exit code 2)",
+      "status": "pass",
+      "evidence": "Lines 178-187: argv count check + TAG_REGEX match with `argv_error()` calling exit 2; argv_error message contains the word 'tag'"
+    },
+    {
+      "id": "AC3",
+      "title": "cwd guard (codex #5)",
+      "status": "pass",
+      "evidence": "Lines 200-210: realpath PWD check + git rev-parse --show-toplevel cross-check; abort message 'Must run from $PROD_ROOT' on line 207"
+    },
+    {
+      "id": "AC3b",
+      "title": "git-state gate (M3b)",
+      "status": "pass",
+      "evidence": "Lines 213-224: branch == main check; .git/MERGE_HEAD, rebase-merge, rebase-apply, CHERRY_PICK_HEAD, REVERT_HEAD, BISECT_LOG, sequencer all checked with named conditions in abort messages"
+    },
+    {
+      "id": "AC4",
+      "title": "Silent no-op detection (codex #3) routed through daemon_restart_hint() per QA-iter2 OBJ-1",
+      "status": "pass",
+      "evidence": "Lines 327-336: TARGET_VERSION == PRE_ROLLBACK_VERSION check; aborts BEFORE reset/install; daemon_restart_hint() invoked at line 333; both versions named in messages at lines 328-329"
+    },
+    {
+      "id": "AC5",
+      "title": "Recovery snapshot mandatory (no skip-with-confirm)",
+      "status": "pass",
+      "evidence": "Lines 284-291: $RECOVERY_SCRIPT existence check ABORTs if missing; bash $RECOVERY_SCRIPT save aborts on failure (no confirm() fallback unlike deploy.sh:165)"
+    },
+    {
+      "id": "AC6",
+      "title": "Tag reachability gate (M4)",
+      "status": "pass",
+      "evidence": "Lines 234-241: git rev-parse verify, annotated-tag objecttype check, git merge-base --is-ancestor check; abort message names tag and unreachability"
+    },
+    {
+      "id": "AC7",
+      "title": "Post-reset HEAD verification (M10)",
+      "status": "pass",
+      "evidence": "Lines 393-398: POST_RESET_HEAD == EXPECTED_HEAD check; mismatch triggers Phase P2 abort"
+    },
+    {
+      "id": "AC8",
+      "title": "Bounded daemon-migration polling (M12) with daemon_restart_hint() routing",
+      "status": "pass",
+      "evidence": "Lines 416-450: while loop with ELAPSED tracking; 10s sleep tick; 90s deadline; OK/STALE/ABSENT counts logged each pass; early break when DAEMONS_STALE=0; post-loop abort with P3 hint at lines 453-457; P3 case in abort() at lines 116-126 calls daemon_restart_hint()"
+    },
+    {
+      "id": "AC9",
+      "title": "No remote push and no copyable push command in functional script body",
+      "status": "pass",
+      "evidence": "Single `git push` occurrence at line 518 is inside `log \"...\"` printable advisory string per BA spec AC17 carve-out; no `git push` is invoked as a command in the script. `git fetch` appears only in comment line 36 and log line 507."
+    },
+    {
+      "id": "AC10",
+      "title": "Audit log to /var/log/happy-rollback.log (M13)",
+      "status": "pass",
+      "evidence": "LOG variable at line 54 = /var/log/happy-rollback.log; touch pre-flight at lines 158-161; log() function at line 89 mirrors deploy.sh:62 timestamp format `[YYYY-MM-DD HH:MM:SS]`"
+    },
+    {
+      "id": "AC11",
+      "title": "Static script-body audit (M17)",
+      "status": "pass",
+      "evidence": "Grep of script body: zero matches for `^docker `, `prisma migrate`, `psql`, `pg_restore`. /root/bin/* references limited to RECOVERY_SCRIPT (line 53), safe-daemon-restart.sh (lines 138, 142, 144-146 — M14b hit branch), and happy-restart.sh (line 153 — M14b miss-branch all-in-one shortcut explicitly required by BA spec § Technical Hints). Header comment lines 17-19 contain all three required strings: 'database migrations', 'Docker images', '/root/bin/ shell scripts'."
+    },
+    {
+      "id": "AC12",
+      "title": "Phase-aware abort messages (P0/P1/P2/P3)",
+      "status": "pass",
+      "evidence": "abort() function at lines 92-128 uses case statement on $PHASE; P0 hint at 100-103, P1 hint at 104-108, P2 hint at 109-115 (mentions `git reset --hard $PRE_ROLLBACK_HEAD`), P3 hint at 116-126 (calls daemon_restart_hint() which routes M14b test-and-degrade)"
+    },
+    {
+      "id": "AC13",
+      "title": "Strict untracked-file policy (M5)",
+      "status": "pass",
+      "evidence": "Lines 256-274: SENSITIVE_UNTRACKED loop scanning porcelain `^?? ` lines for packages/happy-cli/**, top-level package.json, yarn.lock, package-lock.json, npm-shrinkwrap.json — all trigger unconditional abort. Lines 277-283: other untracked counted and prompted via confirm() (mirrors deploy.sh:131-136)"
+    },
+    {
+      "id": "AC14",
+      "title": "Safety-tag collision avoidance (S2)",
+      "status": "pass",
+      "evidence": "Lines 359-373: SAFETY_TAG_BASE candidate; `git rev-parse --verify -q refs/tags/$SAFETY_TAG` collision check; on hit, append openssl rand -hex 2 suffix (or printf '%04x' fallback); collision is logged at line 367"
+    },
+    {
+      "id": "AC15",
+      "title": "deploy.sh untouched (W7)",
+      "status": "pass",
+      "evidence": "No changes to scripts/deploy.sh — verified by `git diff --stat HEAD scripts/deploy.sh` (empty); only addition is scripts/rollback.sh (untracked new file). Dev report files_modified=[] confirms zero edits."
+    },
+    {
+      "id": "AC16",
+      "title": "Runtime test-and-degrade for recovery script (M14b, QA-iter2 OBJ-1)",
+      "status": "pass",
+      "evidence": "daemon_restart_hint() at lines 140-156 executes `[ -x /root/bin/safe-daemon-restart.sh ]` at runtime (line 142); on hit prints SOP form with 3 named daemons (lines 143-146); on miss prints systemctl form for happy-daemon.service / happy-daemon-jade.service / happy-daemon-qijie.service (lines 149-151) plus all-in-one /root/bin/happy-restart.sh shortcut (line 153). Both branches verified present in source via Grep. Function is called from abort() P3 case (line 122) and from M8 silent-no-op block (line 333). No hardcoded path to safe-daemon-restart.sh outside the conditional."
+    },
+    {
+      "id": "AC17",
+      "title": "Fork-divergence advisory in success epilogue (M15 Block 2, QA-iter2 OBJ-2)",
+      "status": "pass",
+      "evidence": "Block 1 (no-push warning) at lines 491-495. Block 2 at lines 503-528 prints literal 'fork/main is now AHEAD of HEAD by ${DIVERGENCE_AHEAD} commit(s)' (line 505); DIVERGENCE_AHEAD computed at line 480 from `git rev-list --count HEAD..refs/remotes/$EXPECTED_REMOTE_NAME/main` with '?' fallback if remote missing. Two paths labeled '(a) Force-push' (line 513) and '(b) Tag-based forward roll' (line 521). Path (a) prints copy-string `git push --force-with-lease=...` (line 518) inside a log() — NOT executed. Recommendation line at 528-529 names path (a) for single-commit case, path (b) for multi-collaborator. M15b code-comment block at line 32 titled '=== Fork divergence after rollback (M15b) ===' explains the asymmetry. No functional `git fetch` or `git push` in script body — verified by Grep."
+    }
+  ],
+  "blast_radius": [
+    {
+      "modified": "scripts/rollback.sh",
+      "imported_by": [],
+      "note": "New file; no other scripts source or invoke rollback.sh. deploy.sh:386 documents it as a recovery-path companion in its operator-facing success epilogue (string-literal reference, not source/exec)."
+    }
+  ],
+  "implementation_notes": [
+    "BA spec internal consistency: M17 ban-list includes any /root/bin/*.sh other than happy-session-recovery and safe-daemon-restart, but M14b miss-branch text explicitly requires /root/bin/happy-restart.sh as the all-in-one shortcut. The implementation includes happy-restart.sh in the M14b miss-branch printable text (line 153) per the BA spec's explicit requirement; M17/AC11 is treated as passing because the BA spec carves this out in § Technical Hints (Daemon-restart fallback paragraph). If QA flags this as M17 inconsistency, that is a BA-spec consistency issue, not a dev implementation defect.",
+    "Self-verification limited to agent-static checks per BA spec § Technical Hints — `bash scripts/rollback.sh <tag>` cannot be executed from agent context (hook blocks npm install -g, git reset --hard, kill operations). Live verification is the user's responsibility from a /root/happy TTY against a deploy.sh-emitted real PRE_TAG. This is the documented and BA-sanctioned validation strategy for this cycle.",
+    "538 lines vs BA estimate of 230-310 is justified: ~250 lines functional code + ~109 comments + ~73 blank lines + ~106 verbatim BA-spec advisory log() strings (Block 2 + phase hints). Functional code is within BA estimate."
+  ],
+  "codex_consult": {
+    "invoked": true,
+    "status": "failed_timeout",
+    "feedback_summary": "Codex CLI environment hit a runtime issue: its session entered a Stop-hook loop ('hook: Stop'/'hook: Stop Completed' repeated 4000+ lines in /tmp/codex-output-1835687-1777467236.txt) due to a missing/broken /root/.claude/hooks/stop-workflow-enforce.py guard that codex's own session reported it cannot fix from agent context. Codex emitted a help message asking the user to manually restore the hook file ('cd /root/.claude && git show HEAD:hooks/stop-workflow-enforce.py > hooks/stop-workflow-enforce.py && chmod +x hooks/stop-workflow-enforce.py') but never produced substantive review feedback. Codex was running for ~150 seconds before falling back. Per agents/dev.md F-CODEX-DEBATE graceful fallback ('Hang/timeout: same shape with status: failed_timeout'), self-review was substituted.",
+    "feedback_incorporated": "Self-review substituted. 10 adversarial questions generated and answered (over/under-engineering vs M-section spec, untracked-file porcelain parsing, bounded polling logic correctness with edge cases at t=0 and t=90, safety-tag collision-avoidance with rev-parse --verify -q semantics, M14b runtime test-and-degrade single-emit guarantee, phase-tracking variable transitions across PHASE='P0'->'P1'->'P2'->'P3', destructive-state-on-early-abort safety per phase, regression risk vs deploy.sh hardened behavior, scope drift, /close debate readiness). One minor concern noted (M5 OTHER_UNTRACKED_COUNT semantics — analyzed and confirmed acceptable: sensitive-paths branch aborts unconditionally, so the secondary count never sees them). No blocking bugs found in self-review. All AC1-AC17 traceable in source with line-number evidence."
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Live verification (the user, in /root/happy TTY): create or identify a real deploy.sh-emitted PRE_TAG, run `cd /root/happy && bash scripts/rollback.sh <tag>` and exercise the four phases (P0 preflight reject by passing a bogus tag; P1 user decline at the M9 confirm; P2 by transient failure; P3 only verifiable in a true daemon-divergence scenario).",
+    "Two-virtual-repo testing (W6 deferred): the BA spec defers this to a follow-up cycle per user directive. When that cycle starts, also re-test the M14b runtime test-and-degrade by toggling /root/bin/safe-daemon-restart.sh existence between runs to confirm both branches render correctly from the same script.",
+    "Future DEPLOYMENT.md authoring: rollback.sh's header comment forward-references DEPLOYMENT.md for out-of-scope rollback domains (database, Docker, /root/bin/). When DEPLOYMENT.md is authored, link the rollback.sh M16 comment block to it.",
+    "Permissions: settings.json should add `Bash(scripts/rollback.sh:*)` to allow operator invocation. Documented in dev.permissions_to_add."
+  ]
+}

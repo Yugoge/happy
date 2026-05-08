@@ -9,6 +9,8 @@ import { layout } from '../layout';
 import { useLocalSetting } from '@/sync/storage';
 import { StyleSheet } from 'react-native-unistyles';
 import { t } from '@/text';
+import { stringifyInspectableValue } from '@/utils/codexToolRendering';
+import { stringifyToolCommand } from '@/utils/toolCommand';
 
 interface ToolFullViewProps {
     tool: ToolCall;
@@ -16,7 +18,47 @@ interface ToolFullViewProps {
     messages?: Message[];
 }
 
+const SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set([
+    'CodexBash',
+    'CodexPatch',
+    'CodexDiff',
+    'functions.update_plan',
+    'functions.view_image',
+    'file',
+    'multi_tool_use.parallel',
+]);
+
 // Extracted generic sections so ToolFullView stays under line-count limits
+
+function unwrapShellCommand(command: string): string {
+    const match = command.match(/^(?:\/bin\/)?(?:ba|z)?sh\s+-l?c\s+([\s\S]+)$/);
+    if (!match) return command;
+    const inner = match[1].trim();
+    if (
+        (inner.startsWith('"') && inner.endsWith('"')) ||
+        (inner.startsWith("'") && inner.endsWith("'"))
+    ) {
+        return inner.slice(1, -1).trim();
+    }
+    return inner;
+}
+
+function getCommandCandidates(input: ToolCall['input']): string[] {
+    const candidates = new Set<string>();
+    const add = (value: unknown) => {
+        if (typeof value !== 'string') return;
+        const trimmed = value.trim();
+        if (!trimmed) return;
+        candidates.add(trimmed);
+        candidates.add(unwrapShellCommand(trimmed));
+    };
+    add(stringifyToolCommand(input?.command));
+    if (Array.isArray(input?.command)) add(input.command.join(' '));
+    if (Array.isArray(input?.parsed_cmd)) {
+        input.parsed_cmd.forEach((entry: any) => add(entry?.cmd));
+    }
+    return Array.from(candidates);
+}
 
 function ToolDescriptionSection({ tool }: { tool: ToolCall }) {
     // Guard: hide Description when it is empty or echoes a raw command.
@@ -25,8 +67,9 @@ function ToolDescriptionSection({ tool }: { tool: ToolCall }) {
     // Rendering it duplicates Input Parameters; hide in that case (spec §5.7 R1).
     const desc = typeof tool.description === 'string' ? tool.description.trim() : '';
     if (!desc) return null;
-    const rawCommand = typeof tool.input?.command === 'string' ? tool.input.command.trim() : '';
-    if (rawCommand && desc === rawCommand) return null;
+    const normalizedDesc = unwrapShellCommand(desc);
+    const commandCandidates = getCommandCandidates(tool.input);
+    if (commandCandidates.some((candidate) => candidate === desc || candidate === normalizedDesc)) return null;
     return (
         <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -52,7 +95,8 @@ function ToolInputSection({ tool }: { tool: ToolCall }) {
 }
 
 function ToolOutputSection({ tool }: { tool: ToolCall }) {
-    if (tool.state !== 'completed' || !tool.result) return null;
+    const hasResult = Object.prototype.hasOwnProperty.call(tool, 'result');
+    if (tool.state !== 'completed' || !hasResult) return null;
     return (
         <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -60,14 +104,15 @@ function ToolOutputSection({ tool }: { tool: ToolCall }) {
                 <Text style={styles.sectionTitle}>{t('tools.fullView.output')}</Text>
             </View>
             <CodeView
-                code={typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
+                code={stringifyInspectableValue(tool.result)}
             />
         </View>
     );
 }
 
 function ToolErrorSection({ tool }: { tool: ToolCall }) {
-    if (tool.state !== 'error' || !tool.result) return null;
+    const hasResult = Object.prototype.hasOwnProperty.call(tool, 'result');
+    if (tool.state !== 'error' || !hasResult) return null;
     return (
         <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -75,14 +120,15 @@ function ToolErrorSection({ tool }: { tool: ToolCall }) {
                 <Text style={styles.sectionTitle}>{t('tools.fullView.error')}</Text>
             </View>
             <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{String(tool.result)}</Text>
+                <Text style={styles.errorText}>{stringifyInspectableValue(tool.result)}</Text>
             </View>
         </View>
     );
 }
 
 function ToolEmptyOutputSection({ tool }: { tool: ToolCall }) {
-    if (tool.state !== 'completed' || tool.result) return null;
+    const hasResult = Object.prototype.hasOwnProperty.call(tool, 'result');
+    if (tool.state !== 'completed' || hasResult) return null;
     return (
         <View style={styles.section}>
             <View style={styles.emptyOutputContainer}>
@@ -115,6 +161,7 @@ function ToolRawJsonSection({ tool, messages }: { tool: ToolCall; messages: Mess
 
 export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProps) {
     const SpecializedFullView = getToolFullViewComponent(tool.name);
+    const specializedOwnsPayload = SPECIALIZED_FULL_PAYLOAD_TOOLS.has(tool.name);
     const screenWidth = useWindowDimensions().width;
     const devModeEnabled = (useLocalSetting('devModeEnabled') || __DEV__);
 
@@ -122,12 +169,12 @@ export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProp
         <ScrollView style={[styles.container, { paddingHorizontal: screenWidth > 700 ? 16 : 0 }]}>
             <View style={styles.contentWrapper}>
                 <ToolDescriptionSection tool={tool} />
-                <ToolInputSection tool={tool} />
+                {(!SpecializedFullView || !specializedOwnsPayload) && <ToolInputSection tool={tool} />}
                 {SpecializedFullView ? (
                     <SpecializedFullView tool={tool} metadata={metadata || null} messages={messages} />
                 ) : null}
-                <ToolOutputSection tool={tool} />
-                <ToolErrorSection tool={tool} />
+                {(!SpecializedFullView || !specializedOwnsPayload) && <ToolOutputSection tool={tool} />}
+                {(!SpecializedFullView || !specializedOwnsPayload) && <ToolErrorSection tool={tool} />}
                 {!SpecializedFullView && <ToolEmptyOutputSection tool={tool} />}
                 {devModeEnabled && <ToolRawJsonSection tool={tool} messages={messages} />}
             </View>

@@ -1,0 +1,59 @@
+{
+  "request_id": "20260507-142748",
+  "task_id": "20260507-142748",
+  "mode": "ba_validation",
+  "verdict": "fail",
+  "objections": [
+    {
+      "dimension": "affected_file_accuracy",
+      "claim": "BA M2/F.4 says: 'Playwright tool entries (browser_navigate, browser_evaluate, browser_run_code, browser_type) currently route through generic ToolView. ... no truncation heuristic exists in Playwright knownTools entries; long data URLs spill into the inline title/description.' BA's Technical Hints lists `packages/happy-app/sources/components/tools/knownTools.tsx (M2)` as the change site.",
+      "problem": "knownTools.tsx contains NO entries for browser_navigate, browser_evaluate, browser_run_code, or browser_type. Verified via grep: `grep -nE 'browser_navigate|browser_evaluate|browser_run_code|browser_type' knownTools.tsx` returns zero matches. The ONLY playwright entry in knownTools.tsx is `mcp__playwright__browser_take_screenshot` at line 1391. BA's first sentence is correct (these tools route through generic fallback), but BA's prescription contradicts that observation — BA says 'modify Playwright knownTools entries' when no such entries exist. The actual rendering path goes through `buildGenericToolSummary` in `packages/happy-app/sources/utils/codexToolRendering.ts` (line 157+) AND the ToolView fallback that consumes its output. The fix must either (a) add new knownTools entries with extractSubtitle/extractDescription truncation+data: synopsis logic, or (b) add Playwright/data: handling inside `buildGenericToolSummary`. BA failed to identify the actual code site.",
+      "required_evidence": "BA must update Evidence-F.4 + Scope + M2 + Technical Hints to either: (1) prescribe NEW knownTools entries for `mcp__playwright__browser_navigate`, `mcp__playwright__browser_evaluate`, `mcp__playwright__browser_run_code`, `mcp__playwright__browser_type` with explicit extractDescription/extractSubtitle truncation logic; OR (2) prescribe modification to `buildGenericToolSummary` (or a sibling helper) in `codexToolRendering.ts` that detects `tool.name.startsWith('mcp__playwright__')` AND a `data:` or >120-char input string and produces a synopsis. Either way, AC2's expected change site must be named correctly so dev knows where to edit and QA knows where to grep."
+    },
+    {
+      "dimension": "investigation_completeness",
+      "claim": "BA Evidence-C.2 says: 'CodexPatchViewFull renders <View style={styles.fileHeader}> with file path + kindLabel, AND the parent ToolView separately renders the tool name \"Update file\" with the same file path resolved via extractDescription. Result: two visually similar bars stacked: outer \"Update file / patch-demo.md\" and inner \"/.tool-render-demo/patch-demo.md NEW\".'",
+      "problem": "Two issues: (a) ToolView.tsx consumes `extractSubtitle` (verified: extractStrings() at line 152-164 uses knownTool.extractSubtitle, NOT extractDescription) for the value rendered as `description`. The `extractDescription` callback in the CodexPatch knownTools entry (line 768) returns generic strings like 'Modifying file X.ts' — these may show up elsewhere (e.g., compact summary or sidebar), but BA's claim that the OUTER 'Update file / patch-demo.md' bar comes from extractDescription is mechanically wrong. (b) BA did not investigate the fixture-page path actually exercised by AC1 (`patch-unified-diff` fixture row) to confirm the duplication reproduces there. The duplication is plausible (CodexPatchView/CodexPatchViewFull renders fileHeader; ToolView's outer chrome separately shows title+subtitle), but BA's mechanism narrative misnames the involved API. Dev will write the wrong fix if BA's narrative is taken at face value.",
+      "required_evidence": "BA must (a) correct the mechanism narrative to name `extractSubtitle` (not extractDescription) as the source of the outer subtitle, and explicitly cite the line where ToolView composes title+subtitle (e.g., the call site of extractStrings or the JSX where the subtitle is rendered), and (b) verify by reading `packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts` that the `patch-unified-diff` fixture row referenced in AC1 actually exists with the file path `packages/example.ts` AC1 cites — AC1's GIVEN/WHEN refers to a specific fixture but BA never confirmed the fixture row exists in the data file. If the fixture exists but BA didn't cite the line, add the citation."
+    },
+    {
+      "dimension": "investigation_completeness",
+      "claim": "BA Evidence-B.7 says: 'image-class tools currently degrade silently. Need a heuristic in CodexAttachmentView (or equivalent image renderer) that emits the advisory when preview_uri is missing.'",
+      "problem": "BA proposes adding an advisory but failed to investigate that `CodexAttachmentView.tsx` ALREADY renders a fallback string when previewUri is absent: line 35-37 reads `<Text style={attachmentStyles.meta}>{attachment.previewUnavailableReason ?? 'Preview unavailable'}</Text>`. The actual gap is not 'no advisory exists' but 'the existing fallback string is generic ('Preview unavailable') and lacks the user-actionable hint about re-triggering'. BA's framing treats this as adding a new component when it is in fact replacing/extending a one-line literal in an existing component. This is also why BA's M4 mentions a NEW i18n key but doesn't acknowledge the existing 'Preview unavailable' literal that needs to be replaced.",
+      "required_evidence": "BA must update Evidence-B.7 to acknowledge: (1) `CodexAttachmentView.tsx:35-37` already renders an unavailable-preview fallback; (2) the existing `extractAttachmentSummary` returns `previewUnavailableReason` from `result.preview_unavailable_reason` — this is the existing data path the advisory should reuse OR the inline fallback should be enhanced; (3) AC4 + M4 must specify whether the change is `previewUnavailableReason` data-side (set the reason from the heuristic) or display-side (the fallback string itself becomes the i18n advisory). Both are valid but only one should be picked, with rationale."
+    },
+    {
+      "dimension": "spec_text_vs_execution_drift",
+      "claim": "BA AC2 says: 'a synopsis matching `data: HTML page` (or `data: <mime>`) appears in the compact summary' — coupled with M2 which targets 'Playwright tool entries' in knownTools.tsx.",
+      "problem": "Because (per affected_file_accuracy objection above) no Playwright knownTools entries exist for browser_navigate/evaluate/run_code/type, the AC2 verification recipe ('check that the inline card title/subtitle does not contain the literal data URL string and contains the data: synopsis') will be run against a card whose subtitle/description is produced by generic `buildGenericToolSummary` and `extractStrings`'s null-fallback. QA will not be able to map AC2's pass/fail to a specific code change site without first re-tracing the rendering path. This creates the 'AC reads X but the only thing that produces meaningful evidence is Y' pattern. Either AC2 must specify *where* (which renderer's output) the synopsis appears, or the AC must be reworded to match the actual code path.",
+      "required_evidence": "BA must rewrite AC2 to be mechanically verifiable: e.g., 'GIVEN fixture row playwright-data-url (NEW fixture row that must also be added in M3 or sibling), WHEN rendered inline, THEN the card's subtitle text (selector: `[data-testid=tool-subtitle]` or equivalent) does NOT contain any substring of the original >200-char data: URL, AND DOES contain the literal `data:` followed by either a MIME hint or a byte-size synopsis.' AND BA must specify the new fixture row to be added in M3 so AC2 has a concrete fixture to verify against. Currently no Playwright `data:` fixture row exists."
+    },
+    {
+      "dimension": "investigation_completeness",
+      "claim": "BA M3/AC3 prescribes adding three fixture rows for `web.time`, `web.finance`, `web.sports` mirroring `web.weather`.",
+      "problem": "Verified — three knownTools entries exist (web.time at 1027, web.finance at 1072, web.sports at 1085) and zero fixture rows reference them. This claim is sound. However, BA did not enumerate the renderer keys' input shapes from the actual zod schemas: web.time uses `{timezone}`, web.finance uses `{symbol}`, web.sports uses `{league, team}`. AC3's expectedVisibleStrings.inline distinguishing strings will only be testable if BA names them. The current AC3 says 'each new row's expectedVisibleStrings.inline contains at least one literal string distinguishing it from web.weather' — too vague for QA to grep mechanically.",
+      "required_evidence": "BA should specify expected literal strings per row (e.g., for web.time: a timezone-formatted timestamp containing 'UTC' or 'Asia/'; for web.finance: a ticker like 'AAPL'; for web.sports: a league acronym like 'NBA'). This makes AC3 grep-verifiable. Without it, dev can dump any plausible payload and AC3 still passes — defeating the purpose of fixture-row distinguishing strings."
+    },
+    {
+      "dimension": "evidence_quality",
+      "claim": "BA's E.2 (AC5) and I.2 (AC6) both say 'fixture's description field' should contain a substring with flexible exact phrasing.",
+      "problem": "AC5 and AC6 are mechanically verifiable in concept but the cited fixture id 'pty-write-stdin' (line 549 in fixtures-data.ts, verified) and 'request-user-input-unavailable' (line 493, verified) descriptions currently say 'PTY follow-up writes are visible as related terminal control output.' and 'Default-mode limitation is rendered as unavailable rather than silent failure.' — these are RENDERING-quality claims, NOT acknowledgments of the fixture's representational limitations (E.2 streaming-not-demonstrable / I.2 Plan-mode-out-of-scope). BA correctly identifies the gap. However, the AC's pass criterion 'description contains a substring' lacks a specific substring requirement, which leaves the next QA cycle to interpret what counts. Borderline acceptable for documentation-notes but flag for tightening.",
+      "required_evidence": "BA should specify a minimal substring or regex per AC. Example for AC5: 'description must contain the substring `static fixture` AND the substring `streaming` (or `stream`)'. For AC6: 'description must contain the substring `Plan mode` AND either `CLI` or `outside`'. This eliminates next-cycle interpretation drift."
+    }
+  ],
+  "summary": "FAIL: BA's affected-file claims for F.4 (Playwright knownTools entries that don't exist) and B.7 (claims advisory must be added to renderer that already has a fallback) are factually incorrect; investigation of C.2's rendering mechanism cites the wrong API (extractDescription instead of extractSubtitle); AC2 has spec-text-vs-execution drift because it targets a code path that doesn't exist as described. Scope alignment is correct (6 in-scope items + D.5 properly deferred in out_of_scope_observations). Recommend BA re-investigation and ticket revision before dev cycle.",
+  "scope_alignment_pass": true,
+  "d5_deferral_documented": true,
+  "spec_section_5_3_covered_subitems": ["C.2", "B.7", "F.4", "G.4", "E.2", "I.2"],
+  "spec_section_5_3_deferred_subitems": ["D.5"],
+  "verified_against_complaint": true,
+  "passed_user_requirement": false,
+  "ac_alignment": false,
+  "out_of_scope_observations": [],
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "feedback_incorporated": null
+  }
+}

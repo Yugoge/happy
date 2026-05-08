@@ -1,0 +1,260 @@
+{
+  "request_id": "20260428-063343-codex-rendering",
+  "task_id": "20260428-063343-codex-rendering",
+  "timestamp": "2026-04-28T11:27:21.801Z",
+  "dev_report_path": "docs/dev/dev-report-20260428-063343-codex-rendering.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/components/CodeView.tsx",
+      "packages/happy-app/sources/components/CommandView.tsx",
+      "packages/happy-app/sources/components/SessionActionsNativeMenu.android.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx",
+      "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx",
+      "packages/happy-app/sources/components/tools/ToolFullView.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexDiffView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexParallelView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+      "packages/happy-app/sources/components/tools/views/_all.tsx",
+      "packages/happy-app/sources/sync/localSettings.ts"
+    ],
+    "files_created": [
+      "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx",
+      "packages/happy-app/sources/components/tools/views/CodexPlanView.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "type": "renderer",
+        "description": "Normalized Codex terminal rendering across inline, full detail, and sidebar surfaces.",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/views/CodexBashView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx",
+          "packages/happy-app/sources/components/CommandView.tsx",
+          "packages/happy-app/sources/components/tools/ToolFullView.tsx"
+        ],
+        "rationale": "Addresses complete command/stdout/stderr/error/exit/status reachability without relying on bounded inline preview."
+      },
+      {
+        "id": 2,
+        "type": "renderer",
+        "description": "Added explicit compact/full rendering for Codex plan/update and attachment/image payloads.",
+        "files_created": [
+          "packages/happy-app/sources/components/tools/views/CodexPlanView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx"
+        ],
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/views/_all.tsx",
+          "packages/happy-app/sources/components/tools/knownTools.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarContentRenderer.tsx"
+        ],
+        "rationale": "Makes functions.update_plan, functions.view_image, and file envelopes visible with bounded summaries and inspectable detail/sidebar views."
+      },
+      {
+        "id": 3,
+        "type": "renderer",
+        "description": "Made patch/diff inline cards compact while keeping full diffs available in detail/sidebar.",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/views/CodexPatchView.tsx",
+          "packages/happy-app/sources/components/tools/views/CodexDiffView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarFileView.tsx"
+        ],
+        "rationale": "Prevents multi-screen inline diff cards and preserves full patch/diff inspection where expanded."
+      },
+      {
+        "id": 4,
+        "type": "fallback",
+        "description": "Bounded unknown/dynamic fallback previews and wrapped inspectable code blocks.",
+        "files_modified": [
+          "packages/happy-app/sources/components/tools/ToolView.tsx",
+          "packages/happy-app/sources/components/CodeView.tsx"
+        ],
+        "rationale": "Unknown, dynamic, MCP/resource, and falsy-result payloads remain safe to inspect without horizontal page overflow."
+      },
+      {
+        "id": 5,
+        "type": "markdown",
+        "description": "Activated standalone markdown image parsing and added rich markdown fixture coverage.",
+        "files_modified": [
+          "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+          "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts"
+        ],
+        "rationale": "Completes markdown/rich coverage for headings, lists, task lists, blockquotes, code, links, entities, inline LaTeX, and images."
+      },
+      {
+        "id": 6,
+        "type": "validation-unblock",
+        "description": "Resolved app typecheck blockers encountered during validation.",
+        "files_modified": [
+          "packages/happy-app/sources/components/SessionActionsNativeMenu.android.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+          "packages/happy-app/sources/sync/localSettings.ts"
+        ],
+        "rationale": "Keeps happy-app typecheck green after renderer changes; no daemon or production state touched."
+      }
+    ],
+    "scripts_created": [],
+    "permissions_to_add": [],
+    "blast_radius": [
+      {
+        "modified": "CodeView.tsx",
+        "imported_by": [
+          "SidebarGenericView.tsx",
+          "ToolView.tsx",
+          "ToolFullView.tsx",
+          "CodexAttachmentView.tsx",
+          "GeminiExecuteView.tsx",
+          "session/[id]/info.tsx"
+        ],
+        "risk": "high-impact shared code block primitive"
+      },
+      {
+        "modified": "CommandView.tsx",
+        "imported_by": [
+          "SidebarBashView.tsx",
+          "CodexBashView.tsx",
+          "BashViewFull.tsx"
+        ],
+        "risk": "terminal rendering primitive"
+      },
+      {
+        "modified": "ToolView.tsx",
+        "imported_by": [
+          "MessageView.tsx",
+          "SidebarAgentConversation.tsx",
+          "ToolHeader.tsx"
+        ],
+        "risk": "high-impact inline tool card renderer"
+      },
+      {
+        "modified": "ToolFullView.tsx",
+        "imported_by": [
+          "message detail route",
+          "SessionView.tsx",
+          "specialized full views"
+        ],
+        "risk": "high-impact detail renderer"
+      },
+      {
+        "modified": "knownTools.tsx",
+        "imported_by": [
+          "ToolView.tsx",
+          "ToolHeader.tsx",
+          "storage.ts",
+          "specialized tool views"
+        ],
+        "risk": "high-impact tool metadata registry"
+      },
+      {
+        "modified": "SidebarContentRenderer.tsx",
+        "imported_by": [
+          "RightSidebar.tsx"
+        ],
+        "risk": "sidebar detail routing"
+      },
+      {
+        "modified": "parseMarkdownBlock.ts",
+        "imported_by": [
+          "parseMarkdown.ts"
+        ],
+        "risk": "markdown parser primitive"
+      },
+      {
+        "modified": "localSettings.ts",
+        "imported_by": [
+          "storage.ts",
+          "persistence.ts",
+          "apiSocket.ts",
+          "CommandPaletteProvider.tsx"
+        ],
+        "risk": "local-only settings schema"
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A - BA diagnosed L2 renderer coverage gap, not a bisected code regression.",
+      "why_issue_occurred": "Prior work centered on CodexBash/Terminal and left non-Terminal Codex payload classes either generic, inline-heavy, or unmeasured.",
+      "how_fix_addresses_root": "The app renderer matrix now has explicit terminal, patch/diff, plan/update, attachment/image, multi-tool, markdown/rich, and bounded fallback paths in happy-app."
+    },
+    "diff_stats": {
+      "files_changed": 22,
+      "lines_added": 783,
+      "lines_removed": 182,
+      "new_symbols_introduced": [
+        "buildTerminalRenderData",
+        "stringifyInspectableValue",
+        "truncateInspectableText",
+        "extractPlanItems",
+        "extractToolUses",
+        "extractAttachmentSummary",
+        "CodexBashViewFull",
+        "CodexPlanView",
+        "CodexAttachmentView",
+        "CodexPatchViewFull",
+        "CodexDiffViewFull",
+        "GenericToolPreview"
+      ],
+      "minimum_possible_lines_estimate": 420,
+      "justification_for_overage": "The validated BA scope required multiple renderer classes plus representative fixtures/tests across Terminal, markdown/rich, patch/diff, plan/update, attachment/image, multi-tool, dynamic/MCP/resource, and unknown fallback surfaces. Shared utility extraction avoided repeating terminal/fallback parsing across inline/detail/sidebar."
+    },
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "QA must rebuild/deploy happy-web-dev from this worktree and perform live desktop/mobile rendering verification. Dev intentionally did not claim live UI completion.",
+    "daemon_action_needed": false,
+    "user_side_daemon_action_needed": false,
+    "no_daemon_restart_performed": true,
+    "production_access_performed": false
+  },
+  "validation_outcomes": [
+    {
+      "command": "yarn workspace happy-app test sources/components/markdown/parseMarkdown.test.ts sources/utils/codexToolRendering.test.ts --run",
+      "status": "pass",
+      "summary": "8 tests passed covering markdown/rich/images and representative Codex terminal, stderr/nonzero exit, patch/diff, nested fallback JSON, multi-tool, plan/update, and attachment/image fixtures."
+    },
+    {
+      "command": "yarn workspace happy-app typecheck",
+      "status": "pass",
+      "summary": "TypeScript strict typecheck completed successfully."
+    }
+  ],
+  "self_verification": {
+    "build": "pass",
+    "smoke_check": "pass",
+    "notes": "Source/test validation only. No live UI, no Docker deploy, no daemon restart, and no production access were performed by dev."
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex flagged pre-existing happy-cli dirty files, lack of live UI evidence, possible detail-data loss from suppressing generic full sections, truthiness-based generic fallback gaps, attachment envelope proof, utility-heavy tests, multi-tool semantic depth, and real Codex patch/diff shapes.",
+    "feedback_incorporated": "Adjusted ToolFullView so only CodexBash suppresses generic raw sections; fixed generic fallback to preserve falsy result payloads; made empty strings inspectable; enriched multi_tool_use.parallel rows with argument summaries; documented dirty happy-cli files as pre-existing/out of scope and live UI as QA responsibility."
+  },
+  "remaining_risks": [
+    "Live desktop/mobile happy-dev UI verification is still required by QA; dev did not rebuild/deploy or claim live UI closure.",
+    "Repository had pre-existing modified happy-cli Codex files before this task; this implementation did not modify them, but git status is not app-only clean.",
+    "Multi-tool nested child results are summarized inline and raw-inspectable in detail; QA should verify whether live Codex payloads need deeper child drill-down in a follow-up.",
+    "functions.apply_patch or other patch-like dynamic tool shapes that do not normalize to CodexPatch/CodexDiff rely on bounded generic fallback unless protocol maps them to registered patch/diff tools."
+  ],
+  "blocking_issues": [],
+  "recommendations": [
+    "QA should capture exact-target desktop 1440x900 and mobile 390x844 screenshots plus DOM overflow metrics for the BA payload matrix.",
+    "If QA finds dynamic patch/multi-tool payloads need richer nested drill-down, create a follow-up scoped to those real payload shapes after live evidence."
+  ],
+  "checkpoint_state": {
+    "path": ".claude/specs/spec-20260425-094312/cp-state-dev.json",
+    "present": false,
+    "action": "not_applicable"
+  },
+  "registry_sentinel": {
+    "path": ".claude/dev-registry/dev-20260428-063343/dev.json",
+    "read": true
+  }
+}
