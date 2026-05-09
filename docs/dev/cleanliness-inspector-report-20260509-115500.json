@@ -1,0 +1,148 @@
+{
+  "request_id": "20260509-115500",
+  "timestamp": "2026-05-09T17:50:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "changed-files",
+  "scope": {
+    "diff_base": "ff51184e",
+    "cycle_commit": "560f930c",
+    "changed_files": [
+      "packages/happy-app/sources/components/SessionActionsNativeMenu.android.tsx"
+    ],
+    "tagging_mechanism": "ii_inspector_side_tagging",
+    "contract_note": "Per AC-12.1 / Section 5.4 rule 3: each finding is tagged with explicit `introduced_in_diff: true|false`. Untagged or absent findings default-safe to ignore per close.md AC-2.6 (b)."
+  },
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB"
+  },
+  "scope_observations": {
+    "files_inspected": 1,
+    "file": "packages/happy-app/sources/components/SessionActionsNativeMenu.android.tsx",
+    "file_size_bytes": 1965,
+    "line_count": 58,
+    "diff_kind": "in_place_edit_existing_file",
+    "checks_evaluated": [
+      {
+        "check": "1_document_structure",
+        "applicable": false,
+        "reason": "TSX source file, not a markdown doc"
+      },
+      {
+        "check": "2_archive_candidates",
+        "applicable": false,
+        "reason": "Source code file, not a doc; no archive-trigger filename pattern"
+      },
+      {
+        "check": "3_dev_context",
+        "applicable": false,
+        "reason": "Not a dev workflow JSON"
+      },
+      {
+        "check": "4_one_time_scripts",
+        "applicable": false,
+        "reason": "Not a shell script; no temp/debug/old/backup pattern"
+      },
+      {
+        "check": "5_duplicate_scripts",
+        "applicable": false,
+        "reason": "Not a script file. Sibling files SessionActionsNativeMenu.ios.tsx/.web.tsx/.tsx are legitimate Expo platform-variant pattern, not duplicates"
+      },
+      {
+        "check": "6_one_time_tests",
+        "applicable": false,
+        "reason": "Not a test file"
+      },
+      {
+        "check": "7_non_functional_files",
+        "applicable": false,
+        "reason": "Active TSX source, not temp/build artifact"
+      },
+      {
+        "check": "8_orphaned_subagents",
+        "applicable": false,
+        "reason": "Not a subagent definition"
+      },
+      {
+        "check": "9_unreferenced_scripts",
+        "applicable": false,
+        "reason": "Not a script; functional reference confirmed via ChatHeaderView.tsx and platform-resolution by Metro bundler"
+      },
+      {
+        "check": "10_orphaned_tests",
+        "applicable": false,
+        "reason": "Not a test file"
+      },
+      {
+        "check": "11_historical_feature_docs",
+        "applicable": false,
+        "reason": "Not a markdown doc"
+      },
+      {
+        "check": "12_docs_categorization",
+        "applicable": false,
+        "reason": "Not a markdown doc"
+      },
+      {
+        "check": "13_obsolete_functionality",
+        "applicable": true,
+        "verdict": "no_violation",
+        "notes": "Diff replaces deprecated ContextMenu/Button API with the current DropdownMenu/DropdownMenuItem API from @expo/ui/jetpack-compose. Old API is fully removed in the same diff (no leftover dead-code branch). All hook destructure members (archiveSession, canArchive, canCopySessionMetadata, canShowResume, copySessionMetadata, openDetails, resumeSession) are used."
+      },
+      {
+        "check": "14_non_functional_folders",
+        "applicable": false,
+        "reason": "No folder-level changes in this diff"
+      },
+      {
+        "check": "15_orphan_commands",
+        "applicable": false,
+        "reason": "Not a slash command"
+      },
+      {
+        "check": "16_dead_functions",
+        "applicable": true,
+        "verdict": "no_violation",
+        "notes": "Single exported component SessionActionsNativeMenu — referenced by sibling platform variants and ChatHeaderView.tsx via Metro platform resolution. No top-level function/class additions in this diff."
+      },
+      {
+        "check": "17_duplicate_content",
+        "applicable": true,
+        "verdict": "advisory_pre_existing_only",
+        "notes": "File is intentionally byte-identical to upstream slopus/happy@84fa15d5 blob (Path B recovery context, declared in task brief). This is an intentional upstream-parity choice, not an unintended duplication. The .ios.tsx, .web.tsx, and default .tsx siblings are platform variants required by Metro bundler — not duplicates. introduced_in_diff context is recovery-of-upstream, not new dirt.",
+        "introduced_in_diff": false
+      }
+    ],
+    "integration_signals_verified": [
+      "Imports resolve: '@expo/ui/jetpack-compose' (DropdownMenu, DropdownMenuItem), '@/hooks/useSessionQuickActions', '@/sync/storageTypes', '@/text'",
+      "i18n compliance: new copy-metadata item uses t('sessionInfo.copyMetadata') per CLAUDE.md i18n rules",
+      "Indentation: 4 spaces (matches project rule)",
+      "Platform-variant convention: .android.tsx is the recognized Metro/Expo platform-resolution suffix",
+      "Documented in components/INDEX.md and components/README.md"
+    ]
+  },
+  "default_safe_acknowledgement": "This inspector was invoked WITH --changed-files (single file). All findings carry explicit introduced_in_diff tags per Mechanism (ii). The findings array is empty — no NEW cleanliness violations were introduced in this diff. Per AC-2.6 (b), close.md MUST NOT escalate this report to CLOSE: NO."
+}
