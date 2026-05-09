@@ -12,7 +12,7 @@ export type MarkdownBlock = {
     items: { depth: number, spans: MarkdownSpan[] }[]
 } | {
     type: 'numbered-list',
-    items: { number: number, spans: MarkdownSpan[] }[]
+    items: { number: number, depth: number, spans: MarkdownSpan[] }[]
 } | {
     type: 'task-list',
     items: { checked: boolean, depth: number, spans: MarkdownSpan[] }[]

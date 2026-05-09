@@ -1,0 +1,539 @@
+{
+  "request_id": "20260509-152243",
+  "task_id": "20260509-152243",
+  "timestamp": "2026-05-09T15:22:43Z",
+  "saga_parent": "spec-20260506-203755",
+  "cycle_index": 7,
+  "phase_label": "ALL (7+4+3 same-cycle Option C per user override)",
+  "ba_iteration_log": [
+    {
+      "iteration": 0,
+      "ts": "2026-05-09T15:22:43Z",
+      "scope_proposed": "Phase A only (7 items); 7 deferred to Phase B+C separate cycles",
+      "codex_verdict": "OPTION_B_PHASED",
+      "codex_transcript": "/var/tmp/codex-outputs/codex-output-2330268-1778340295.txt",
+      "user_response": "REJECTED — wants Option C: 7+4+3 same-cycle",
+      "user_directive_verbatim": "改成 7+4+3 三阶段同 cycle 完成（A 渲染层 + B 纯解析器 + C 验证-only）—— 比 Phase A 大但比 14 项小，绕开纯研究项目（#6 mermaid 内核问题）"
+    },
+    {
+      "iteration": 1,
+      "ts": "2026-05-09T15:50Z",
+      "scope_proposed": "Option C: Phase A=7 + Phase B=4 + Phase C=3 = 14 in-cycle + 1 explicit out-of-saga (#6)",
+      "codex_verdict": "DOWNSIZE_PHASE_B_TO_1",
+      "codex_transcript": "/var/tmp/codex-outputs/codex-output-2877394-1778341599.txt",
+      "codex_verdict_summary": "Codex flagged Phase B at 4 items as regression trap; recommended Phase A + Phase C + B3 only. Specific guidance: sequential dev (Q3), [text](url)→[^id]→[text][ref] dispatch order with [^id]: definition recognized before [id]: (Q2), graceful default for #14 (Q4), '#6 deferred to mermaid-library cycle per 绕开' framing (Q5), strict AC — existing 7 fixtures unchanged + each B-item ≥1 new fixture, B1/B2 ≥2 (Q6), Phase C honest framing — C1 verify, C2 forward-prep, C3 record-only (Q7).",
+      "ba_reconciliation": "RATIFY_OPTION_C with codex risk encoded verbatim. User scope authority overrides codex technical advice. Codex's specific guidance encoded as binding execution constraints (Phase B Execution Constraints section in spec) to mitigate flagged risk. Honesty Contract: if Phase B regresses, close-report surfaces that as evidence supporting codex's verdict — NOT silently smoothed.",
+      "incorporated_changes": [
+        "Acknowledged-Risk Notice section added at top of spec — codex iter-1 verdict verbatim",
+        "Phase B Execution Constraints section added — sequential dev, pre-pass infrastructure first, dispatch order, strict AC, MarkdownView LOC cap, stop-on-blocker rule",
+        "Phase B AC granularity strict — each B-item AC requires existing 7 fixtures unchanged + ≥1 new fixture (B1/B2 ≥2)",
+        "Phase C ACs honest-framed — C1 verify-only (no source change), C2 forward-prep (renders nothing if absent — graceful default), C3 record-only (no source change)",
+        "#6 framed per codex Q5 verbatim: 'deferred to a Mermaid library/kernel investigation cycle per user instruction to 绕开 #6' — out_of_scope_observations entry added",
+        "AC-OUT-#6 added requiring close-report to use codex Q5 framing",
+        "Cycle-vs-Saga Completion Framing rewritten: 14 in-cycle + 1 out-of-saga = 20/20 catalog rows resolved",
+        "Codex Adversarial Consultation section split into Iteration 0 + Iteration 1 — both verdicts preserved",
+        "Per-Item Complexity Matrix expanded to include Phase B+C; codex risk markers per item"
+      ]
+    }
+  ],
+  "requirement": {
+    "original": "最终一次性彻底修复",
+    "translation": "Final one-shot complete fix",
+    "user_override": "改成 7+4+3 三阶段同 cycle 完成（A 渲染层 + B 纯解析器 + C 验证-only）—— 比 Phase A 大但比 14 项小，绕开纯研究项目（#6 mermaid 内核问题）",
+    "clarified": "Close saga spec-20260506-203755 in this single cycle by executing Phase A=7 + Phase B=4 + Phase C=3 = 14 in-cycle items, plus 1 explicit out-of-saga (#6 mermaid kernel) per user 绕开 directive. Combined with 5 already-DONE from prior cycles = 20 total catalog rows resolved when saga closes.",
+    "what": "Saga-closing cycle: Phase A render-layer (M1-M7), Phase B parser (B1-B4 sequential), Phase C verify-only / forward-prep / record-only (C1-C3). #6 explicitly out-of-saga.",
+    "why": "User has been through 3 prior cycles (1, 5, 6) on this saga and overrode the Phase-A-only call after seeing it. User's binding scope authority. Codex iter-1 flagged Phase B as regression risk; risk is acknowledged and mitigated with execution constraints encoded as binding.",
+    "where": [
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx (M1)",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx (M4)",
+      "packages/happy-app/sources/utils/codexToolRendering.ts (M5)",
+      "packages/happy-app/sources/components/tools/mcpHelpers.ts (M5)",
+      "packages/happy-app/sources/sync/typesRaw.ts (M6, M7 verify-only)",
+      "packages/happy-app/sources/components/MessageView.tsx (M6, M7 verify-only)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts (B1-B4 type extensions)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts (B1, B2, B4 span tokens)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts (B1, B2 pre-pass + B2 footnote-section + B3 depth + B4 <details> block)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx (B2, B3, B4 render handlers — must stay ≤800 lines)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts (additive fixtures for B1-B4; existing 7 unchanged)",
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx (C2 only)"
+    ],
+    "scope": {
+      "included": [
+        "Phase A — M1: Native mermaid HTML template mirrors Cycle 6 web fix viewBox-normalization",
+        "Phase A — M2: E2E proof for #1 mermaid scrollbar at desktop+mobile (web AND native)",
+        "Phase A — M3: E2E proof for #7 type-aware error key (en + zh-Hans, deliberately invalid mermaid fixture)",
+        "Phase A — M4: mhchem extension import in LatexRenderer (web import + native CDN script)",
+        "Phase A — M5: MCP strict chip — extend isMcpInlineChipOnlyTool predicate",
+        "Phase A — M6: Verify Skill prompt reaches WrappedEventBlock chip (no new ToolView)",
+        "Phase A — M7: Verify historical Command on replay reaches WrappedEventBlock chip (no new ToolView)",
+        "Phase B — B1: #10 reference-style links [text][ref] — pre-pass + lookup + literal-fallback for unresolved",
+        "Phase B — B2: #11 footnotes [^1] — pre-pass (recognize [^id]: BEFORE [id]:) + footnote-section trailing block + literal-fallback for unresolved",
+        "Phase B — B3: #13 nested ordered lists — depth field via Math.min(Math.floor(indent/2), 6)",
+        "Phase B — B4: #9 HTML inline — 4 span tokens (<mark>, <sub>, <sup>, <abbr>) + 1 block consumer (<details>) + 5 render handlers",
+        "Phase C — C1: #2 denominator UX verify-only (capture screenshots; surface user-clarification)",
+        "Phase C — C2: #14 AskUserQuestion forward-prep (preview?: string graceful default)",
+        "Phase C — C3: #3 capacity toggle record-only (close-report only)"
+      ],
+      "excluded": [
+        "#6 mermaid timeline/erDiagram/quadrantChart kernel issue (out-of-saga per user 绕开; close-report frames per codex Q5 verbatim)",
+        "Any CLI-side change for #14 (forward-prep only)",
+        "Any new UI feature for #3 (record-only)",
+        "Any source change for #2 (verify-only)",
+        "Any infrastructure cycle work (cp-state hooks, daemon, CLI binary)",
+        "Any change to parseMarkdown.test.ts existing 7 fixtures (Cycle 1 NONREG frozen)",
+        "Any code in MarkdownView.tsx pushing it over 800 lines (Cycle 5 NONREG; extract sibling if threatened)",
+        "Any new ToolView for #16/#18 (codex Q3 hard-block from iter-0)",
+        "Parallel sub-agents on Phase B parser files (codex Q3 iter-1 — sequential dev only)",
+        "Production access (hook-blocked)"
+      ]
+    },
+    "success_criteria": [
+      "AC1-AC14 all PASS with appropriate evidence (UI items: live screenshots desktop+mobile; parser items: fixture-based vitest pass; Phase C: verify/forward-prep/record evidence)",
+      "AC-OUT-#6 close-report framing PASSES per codex Q5 verbatim",
+      "All 6 NONREG checks PASS (parser 7 fixtures unchanged, table cell, mobile overflow, CronList, MarkdownView LOC ≤800, Cycle-6 web mermaid)",
+      "Saga spec-20260506-203755 Sections 4 + 6 + 7 updated; saga closed (modulo #6 carved out)",
+      "Close-report explicitly states saga closed and #6 carved out per 绕开",
+      "Close-report includes codex iter-1 risk verdict verbatim with honest framing of any Phase B regressions"
+    ],
+    "constraints": [
+      "Dev environment only (https://dev.life-ai.app)",
+      "Both desktop 1440x900 + mobile 390x844 verification mandatory for UI items",
+      "MarkdownView.tsx ≤ 800 lines (currently 755) — extract sibling if threatened",
+      "No new ToolView components",
+      "Sequential dev only for Phase B (codex Q3 binding) — B1 → B2 → B3 → B4",
+      "Pre-pass extractDefinitions infrastructure FIRST (recognizes [^id]: before [id]:)",
+      "consumeLink dispatch order: [text](url) → [^id] → [text][ref] → literal-fallback",
+      "Unresolved refs/footnotes MUST remain literal (NOT disappear)",
+      "Existing 7 parseMarkdown.test.ts fixtures unchanged",
+      "Each Phase B item adds ≥1 new fixture (B1, B2 ≥2 each)",
+      "Codex MCP function tools (functions.list_mcp_resources etc.) MUST stay chip-only when M5 lands",
+      "Specialized MCP views (image/screenshot) MUST be preserved when M5 lands",
+      "Stop-on-blocker rule: dev STOPS and emits clarification if Phase B reveals structural blocker"
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/components/tools/mcpHelpers.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx"
+    ],
+    "path_dependent_shared_infra": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx (Phase B render handlers; must stay ≤800 lines or extract sibling)",
+      "packages/happy-app/sources/sync/typesRaw.ts (verify-only for M6, M7)",
+      "packages/happy-app/sources/components/MessageView.tsx (verify-only for M6, M7; existing WrappedEventBlock primitive at 133-150 may be reused for B4 <details>)"
+    ],
+    "out_of_path_observed_but_not_touched": [
+      "#6 mermaid timeline/erDiagram/quadrantChart kernel — root cause is mermaid library version, not happy-app code; per user 绕开 directive, deferred to mermaid-library cycle"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-09T15:50Z",
+      "task_id": "20260509-152243",
+      "file": "docs/dev/specs/spec-20260506-203755.md (saga §5)",
+      "line": null,
+      "observation": "#6 mermaid timeline non-ASCII / erDiagram / quadrantChart kernel issue lies outside happy-app codebase; root cause is mermaid library version. Per user directive '绕开 #6', deferred to mermaid library/kernel investigation cycle (codex Q5 framing verbatim). Recorded for visibility; NOT fixed in this cycle.",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+  "root_cause_analysis": {
+    "symptom": "Saga has 14 remaining items per codex audit + 1 #6 explicit out-of-saga. User wants 7+4+3 same-cycle closure (modulo #6).",
+    "root_cause": "Cycle 1 attempted too-many-items + parser refactor and regressed; Cycle 6 landed source-only without native parity or E2E. The 7+4+3 partition under user override addresses Cycle 6's PARTIAL items (Phase A) + closes the parser slice that Cycle 1 deferred (Phase B) + honestly frames the verify/forward-prep/record-only items (Phase C) + carves out #6 per user 绕开.",
+    "root_cause_commit": "N/A — this is a saga-closure execution cycle, not a regression-bisect",
+    "why_introduced": "Saga's 17 items span 6 subsystems (parser, mermaid, KaTeX/mhchem, tool-rendering, MCP gates, context UI). User has explicit scope authority to bundle them in one cycle.",
+    "why_problematic": "Phase B's 4 parser items concentrate risk at a known-regression-prone area. Codex iter-1 verdict was DOWNSIZE_PHASE_B_TO_1. User overrode; risk acknowledged and mitigated with execution constraints encoded as binding.",
+    "timeline": "Saga began 2026-05-06. Cycles 1, 5, 6 prior. Cycle 7 = this dispatch (saga-closing).",
+    "affected_files": [
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx (M1)",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx (M4)",
+      "packages/happy-app/sources/utils/codexToolRendering.ts (M5)",
+      "packages/happy-app/sources/components/tools/mcpHelpers.ts (M5)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts (B1-B4 type extensions)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts (B1, B2, B4 tokens)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts (B1, B2 pre-pass, B2 footnote-section, B3 depth, B4 <details>)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx (B2, B3, B4 render handlers)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts (additive fixtures)",
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx (C2)"
+    ],
+    "evidence_type": "mixed",
+    "observations": [
+      "MermaidRenderer.tsx:216 has '.mermaid svg{max-width:100%;height:auto}' on native HTML template (observed: direct file Read 2026-05-09T15:24Z)",
+      "mhchem.js exists in node_modules/katex/contrib/mhchem.js (observed: ls 2026-05-09T15:25Z)",
+      "WrappedEventBlock at MessageView.tsx:133-150 already does chip+collapsible (observed: direct Read)",
+      "shouldRenderToolContent at codexToolRendering.ts:95-103 returns hasSpecializedView || isCodexSourceTool (observed: direct Read)",
+      "parseMarkdownSpans.ts is 210-line single-pass stateless tokenizer; consumeToken at line 159-169 dispatches by first char (observed: direct Read 2026-05-09T15:55Z)",
+      "parseMarkdownBlock.ts is 286-line single-pass; tryNumberedList at 216-232 currently FLAT no depth field (observed: direct Read)",
+      "MarkdownView.tsx is 755 lines with 13 block.type cases at lines 37-77 (observed: wc -l + grep 2026-05-09T15:55Z)",
+      "parseMarkdown.test.ts has 7 tests through line 158 (observed: direct Read)",
+      "AskUserQuestionView.tsx QuestionOption interface at lines 10-13 has only label, description (observed: direct Read 2026-05-09T15:56Z)",
+      "modelModeOptions.ts:118-122 getDefaultModelContextWindow returns 200_000 for codex, 1_000_000 for gemini and claude (observed: direct Read)",
+      "Codex iter-1 transcript /var/tmp/codex-outputs/codex-output-2877394-1778341599.txt verdict DOWNSIZE_PHASE_B_TO_1 (observed: direct Read)",
+      "Codex CLI permission JSON does NOT carry 'preview' field for AskUserQuestion (inferred from Cycle 6 probe report)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["最终", "一次性", "彻底修复", "saga", "7+4+3", "绕开", "#6"],
+    "localization_evidence": "Codex's prior audits (codex-output-1820383 + codex-output-2330268-iter0 + codex-output-2877394-iter1) provided file:line evidence. Direct source Reads on MermaidRenderer/LatexRenderer/codexToolRendering/MessageView/parseMarkdownSpans/parseMarkdownBlock/MarkdownView/AskUserQuestionView/parseMarkdown.test confirmed audit claims at the file/line level.",
+    "located_source": "Saga spec-20260506-203755.md §1 + §5 (17 bug catalog); current source state per codex audits + direct Reads; this cycle covers 14 in-cycle items + 1 out-of-saga (#6).",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "reason": "Not a regression bug; this is a saga-closure execution cycle. Each Phase A item is additive fix or verify-and-tighten. Phase B items are NEW additions. Phase C is verify/forward-prep/record-only. No bisect target."
+    }
+  },
+  "diagnosis_layer": "L3 + L4 (mixed)",
+  "fix_layer_for_phases": {
+    "phase_a": "L3 (data — native HTML template, mhchem import, MCP gate predicate, verify wrap envelope reaches existing chip)",
+    "phase_b": "L3 (data — type extensions, dispatch tokens) + L4 (logic — pre-pass infrastructure, dispatch order, footnote-section emission)",
+    "phase_c": "L3 (data — preview field) + observation/measurement (verify, record)"
+  },
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "最终一次性彻底修复",
+      "classification": "user-need clause (intent)",
+      "acceptance_criterion": "Saga closes in this cycle (modulo #6 carved out per 绕开). All 14 in-cycle items have ACs that PASS (AC1-AC14) + AC-OUT-#6 framing PASS + 6 NONREG PASS."
+    },
+    {
+      "id": "R2",
+      "source_phrase": "改成 7+4+3 三阶段同 cycle 完成（A 渲染层 + B 纯解析器 + C 验证-only）",
+      "classification": "user-need clause (binding scope partition)",
+      "acceptance_criterion": "Phase A delivers 7 (M1-M7); Phase B delivers 4 (B1-B4) sequentially with codex iter-1 execution constraints; Phase C delivers 3 (C1-C3) with honest verify/forward-prep/record-only framing."
+    },
+    {
+      "id": "R3",
+      "source_phrase": "绕开纯研究项目（#6 mermaid 内核问题）",
+      "classification": "user-need clause (out-of-scope directive)",
+      "acceptance_criterion": "#6 NOT touched in this cycle. AC-OUT-#6: close-report uses codex Q5 framing verbatim; #6 documented with 3 failing types + sanitizer scope + recommended approach options."
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+      "line_range": "206-220",
+      "role": "Native HTML template injected into WebView; needs to mirror Cycle 6 web fix at lines 39-74",
+      "imports_from": "leaf (component is a leaf renderer; emits <WebView source={{html}}>)",
+      "evidence": "grep 'max-width' on file shows :42 (web template, fixed) and :216 (native template, unfixed)",
+      "verified_via": "grep + Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "line_range": "16-20, 79-81",
+      "role": "Web path uses dynamic import('katex'); native path uses CDN <script src=katex>. mhchem must be added to BOTH.",
+      "imports_from": "katex package (node_modules) on web; CDN on native",
+      "evidence": "Read confirmed line 17 'await import(katex)'; line 81 native HTML template script tag",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "line_range": "95-103",
+      "role": "shouldRenderToolContent gates whether tool body renders. Currently: hasSpecializedView || isCodexSourceTool. Needs MCP-aware tightening.",
+      "imports_from": "tools/mcpHelpers.ts (isMcpInlineChipOnlyTool)",
+      "evidence": "Read of lines 95-103 confirms current return statement",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/mcpHelpers.ts",
+      "line_range": "(predicate isMcpInlineChipOnlyTool)",
+      "role": "Existing MCP chip-only whitelist predicate. Must be extended (per codex Q4) to cover codex MCP function tools (functions.list_mcp_resources, functions.list_mcp_resource_templates, functions.read_mcp_resource).",
+      "imports_from": "leaf",
+      "evidence": "Codex audit cited mcpHelpers.ts:11-14 as the existing predicate location",
+      "verified_via": "codex audit transcript"
+    },
+    {
+      "file": "packages/happy-app/sources/sync/typesRaw.ts",
+      "line_range": "578-585",
+      "role": "Builds 'wrap' envelope on session-message normalization (replay path included). Skill + historical Command both flow through this.",
+      "imports_from": "leaf (data normalization)",
+      "evidence": "Codex audit cited as the wrap-envelope construction site for #18; needs replay E2E to confirm coverage for #16 too",
+      "verified_via": "codex audit transcript (M6/M7 verify-only; dev confirms in cycle)"
+    },
+    {
+      "file": "packages/happy-app/sources/components/MessageView.tsx",
+      "line_range": "133-175",
+      "role": "WrappedEventBlock at 133-150 renders chip + collapsible. Dispatched at 174-175 from AgentEventBlock when event.type==='wrapped'. May be reused for B4 <details>.",
+      "imports_from": "MarkdownView (for expanded content)",
+      "evidence": "Direct Read of lines 125-180 confirmed structure exactly matches user's CronDelete chip target",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "line_range": "3-46 (MarkdownBlock union), 48-54 (MarkdownSpan)",
+      "role": "Type definitions. Phase B extends with: footnote-section block variant + footnote-ref/refLink span properties + numbered-list item depth field + 4 new MarkdownSpan styles (mark/sub/sup/abbr) + <details> block variant.",
+      "imports_from": "parseMarkdownBlock",
+      "evidence": "Direct Read 2026-05-09T15:55Z; current shape is union of 13 block variants",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "line_range": "117-124 (consumeLink), 159-169 (consumeToken dispatch)",
+      "role": "B1: extend consumeLink with [text][ref] fallback. B2: new [^id] token. B4: new <mark>/<sub>/<sup>/<abbr> tokens (mirror consumeKbdSpan at 109-115). Dispatch order at [: [text](url) → [^id] → [text][ref] → literal-fallback (codex Q2).",
+      "imports_from": "parseMarkdown (MarkdownSpan type)",
+      "evidence": "Direct Read 2026-05-09T15:55Z; 210 lines stateless single-pass",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "line_range": "216-232 (tryNumberedList), 209-213 (tryOptionsBlock model for <details>), 16-27 (parseListItemLine model for B3 depth)",
+      "role": "B1+B2: shared extractDefinitions(lines) pre-pass returns {refDefs: Map, footnoteDefs: Map} + suppressed-line-indices Set (recognizes [^id]: BEFORE [id]:). B2: emit footnote-section as final synthetic block. B3: tryNumberedList depth via Math.min(Math.floor(indent/2), 6). B4: <details> block consumer (mirror tryOptionsBlock pattern).",
+      "imports_from": "parseMarkdownSpans (parseMarkdownSpans), parseMarkdown (MarkdownBlock)",
+      "evidence": "Direct Read 2026-05-09T15:55Z; 286 lines single-pass; tryNumberedList currently FLAT",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line_range": "37-77 (block.type dispatch)",
+      "role": "Block.type dispatch. Phase B adds 5 new render handlers (footnote-section, depth-aware OL, mark/sub/sup/abbr inline, <details> block). Currently 755 lines; ≤800 cap. If render handlers threaten cap, extract sibling per Cycle 5 MarkdownTableWeb.tsx pattern.",
+      "imports_from": "parseMarkdown types, MarkdownTableWeb (Cycle 5 extraction)",
+      "evidence": "wc -l + grep on block.type 2026-05-09T15:55Z",
+      "verified_via": "Read + grep"
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "line_range": "1-159",
+      "role": "7 existing fixtures (Cycle 1 frozen NONREG). Phase B adds: B1 ≥2 fixtures (resolved-ref + unresolved-literal + table-cell ref), B2 ≥2 fixtures (resolved-footnote + unresolved-literal + ordering check), B3 ≥1 fixture (depth 1 inner), B4 ≥5 fixtures (one per element).",
+      "imports_from": "parseMarkdown",
+      "evidence": "Direct Read 2026-05-09T15:55Z",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx",
+      "line_range": "10-13 (QuestionOption interface), 304-360 (option render path)",
+      "role": "C2: add preview?: string to QuestionOption interface. Render path emits preview content (single-line) below option label if present, nothing if absent (graceful default per codex Q4).",
+      "imports_from": "leaf (component)",
+      "evidence": "Direct Read 2026-05-09T15:56Z; current QuestionOption has {label, description}",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "line": 0,
+      "type": "size-cap",
+      "code_snippet": "(file is currently 755 lines; Cycle 5 enforced ≤800)",
+      "purpose": "Prevent component-bloat regression after Cycle 5's MarkdownTableWeb extraction",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "line": 0,
+      "type": "test-suite",
+      "code_snippet": "7/7 PASS for Cycle 1 parser fixes (#5 ***bold-italic***, #12 \\* escape)",
+      "purpose": "Freeze Cycle 1 parser correctness; never regress",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+      "line": 0,
+      "type": "render-prop extraction",
+      "code_snippet": "Cycle 5 #5b fix; web table cells use <Text>-wrapped RenderSpans",
+      "purpose": "Inline markdown in table cells works; do not regress",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "line": 949,
+      "type": "subtitle-null-on-empty",
+      "code_snippet": "CronList.extractSubtitle returns null on empty keys (Cycle 5 #15 fix)",
+      "purpose": "Zero-arg {} chip rendering",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/messages/MessageView.tsx",
+      "line": 211,
+      "type": "flex-overflow-blocker",
+      "code_snippet": "Mobile wide-table sibling overflow blocker (Cycle 5 #4 fix)",
+      "purpose": "Page-level overflow blocked at 390x844 even with super-wide tables",
+      "removal_authorized": false
+    },
+    {
+      "file": "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+      "line": 39,
+      "type": "viewBox-normalization (Cycle 6 web)",
+      "code_snippet": "Web mermaid viewBox-based intrinsic-width normalization (Cycle 6)",
+      "purpose": "Web mermaid scrollWidth>clientWidth at narrow viewport. Phase A M1 mirrors this to native; must NOT regress web behavior.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "applicability": "applicable",
+    "viewport": "1440x900 desktop AND 390x844 mobile",
+    "theme": "both",
+    "locale": "en + zh-Hans (locale switch required for AC3 #7 verify)",
+    "auth_state": "logged-in (dev account cmi5mv9eh00wzpg14ph73jj3n)",
+    "data_state": "with-data (existing dev sessions; up to 3 NEW dev fixture sessions created via UI for M2 wide-mermaid + M3 invalid-mermaid + Phase B parser E2E)",
+    "browser": "Chrome desktop + Chrome mobile-viewport",
+    "url_path": "https://dev.life-ai.app"
+  },
+  "evidence": {
+    "observed": "User: '最终一次性彻底修复'. After BA proposed Phase-A-only (codex OPTION_B_PHASED), user OVERRODE with binding directive '改成 7+4+3 三阶段同 cycle 完成（A 渲染层 + B 纯解析器 + C 验证-only）—— 比 Phase A 大但比 14 项小，绕开纯研究项目（#6 mermaid 内核问题）'.",
+    "measured": {
+      "value": "{'phase_a':7, 'phase_b':4, 'phase_c':3, 'in_cycle_total':14, 'out_of_saga':1, 'already_done_prior':5, 'grand_total':20}",
+      "location": "saga spec-20260506-203755.md §1 + §5; codex audit transcripts at /var/tmp/codex-outputs/"
+    },
+    "expected": {
+      "value": "Saga closed (modulo #6 carved out per 绕开). All 14 in-cycle ACs PASS + AC-OUT-#6 framing PASS + 6 NONREG PASS.",
+      "source": "User binding directive + codex iter-1 verdict DOWNSIZE_PHASE_B_TO_1 reconciled via execution constraints"
+    },
+    "gap": "User wants 14-item one-shot; codex iter-1 says max Phase A + Phase C + B3 = 11 honestly safe. Gap: 3 items (B1, B2, B4) at acknowledged-risk. Mitigation: codex iter-1 execution constraints encoded as binding (sequential dev, pre-pass first, dispatch order, strict AC, stop-on-blocker)."
+  },
+  "scope_expansion": {
+    "search_pattern": "all 17 catalogued bug IDs in saga spec §1 + §5",
+    "search_scope": "packages/happy-app/sources/**",
+    "user_reported": [
+      "all 17 bugs in saga spec-20260506-203755 §1 + §5"
+    ],
+    "additional_found": [],
+    "all_occurrences": [
+      "MermaidRenderer.tsx:216 native max-width:100% (M1)",
+      "LatexRenderer.tsx:17 dynamic import('katex') (M4)",
+      "codexToolRendering.ts:95-103 shouldRenderToolContent (M5)",
+      "mcpHelpers.ts isMcpInlineChipOnlyTool predicate (M5)",
+      "typesRaw.ts:578-585 wrap envelope construction (M6, M7 verify)",
+      "MessageView.tsx:133-150 WrappedEventBlock primitive (M6, M7 verify)",
+      "parseMarkdownSpans.ts:117-124 consumeLink (B1)",
+      "parseMarkdownSpans.ts:159-169 consumeToken dispatch (B1, B2, B4)",
+      "parseMarkdownBlock.ts:216-232 tryNumberedList FLAT (B3)",
+      "parseMarkdownBlock.ts:209-213 tryOptionsBlock model for <details> (B4)",
+      "parseMarkdownBlock.ts:16-27 parseListItemLine model for B3 depth",
+      "parseMarkdown.ts MarkdownBlock + MarkdownSpan unions (B1, B2, B3, B4)",
+      "MarkdownView.tsx:37-77 block.type dispatch (B2, B3, B4 render handlers)",
+      "AskUserQuestionView.tsx:10-13 QuestionOption interface (C2)",
+      "modelModeOptions.ts:118-122 getDefaultModelContextWindow (C1 verify-only)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Codex live source inspection 2026-05-09T15:13Z + iter-0 + iter-1; tier_1_external KaTeX mhchem documentation; tier_1_external CommonMark reference-link + GFM footnote spec for parser correctness anchoring",
+    "url_or_location": "/var/tmp/codex-outputs/codex-output-1820383-1778339156.txt (file:line audit) + /var/tmp/codex-outputs/codex-output-2330268-1778340295.txt (iter-0) + /var/tmp/codex-outputs/codex-output-2877394-1778341599.txt (iter-1) + https://katex.org/docs/libs#mhchem (mhchem) + https://spec.commonmark.org/0.30/#link-reference-definitions (B1 ref-link spec) + https://github.github.com/gfm/#footnote-block-references (B2 footnote spec; GFM extension) + MermaidRenderer.tsx:39-74 Cycle 6 web fix (tier_2 mirror reference for M1)",
+    "copy_allowed": true,
+    "role_table": null,
+    "role_table_source": "no project CLAUDE.md role table (CLAUDE.md exists but does not declare a CTA/body/neutral role-token map; design tokens flow through Unistyles theme.colors.* — see project CLAUDE.md 'Unistyles Styling Guide' section). Token-role grounding contract logged: no role-table conflict possible because no role-table declared."
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/close-report-20260507-055611.md (Cycle 1)",
+        "proposed_solution": "Parser fixes for #5/#12 + global structure fix attempts for table/mermaid",
+        "actual_change": "Parser *** boundary + \\* escape correct; ordered-list parser overhaul regressed; table inline markdown regressed; mobile overflow regressed",
+        "outcome": "#5/#12 frozen-correct; #5b/#4 regressed; user fed back 5 new bugs",
+        "failure_category": "wrong_scope",
+        "target_layer": "L3+L4"
+      },
+      {
+        "artifact_path": "docs/dev/close-report-20260508-134003.md (Cycle 5)",
+        "proposed_solution": "Extract MarkdownTableWeb.tsx render-prop fix for #5b; CronList.extractSubtitle fix for #15",
+        "actual_change": "MarkdownView.tsx 819→755 lines + new MarkdownTableWeb.tsx 214 LOC + 1-line knownTools.tsx",
+        "outcome": "#5b + #15 verified-E2E PASS; #4 re-probed PASS",
+        "failure_category": "none",
+        "target_layer": "L2+L3"
+      },
+      {
+        "artifact_path": "docs/dev/close-report-20260508-211705.md (Cycle 6)",
+        "proposed_solution": "Mermaid scrollbar (#1 source) + type-aware error (#7 source) + mhchem investigation + denominator investigation",
+        "actual_change": "MermaidRenderer.tsx web viewBox normalization; i18n key for diagram type; mode-aware denominator scaffold",
+        "outcome": "PARTIAL on all four — source landed but E2E gaps; native path unchanged; CLI payload negative for #14",
+        "failure_category": "symptom_treatment",
+        "target_layer": "L3 (web-only, missed cross-platform parity)"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L3 + L4 (mixed): Phase A is L3 mirror + L2 verify; Phase B is L3 type extensions + L4 dispatch logic + pre-pass infrastructure; Phase C is L3 forward-prep + observation",
+      "differs_from_all_priors": true,
+      "rationale": "Cycle 1 attempted parser changes too broadly without strict ACs and regressed. This cycle re-enters parser (Phase B) but with codex iter-1's binding execution constraints: sequential dev only (Q3), pre-pass infrastructure FIRST (codex Q1 mitigation), [text](url)→[^id]→[text][ref]→literal dispatch order (Q2), strict ACs with existing 7 fixtures unchanged + each B-item ≥1 fixture (Q6), stop-on-blocker rule. Cycle 6's symptom_treatment failure (web-only without native parity) is addressed by Phase A's M1 native mirror. Phase C's honest framing (verify/forward-prep/record-only NOT 'fix') is a NEW honesty discipline. Risk acknowledgment: codex iter-1 verdict DOWNSIZE_PHASE_B_TO_1 is encoded verbatim in spec — if Phase B regresses, close-report surfaces that as evidence supporting codex (NOT silently smoothed)."
+    }
+  },
+  "context": {
+    "codebase_state": "M .codex-harness/parity-matrix.json + M .codex-harness/workflows/019e0101-... (unrelated to this saga)",
+    "recent_commits": "ff51184e ci(typecheck): bump node-version 20->22; 84961a10 recover(happy): joint session-A+session-B post-filter-repo recovery; e2e32958 fix(happy-cli): close spec-20260506-203844 §5.3.D bullet 5; cafdf628 docs(dev): close-report + 3 inspector reports for cycle 20260507-191743 (CLOSE: YES); 92773562 feat(happy-app): tool-rendering matrix completion for spec-20260506-203844 (cycles 2-4)",
+    "file_contents": {
+      "MermaidRenderer.tsx:206-220": "Native HTML template; line 215-216: '#mc{...width:100%}.mermaid{...width:100%}.mermaid svg{max-width:100%;height:auto}'",
+      "LatexRenderer.tsx:16-20": "renderKatexToString: 'const katex = await import(\"katex\");'",
+      "MessageView.tsx:133-150": "WrappedEventBlock(label, content): chip + collapsible expand using MarkdownView for content",
+      "codexToolRendering.ts:95-103": "shouldRenderToolContent returns hasSpecializedView || isCodexSourceTool (no MCP awareness)",
+      "parseMarkdownSpans.ts:159-169": "consumeToken dispatches by first char: ` `, <kbd>, $, ~~, ***, **, *, [",
+      "parseMarkdownBlock.ts:216-232": "tryNumberedList — currently FLAT, no depth field on items",
+      "AskUserQuestionView.tsx:10-13": "interface QuestionOption { label: string; description: string; } — preview?: string field MISSING",
+      "modelModeOptions.ts:118-122": "getDefaultModelContextWindow: codex 200_000, gemini 1_000_000, default (incl. claude) 1_000_000"
+    },
+    "dependencies": {
+      "katex@0.16": "installed in packages/happy-app/node_modules; mhchem.js confirmed at packages/happy-app/node_modules/katex/contrib/mhchem.js",
+      "mermaid@11": "loaded via CDN in MermaidRenderer.tsx native HTML"
+    },
+    "environment": {
+      "dev_url": "https://dev.life-ai.app",
+      "dev_api": "https://api-dev.life-ai.app",
+      "dev_account_id": "cmi5mv9eh00wzpg14ph73jj3n",
+      "dev_daemon": "happy-daemon-dev.service",
+      "playwright_login_helper": "scripts/playwright-login-dev.js"
+    }
+  },
+  "development_approach": {
+    "strategy": "Three-phase same-cycle execution under user override. Phase A: render-layer mirror+import+predicate-tighten+verify. Phase B: parser sequential dev (B1→B2→B3→B4) with pre-pass infrastructure first, codex iter-1 binding execution constraints. Phase C: verify-only/forward-prep/record-only with honest framing.",
+    "phase_b_execution_constraints": [
+      "Sequential dev only — single dev owner, B1 → B2 → B3 → B4 (codex Q3)",
+      "Pre-pass infrastructure FIRST: extractDefinitions(lines) returns {refDefs: Map, footnoteDefs: Map} + suppressed-line-indices Set; recognizes [^id]: BEFORE [id]: (codex Q1 + Q2)",
+      "consumeLink dispatch order at [: [text](url) → [^id] → [text][ref] → literal-fallback (codex Q2)",
+      "Unresolved refs/footnotes MUST remain literal, NOT disappear (codex Q2)",
+      "<details> is block-level (parseMarkdownBlock.ts), NOT span-level (codex Q3 disambiguation)",
+      "Strict AC: existing 7 parseMarkdown.test.ts fixtures unchanged + each B-item ≥1 new fixture; B1, B2 ≥2 (codex Q6)",
+      "MarkdownView.tsx ≤800 lines; if threatened, extract sibling renderer file (Cycle 5 MarkdownTableWeb.tsx pattern)",
+      "Stop-on-blocker rule: dev STOPS and emits clarification if any B-item reveals structural blocker"
+    ],
+    "files_to_create": [
+      "(0 source files; up to 3 dev fixture sessions created via UI for M2 wide-mermaid + M3 invalid-mermaid + Phase B parser E2E)"
+    ],
+    "files_to_modify": [
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx (M1)",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx (M4)",
+      "packages/happy-app/sources/utils/codexToolRendering.ts (M5)",
+      "packages/happy-app/sources/components/tools/mcpHelpers.ts (M5)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts (B1, B2, B3, B4)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts (B1, B2, B4)",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts (B1, B2, B3, B4)",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx (B2, B3, B4 render handlers)",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts (additive; existing 7 unchanged)",
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx (C2)"
+    ],
+    "validation_approach": "QA executes AC1-AC14 with appropriate evidence (UI items: live Playwright at desktop+mobile with screenshots; parser items: fixture-based vitest pass with existing 7 unchanged + each B-item adds ≥1 new fixture; Phase C: verify screenshots / forward-prep render-nothing-when-absent / close-report content). Locale switching for AC3 (en + zh-Hans). Native verification for AC1/AC4 may use RN simulator OR documented WebView-equivalence proof per Cycle 6 precedent. All 6 NONREG checks must PASS. AC-OUT-#6 framing checked by close-report grep."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "iterations": [
+      {
+        "iter": 0,
+        "verdict": "OPTION_B_PHASED",
+        "transcript": "/var/tmp/codex-outputs/codex-output-2330268-1778340295.txt",
+        "feedback_summary": "Tier-A 10-item one-shot too optimistic; #10/#11/#9/#13 defer to parser cycle. Native mermaid fix needs viewBox-normalization mirror. NO new SkillToolView. #17 use existing isMcpInlineChipOnlyTool predicate. #18 chip-only NO TaskView. Reclassifying as out-of-saga is dodging — Phase B/C deferral with explicit dispatch plan."
+      },
+      {
+        "iter": 1,
+        "verdict": "DOWNSIZE_PHASE_B_TO_1",
+        "transcript": "/var/tmp/codex-outputs/codex-output-2877394-1778341599.txt",
+        "feedback_summary": "Codex stated: 'I would NOT ratify Option C as a 14-item implementation cycle. Phase A + Phase C is tolerable; Phase B as listed is the regression trap. If user refuses Phase-A-only, safest compromise is Phase A + Phase C + only B3. Defer B1/B2/B4 to a dedicated parser cycle.' Specific guidance: Q1 Phase B not safely composable due to stateless tokenizer + table-cell render-time parsing; Q2 dispatch order [text](url)→[^id]→[text][ref]→literal, [^id]: before [id]:; Q3 sequential dev not parallel; Q4 graceful default for #14, NOT structural rejection; Q5 #6 framing 'deferred to mermaid library/kernel investigation cycle per 绕开'; Q6 strict AC — existing 7 fixtures unchanged + each B-item ≥1 fixture, B1/B2 ≥2, NO 70%+manual-E2E substitute; Q7 Phase C is NOT three fixes (C1 verify, C2 forward-prep, C3 record-only).",
+        "feedback_incorporated": "RATIFY_OPTION_C with codex risk encoded verbatim. User scope authority overrides codex technical advice. Codex's specific guidance encoded as binding execution constraints in 'Phase B Execution Constraints' section. Honesty Contract: if Phase B regresses, close-report surfaces that as evidence supporting codex iter-1 verdict — NOT silently smoothed. Phase C honest-framed (C1 verify, C2 forward-prep, C3 record-only). #6 framing per Q5 verbatim."
+      }
+    ]
+  },
+  "saga_completion_estimate": {
+    "after_this_cycle": "20/20 catalog rows resolved — saga closed (modulo #6 carved out per 绕开). 5 already-DONE (#5, #5b, #4, #15, #12) + 7 Phase A (#1 web+native, #7, #8, #16, #17, #18) + 4 Phase B (#10, #11, #13, #9) + 3 Phase C (#2 verify, #14 forward-prep, #3 record) + 1 explicit out-of-saga (#6 framing). NO Phase B/C deferred to future cycles.",
+    "honest_framing_for_user": "Saga closes in Cycle 7 under user override. Codex iter-1 flagged Phase B as regression-trap; risk acknowledged and mitigated with execution constraints. If Phase B regresses, close-report surfaces that as evidence supporting codex's verdict. Phase C items are honest-framed (verify-only / forward-prep / record-only — NOT 'fixes'). #6 carved out per 绕开 to mermaid-library cycle."
+  }
+}

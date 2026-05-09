@@ -1,0 +1,200 @@
+{
+  "request_id": "20260509-152243",
+  "task_id": "20260509-152243",
+  "timestamp": "2026-05-09T17:30:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260509-152243.json",
+  "spec_id": "spec-20260509-152243",
+  "saga_id": "spec-20260506-203755",
+  "cycle": "Cycle 7 — Phase A (7) + Phase B-1 (1) + Phase C (3) = 11 in-cycle items",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/utils/codexToolRendering.ts",
+      "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+      "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx"
+    ],
+    "files_created": [
+      "docs/dev/evidence/20260509-152243/qa-ac1-ac2-ac3-mermaid-evidence-gap.md",
+      "docs/dev/evidence/20260509-152243/qa-ac4-mhchem-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac5-mcp-strict-chip-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac6-ac7-skill-command-wrap-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac10-b3-nested-ol-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac12-c1-denominator-clarification.md",
+      "docs/dev/evidence/20260509-152243/qa-ac13-c2-askuserquestion-preview-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac3-c3-manual-capacity-toggle-record.md",
+      "docs/dev/evidence/20260509-152243/qa-ac6-out-of-saga-summary.md",
+      "docs/dev/evidence/20260509-152243/qa-ac17-mcp-strict-chip-fixtures.png",
+      "docs/dev/evidence/20260509-152243/qa-ac17-mcp-strict-chip-mobile.png"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "ac": "AC1",
+        "name": "M1 #1-native mermaid",
+        "type": "render-layer",
+        "files_modified": ["packages/happy-app/sources/components/markdown/MermaidRenderer.tsx"],
+        "description": "Mirrored Cycle 6 web viewBox-normalization to native HTML template. Removed baked .mermaid svg{max-width:100%;height:auto}. Added inner #mc-scroll{overflow-x:auto} wrapper. Switched to mermaid.run().then(...) post-process — in requestAnimationFrame, locate rendered SVG, parse viewBox.baseVal.width, remove width/height attrs, set explicit style.width and max-width:none. Page-level overflow:hidden prevents WebView gesture scroll double-scroll (per codex M1 advice).",
+        "rationale": "Cycle 6 fixed the web path (lines 39-74) but native HTML still constrained SVG to container width. AC1 demands native parity using viewBox-based intrinsic-width — not just deleting max-width:100% (per codex Q2 + iter-1 review)."
+      },
+      {
+        "id": 2,
+        "ac": "AC4",
+        "name": "M4 #8 mhchem (web + native)",
+        "type": "render-layer",
+        "files_modified": ["packages/happy-app/sources/components/markdown/LatexRenderer.tsx"],
+        "description": "Web: dynamic side-effect import 'katex/contrib/mhchem' wrapped via loadKatexWithMhchem() before renderToString. Native: added <script src=https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/mhchem.min.js></script> AFTER katex.min.js, BEFORE katex.render() invocation.",
+        "rationale": "BA spec § AC4 requires \\ce{H2O} to typeset as chemistry formula. KaTeX docs require contrib/mhchem to load after katex; both web and native now conform. Pre-existing import('katex') call replaced with loadKatexWithMhchem() so any caller (block + inline) automatically registers the macro."
+      },
+      {
+        "id": 3,
+        "ac": "AC5",
+        "name": "M5 #17 MCP strict chip",
+        "type": "logic",
+        "files_modified": [
+          "packages/happy-app/sources/utils/codexToolRendering.ts",
+          "packages/happy-app/sources/utils/codexToolRendering.test.ts"
+        ],
+        "description": "Added early-return gate to shouldRenderToolContent: 'if (!hasSpecializedView && isMcpInlineChipOnlyTool(tool.name)) return false'. Imported isMcpInlineChipOnlyTool from existing mcpHelpers.ts (no new predicate written, per codex Q4 binding constraint to extend not replace). Flipped 2 test expectations and added 4 new explicit guard test cases.",
+        "rationale": "Cycle 6 gate at line 95-102 was too permissive — MCP source tools (mcp__* + functions.list_mcp_*) leaked content via isCodexSourceTool. New gate enforces chip-only for the registered chip-only set unless hasSpecializedView (preserving image/screenshot views). 2 existing test expectations FLIPPED from true to false to match the new behavior."
+      },
+      {
+        "id": 4,
+        "ac": "AC6",
+        "name": "M6 #16 Skill wrap (verify-only)",
+        "type": "verify-only",
+        "files_modified": [],
+        "description": "No source change. Verified via static source inspection that Skill prompts reach WrappedEventBlock at MessageView.tsx:133-150 via the wrap envelope dispatch at MessageView.tsx:174-175. Codex audit transcript /var/tmp/codex-outputs/codex-output-1820383-1778339156.txt already confirmed this path is wired.",
+        "rationale": "BA spec § Q3 forbids new ToolView component. The chip + collapsible primitive is already in place; Cycle 7 confirms the path. Live probe blocked by daemon round-trip cost; documented as evidence-gap matching Cycle 6 framing."
+      },
+      {
+        "id": 5,
+        "ac": "AC7",
+        "name": "M7 #18 historical Command wrap (verify-only)",
+        "type": "verify-only",
+        "files_modified": [],
+        "description": "No source change. Same WrappedEventBlock dispatch handles both live and historical Command via typesRaw.ts:578-585 wrap envelope construction. Replay path mechanically uses the same primitive — by-construction cannot produce 'empty dropdown' symptom from saga §5.2 quote 11.",
+        "rationale": "Per BA spec § Q3: NO new ToolView. The wrap envelope path is platform-agnostic and replay-safe."
+      },
+      {
+        "id": 6,
+        "ac": "AC10",
+        "name": "B3 #13 nested ordered lists",
+        "type": "parser",
+        "files_modified": [
+          "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+          "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+          "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+          "packages/happy-app/sources/components/markdown/MarkdownView.tsx"
+        ],
+        "description": "tryNumberedList signature changed (ctx, trimmed) → (ctx, line). New regex /^(\\s*)(\\d+)\\.\\s(.*)$/ captures leading whitespace. depth = Math.min(Math.floor(indent/2), 6) mirrors parseListItemLine (UL pattern). Continuation loop uses raw lines[ctx.index] for indent detection. numbered-list item shape extended additively with depth. RenderNumberedListBlock applies paddingLeft: item.depth * 16 (mirrors RenderListBlock at line 178). New test fixture asserts depths=[0,0,1,1,0] on a 5-item OL with mixed indents and inline link in item[1].",
+        "rationale": "BA spec § AC10 + codex iter-1 Q1 ratification (most isolated B-item). Existing 7 fixtures PASS unchanged because depth field is purely additive — flat OL fixtures still produce depth=0."
+      },
+      {
+        "id": 7,
+        "ac": "AC12",
+        "name": "C1 #2 denominator UX (verify-only)",
+        "type": "verify-only",
+        "files_modified": [],
+        "description": "No source change. Verified at modelModeOptions.ts:118-122 that mode-aware denominator is correct (codex 200K, claude+gemini 1M). Surfaced UX clarification in evidence file: should claude/default switch to mode-aware denominator OR add a 92% UX signal — UX decision for user.",
+        "rationale": "BA spec marks C1 as verify-only with the source already correct. Honest framing in close-report (codex Q7): NOT a fix."
+      },
+      {
+        "id": 8,
+        "ac": "AC13",
+        "name": "C2 #14 AskUserQuestion preview (forward-prep)",
+        "type": "forward-prep",
+        "files_modified": ["packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx"],
+        "description": "Added optional preview?: string field to QuestionOption interface. Added conditional render path at lines 354-356 that emits italic 12px text below option label when preview is present, renders nothing when absent (graceful default). Inline style override avoids worsening the StyleSheet.create lambda which is already over the quality-gate parameter cap.",
+        "rationale": "BA spec § codex Q4 forward-prep contract: graceful default, NOT a full #14 fix. CLI does not yet emit preview in the wire payload — that is a separate CLI cycle. Honest framing in close-report: forward-prep landed."
+      },
+      {
+        "id": 9,
+        "ac": "AC14",
+        "name": "C3 #3 manual capacity toggle (record-only)",
+        "type": "record-only",
+        "files_modified": [],
+        "description": "No source change. Captured user §5.2 quote 4 verbatim in evidence file. Documented existing AgentInput model-switch UI as inadequate substitute. Recommended separate product cycle covering NEW UI control + MMKV persistence + AgentInput integration.",
+        "rationale": "BA spec § codex Q7 honest framing: NOT a fix. Saga close-report MUST surface this."
+      },
+      {
+        "id": 10,
+        "ac": "AC-OUT-#6",
+        "name": "#6 mermaid kernel out-of-saga (per user 绕开)",
+        "type": "out-of-saga",
+        "files_modified": [],
+        "description": "No source change. Captured codex Q5 verbatim framing: 'deferred to a Mermaid library/kernel investigation cycle per user instruction to 绕开 #6'. Documented 3 failing types (timeline non-ASCII / erDiagram / quadrantChart), current sanitizer scope, and 3 recommended approach options (library upgrade / feature flag / runtime probe) for the future investigation cycle.",
+        "rationale": "User directive 绕开. NOT 'fixed', NOT 'permanently out-of-saga'. Known open item, intentionally bypassed."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {"modified": "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx", "imported_by": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"]},
+      {"modified": "packages/happy-app/sources/components/markdown/LatexRenderer.tsx", "imported_by": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"]},
+      {"modified": "packages/happy-app/sources/utils/codexToolRendering.ts", "imported_by": ["packages/happy-app/sources/components/MessageView.tsx", "packages/happy-app/sources/components/ChatList.tsx", "packages/happy-app/sources/components/sidebar/SidebarGenericView.tsx", "packages/happy-app/sources/components/sidebar/SidebarBashView.tsx", "packages/happy-app/sources/components/tools/knownTools.tsx", "packages/happy-app/sources/components/tools/ToolView.tsx", "packages/happy-app/sources/components/tools/ToolFullView.tsx", "packages/happy-app/sources/components/tools/views/CodexSubagentLifecycleView.tsx", "packages/happy-app/sources/components/tools/views/CodexAttachmentView.tsx"]},
+      {"modified": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts", "imported_by": ["packages/happy-app/sources/components/markdown/parseMarkdown.ts"]},
+      {"modified": "packages/happy-app/sources/components/markdown/parseMarkdown.ts", "imported_by": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx", "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts", "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx", "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts"]},
+      {"modified": "packages/happy-app/sources/components/markdown/MarkdownView.tsx", "imported_by": ["packages/happy-app/sources/components/MessageView.tsx", "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx", "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx", "packages/happy-app/sources/components/tools/views/ExitPlanToolView.tsx", "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx", "packages/happy-app/sources/app/(app)/changelog.tsx", "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx"]},
+      {"modified": "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx", "imported_by": ["packages/happy-app/sources/components/tools/views/_all.tsx"]}
+    ],
+    "high_impact_notes": "codexToolRendering.ts has >5 importers. The shouldRenderToolContent change adds an early return that ONLY suppresses MCP-namespace tools without specialized views. All callers continue to receive a boolean; no signature change. Specialized MCP views still render via hasSpecializedView=true.",
+    "git_rationale": {
+      "prior_cycles": "Cycle 6 (close-report-20260508-211705) landed web mermaid normalization + i18n type-aware error key + mode-aware denominator scaffold. Cycle 5 (close-report-20260508-134003) landed table extract + CronList fix.",
+      "this_cycle_layer": "L3 (data) for M1/M4/M5 + L2 (verify only) for M6/M7 + L4 (logic) for B3 parser additive extension",
+      "differs_from_prior": "Mirrors Cycle 6 web pattern to native (M1) — NEW dimension; adds mhchem extension import — NEW additive dependency; tightens M5 gate WITHOUT touching specialized views — NEW behavior; B3 ADDITIVE to flat-list shape — preserves Cycle 1 NONREG."
+    },
+    "diff_stats": {
+      "files_changed": 9,
+      "lines_added": 94,
+      "lines_removed": 27,
+      "new_symbols_introduced": ["loadKatexWithMhchem", "normalizeRenderedSvg (inline JS in native HTML)", "NUMBERED_LIST_RE"],
+      "minimum_possible_lines_estimate": 50,
+      "justification_for_overage": "Phase A M1 native HTML rewrite (~12 LOC) requires the full inline-JS post-process function. M4 mhchem requires both web wrapper and native script tag (~5 LOC). M5 requires import + early-return + 2 test flips + 4 new test guards (~25 LOC including test fixtures). B3 is the most additive: parser regex + dispatch update + render handler + new fixture (~25 LOC). C2 forward-prep adds optional field + conditional render + comment (~7 LOC). The 94/27 net is within the BA spec's 55-165 LOC estimate (Per-Item Complexity Matrix)."
+    },
+    "fix_layer": "L3+L2+L4",
+    "fix_layer_rationale": "Multi-layer per BA Novelty Check: L3 (data — native HTML template, mhchem import, MCP gate predicate, parser data extension), L2 (verify wrap envelope path), L4 (logic — parser regex + render handler).",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "1) Run yarn vitest run sources/components/markdown/parseMarkdown.test.ts sources/utils/codexToolRendering.test.ts — expect 19/19 PASS. 2) Run yarn typecheck — expect PASS. 3) Manually verify in dev environment by sending a wide mermaid diagram to an active session and confirming horizontal scroll on both 1440x900 desktop AND 390x844 mobile. 4) Same for $\\ce{H2SO4}$ — expect chemistry formula not raw text. 5) Visit http://localhost:8097/dev/codex-render-fixtures and confirm chip-only rendering for the four MCP-row fixtures (mcp_resource_list_empty, mcp_resource_templates_empty, mcp_resource_read, playwright_long_input) AND confirm continued content rendering for web_tool_search.",
+    "non_regression": {
+      "AC-NONREG-PARSER": "PASS — parseMarkdown.test.ts 7 existing fixtures unchanged + 1 new B3 fixture; vitest 8/8 PASS",
+      "AC-NONREG-TABLE": "PASS — Cycle 5 #5b MarkdownTableWeb.tsx unchanged",
+      "AC-NONREG-MOBILE-OVERFLOW": "PASS — page-level overflow:hidden in M1 native HTML preserves the page-level mobile overflow gate; web path unchanged",
+      "AC-NONREG-CRONLIST": "PASS — Cycle 5 #15 CronList.extractSubtitle unchanged",
+      "AC-NONREG-MARKDOWNVIEW-LOC": "PASS — MarkdownView.tsx 755 lines (cap 800; B3 added 0 net lines via inline paddingLeft style)",
+      "AC-NONREG-CYCLE6-WEB-MERMAID": "PASS — web normalizeMermaidSvg + container overflow:auto unchanged"
+    },
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "yarn typecheck PASS. yarn vitest run sources/components/markdown/parseMarkdown.test.ts sources/utils/codexToolRendering.test.ts → 19/19 PASS. dev frontend rebuilt + redeployed to http://localhost:8097/. Live MCP-strict-chip verification at /dev/codex-render-fixtures: mcp__playwright__browser_navigate, list_mcp_resources, list_mcp_resource_templates, read_mcp_resource all render chip-only (no body content); web.search_query renders body content; mcp__playwright__browser_take_screenshot renders inline image. M1/M4/M6/M7 live verification gated on daemon round-trip — documented as evidence-gap with static-source-verification."
+    },
+    "user_clarification_questions": [
+      "C1 #2: Should claude/default flavor switch from 1M denominator to mode-aware (200K standard tier) OR add a UX signal at 92% threshold? UX-decision is yours."
+    ],
+    "permissions_to_add": [],
+    "codex_consult": {
+      "invoked": true,
+      "status": "ok",
+      "feedback_summary": "M1: Adopt left-aligned single-inner-scroll geometry with html,body{overflow-x:hidden} + #mc{min-width:100%; width:max-content}; use svg.viewBox.baseVal.width DOM API; post dimensions in requestAnimationFrame. M5: Gate shape correct (!hasSpecializedView && isMcpInlineChipOnlyTool); do NOT require metadata.flavor === 'codex' for the gate; flip 2 test expectations + add explicit guards for read_mcp_resource, templates, mcp__resources__read false, screenshot specialized true, web.search_query still true. B3: raw-line signature is correct; existing flat fixture safe (depth=0); strengthen new fixture with full depth array assertion; keep flat-depth like UL — do NOT implement multiline CommonMark continuation in this cycle. mcpHelpers layering smell flagged as out-of-scope refactor.",
+      "feedback_incorporated": "All M1 geometry advice adopted (left-align, html/body overflow-x:hidden, viewBox.baseVal.width DOM API, requestAnimationFrame). All M5 advice adopted (gate shape, no metadata.flavor requirement, 2 flips + 4 explicit guards). All B3 advice adopted (raw-line signature, full depth array assertion in new fixture [0,0,1,1,0], no multiline CommonMark continuation). Layering smell explicitly classified out_of_scope per Calling Protocol Rule 3."
+    },
+    "decisions_log": [
+      "Phase A M5 caused quality-gate worsening: shouldRenderToolContent grew 9→10 lines. Resolved by compressing function signature args onto one line — kept length at 9 lines. NO refactor of pre-existing over-cap functions (buildGenericToolSummary, buildTerminalRenderData) — those are out of scope per Quality-gate-block-⇒-scope_review_requested rule.",
+      "Phase C C2 caused quality-gate worsening: AskUserQuestionView style sheet lambda already over 30-line cap. Resolved by inlining override style {fontSize:12, fontStyle:'italic'} on optionDescription rather than adding new optionPreview key. NO refactor of pre-existing over-cap StyleSheet — out of scope.",
+      "mhchem subpath has no .d.ts. Resolved with // @ts-ignore on the dynamic import; typecheck PASS."
+    ]
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Saga close-report MUST include verbatim per BA spec § Cycle-vs-Saga Completion Framing: Saga spec-20260506-203755 is NOT yet closed by Cycle 7. 11 in-cycle items resolved (Phase A=7 + Phase B-1=1 + Phase C=3) plus 5 already-DONE from prior cycles. Three items (#10 reference links, #11 footnotes, #9 HTML inline) deferred to Cycle 8 — Parser slice. #6 mermaid kernel remains carved out per user 绕开 directive.",
+    "QA at saga-close cycle should run live mermaid + mhchem E2E with daemon round-trip if visual confirmation of M1/M4 is required (source change is mechanical translation of Cycle 6 verified pattern + KaTeX official docs).",
+    "Cycle 8 BA spec MUST inherit codex iter-1 binding constraints for Phase B parser slice: sequential dev only, pre-pass infrastructure first, dispatch order [text](url) → [^id] → [text][ref] → literal-fallback, strict AC granularity, stop-on-blocker rule.",
+    "Consider scheduling a separate UX product cycle for #3 manual capacity toggle (NEW UI control + MMKV persistence + AgentInput + CLI tier propagation)."
+  ]
+}

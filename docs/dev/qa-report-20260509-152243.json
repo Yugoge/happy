@@ -1,0 +1,104 @@
+{
+  "task_id": "20260509-152243",
+  "spec_id": "spec-20260509-152243",
+  "saga_id": "spec-20260506-203755",
+  "cycle": "Cycle 7 — Phase A (7) + Phase B-1 (1) + Phase C (3) = 11 in-cycle items",
+  "timestamp": "2026-05-09T17:44:30Z",
+  "qa": {
+    "status": "pass",
+    "user_verbatim_complaint": "最终一次性彻底修复 (Final one-shot complete fix) — iter-2 binding directive: 同意接受codex的意见，继续 (accepted codex iter-1 DOWNSIZE_PHASE_B_TO_1 verdict)",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": true,
+    "complaint_resolution_evidence": "Cycle 7 implements the codex-recommended, user-accepted scope (Phase A=7 + Phase B=1 + Phase C=3). Saga moves forward by 11 catalog rows; 3 items deferred to Cycle 8 (parser slice) under codex iter-1 binding constraints; 1 out-of-saga (#6) per user 绕开 directive. Each in-scope item verified against live source.",
+    "complaint_element_pointer": {
+      "selector": "saga-level scope agreement (codex+user+BA)",
+      "how_located": "BA spec iter-2 lines 11-26 + dev report tasks_completed[]",
+      "found_in_dom": true,
+      "page_url": "n/a — saga-level cycle review"
+    },
+    "verified_location_keywords": ["packages/happy-app/sources/components/markdown", "packages/happy-app/sources/utils/codexToolRendering", "packages/happy-app/sources/components/tools/views/AskUserQuestionView"],
+    "location_overlap": ["happy-app", "components/markdown", "MermaidRenderer", "LatexRenderer", "parseMarkdown", "AskUserQuestionView", "codexToolRendering"],
+    "overall_assessment": "Cycle 7 closeable per Branch 1b (AC-deviation-PASS for M2/M3/M6/M7 evidence-gaps; daemon-gated; static-source-verified; replay-by-construction). All 11 in-cycle items landed; all 6 NONREG gates pass; typecheck clean; vitest 19/19 PASS (parseMarkdown 8/8 + codexToolRendering 11/11). M1 native mermaid fix structurally mirrors Cycle 6 web pattern (verified line-by-line). M5 strict gate at codexToolRendering.ts:102 has correct shape (!hasSpecializedView && isMcpInlineChipOnlyTool). B3 depth additive — 7 baseline fixtures untouched (verified via git diff). C2 graceful default render path correct.",
+    "ac_results": {
+      "AC1_m1_native": "pass: MermaidRenderer.tsx:206-227 buildNativeHtml mirrors Cycle 6 web fix. normalizeRenderedSvg() at line 224 uses viewBox.baseVal.width, removes width/height attrs, sets style.width=Npx + maxWidth=none, height=auto. mermaid.run().then(rAF(...)) at line 225. html,body{overflow-x:hidden} + #mc-scroll{overflow-x:auto} + #mc{display:inline-block; min-width:100%; width:max-content} — geometry matches codex iter-1 M1 advice exactly.",
+      "AC2_m2_e2e": "observation: evidence-gap acknowledged in qa-ac1-ac2-ac3-mermaid-evidence-gap.md (daemon round-trip needed for live wide-mermaid fixture; web path inherited from Cycle 6 verified evidence). Branch 1b acceptable.",
+      "AC3_m3_e2e": "observation: evidence-gap acknowledged in qa-ac1-ac2-ac3-mermaid-evidence-gap.md (live malformed-mermaid fixture daemon-gated). Source already type-aware per Cycle 6 (i18n keys at _default.ts:825-830 + en.ts:841-846 + zh-Hans.ts:823-828). Branch 1b acceptable.",
+      "AC4_m4_mhchem": "pass: LatexRenderer.tsx:19-23 web loadKatexWithMhchem() side-effect imports 'katex/contrib/mhchem' before renderToString. LatexRenderer.tsx:93 native HTML loads <script src=...mhchem.min.js> AFTER katex.min.js, BEFORE katex.render. Order correct per KaTeX docs.",
+      "AC5_m5_mcp_strict": "pass: codexToolRendering.ts:102 has early-return `if (!hasSpecializedView && isMcpInlineChipOnlyTool(tool.name)) return false;` — exact gate codex iter-1 prescribed. 11/11 codexToolRendering.test.ts PASS (2 baseline flips + 4 new explicit guards including read_mcp_resource, list_mcp_resource_templates, web.search_query bypass, screenshot specialized-view bypass). Live evidence at qa-ac17-mcp-strict-chip-fixtures.png shows MCP chip-only render at /dev/codex-render-fixtures.",
+      "AC6_m6_skill_wrap": "pass: typesRaw.ts:578-588 builds wrapped event from `wrap` envelope; MessageView.tsx:174-175 dispatches `wrapped` to WrappedEventBlock at lines 133-150 (chip + collapsible). Skill flow path verified statically. No new ToolView added (per codex Q3 binding). Live probe daemon-gated; replay-by-construction guarantee documented in qa-ac6-ac7-skill-command-wrap-evidence.md.",
+      "AC7_m7_command_wrap": "pass: same WrappedEventBlock primitive handles both live and historical Command via wrap envelope path. typesRaw.ts:578-588 applies regardless of replay vs live (no separate code path). By-construction cannot produce 'empty dropdown' symptom from saga §5.2 quote 11. Branch 1b acceptable.",
+      "AC10_b3_nested_ol": "pass: parseMarkdownBlock.ts:218-235 NUMBERED_LIST_RE captures leading whitespace; depth=Math.min(Math.floor(m[1].length/2), 6) at lines 223,227 mirrors parseListItemLine:20 pattern exactly. parseMarkdown.ts:14-15 numbered-list shape adds `depth: number` field additively. MarkdownView.tsx:208-213 RenderNumberedListBlock uses paddingLeft:item.depth*16 (mirrors RenderListBlock at line 178). New fixture parseMarkdown.test.ts:163-183 asserts depths=[0,0,1,1,0] on 5-item OL with mixed indents and inline link in item[1]. Vitest 8/8 PASS (7 existing untouched, verified via git diff: only 1 fixture appended at lines 158-183).",
+      "AC12_c1_denominator": "pass: verify-only — modelModeOptions.ts:118-122 mode-aware code is correct (codex 200K, claude+gemini 1M). User clarification surfaced in qa-ac12-c1-denominator-clarification.md. NOT claimed as fix per codex Q7 honest framing.",
+      "AC13_c2_preview_forward_prep": "pass: AskUserQuestionView.tsx:16 `preview?: string` optional field added to QuestionOption. Render at line 358-359 uses `option.preview && <Text style={[...]} numberOfLines={1}>{option.preview}</Text>` — graceful default (renders nothing when absent). Forward-prep honestly framed per codex Q4 — full #14 fix gated on CLI emitting preview payload (separate cycle). typecheck PASS confirms type extension valid.",
+      "AC14_c3_record": "pass: record-only — qa-ac3-c3-manual-capacity-toggle-record.md captures user §5.2 quote 4 verbatim, documents existing AgentInput model-switch UI as inadequate substitute, recommends separate product cycle. NOT claimed as fix per codex Q7.",
+      "AC-OUT-#6": "pass: qa-ac6-out-of-saga-summary.md frames per codex Q5 verbatim ('deferred to mermaid library/kernel investigation cycle per user 绕开 directive'). Documents 3 failing types + sanitizer scope + 3 recommended approach options (library upgrade / feature flag / runtime probe). NOT claimed fixed/removed/permanently out-of-saga.",
+      "AC-NONREG-PARSER": "pass: 8/8 vitest. git diff parseMarkdown.test.ts shows ONLY 1 fixture appended (lines 158-183) — 7 existing fixtures byte-identical.",
+      "AC-NONREG-MARKDOWN-VIEW": "pass: wc -l = 755 (≤ 800 cap; 45-line headroom). B3 depth-aware OL render added inline paddingLeft style without growing line count.",
+      "AC-NONREG-TABLE": "pass: MarkdownTableWeb.tsx unchanged (Cycle 5 #5b extraction preserved).",
+      "AC-NONREG-MOBILE-OVERFLOW": "pass: M1 native HTML page-level overflow:hidden preserves Cycle 5 #4 mobile overflow gate; web path unchanged.",
+      "AC-NONREG-CRONLIST": "pass: knownTools.tsx:944-958 CronList extractSubtitle still returns null when keys.length===0.",
+      "AC-NONREG-MERMAID-WEB": "pass: MermaidRenderer.tsx:69-120 web path (normalizeMermaidSvg + onSuccess wrapping) unchanged from Cycle 6."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "yarn typecheck + yarn vitest run sources/components/markdown/parseMarkdown.test.ts sources/utils/codexToolRendering.test.ts",
+      "deploy_command": "n/a — code-level verification (live deploy daemon-gated for M2/M3 only)",
+      "build_output_summary": "typecheck PASS (tsc --noEmit Done in 3.49s); vitest 19/19 PASS (parseMarkdown 8/8 + codexToolRendering 11/11)",
+      "service_healthy": true,
+      "changes_verified_live": false,
+      "skip_reason": "M1/M4 live mermaid+mhchem rendering daemon-gated per dev report; M5 verified via /dev/codex-render-fixtures (HTTP 200, fixture page exists); structural source verification used for the rest."
+    },
+    "evidence_paths": [
+      "docs/dev/evidence/20260509-152243/qa-ac1-ac2-ac3-mermaid-evidence-gap.md",
+      "docs/dev/evidence/20260509-152243/qa-ac4-mhchem-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac5-mcp-strict-chip-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac6-ac7-skill-command-wrap-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac10-b3-nested-ol-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac12-c1-denominator-clarification.md",
+      "docs/dev/evidence/20260509-152243/qa-ac13-c2-askuserquestion-preview-evidence.md",
+      "docs/dev/evidence/20260509-152243/qa-ac3-c3-manual-capacity-toggle-record.md",
+      "docs/dev/evidence/20260509-152243/qa-ac6-out-of-saga-summary.md",
+      "docs/dev/evidence/20260509-152243/qa-ac17-mcp-strict-chip-fixtures.png",
+      "docs/dev/evidence/20260509-152243/qa-ac17-mcp-strict-chip-mobile.png",
+      "/var/tmp/codex-outputs/codex-output-1543205-1778348618.txt"
+    ],
+    "minor_observations": [
+      {
+        "severity": "minor",
+        "category": "evidence_quality",
+        "location": "docs/dev/evidence/20260509-152243/qa-ac17-mcp-strict-chip-fixtures.png and qa-ac17-mcp-strict-chip-mobile.png",
+        "issue": "Both PNG files are byte-identical (md5 match: af0f3c0920ba68d846b7035e34d95996). Either dev forgot to capture mobile viewport at 390x844, or the file rename was accidental. AC5 ('WHEN rendered at desktop') only mandates desktop, so this is informational; M5 strict-chip behavior is verified by the gate predicate + 11/11 unit tests + the desktop screenshot.",
+        "blocks_release": false
+      }
+    ],
+    "self_verification": {
+      "claims_total": 17,
+      "claims_with_evidence": 17,
+      "claims_superficial": 0,
+      "evidence_summary": "Each AC verdict references either (a) live source file:line, (b) vitest run output, (c) git diff confirming additive-only change, (d) typecheck output, or (e) explicit evidence-gap document with daemon-gating rationale. No verdict relies on dev's narrative alone.",
+      "confidence": "high"
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "failed_quota",
+      "feedback_summary": "ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at 6:13 PM. (Codex CLI returned quota exceeded.)",
+      "feedback_incorporated": "self-review substituted per agent contract (5+ adversarial questions self-generated): (1) over-eng — none, dev hit minimum scope per codex iter-1 prescription; (2) under-eng — none, all 11 ACs landed with correct shape; (3) missed edges — M2/M3/M6/M7 daemon-gated honestly framed; (4) regression — all 6 NONREG gates verified including git diff confirming only-additive parser test change; (5) /close debate readiness — yes, branch 1b applies for evidence-gap items, branch 1 for the rest."
+    },
+    "user_clarification_questions_for_close": [
+      "C1 #2 denominator UX-decision: Should claude/default flavor switch from 1M denominator to mode-aware (200K standard tier) OR add a UX signal at 92% threshold? UX-decision is yours — not a code question."
+    ],
+    "saga_status": {
+      "summary": "11 in-cycle DONE; 5 already-DONE prior cycles; 3 deferred Cycle 8 (#10,#11,#9); 1 out-of-saga (#6)",
+      "in_cycle_done": ["#1-native (M1)", "#1-E2E (M2 — evidence-gap)", "#7-E2E (M3 — evidence-gap)", "#8 (M4)", "#17 (M5)", "#16 (M6)", "#18 (M7)", "#13 (B3)", "#2 (C1 verify)", "#14 (C2 forward-prep)", "#3 (C3 record)"],
+      "already_done_prior": ["#5", "#5b", "#4", "#15", "#12"],
+      "deferred_cycle_8": ["#10 ref-style links", "#11 footnotes", "#9 HTML inline"],
+      "out_of_saga": ["#6 mermaid kernel"],
+      "saga_close_gate": "Saga closes after Cycle 8 lands the parser slice. This cycle's close-report MUST state '11 in-cycle items resolved... saga is NOT yet closed by Cycle 7'."
+    },
+    "verdict_branch": "branch_1b_ac_deviation_with_user_need_satisfied",
+    "branch_1b_rationale": "AC2/AC3 (live mermaid E2E) and AC6/AC7 (live wrap envelope replay) are evidence-gap-acknowledged daemon-gated items. Static-source verification + Cycle 6 web-path inherited evidence + replay-by-construction guarantee mitigate. User requirement (Cycle 7 progress closure under codex+user+BA agreed scope) satisfied. AC literal text deviation (no live screenshot for those four) is honestly framed in evidence files. Per BA spec lines 39-50, this is the codex-recommended-and-user-accepted safe-scope cycle, not an exhaustive verification cycle."
+  },
+  "iteration_needed": false,
+  "refined_context": null
+}

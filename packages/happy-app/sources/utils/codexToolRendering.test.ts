@@ -225,17 +225,30 @@ describe('codex rendering helpers', () => {
         expect(unavailable.detailsHint).toBe('Raw input/output available in details');
     });
 
-    it('renders Codex-sourced generic / unknown / resource tools inline (S2 forward fix)', () => {
+    it('renders Codex-sourced generic / unknown / resource tools inline (S2 forward fix; Cycle 7 M5 #17 chip-only gate)', () => {
+        // Cycle 7 (M5 #17): MCP-namespace tools (mcp__* and functions.list_mcp_*)
+        // now render chip-only unless a specialized view exists. The two assertions
+        // below FLIP from true to false vs the original Cycle 6 baseline.
         const listResources = makeToolCall('functions.list_mcp_resources', { server: 'Codex' }, { resources: [] });
-        expect(shouldRenderToolContent(listResources, false, true)).toBe(true);
+        expect(shouldRenderToolContent(listResources, false, true)).toBe(false);
         const mcpRead = makeToolCall('mcp__resources__read', { uri: 'file://fixture.md' }, { resources: [] });
-        expect(shouldRenderToolContent(mcpRead, false, true, { flavor: 'codex' } as any)).toBe(true);
+        expect(shouldRenderToolContent(mcpRead, false, true, { flavor: 'codex' } as any)).toBe(false);
+        // Specialized MCP views (image/screenshot) still render content via hasSpecializedView=true.
+        expect(shouldRenderToolContent(mcpRead, true, true, { flavor: 'codex' } as any)).toBe(true);
+        // Other codex source tools (web.*, generic functions.*) still render.
         const futureTool = makeToolCall('functions.future_tool', { nested: { value: ['x'] } }, { error: 'user rejected MCP tool call' }, 'error');
         expect(shouldRenderToolContent(futureTool, false, false)).toBe(true);
+        const webSearch = makeToolCall('web.search_query', { q: 'rendering' }, { results: [] });
+        expect(shouldRenderToolContent(webSearch, false, true)).toBe(true);
         const codexBash = makeToolCall('CodexBash', {});
         expect(shouldRenderToolContent(codexBash, true, true)).toBe(true);
         const subagentControl = makeToolCall('functions.wait_agent', { name: 'fixture-agent' }, { status: 'completed' });
         expect(shouldRenderToolContent(subagentControl, true, true)).toBe(false);
+        // Explicit MCP function tool guards: list_mcp_resource_templates + read_mcp_resource → chip-only.
+        const listTemplates = makeToolCall('functions.list_mcp_resource_templates', {}, { templates: [] });
+        expect(shouldRenderToolContent(listTemplates, false, true)).toBe(false);
+        const readResource = makeToolCall('functions.read_mcp_resource', { uri: 'file://fixture.md' }, { content: 'x' });
+        expect(shouldRenderToolContent(readResource, false, true)).toBe(false);
     });
 
     // Cycle 6 — D.5 subagent lifecycle suppression Map.

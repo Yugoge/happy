@@ -156,4 +156,29 @@ describe('parseMarkdown', () => {
             expect(expectSpan(numberedBlocks[0].items[0].spans, 'strike').styles).toEqual(['strikethrough']);
         }
     });
+
+    // Cycle 7 (B3 #13): nested ordered lists carry depth derived from leading
+    // whitespace — depth = floor(indent / 2), capped at 6 (mirrors parseListItemLine).
+    // Render handler in MarkdownView indents items by depth * 16 px.
+    it('captures depth on nested ordered list items while preserving flat-list spans and links', () => {
+        const blocks = parseMarkdown([
+            '1. outer first',
+            '2. outer second with [docs](https://example.com)',
+            '   1. inner first',
+            '   2. inner second',
+            '3. outer third',
+        ].join('\n'));
+
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0]?.type).toBe('numbered-list');
+        if (blocks[0]?.type !== 'numbered-list') {
+            throw new Error('Expected markdown numbered-list block');
+        }
+
+        const items = blocks[0].items;
+        expect(items).toHaveLength(5);
+        expect(items.map(i => i.number)).toEqual([1, 2, 1, 2, 3]);
+        expect(items.map(i => i.depth)).toEqual([0, 0, 1, 1, 0]);
+        expect(expectSpan(items[1].spans, 'docs').url).toBe('https://example.com');
+    });
 });

@@ -213,20 +213,23 @@ function tryOptionsBlock(ctx: ParseCtx, trimmed: string): boolean {
     return true;
 }
 
-function tryNumberedList(ctx: ParseCtx, trimmed: string): boolean {
-    const numberedListMatch = trimmed.match(/^(\d+)\.\s/);
-    if (!numberedListMatch) return false;
-    const allLines = [{ number: parseInt(numberedListMatch[1]), content: trimmed.slice(numberedListMatch[0].length) }];
+// Cycle 7 (B3 #13): nested ordered lists — capture leading whitespace on raw
+// line, derive depth (Math.floor(indent/2), capped at 6) mirroring parseListItemLine.
+const NUMBERED_LIST_RE = /^(\s*)(\d+)\.\s(.*)$/;
+
+function tryNumberedList(ctx: ParseCtx, line: string): boolean {
+    const m = line.match(NUMBERED_LIST_RE);
+    if (!m) return false;
+    const items = [{ number: parseInt(m[2]), depth: Math.min(Math.floor(m[1].length / 2), 6), content: m[3] }];
     while (ctx.index < ctx.lines.length) {
-        const nextLine = ctx.lines[ctx.index].trim();
-        const nextMatch = nextLine.match(/^(\d+)\.\s/);
+        const nextMatch = ctx.lines[ctx.index].match(NUMBERED_LIST_RE);
         if (!nextMatch) break;
-        allLines.push({ number: parseInt(nextMatch[1]), content: nextLine.slice(nextMatch[0].length) });
+        items.push({ number: parseInt(nextMatch[2]), depth: Math.min(Math.floor(nextMatch[1].length / 2), 6), content: nextMatch[3] });
         ctx.index++;
     }
     ctx.blocks.push({
         type: 'numbered-list',
-        items: allLines.map(l => ({ number: l.number, spans: parseMarkdownSpans(l.content, false) })),
+        items: items.map(l => ({ number: l.number, depth: l.depth, spans: parseMarkdownSpans(l.content, false) })),
     });
     return true;
 }
@@ -266,7 +269,7 @@ function parseSingleLine(ctx: ParseCtx, line: string, lineStartIndex: number): v
     if (trimmed === '---') { ctx.blocks.push({ type: 'horizontal-rule' }); return; }
     if (tryOptionsBlock(ctx, trimmed)) return;
     if (tryBlockquote(ctx, trimmed, lineStartIndex)) return;
-    if (tryNumberedList(ctx, trimmed)) return;
+    if (tryNumberedList(ctx, line)) return;
     if (tryUnorderedList(ctx, line)) return;
     if (tryTable(ctx, trimmed, lineStartIndex)) return;
     if (trimmed.length > 0) {

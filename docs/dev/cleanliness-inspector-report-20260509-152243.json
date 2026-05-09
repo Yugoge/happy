@@ -1,0 +1,63 @@
+{
+  "request_id": "20260509-152243",
+  "timestamp": "2026-05-09T00:00:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "changed-files",
+  "tagging_mechanism": "Mechanism (ii) — inspector-side tagging with introduced_in_diff per finding",
+  "scope_contract": "cleanliness-of-this-diff scoping only; does NOT replace regression/typecheck/import-graph coverage",
+  "scanned_paths": [
+    "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+    "packages/happy-app/sources/components/markdown/LatexRenderer.tsx",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+    "packages/happy-app/sources/components/tools/views/AskUserQuestionView.tsx",
+    "packages/happy-app/sources/utils/codexToolRendering.ts",
+    "packages/happy-app/sources/utils/codexToolRendering.test.ts",
+    "docs/dev/specs/spec-20260509-152243/",
+    "docs/dev/ba-qa-report-20260509-152243.json",
+    "docs/dev/completion-20260509-152243.md",
+    "docs/dev/context-20260509-152243.json",
+    "docs/dev/dev-report-20260509-152243.json",
+    "docs/dev/qa-report-20260509-152243.json",
+    "docs/dev/evidence/20260509-152243/"
+  ],
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB",
+    "verdict": "CLEAN",
+    "rationale": [
+      "All 9 source-code modifications are edits to existing files in canonical locations (packages/happy-app/sources/components/markdown/, components/tools/views/, utils/) — no new misplaced files, no naming violations.",
+      "All 5 workflow artifacts (ba-qa-report, completion, context, dev-report, qa-report) follow the established <kind>-<task-id>.{json,md} naming pattern observed in 100+ historical sibling files in docs/dev/.",
+      "Spec directory docs/dev/specs/spec-20260509-152243/ matches the spec-<task-id>/ convention with required INDEX.md + README.md.",
+      "Evidence directory docs/dev/evidence/20260509-152243/ matches the evidence/<task-id>/ convention with INDEX.md + README.md and 11 acceptance-criterion-tagged evidence files (qa-ac1..qa-ac17 + screenshots).",
+      "No temp files (*.tmp/*.bak/*~), no build artifacts, no orphan scripts/agents/commands introduced by this diff.",
+      "No co-located test files left orphaned; codexToolRendering.test.ts and parseMarkdown.test.ts test their respective sibling modules which both exist."
+    ]
+  },
+  "default_safe_note": "All findings arrays empty — no NEW-in-this-diff cleanliness violations detected. close.md may treat this as cleanliness-pass for the diff scope."
+}

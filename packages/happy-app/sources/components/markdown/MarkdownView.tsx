@@ -205,12 +205,12 @@ function RenderBlockquoteBlock(props: { content: ReturnType<typeof parseMarkdown
     );
 }
 
-function RenderNumberedListBlock(props: { items: { number: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
+function RenderNumberedListBlock(props: { items: { number: number, depth: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
     const listStyle = [style.text, style.list];
     return (
         <View style={{ flexDirection: 'column', marginBottom: 8, gap: 1 }} accessibilityRole={Platform.OS === 'web' ? ('list' as any) : undefined}>
             {props.items.map((item, index) => (
-                <View key={index} style={{ flexDirection: 'row' }} accessibilityRole={Platform.OS === 'web' ? ('listitem' as any) : undefined}>
+                <View key={index} style={{ flexDirection: 'row', paddingLeft: item.depth * 16 }} accessibilityRole={Platform.OS === 'web' ? ('listitem' as any) : undefined}>
                     <Text selectable={false} style={[listStyle, { minWidth: 24, flexShrink: 0 }]}>{`${item.number}. `}</Text><Text selectable={props.selectable} style={[listStyle, { flex: 1 }]}><RenderSpans spans={item.spans} baseStyle={listStyle} selectable={props.selectable} onLinkPress={props.onLinkPress} /></Text>
                 </View>
             ))}

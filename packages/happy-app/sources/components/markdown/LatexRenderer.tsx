@@ -13,8 +13,18 @@ function ensureKatexStylesheet() {
     document.head.appendChild(link);
 }
 
-async function renderKatexToString(content: string, displayMode: boolean): Promise<string> {
+// Cycle 7 (M4 #8): mhchem extension enables `\ce{...}` chemistry typesetting.
+// Importing the side-effect module registers the KaTeX macros globally, so any
+// renderToString call (block or inline) handles `\ce{H2O}` etc. correctly.
+async function loadKatexWithMhchem() {
     const katex = await import('katex');
+    // @ts-ignore — mhchem ships no .d.ts; side-effect import registers macros.
+    await import('katex/contrib/mhchem');
+    return katex;
+}
+
+async function renderKatexToString(content: string, displayMode: boolean): Promise<string> {
+    const katex = await loadKatexWithMhchem();
     ensureKatexStylesheet();
     return (katex.default || katex).renderToString(content, { displayMode, throwOnError: false });
 }
@@ -78,7 +88,9 @@ function buildNativeHtmlStyles(bgColor: string, textColor: string): string {
 
 function buildNativeHtml(escapedContent: string, bgColor: string, textColor: string): string {
     const styles = buildNativeHtmlStyles(bgColor, textColor);
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css"><script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script><style>${styles}</style></head><body><div id="latex-container"></div><script>try { katex.render(\`${escapedContent}\`, document.getElementById('latex-container'), { displayMode: true, throwOnError: false }); } catch (e) { document.getElementById('latex-container').textContent = \`${escapedContent}\`; } setTimeout(function() { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dimensions', height: document.body.scrollHeight })); }, 100);</script></body></html>`;
+    // Cycle 7 (M4 #8): mhchem.min.js MUST load AFTER katex.min.js (registers macros
+    // on the global katex object), BEFORE katex.render() so `\ce{...}` resolves.
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css"><script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script><script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/mhchem.min.js"></script><style>${styles}</style></head><body><div id="latex-container"></div><script>try { katex.render(\`${escapedContent}\`, document.getElementById('latex-container'), { displayMode: true, throwOnError: false }); } catch (e) { document.getElementById('latex-container').textContent = \`${escapedContent}\`; } setTimeout(function() { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dimensions', height: document.body.scrollHeight })); }, 100);</script></body></html>`;
 }
 
 const LatexNativeBlock = React.memo((props: { content: string, bgColor: string, textColor: string }) => {

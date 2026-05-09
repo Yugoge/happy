@@ -1,0 +1,27 @@
+{
+  "request_id": "20260509-152243",
+  "timestamp": "2026-05-09T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "--changed-files",
+  "scope_contract": "inspector-side tagging (Mechanism ii); every finding tagged with introduced_in_diff:bool",
+  "changed_files_input": {
+    "total": "9 happy-app source files + workflow md/json under docs/dev/",
+    "prompt_style_files_in_scope": []
+  },
+  "findings": [],
+  "summary": {
+    "files_inspected": 0,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "estimated_reduction": "n/a"
+  },
+  "notes": [
+    "Out of jurisdiction: prompt-inspector applies the 'rules not stories' principle ONLY to prompt-style files (.claude/commands/*.md, .claude/agents/*.md, skill prompts).",
+    "Changed files in this diff are happy-app source code (.tsx/.ts) and workflow artifacts (docs/dev/*.md, *.json) — none are prompt-style files.",
+    "No prompt-style files were modified in this diff, therefore findings is empty.",
+    "Per AC-2.6 (b) default-safe rule: empty findings = no cleanliness blocker for CLOSE from this inspector."
+  ]
+}

@@ -203,6 +203,11 @@ export const MermaidRenderer = React.memo((props: { content: string }) => {
     );
 });
 
+// Cycle 7 (M1 #1-native): mirror Cycle 6 web fix's viewBox-based intrinsic-width
+// normalization to native HTML. After mermaid.run, we mutate the rendered SVG's
+// width/height attrs and inline style so the diagram renders at intrinsic width
+// and the inner #mc-scroll wrapper produces a horizontal scrollbar when needed.
+// Page-level overflow is hidden so there's no double scroll with WebView gestures.
 function buildNativeHtml(content: string, theme: any): string {
     const vars = buildMermaidThemeVars(theme.dark);
     const themeStr = theme.dark ? 'dark' : 'default';
@@ -211,12 +216,13 @@ function buildNativeHtml(content: string, theme: any): string {
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-<style>body{margin:0;padding:16px;background-color:${bg}}
-#mc{display:flex;justify-content:center;align-items:center;width:100%}
-.mermaid{text-align:center;width:100%}.mermaid svg{max-width:100%;height:auto}</style>
-</head><body><div id="mc" class="mermaid">${content}</div>
-<script>mermaid.initialize({startOnLoad:true,theme:'${themeStr}',themeVariables:{fontFamily:'"IBM Plex Sans",sans-serif',fontSize:'14px',primaryColor:'${vars.primaryColor}',primaryTextColor:'${vars.primaryTextColor}',primaryBorderColor:'${vars.primaryBorderColor}',lineColor:'${vars.lineColor}',secondaryColor:'${vars.secondaryColor}',tertiaryColor:'${vars.tertiaryColor}'}});
-mermaid.run().then(function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'dimensions',height:document.body.scrollHeight}));});</script>
+<style>html,body{margin:0;padding:0;overflow-x:hidden}body{padding:16px;background-color:${bg}}
+#mc-scroll{overflow-x:auto;overflow-y:hidden;width:100%}
+#mc{display:inline-block;text-align:left;min-width:100%;width:max-content}</style>
+</head><body><div id="mc-scroll"><div id="mc" class="mermaid">${content}</div></div>
+<script>mermaid.initialize({startOnLoad:false,theme:'${themeStr}',themeVariables:{fontFamily:'"IBM Plex Sans",sans-serif',fontSize:'14px',primaryColor:'${vars.primaryColor}',primaryTextColor:'${vars.primaryTextColor}',primaryBorderColor:'${vars.primaryBorderColor}',lineColor:'${vars.lineColor}',secondaryColor:'${vars.secondaryColor}',tertiaryColor:'${vars.tertiaryColor}'}});
+function normalizeRenderedSvg(){var s=document.querySelector('#mc svg');if(!s)return;var w=s.viewBox&&s.viewBox.baseVal&&s.viewBox.baseVal.width;s.removeAttribute('width');s.removeAttribute('height');if(w&&w>0){s.style.width=w+'px';}s.style.maxWidth='none';s.style.height='auto';}
+mermaid.run().then(function(){requestAnimationFrame(function(){normalizeRenderedSvg();window.ReactNativeWebView.postMessage(JSON.stringify({type:'dimensions',height:document.body.scrollHeight}));});});</script>
 </body></html>`;
 }
 

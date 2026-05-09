@@ -5,12 +5,13 @@ Organization and usage documentation for `markdown/`.
 <!-- AUTO:readme-stats -->
 
 ## Overview
-- **Total files**: 10
+- **Total files**: 11
 - **Subdirectories**: 0
 - **Naming convention**: lower
 
 ## Files
 - `LatexRenderer.tsx` - tsx file
+- `MarkdownTableWeb.tsx` - tsx file
 - `MarkdownView.tsx` - tsx file
 - `MermaidRenderer.tsx` - tsx file
 - `codeDownload.ts` - ts file

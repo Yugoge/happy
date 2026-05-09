@@ -10,6 +10,10 @@ import { Ionicons } from '@expo/vector-icons';
 interface QuestionOption {
     label: string;
     description: string;
+    // Cycle 7 (C2 #14): forward-prep field. CLI does NOT yet emit `preview` in
+    // the wire payload — when absent, render path emits nothing (graceful
+    // default). When CLI later emits preview, render below option label.
+    preview?: string;
 }
 
 interface Question {
@@ -350,6 +354,9 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
                                                 <Text style={styles.optionLabel}>{option.label}</Text>
                                                 {option.description && (
                                                     <Text style={styles.optionDescription}>{option.description}</Text>
+                                                )}
+                                                {option.preview && (
+                                                    <Text style={[styles.optionDescription, { fontSize: 12, fontStyle: 'italic' }]} numberOfLines={1}>{option.preview}</Text>
                                                 )}
                                             </View>
                                         </TouchableOpacity>

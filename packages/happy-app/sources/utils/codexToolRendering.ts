@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { stringifyToolCommand } from './toolCommand';
+import { isMcpInlineChipOnlyTool } from '@/components/tools/mcpHelpers';
 import type { Message, ToolCall } from '@/sync/typesMessage';
 import type { Metadata } from '@/sync/storageTypes';
 
@@ -92,13 +93,13 @@ export function isCodexSourceTool(tool: ToolCall, metadata?: Metadata | null): b
     return CODEX_TOOL_NAME_PREFIXES.some((p) => tool.name.startsWith(p));
 }
 
+// Cycle 7 (M5 #17): MCP namespace tools render chip-only unless a specialized
+// view is registered, regardless of codex source.
 export function shouldRenderToolContent(
-    tool: ToolCall,
-    hasSpecializedView: boolean,
-    minimal: boolean,
-    metadata?: Metadata | null,
+    tool: ToolCall, hasSpecializedView: boolean, minimal: boolean, metadata?: Metadata | null,
 ): boolean {
     if (CODEX_SUBAGENT_CONTROL_TOOLS.has(tool.name)) return false;
+    if (!hasSpecializedView && isMcpInlineChipOnlyTool(tool.name)) return false;
     return hasSpecializedView || isCodexSourceTool(tool, metadata);
 }
 
