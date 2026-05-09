@@ -1,0 +1,264 @@
+{
+  "memo_id": "architect-d5-subagent-lifecycle-merge-20260508-130403",
+  "spec_source": "docs/dev/specs/spec-20260506-203844.md §5.3.D bullet 5",
+  "deferred_item": "合并为一个 subagent lifecycle 卡，展示 agent nickname/id、started、completed、final summary",
+  "current_state_summary": {
+    "fallback_satisfied": "spec §5.3.D bullet 6 (each card correct, spinner stops, position stable) is closed by cycle 2",
+    "post_cycle_4_artifacts": [
+      "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:638-713 maps collab_agent_call_begin/end with COLLAB_VERB_MAP {spawnAgent,sendInput,resumeAgent,wait,closeAgent} -> functions.* names",
+      "sessionProtocolMapper.ts:651-660 establishes sessionSubagent (cuid) per receiverThreadId and stores callSubagentKey + ownerSubagentKey -> sessionSubagent mapping in providerSubagentToSessionSubagent",
+      "sessionProtocolMapper.ts:661 visibleCall = sessionSubagent for spawn_agent only; wait/close keep their own callId",
+      "packages/happy-app/sources/components/tools/views/_all.tsx:57-61 routes all 5 control verbs to CodexSubagentView",
+      "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx renders TaskStatusRow only for spawn_agent and returns null for wait/close/send/resume",
+      "packages/happy-app/sources/utils/codexToolRendering.ts:39-45 CODEX_SUBAGENT_CONTROL_TOOLS suppresses generic content blocks for all 5 verbs",
+      "packages/happy-app/sources/components/tools/knownTools.tsx:1105-1208 provides per-verb title/icon/extractDescription/codexToolStateStatus for each control verb"
+    ],
+    "render_pipeline": "ChatList(packages/happy-app/sources/components/ChatList.tsx:47) -> MessageView per message -> RenderBlock(MessageView.tsx:57) -> ToolCallBlock -> ToolView -> getToolViewComponent(tool.name)",
+    "render_pipeline_constraint": "FlashList renderItem receives one message at a time; cross-message merging requires either (1) external grouping done before list build, or (2) lookup through getMessageById which is already plumbed through MessageView.tsx:40 but the row container itself has no sibling access"
+  },
+  "q1_layer_recommendation": "c (hybrid: mapper emits a synthetic subagent_lifecycle virtual tool-call envelope; the three real spawn/wait/close ToolViews are suppressed in the main flow when the synthetic lifecycle envelope owns the receiverThreadId). Justification: the mapper already builds the only piece of cross-event identity that matters — sessionSubagent — at sessionProtocolMapper.ts:651-660. It is the ONLY layer that sees collab_agent_call_begin/end events in canonical order with the receiverThreadId and the call_id intact. Doing the merge there avoids inventing brittle adjacency heuristics in the renderer (which has no list-level sibling view; ChatList feeds one message at a time at ChatList.tsx:48). Pure CLI-rewrite (option a) is too aggressive — it deletes information the spawn_agent inner TaskStatusRow already needs (sessionSubagent driving CodexSubagentView at CodexSubagentView.tsx:38-42), and it breaks old encrypted message blobs that were emitted as three envelopes pre-cycle-2. Pure renderer (option b) needs a stateful pre-pass over the message list before ChatList renderItem fires, which doesn't exist today (ChatList.tsx wires sessions.messages directly into FlashList data). The hybrid keeps the existing 3-envelope path intact (so old sessions render as before via fallback), but emits an additional 4th 'lifecycle' tool-call message keyed by sessionSubagent. The renderer suppresses the three control envelopes when they belong to a sessionSubagent that has a lifecycle envelope present, and renders the lifecycle card instead. Blast radius is bounded: one new view, one new envelope name, one suppression check; the existing CodexSubagentView, knownTools entries, and CODEX_SUBAGENT_CONTROL_TOOLS gate stay as fallbacks for old messages.",
+  "q1_per_option_analysis": {
+    "a_cli_mapper_collapse": {
+      "blast_radius": "high — sessionProtocolMapper.ts collab_agent_call_begin (sessionProtocolMapper.ts:646) becomes a buffering state machine: must hold spawn until matching close arrives, must ignore wait_agent end as terminal, must mutate currentTurnId pre-existing envelopes; turn-end and turn_aborted (sessionProtocolMapper.ts:437-462) must flush pending lifecycle so subagent lifecycle never leaks across turns",
+      "old_message_compat": "BREAKING — encrypted SessionMessage blobs from cycles 1/2/3 already on the server contain three separate tool-call envelopes; this option does not change them, so OLD sessions still render as 3 cards. Mismatch between old and new sessions becomes a permanent UI difference",
+      "testability": "moderate — sessionProtocolMapper.ts has clean unit-test surface (tests/codex/sessionProtocolMapper.test.ts pattern) but state-machine paths multiply: spawn-no-wait, spawn-wait-close, spawn-close (no wait), spawn-then-turn-end (close never arrives)",
+      "failure_mode_missing_intermediate": "spawn arrives but wait/close never arrive within the turn — mapper holds an open lifecycle that never completes; spinner-running symptom returns",
+      "verdict": "rejected — too much risk to a hot mapper code path that just stabilized in cycle 2; breaks encryption-blob retroactivity"
+    },
+    "b_app_renderer_pre_pass": {
+      "blast_radius": "moderate — needs a new pre-pass over messages array to compute lifecycleGroupId before ChatList feeds FlashList data; either wraps ChatList.tsx:48 with a memoized grouping selector, or exposes a derived field on Message in the sync reducer",
+      "old_message_compat": "WORKS for both old and new sessions because pre-pass works on stored ToolCall.input.sessionSubagent which is already present in cycle-2 mapper output (sessionProtocolMapper.ts:684 args spreads sessionSubagent)",
+      "testability": "good — pure function on Message[] => Message[] grouping is unit-testable; can drive renderer with synthetic 3-card sequences",
+      "failure_mode_missing_intermediate": "graceful — if wait or close is missing, the lifecycle card freezes at the last known state; pre-pass walks messages in order, no buffer-across-turn problem because turn boundaries are visible in Message[]",
+      "verdict": "second choice — cleaner than a but introduces a new rendering concept (group selector) and adds latency to every ChatList render (O(n) scan); the hybrid achieves the same effect with less work"
+    },
+    "c_hybrid_synthetic_lifecycle_envelope": {
+      "blast_radius": "low — one new envelope name (e.g., functions.subagent_lifecycle), one new view (CodexSubagentLifecycleView), one new suppression check in CodexSubagentView/codexToolRendering.ts; the existing 3 cards keep their entries in toolViewRegistry as fallback",
+      "old_message_compat": "PERFECT — old sessions never received the synthetic envelope, so they render as 3 cards (status: cycle-2 stable). New sessions render with the lifecycle card and the 3 underlying cards are suppressed",
+      "testability": "good — fixture page (codex-render-fixtures-data.ts:181-204) already has spawnAgentTool/waitAgentTool/closeAgentTool; one new fixture row 'subagent-lifecycle-merged' pairs a synthetic lifecycle ToolCall with sessionSubagent='codex-fixture-subagent' and asserts the three control tools collapse",
+      "failure_mode_missing_intermediate": "graceful — if spawn arrives without wait/close, lifecycle envelope is emitted with status='running' or 'started' (mapper holds it until turn-end emits terminal). If turn-end fires before close, lifecycle envelope is upgraded to 'cancelled' on turn-end. The 3 underlying cards are still emitted in their original positions for retroactive transparency",
+      "verdict": "RECOMMENDED — minimum blast radius, perfect retroactive compat, leverages existing mapper state (providerSubagentToSessionSubagent map), preserves cycle-2 stability for fallback"
+    }
+  },
+  "q2_state_machine": {
+    "states": {
+      "started": {
+        "trigger_envelope": "tool-call-start with name=functions.subagent_lifecycle (synthetic), emitted by mapper immediately after collab_agent_call_begin where tool=spawnAgent",
+        "ui": {
+          "icon": "ICON_TASK (matches Spawn Agent)",
+          "title": "Subagent: <agent_nickname or sessionSubagent[:8]>",
+          "subtitle": "Started · <prompt[:80]>",
+          "status_indicator": "ActivityIndicator (running spinner)",
+          "duration": "ElapsedView from createdAt (live counter)",
+          "body": "TaskStatusRow showing inner tool calls produced by the spawned subagent (reuses CodexSubagentView's existing spawn_agent path)"
+        }
+      },
+      "running": {
+        "trigger_envelope": "tool-call-start with name=functions.wait_agent for the same sessionSubagent (mapper detects this via providerSubagentToSessionSubagent.get(callSubagentKey(call)) === currentLifecycleSubagent)",
+        "ui": {
+          "icon": "ICON_TASK",
+          "title": "Subagent: <agent_nickname>",
+          "subtitle": "Running · <last_inner_tool_summary or prompt[:80]>",
+          "status_indicator": "ActivityIndicator",
+          "duration": "ElapsedView (continues from started)",
+          "body": "TaskStatusRow (live)"
+        },
+        "note": "no separate envelope is emitted — mapper mutates the existing lifecycle envelope's args.lifecycle_state via a synthetic tool-call-update intermediate (or simpler: the renderer derives state from presence of wait/close in the same group)"
+      },
+      "ready": {
+        "trigger_envelope": "tool-call-end for wait_agent for the same sessionSubagent",
+        "ui": {
+          "icon": "ICON_TASK",
+          "title": "Subagent: <agent_nickname>",
+          "subtitle": "Ready · awaiting close",
+          "status_indicator": "none (or check-circle in muted color)",
+          "duration": "ElapsedView frozen at wait_end timestamp",
+          "body": "TaskStatusRow (frozen, last 3 inner tools)"
+        }
+      },
+      "completed": {
+        "trigger_envelope": "tool-call-end for close_agent for the same sessionSubagent (mapper emits tool-call-end on the synthetic lifecycle envelope)",
+        "ui": {
+          "icon": "ICON_TASK (success tint)",
+          "title": "Subagent: <agent_nickname>",
+          "subtitle": "Completed · <duration>",
+          "status_indicator": "checkmark-circle",
+          "duration": "frozen total duration (close_end - spawn_start)",
+          "body": "TaskStatusRow + final_summary text block (if close_agent.result.final_summary or last agent_message with phase=final_answer is present)"
+        }
+      },
+      "errored": {
+        "trigger_envelope": "any of spawn/wait/close ends with status!=completed, OR turn_aborted with state!='completed' before close_agent end",
+        "ui": {
+          "icon": "ICON_TASK (warning tint)",
+          "title": "Subagent: <agent_nickname>",
+          "subtitle": "Failed · <error_message[:120]>",
+          "status_indicator": "alert-circle",
+          "duration": "frozen at error timestamp",
+          "body": "TaskStatusRow + ToolError"
+        }
+      }
+    },
+    "final_summary_source": {
+      "primary": "close_agent.result.final_summary (if Codex protocol exposes it)",
+      "secondary": "last agent_message envelope with phase='final_answer' for sessionSubagent (sessionProtocolMapper.ts:492-503 already routes final_answer to a tool-call-end with output=message.message keyed by subagent)",
+      "fallback": "spawn_agent prompt summary"
+    },
+    "transition_diagram": "started -> running (on wait_begin) -> ready (on wait_end) -> completed (on close_end) | started -> errored (on any end with !=completed) | started/running -> errored (on turn-end before close_end)"
+  },
+  "q3_edge_cases": {
+    "a_spawn_then_close_no_wait": {
+      "behavior": "mapper detects close_end for sessionSubagent without prior wait_begin -> emits lifecycle tool-call-end directly with status=completed (or whatever close.status is), duration = close_end - spawn_start; UI skips 'running'/'ready' states and goes started -> completed",
+      "graceful": true
+    },
+    "b_parallel_subagents_interleaved": {
+      "behavior": "providerSubagentToSessionSubagent map keys by callSubagentKey(callId), so each spawn creates a distinct sessionSubagent. The mapper holds lifecycle state in a Map<sessionSubagent, LifecycleState> instead of a single slot. Two parallel subagents A and B produce two synthetic lifecycle envelopes with disjoint sessionSubagent keys; the renderer suppresses spawn/wait/close cards independently per sessionSubagent. Order within a single subagent's lifecycle is preserved by Codex's serial emission of begin/end pairs even when interleaved across subagents",
+      "graceful": true,
+      "implementation_note": "the mapper state CodexTurnState (sessionProtocolMapper.ts:8-13) MUST be extended with subagentLifecycles?: Map<string, { spawnCallId, waitCallId, closeCallId, lifecycleEnvelopeCall, state }>"
+    },
+    "c_old_messages_no_lifecycle_envelope": {
+      "behavior": "old encrypted SessionMessage blobs do not contain functions.subagent_lifecycle envelopes — they only have spawn/wait/close. Renderer's suppression check is conditional: 'if a lifecycle envelope exists for this sessionSubagent, suppress the 3 control envelopes; otherwise render them as the cycle-2 fallback'. The check executes per ChatList renderItem by reading a memoized derived map sessionSubagent -> hasLifecycleEnvelope built once per messages[] update",
+      "graceful": true,
+      "implementation_note": "this preserves the cycle-2 invariant 'each card correct, spinner stops, position stable' for old sessions verbatim"
+    },
+    "d_close_agent_dropped_or_timeout": {
+      "behavior": "two failure modes: (1) close_agent never arrives but turn ends — task_complete or turn_aborted (sessionProtocolMapper.ts:437) flushes lifecycles by upgrading any non-terminal lifecycle to 'errored' with status='cancelled' or whatever pickTurnEndStatus returns. (2) close_agent ends with error status — mapper emits lifecycle tool-call-end with state='errored' and output containing the error. UI shows 'Failed' with timestamp frozen and ToolError body",
+      "graceful": true
+    }
+  },
+  "q4_risks": [
+    {
+      "risk": "Mapper state map subagentLifecycles grows without bound across many turns",
+      "mitigation": "task_started clears the map alongside startedSubagents/activeSubagents/providerSubagentToSessionSubagent (sessionProtocolMapper.ts:425-427); task_complete and turn_aborted flush remaining entries to errored before clearing"
+    },
+    {
+      "risk": "Old session retroactive: synthetic envelope name functions.subagent_lifecycle is unknown to old client builds; if a user opens a new session on an old app build, lifecycle card disappears entirely",
+      "mitigation": "graceful degradation: knownTools.tsx falls back to the generic Codex tool path (since name starts with functions.) and shows 'Subagent lifecycle' as a generic minimal card. Old clients still see spawn/wait/close as 3 cards because mapper continues to emit them. New clients see only the merged card. App version compat policy already accepts that web users auto-upgrade on next reload"
+    },
+    {
+      "risk": "Renderer suppression scan over messages[] is O(n) per render and ChatList re-renders frequently",
+      "mitigation": "compute the sessionSubagent -> hasLifecycle Map once per messages[] reference change via React.useMemo at ChatList or sync-reducer level (where messages array is already memoized at sources/sync/reducer.ts). Per-renderItem check is O(1) Map lookup"
+    },
+    {
+      "risk": "spawn_agent's existing visibleCall=sessionSubagent rewriting (sessionProtocolMapper.ts:661) collides with new lifecycle envelope which would also key by sessionSubagent",
+      "mitigation": "use a distinct call id for the synthetic envelope: lifecycleCall = `lifecycle:${sessionSubagent}` (matches CALL_SUBAGENT_PREFIX/OWNER_SUBAGENT_PREFIX naming pattern at sessionProtocolMapper.ts:35-36). The 3 underlying cards keep their original visibleCall values"
+    },
+    {
+      "risk": "TaskStatusRow inside lifecycle card relies on useFilteredTools(messages, metadata) (CodexSubagentView.tsx:24) which currently uses spawn_agent's sessionSubagent to find inner tools; merged card needs same plumbing to find inner tools by sessionSubagent",
+      "mitigation": "lifecycle envelope's args MUST carry sessionSubagent (cf. spawn_agent at sessionProtocolMapper.ts:684) so the new view can call useFilteredTools with the same key"
+    },
+    {
+      "risk": "Spec wording 'agent nickname/id' implies a human-readable name not currently emitted by Codex; only sessionSubagent (cuid) is available",
+      "mitigation": "phase 1 uses sessionSubagent[:8] as id label and reads message.prompt[:60] as fallback nickname. Phase 2 (out of scope here) negotiates with Codex protocol to add agent_nickname field on collab_agent_call_begin"
+    },
+    {
+      "risk": "Test fixtures at codex-render-fixtures-data.ts:181-204 are decoupled tool calls (no envelope context); merged-card fixture must construct a 4th synthetic ToolCall with input.sessionSubagent matching the spawn fixture",
+      "mitigation": "add lifecycleAgentTool factory and lifecycleAgentMessage producing functions.subagent_lifecycle ToolCall with sessionSubagent='codex-fixture-subagent' (same value used at codex-render-fixtures-data.ts:187), and a new fixture row 'subagent-lifecycle-merged' under matrixRow 'subagent_lifecycle_merged'"
+    }
+  ],
+  "q5_recommendation": {
+    "approach": "c (hybrid: CLI mapper emits synthetic functions.subagent_lifecycle envelope; app renderer suppresses spawn/wait/close cards when a lifecycle envelope exists for the same sessionSubagent)",
+    "files_to_change": [
+      {
+        "path": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts",
+        "what": "(1) Extend CodexTurnState with subagentLifecycles?: Map<string, LifecycleState>. (2) On collab_agent_call_begin where tool='spawnAgent', after computing sessionSubagent (line 651-660), additionally emit a tool-call-start envelope with name='functions.subagent_lifecycle', call=`lifecycle:${sessionSubagent}`, args={sessionSubagent, prompt, agentNickname, lifecycle_state:'started'}. Record the lifecycle entry in the new map. (3) On collab_agent_call_begin where tool='wait', look up sessionSubagent via providerSubagentToSessionSubagent.get(receiverThreadId), find the lifecycle entry, emit a tool-call-update or skip (renderer derives state from envelope siblings). (4) On collab_agent_call_end where tool='closeAgent', emit a tool-call-end envelope on the lifecycle call with the close result and final_summary. (5) On task_complete / turn_aborted, flush any open lifecycle entries with errored or completed status",
+        "why": "this is the only layer with canonical begin/end ordering and the receiverThreadId -> sessionSubagent linkage already in place"
+      },
+      {
+        "path": "packages/happy-app/sources/components/tools/views/CodexSubagentLifecycleView.tsx",
+        "what": "NEW view component. Takes ToolViewProps with tool.name='functions.subagent_lifecycle' and tool.input.sessionSubagent. Mirrors CodexSubagentView's spawn_agent branch (TaskStatusRow + useFilteredTools) but adds the merged title/subtitle/status logic from q2 state machine. State derivation: scan messages[] (passed through ToolViewProps.messages) for tool-call messages with name in CODEX_SUBAGENT_CONTROL_TOOLS and matching sessionSubagent, derive started/running/ready/completed/errored from their states",
+        "why": "single owner of the lifecycle UI; the existing CodexSubagentView stays as the per-card fallback for old sessions"
+      },
+      {
+        "path": "packages/happy-app/sources/components/tools/views/_all.tsx",
+        "what": "Add line: 'functions.subagent_lifecycle': CodexSubagentLifecycleView in toolViewRegistry around current line 56-61",
+        "why": "routing wiring"
+      },
+      {
+        "path": "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "what": "Add knownTools entry for 'functions.subagent_lifecycle' with title='Subagent', icon=ICON_TASK, isMutable=true, extractDescription pulling from input.agentNickname / input.prompt, extractStatus from codexToolStateStatus. Place near current 1105-1208 block",
+        "why": "header rendering through ToolView header pipeline (ToolView.tsx:99-120)"
+      },
+      {
+        "path": "packages/happy-app/sources/utils/codexToolRendering.ts",
+        "what": "Add export const CODEX_LIFECYCLE_TOOL = 'functions.subagent_lifecycle'. Modify shouldRenderToolContent (line 56-64) so that for a tool in CODEX_SUBAGENT_CONTROL_TOOLS, it returns false IF the tool's input.sessionSubagent has a matching lifecycle envelope in the messages[] context. This requires either passing messages[] into shouldRenderToolContent, or an alternative: hide the entire ToolView wrapper for control tools by adding a 'hidden' check at MessageView.tsx that early-returns null when (a) tool.name in CODEX_SUBAGENT_CONTROL_TOOLS AND (b) any sibling message has tool.name='functions.subagent_lifecycle' with same sessionSubagent",
+        "why": "the suppression is the renderer side of the merge; without it both lifecycle and original 3 cards render, doubling the noise"
+      },
+      {
+        "path": "packages/happy-app/sources/components/MessageView.tsx",
+        "what": "Add a guard at ToolCallBlock or in RenderBlock (lines 57-72) that, when message.tool.name is in CODEX_SUBAGENT_CONTROL_TOOLS, calls a new useLifecycleSuppressionMap hook (memoized over the parent message list) and returns null when the lifecycle envelope is present for this sessionSubagent",
+        "why": "graceful degradation point; if the hook can't find the parent list, falls back to rendering the original card"
+      },
+      {
+        "path": "packages/happy-app/sources/components/ChatList.tsx",
+        "what": "Compute and provide lifecycleSuppressionMap via a new context provider or pass through ChatList.tsx:48 onto MessageView props. One useMemo over props.messages computes Map<sessionSubagent, lifecycleEnvelopeMessageId>",
+        "why": "centralizes the O(n) scan to one pass per messages[] mutation"
+      },
+      {
+        "path": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+        "what": "Add lifecycleAgentTool factory (mirrors spawnAgentTool but name='functions.subagent_lifecycle' with input.sessionSubagent='codex-fixture-subagent', input.agentNickname='fixture-agent', result.final_summary='inspected fixture rendering'). Add a fixture row 'subagent-lifecycle-merged' near current 511-548 block with matrixRow 'subagent_lifecycle_merged' and expectedVisibleStrings.inline=['Subagent', 'fixture-agent', 'completed']. Also update the existing subagent-spawn / subagent-wait / subagent-close fixtures to bundle a parent lifecycle message in their messages[] so the suppression path can be tested",
+        "why": "matches cycle-1-cycle-4 pattern; verifies merge on the fixture page at /dev/codex-render-fixtures"
+      },
+      {
+        "path": "packages/happy-cli/src/codex/utils/sessionProtocolMapper.test.ts (or equivalent test file)",
+        "what": "Add test cases: (a) spawn-wait-close in order emits 4 envelopes (3 control + 1 lifecycle) with lifecycle terminal status=completed. (b) spawn-no-wait-close emits lifecycle started -> completed. (c) spawn followed by turn_aborted emits lifecycle started -> errored with cancelled status. (d) two parallel subagents emit two disjoint lifecycle envelopes",
+        "why": "locks down the state machine before app code lands"
+      }
+    ],
+    "blast_radius_estimate": {
+      "cli_loc_added": "approximately 80-120 lines in sessionProtocolMapper.ts (new branch in collab_agent_call_begin/end + flush in task_complete/turn_aborted)",
+      "app_loc_added": "approximately 150-200 lines (CodexSubagentLifecycleView ~80, lifecycleSuppressionMap hook + provider ~40, knownTools entry ~20, codexToolRendering.ts edit ~15, MessageView guard ~15, ChatList.tsx wiring ~10)",
+      "files_touched_total": "8 source files + 2 test/fixture files",
+      "risk_level": "low-moderate — new envelope name is additive (no rename, no removal), and the suppression check defaults to NOT suppressing (so any bug surfaces as 4 cards instead of 1, never as 0 cards)",
+      "old_session_compat": "preserved — old SessionMessage blobs don't contain the synthetic envelope; suppression Map is empty for them; cycle-2 three-card behavior continues"
+    },
+    "testability_strategy": {
+      "unit": [
+        "sessionProtocolMapper.test.ts: 4 deterministic state-machine paths (q3 cases a/b/c/d)",
+        "CodexSubagentLifecycleView state derivation: pure function that maps messages[] into a state name; unit-testable independent of React"
+      ],
+      "fixture_page": [
+        "/dev/codex-render-fixtures?devBuild=YYYYMMDDHHMM rendered at https://dev.life-ai.app and http://localhost:8097",
+        "new fixture row 'subagent-lifecycle-merged' shows ONE lifecycle card with started/completed states, inner TaskStatusRow, final_summary text",
+        "update fixture rows 'subagent-spawn' / 'subagent-wait' / 'subagent-close' to be hidden when lifecycle sibling is present; verify by toggling a 'merged' query param that includes/excludes the lifecycle message"
+      ],
+      "live_dev_smoke": [
+        "drive a real Codex session with collab_agent_call_begin/end through happy-cli dev daemon (sandbox HAPPY_HOME_DIR=/tmp/happy-sandbox-XXXX) connected to http://localhost:3005",
+        "send a message in dev web UI that triggers Codex spawn/wait/close; verify ONE lifecycle card appears and the 3 underlying cards do not",
+        "verify on BOTH desktop (1280+) and mobile (390x844) viewports per CLAUDE.md absolute prohibition"
+      ],
+      "regression_protection": [
+        "open a pre-cycle-5 dev session (no lifecycle envelope) and confirm 3 cards still render with cycle-2 stability (spinner stopped, duration frozen)",
+        "Playwright assertion: count of rendered subagent cards == 1 for new sessions, == 3 for old sessions"
+      ]
+    },
+    "out_of_scope_followups": [
+      "phase 2: negotiate with Codex 0.125+ protocol to surface a real agent_nickname on collab_agent_call_begin so the UI can show a human-readable name instead of sessionSubagent[:8]",
+      "phase 2: explore expand-on-tap to show the original 3-card breakdown inside the lifecycle card detail view (right sidebar in ToolFullView)"
+    ]
+  },
+  "verification_evidence_cited": [
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:8-13 CodexTurnState",
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:35-36 CALL_SUBAGENT_PREFIX/OWNER_SUBAGENT_PREFIX",
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:425-462 task_started/task_complete/turn_aborted clearing",
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:638-713 collab_agent_call_begin/end mapping",
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:651-660 sessionSubagent linkage",
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:661 visibleCall = sessionSubagent for spawn_agent",
+    "packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts:684 args.sessionSubagent emission",
+    "packages/happy-app/sources/components/tools/views/_all.tsx:18, 57-61, 98 CodexSubagentView routing",
+    "packages/happy-app/sources/components/tools/views/CodexSubagentView.tsx:21-54 spawn_agent vs degenerate branch",
+    "packages/happy-app/sources/components/tools/knownTools.tsx:1105-1208 per-verb knownTools entries",
+    "packages/happy-app/sources/utils/codexToolRendering.ts:39-45 CODEX_SUBAGENT_CONTROL_TOOLS",
+    "packages/happy-app/sources/utils/codexToolRendering.ts:56-64 shouldRenderToolContent",
+    "packages/happy-app/sources/components/tools/ToolView.tsx:66 hasSpecializedView",
+    "packages/happy-app/sources/components/tools/ToolView.tsx:82-87 hidden + minimal + shouldRenderContent",
+    "packages/happy-app/sources/components/tools/ToolView.tsx:280-289 SpecificToolView dispatch",
+    "packages/happy-app/sources/components/MessageView.tsx:25-46 per-message MessageView entry",
+    "packages/happy-app/sources/components/MessageView.tsx:57-72 RenderBlock dispatch",
+    "packages/happy-app/sources/components/ChatList.tsx:47-48 FlashList renderItem",
+    "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:181-204 spawn/wait/close fixtures",
+    "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts:509-548 fixture rows for control card matrix",
+    "docs/dev/specs/spec-20260506-203844.md:563-573 §5.3.D acceptance bullets",
+    "docs/dev/specs/spec-20260506-203844.md:183 cycle 4 deferral note for D.5"
+  ]
+}

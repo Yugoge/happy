@@ -824,7 +824,7 @@ export const ja: TranslationStructure = {
         // Markdown copy functionality
         codeCopied: 'コードをコピーしました',
         copyFailed: 'コピーに失敗しました',
-        mermaidRenderFailed: 'Mermaidダイアグラムのレンダリングに失敗しました',
+        mermaidRenderFailed: ({ type }: { type: string }) => `${type} ダイアグラムのレンダリングに失敗しました`,
         downloadFailed: 'ダウンロードに失敗しました',
     },
 

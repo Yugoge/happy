@@ -823,7 +823,7 @@ export const zhHant: TranslationStructure = {
         // Markdown copy functionality
         codeCopied: '程式碼已複製',
         copyFailed: '複製失敗',
-        mermaidRenderFailed: '渲染 mermaid 圖表失敗',
+        mermaidRenderFailed: ({ type }: { type: string }) => `無法渲染 ${type} 圖表`,
         downloadFailed: '下載失敗',
     },
 

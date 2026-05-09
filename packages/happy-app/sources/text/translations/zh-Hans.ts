@@ -824,7 +824,7 @@ export const zhHans: TranslationStructure = {
         // Markdown copy functionality
         codeCopied: '代码已复制',
         copyFailed: '复制失败',
-        mermaidRenderFailed: '渲染 mermaid 图表失败',
+        mermaidRenderFailed: ({ type }: { type: string }) => `无法渲染 ${type} 图表`,
         downloadFailed: '下载失败',
     },
 

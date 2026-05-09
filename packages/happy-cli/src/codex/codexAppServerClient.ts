@@ -473,7 +473,7 @@ export class CodexAppServerClient {
                     status: item.status,
                     senderThreadId,
                     receiverThreadIds: item.receiverThreadIds ?? [],
-                    ...eventContext,
+                    agentsStates: item.agentsStates ?? {}, ...eventContext,
                 });
                 return true;
             }

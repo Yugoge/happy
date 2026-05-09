@@ -2,7 +2,7 @@ import { MarkdownSpan, parseMarkdown } from './parseMarkdown';
 import * as React from 'react';
 import { Image, Pressable, ScrollView, View, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 import { Text } from '../StyledText';
 import { Typography } from '@/constants/Typography';
 import { SimpleSyntaxHighlighter } from '../SimpleSyntaxHighlighter';
@@ -18,6 +18,7 @@ import { t } from '@/text';
 import { isHttpMarkdownLink } from './linkUtils';
 import { downloadCodeOnWeb } from './codeDownload';
 import { parseMarkdownSpans } from './parseMarkdownSpans';
+import { RenderTableBlockWeb } from './MarkdownTableWeb';
 
 // Option type for callback
 export type Option = {
@@ -385,81 +386,6 @@ function RenderSpans(props: RenderSpanProps) {
     </>);
 }
 
-function useTableStyles() {
-    const { theme } = useUnistyles();
-    return React.useMemo(() => ({
-        table: { borderCollapse: 'collapse' as const, width: 'auto' as const, fontSize: 16, lineHeight: '24px' },
-        th: {
-            padding: '8px 12px', borderBottom: `1px solid ${theme.colors.divider}`,
-            borderRight: `1px solid ${theme.colors.divider}`, backgroundColor: theme.colors.surfaceHigh,
-            color: theme.colors.text, fontFamily: 'IBMPlexSans-Regular', fontWeight: 600 as const,
-            textAlign: 'left' as const, whiteSpace: 'nowrap' as const,
-        },
-        td: {
-            padding: '8px 12px', borderBottom: `1px solid ${theme.colors.divider}`,
-            borderRight: `1px solid ${theme.colors.divider}`, color: theme.colors.text,
-            fontFamily: 'IBMPlexSans-Regular', fontWeight: 400 as const,
-            textAlign: 'left' as const, whiteSpace: 'nowrap' as const,
-        },
-        container: {
-            marginTop: 8, marginBottom: 8, border: `1px solid ${theme.colors.divider}`,
-            borderRadius: 8, overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as const,
-            width: 'fit-content' as const, maxWidth: 'min(100%, calc(100vw - 32px))',
-        },
-    }), [theme]);
-}
-
-function WebTableRow(props: {
-    row: string[], colCount: number, isLast: boolean, tdStyle: React.CSSProperties,
-    selectable: boolean, onLinkPress: (url: string) => void,
-}) {
-    return (
-        <tr>
-            {Array.from({ length: props.colCount }, (_, colIndex) => (
-                <td key={colIndex} style={{
-                    ...props.tdStyle,
-                    borderBottom: props.isLast ? 'none' : props.tdStyle.borderBottom,
-                    borderRight: colIndex === props.colCount - 1 ? 'none' : props.tdStyle.borderRight,
-                }}>
-                    <RenderSpans spans={parseMarkdownSpans(props.row[colIndex] ?? '', false)}
-                        selectable={props.selectable} onLinkPress={props.onLinkPress} />
-                </td>
-            ))}
-        </tr>
-    );
-}
-
-function RenderTableBlockWeb(props: {
-    headers: string[], rows: string[][], selectable: boolean, onLinkPress: (url: string) => void,
-}) {
-    const s = useTableStyles();
-    return (
-        // @ts-ignore
-        <div style={s.container}>
-            {/* @ts-ignore */}
-            <table style={s.table}>
-                <thead>
-                    <tr>
-                        {props.headers.map((header, i) => (
-                            <th key={i} style={{ ...s.th, borderRight: i === props.headers.length - 1 ? 'none' : s.th.borderRight }}>
-                                <RenderSpans spans={parseMarkdownSpans(header, false)}
-                                    selectable={props.selectable} onLinkPress={props.onLinkPress} />
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {props.rows.map((row, i) => (
-                        <WebTableRow key={i} row={row} colCount={props.headers.length}
-                            isLast={i === props.rows.length - 1} tdStyle={s.td}
-                            selectable={props.selectable} onLinkPress={props.onLinkPress} />
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
 function NativeTableColumn(props: {
     header: string, colIndex: number, columnCount: number,
     rows: string[][], rowCount: number, selectable: boolean, onLinkPress: (url: string) => void,
@@ -511,7 +437,17 @@ function RenderTableBlock(props: {
     selectable: boolean, first: boolean, last: boolean,
 }) {
     if (Platform.OS === 'web') {
-        return <RenderTableBlockWeb {...props} />;
+        return (
+            <RenderTableBlockWeb
+                headers={props.headers}
+                rows={props.rows}
+                selectable={props.selectable}
+                onLinkPress={props.onLinkPress}
+                renderSpans={RenderSpans}
+                tableHeaderTextStyle={style.tableHeaderText}
+                tableCellTextStyle={style.tableCellText}
+            />
+        );
     }
     return <RenderTableBlockNative {...props} />;
 }

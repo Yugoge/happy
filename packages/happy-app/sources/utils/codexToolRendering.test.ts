@@ -12,6 +12,9 @@ import {
     summarizePlanItems,
     truncateInspectableText,
     shouldRenderToolContent,
+    buildLifecycleSuppressionMap,
+    isControlToolSuppressedByLifecycle,
+    CODEX_LIFECYCLE_TOOL,
 } from './codexToolRendering';
 
 describe('codex rendering helpers', () => {
@@ -157,6 +160,7 @@ describe('codex rendering helpers', () => {
             'subagent-spawn',
             'subagent-wait',
             'subagent-close',
+            'subagent-lifecycle-merged',
             'request-user-input-unavailable',
             'web-search',
             'web-weather',
@@ -232,6 +236,36 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(codexBash, true, true)).toBe(true);
         const subagentControl = makeToolCall('functions.wait_agent', { name: 'fixture-agent' }, { status: 'completed' });
         expect(shouldRenderToolContent(subagentControl, true, true)).toBe(false);
+    });
+
+    // Cycle 6 — D.5 subagent lifecycle suppression Map.
+    it('builds a sessionSubagent → messageId Map from lifecycle envelopes and suppresses control cards by sessionSubagent (default-not-suppress fail-safe)', () => {
+        const sessionSubagent = 'codex-fixture-subagent';
+        const lifecycleMessage: any = {
+            id: 'msg-lifecycle-1', kind: 'tool-call', children: [], localId: null, createdAt: 0,
+            tool: makeToolCall(CODEX_LIFECYCLE_TOOL, { sessionSubagent, prompt: 'do work' }, { lifecycle_state: 'completed' }),
+        };
+        const spawnMessage: any = {
+            id: 'msg-spawn-1', kind: 'tool-call', children: [], localId: null, createdAt: 0,
+            tool: makeToolCall('functions.spawn_agent', { sessionSubagent, prompt: 'do work' }, { status: 'completed' }),
+        };
+        const waitMessage: any = {
+            id: 'msg-wait-1', kind: 'tool-call', children: [], localId: null, createdAt: 0,
+            tool: makeToolCall('functions.wait_agent', { sessionSubagent }, { status: 'completed' }),
+        };
+        const map = buildLifecycleSuppressionMap([lifecycleMessage, spawnMessage, waitMessage]);
+        expect(map.size).toBe(1);
+        expect(map.get(sessionSubagent)).toBe('msg-lifecycle-1');
+        expect(isControlToolSuppressedByLifecycle(spawnMessage.tool, map)).toBe(true);
+        expect(isControlToolSuppressedByLifecycle(waitMessage.tool, map)).toBe(true);
+        expect(isControlToolSuppressedByLifecycle(lifecycleMessage.tool, map)).toBe(false); // lifecycle itself not suppressed
+        // Default-not-suppress fail-safe: empty Map → no suppression
+        expect(isControlToolSuppressedByLifecycle(spawnMessage.tool, new Map())).toBe(false);
+        // Different sessionSubagent → no suppression
+        const otherSpawn = makeToolCall('functions.spawn_agent', { sessionSubagent: 'other-subagent' }, { status: 'completed' });
+        expect(isControlToolSuppressedByLifecycle(otherSpawn, map)).toBe(false);
+        // Non-control tools never suppressed
+        expect(isControlToolSuppressedByLifecycle(makeToolCall('CodexBash', {}), map)).toBe(false);
     });
 
     it('keeps Claude generic tools collapsed on main transcript (S2 regression guard for 2026-04-25 scope-leak)', () => {

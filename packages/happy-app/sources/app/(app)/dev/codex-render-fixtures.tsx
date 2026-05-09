@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { MessageView } from '@/components/MessageView';
@@ -15,6 +15,10 @@ import {
     CODEX_RENDER_FIXTURE_SESSION_ID,
     codexRenderFixtures,
 } from './codex-render-fixtures-data';
+import {
+    LifecycleSuppressionContext,
+    buildLifecycleSuppressionMap,
+} from '@/utils/codexToolRendering';
 
 const messageById = new Map(codexRenderFixtures.map((fixture) => [fixture.message.id, fixture.message]));
 
@@ -37,6 +41,24 @@ function ActionButton(props: { label: string; testID: string; onPress: () => voi
     );
 }
 
+// Cycle 6 D.5 — subagent control verbs and the lifecycle envelope render
+// through MessageView so LifecycleSuppressionContext takes effect.
+const SUPPRESSION_AWARE_TOOL_NAMES = new Set([
+    'functions.spawn_agent', 'functions.send_input', 'functions.wait_agent',
+    'functions.resume_agent', 'functions.close_agent', 'functions.subagent_lifecycle',
+]);
+
+function FixtureInline(props: { fixture: CodexRenderFixture; onSelectDetail: () => void }) {
+    const { fixture } = props;
+    const renderViaMessageView = !fixture.tool || SUPPRESSION_AWARE_TOOL_NAMES.has(fixture.tool.name);
+    if (renderViaMessageView) {
+        return <MessageView message={fixture.message} metadata={null} sessionId={CODEX_RENDER_FIXTURE_SESSION_ID}
+            getMessageById={(id: string): Message | null => messageById.get(id) ?? null} />;
+    }
+    return <ToolView tool={fixture.tool!} metadata={null} messages={[]} sessionId={CODEX_RENDER_FIXTURE_SESSION_ID}
+        onPress={props.onSelectDetail} onContentPress={(data) => { useRightSidebar.getState().open(data); }} />;
+}
+
 function FixtureCard(props: {
     fixture: CodexRenderFixture;
     selected: boolean;
@@ -55,25 +77,7 @@ function FixtureCard(props: {
                 </Text>
             </View>
             <View style={styles.inlineSurface} testID={`codex-fixture-inline-${fixture.id}`}>
-                {fixture.tool ? (
-                    <ToolView
-                        tool={fixture.tool}
-                        metadata={null}
-                        messages={[]}
-                        sessionId={CODEX_RENDER_FIXTURE_SESSION_ID}
-                        onPress={props.onSelectDetail}
-                        onContentPress={(data) => {
-                            useRightSidebar.getState().open(data);
-                        }}
-                    />
-                ) : (
-                    <MessageView
-                        message={fixture.message}
-                        metadata={null}
-                        sessionId={CODEX_RENDER_FIXTURE_SESSION_ID}
-                        getMessageById={(id: string): Message | null => messageById.get(id) ?? null}
-                    />
-                )}
+                <FixtureInline fixture={fixture} onSelectDetail={props.onSelectDetail} />
             </View>
             <View style={styles.actions}>
                 <ActionButton
@@ -95,60 +99,75 @@ function FixtureCard(props: {
     );
 }
 
+// Cycle 6 — D.5: aggregate every fixture's message into the suppression
+// Map so control fixture rows observe suppression. ?suppress=off forces
+// empty Map so all cards render side-by-side (visual diff for QA).
+const ALL_FIXTURE_MESSAGES = codexRenderFixtures.map((f) => f.message);
+const FULL_SUPPRESSION_MAP = buildLifecycleSuppressionMap(ALL_FIXTURE_MESSAGES);
+const EMPTY_SUPPRESSION_MAP = new Map<string, string>();
+
+function IntroBlock({ suppressEnabled }: { suppressEnabled: boolean }) {
+    return (
+        <View style={styles.intro} testID="codex-render-fixtures-route">
+            <Text style={styles.pageTitle}>Codex Rendering Fixture Matrix</Text>
+            <Text style={styles.pageDescription}>
+                Dev-only deterministic samples for QA. Inline cards use the same ToolView and
+                MessageView components as sessions; detail uses ToolFullView; sidebar uses the
+                same RightSidebar content renderer.
+            </Text>
+            <Text style={styles.routeHint}>Route: /dev/codex-render-fixtures (suppress={suppressEnabled ? 'on' : 'off'})</Text>
+        </View>
+    );
+}
+
+function FixturesScreenBody(props: {
+    selectedFixture: CodexRenderFixture;
+    selectedId: string;
+    setSelectedId: (id: string) => void;
+    suppressEnabled: boolean;
+    onOpenSidebar: (fixture: CodexRenderFixture) => void;
+}) {
+    return (
+        <ScrollView style={styles.main} contentContainerStyle={styles.content}>
+            <IntroBlock suppressEnabled={props.suppressEnabled} />
+            {codexRenderFixtures.map((fixture) => (
+                <FixtureCard key={fixture.id} fixture={fixture}
+                    selected={fixture.id === props.selectedId}
+                    onSelectDetail={() => props.setSelectedId(fixture.id)}
+                    onOpenSidebar={() => props.onOpenSidebar(fixture)} />
+            ))}
+            <View testID={`codex-fixture-detail-${props.selectedFixture.id}`} style={styles.detailSurface}>
+                <Text style={styles.detailTitle}>Detail surface: {props.selectedFixture.title}</Text>
+                <DetailSurface fixture={props.selectedFixture} />
+            </View>
+        </ScrollView>
+    );
+}
+
 export default React.memo(function CodexRenderFixturesScreen() {
     const [selectedId, setSelectedId] = React.useState(codexRenderFixtures[0].id);
     const openSidebar = useRightSidebar((state) => state.open);
     const closeSidebar = useRightSidebar((state) => state.close);
     const selectedFixture = codexRenderFixtures.find((fixture) => fixture.id === selectedId)
         ?? codexRenderFixtures[0];
-
+    const params = useLocalSearchParams<{ suppress?: string }>();
+    const suppressEnabled = params.suppress !== 'off';
+    const suppressionMap = suppressEnabled ? FULL_SUPPRESSION_MAP : EMPTY_SUPPRESSION_MAP;
     React.useEffect(() => closeSidebar, [closeSidebar]);
-
+    const onOpenSidebar = React.useCallback((fixture: CodexRenderFixture) => {
+        if (fixture.tool) {
+            openSidebar({ tool: fixture.tool, messages: [], metadata: null, sessionId: CODEX_RENDER_FIXTURE_SESSION_ID });
+        }
+    }, [openSidebar]);
     return (
-        <View style={styles.root}>
-            <Stack.Screen options={{ headerTitle: 'Codex Render Fixtures' }} />
-            <ScrollView style={styles.main} contentContainerStyle={styles.content}>
-                <View style={styles.intro} testID="codex-render-fixtures-route">
-                    <Text style={styles.pageTitle}>Codex Rendering Fixture Matrix</Text>
-                    <Text style={styles.pageDescription}>
-                        Dev-only deterministic samples for QA. Inline cards use the same ToolView and
-                        MessageView components as sessions; detail uses ToolFullView; sidebar uses the
-                        same RightSidebar content renderer.
-                    </Text>
-                    <Text style={styles.routeHint}>
-                        Route: /dev/codex-render-fixtures
-                    </Text>
-                </View>
-
-                {codexRenderFixtures.map((fixture) => (
-                    <FixtureCard
-                        key={fixture.id}
-                        fixture={fixture}
-                        selected={fixture.id === selectedFixture.id}
-                        onSelectDetail={() => setSelectedId(fixture.id)}
-                        onOpenSidebar={() => {
-                            if (fixture.tool) {
-                                openSidebar({
-                                    tool: fixture.tool,
-                                    messages: [],
-                                    metadata: null,
-                                    sessionId: CODEX_RENDER_FIXTURE_SESSION_ID,
-                                });
-                            }
-                        }}
-                    />
-                ))}
-
-                <View
-                    testID={`codex-fixture-detail-${selectedFixture.id}`}
-                    style={styles.detailSurface}
-                >
-                    <Text style={styles.detailTitle}>Detail surface: {selectedFixture.title}</Text>
-                    <DetailSurface fixture={selectedFixture} />
-                </View>
-            </ScrollView>
-            <RightSidebar />
-        </View>
+        <LifecycleSuppressionContext.Provider value={suppressionMap}>
+            <View style={styles.root}>
+                <Stack.Screen options={{ headerTitle: 'Codex Render Fixtures' }} />
+                <FixturesScreenBody selectedFixture={selectedFixture} selectedId={selectedId}
+                    setSelectedId={setSelectedId} suppressEnabled={suppressEnabled} onOpenSidebar={onOpenSidebar} />
+                <RightSidebar />
+            </View>
+        </LifecycleSuppressionContext.Provider>
     );
 });
 

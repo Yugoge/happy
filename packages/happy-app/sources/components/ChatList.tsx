@@ -8,6 +8,7 @@ import { MessageView } from './MessageView';
 import { Metadata, Session } from '@/sync/storageTypes';
 import { ChatFooter } from './ChatFooter';
 import { Message, ToolCall } from '@/sync/typesMessage';
+import { LifecycleSuppressionContext, buildLifecycleSuppressionMap } from '@/utils/codexToolRendering';
 
 export const ChatList = React.memo((props: {
     session: Session;
@@ -47,20 +48,28 @@ const ChatListInternal = React.memo((props: {
     const renderItem = useCallback(({ item }: { item: any }) => (
         <MessageView message={item} metadata={props.metadata} sessionId={props.sessionId} onContentPress={props.onContentPress} />
     ), [props.metadata, props.sessionId, props.onContentPress]);
+    // Cycle 6 — D.5: derive sessionSubagent → lifecycle-message-id Map once
+    // per messages[] reference change. Per-renderItem lookup is O(1).
+    const lifecycleSuppressionMap = React.useMemo(
+        () => buildLifecycleSuppressionMap(props.messages),
+        [props.messages],
+    );
     return (
-        <FlatList
-            data={props.messages}
-            inverted={true}
-            keyExtractor={keyExtractor}
-            maintainVisibleContentPosition={{
-                minIndexForVisible: 0,
-                autoscrollToTopThreshold: 10,
-            }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
-            renderItem={renderItem}
-            ListHeaderComponent={<ListFooter sessionId={props.sessionId} />}
-            ListFooterComponent={<ListHeader />}
-        />
+        <LifecycleSuppressionContext.Provider value={lifecycleSuppressionMap}>
+            <FlatList
+                data={props.messages}
+                inverted={true}
+                keyExtractor={keyExtractor}
+                maintainVisibleContentPosition={{
+                    minIndexForVisible: 0,
+                    autoscrollToTopThreshold: 10,
+                }}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
+                renderItem={renderItem}
+                ListHeaderComponent={<ListFooter sessionId={props.sessionId} />}
+                ListFooterComponent={<ListHeader />}
+            />
+        </LifecycleSuppressionContext.Provider>
     )
 });

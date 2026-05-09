@@ -20,6 +20,59 @@ function sanitizeMermaidTimeline(content: string): string {
         .join('\n');
 }
 
+// Cycle 6 (#7): extract diagram type token from the first meaningful directive
+// line. Skips comment lines (`%%`), init directives, and optional frontmatter
+// (`--- ... ---`). Allows hyphens/digits (e.g., `stateDiagram-v2`, `block-beta`).
+function extractMermaidDiagramType(content: string): string {
+    let inFrontmatter = false;
+    for (const rawLine of content.split('\n')) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('%%')) continue;
+        if (line === '---') { inFrontmatter = !inFrontmatter; continue; }
+        if (inFrontmatter) continue;
+        const match = line.match(/^[A-Za-z][A-Za-z0-9_-]*/);
+        return match && match[0] ? match[0] : 'Mermaid';
+    }
+    return 'Mermaid';
+}
+
+// Cycle 6 (#1): inject explicit intrinsic width + max-width:none on root <svg>.
+function buildSvgStyleAttr(intrinsicWidth: number | null): string {
+    const widthStyle = intrinsicWidth ? `width:${intrinsicWidth}px;` : '';
+    return `${widthStyle}max-width:none;height:auto;`;
+}
+
+function injectStyleIntoSvgTag(svg: string, styleStr: string): string {
+    return svg.replace(/^(<svg\b)([^>]*)>/, (_m, p1, p2) => {
+        const existingMatch = p2.match(/style="([^"]*)"/);
+        if (existingMatch) {
+            const merged = `style="${styleStr}${existingMatch[1]}"`;
+            return `${p1}${p2.replace(/style="[^"]*"/, merged)}>`;
+        }
+        return `${p1}${p2} style="${styleStr}">`;
+    });
+}
+
+function parseSvgViewBoxWidth(svg: string): number | null {
+    const viewBoxMatch = svg.match(/viewBox="([^"]+)"/);
+    if (!viewBoxMatch || !viewBoxMatch[1]) return null;
+    const parts = viewBoxMatch[1].trim().split(/\s+/);
+    if (parts.length !== 4) return null;
+    const w = parseFloat(parts[2]);
+    return Number.isFinite(w) && w > 0 ? w : null;
+}
+
+// Normalize Mermaid SVG so the diagram renders at intrinsic width (from viewBox)
+// rather than scaling down to container width via the baked-in `width="100%"`.
+// Removes the root <svg> width/height attrs and adds an explicit style so the
+// parent container's overflow:auto produces a horizontal scrollbar when needed.
+function normalizeMermaidSvg(svg: string): string {
+    const intrinsicWidth = parseSvgViewBoxWidth(svg);
+    let normalized = svg.replace(/^(<svg\b[^>]*?)\s+width="[^"]*"/, '$1');
+    normalized = normalized.replace(/^(<svg\b[^>]*?)\s+height="[^"]*"/, '$1');
+    return injectStyleIntoSvgTag(normalized, buildSvgStyleAttr(intrinsicWidth));
+}
+
 function buildMermaidThemeVars(dark: boolean) {
     return {
         fontFamily: '"IBM Plex Sans", sans-serif',
@@ -51,6 +104,7 @@ async function renderMermaidSvg(
     onSuccess: (svg: string) => void,
     onError: (value: boolean) => void,
 ): Promise<void> {
+    const diagramType = extractMermaidDiagramType(content);
     try {
         const mermaidModule: any = await import('mermaid');
         const mermaid = mermaidModule.default || mermaidModule;
@@ -63,10 +117,10 @@ async function renderMermaidSvg(
         }
         if (mermaid.render) {
             const { svg } = await mermaid.render(`mermaid-${Date.now()}`, content);
-            if (isMounted) { onSuccess(svg); }
+            if (isMounted) { onSuccess(normalizeMermaidSvg(svg)); }
         }
     } catch (error) {
-        console.warn(`[Mermaid] ${t('markdown.mermaidRenderFailed')}: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(`[Mermaid] ${t('markdown.mermaidRenderFailed', { type: diagramType })}: ${error instanceof Error ? error.message : String(error)}`);
         if (isMounted) { onError(true); }
     }
 }
@@ -79,12 +133,12 @@ function MermaidLoadingPlaceholder() {
     );
 }
 
-function MermaidErrorFallback() {
-    // Shows a friendly message instead of raw diagram source (Bug #61 UX improvement)
+function MermaidErrorFallback(props: { diagramType: string }) {
+    // Cycle 6 (#7): error label reflects actual diagram type, not hardcoded "Timeline".
     return (
         <View style={[style.container, style.errorContainer]}>
             <View style={style.errorContent}>
-                <Text style={style.errorText}>Timeline diagram could not be rendered</Text>
+                <Text style={style.errorText}>{t('markdown.mermaidRenderFailed', { type: props.diagramType })}</Text>
             </View>
         </View>
     );
@@ -94,6 +148,7 @@ function MermaidWebRenderer(props: { content: string; theme: any }) {
     const { content, theme } = props;
     const [hasError, setHasError] = React.useState(false);
     const [svgContent, setSvgContent] = React.useState<string | null>(null);
+    const diagramType = React.useMemo(() => extractMermaidDiagramType(content), [content]);
 
     React.useEffect(() => {
         let isMounted = true;
@@ -103,12 +158,11 @@ function MermaidWebRenderer(props: { content: string; theme: any }) {
         return () => { isMounted = false; };
     }, [content, theme.dark]);
 
-    if (hasError) { return <MermaidErrorFallback />; }
+    if (hasError) { return <MermaidErrorFallback diagramType={diagramType} />; }
     if (!svgContent) { return <MermaidLoadingPlaceholder />; }
     return (
         <View style={style.container}>
             <div style={buildWebContainerStyle(theme)}>
-                <style dangerouslySetInnerHTML={{ __html: 'svg{max-width:100%;height:auto}' }} />
                 <div dangerouslySetInnerHTML={{ __html: svgContent }} />
             </div>
         </View>

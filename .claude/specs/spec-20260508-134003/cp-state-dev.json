@@ -1,0 +1,16 @@
+{
+  "spec_id": "spec-20260508-134003",
+  "agent_type": "dev",
+  "instance_id": null,
+  "generation": 1,
+  "agent_id": null,
+  "is_running": false,
+  "checked_in_at": "2026-05-08T14:39:04Z",
+  "checked_out_at": "2026-05-08T14:55:18Z",
+  "checkpoints": [],
+  "terminal_artifact": {
+    "path": null,
+    "exists": false,
+    "validated_at": null
+  }
+}

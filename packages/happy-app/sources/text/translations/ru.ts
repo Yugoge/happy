@@ -832,7 +832,7 @@ export const ru: TranslationStructure = {
         // Markdown copy functionality
         codeCopied: 'Код скопирован',
         copyFailed: 'Ошибка копирования',
-        mermaidRenderFailed: 'Не удалось отобразить диаграмму mermaid',
+        mermaidRenderFailed: ({ type }: { type: string }) => `Не удалось отобразить диаграмму ${type}`,
         downloadFailed: 'Не удалось скачать',
     },
 

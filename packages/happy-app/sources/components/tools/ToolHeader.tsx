@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ToolCall } from '@/sync/typesMessage';
 import { knownTools } from '@/components/tools/knownTools';
+import { isMcpInlineChipOnlyTool } from '@/components/tools/mcpHelpers';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 interface ToolHeaderProps {
@@ -36,7 +37,7 @@ export function ToolHeader({ tool }: ToolHeaderProps) {
 
     // Extract subtitle using the same logic as ToolView
     let subtitle = null;
-    if (knownTool && typeof knownTool.extractSubtitle === 'function') {
+    if (knownTool && typeof knownTool.extractSubtitle === 'function' && !isMcpInlineChipOnlyTool(tool.name)) {
         const extractedSubtitle = knownTool.extractSubtitle({ tool, metadata: null });
         if (typeof extractedSubtitle === 'string' && extractedSubtitle) {
             subtitle = extractedSubtitle;

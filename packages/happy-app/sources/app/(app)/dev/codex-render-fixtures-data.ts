@@ -192,15 +192,32 @@ const spawnAgentTool = makeTool(
 const waitAgentTool = makeTool(
     'functions.wait_agent',
     'completed',
-    { name: 'fixture-agent', timeout: 30 },
+    { name: 'fixture-agent', timeout: 30, sessionSubagent: 'codex-fixture-subagent' },
     { status: 'completed' },
 );
 
 const closeAgentTool = makeTool(
     'functions.close_agent',
     'completed',
-    { name: 'fixture-agent' },
+    { name: 'fixture-agent', sessionSubagent: 'codex-fixture-subagent' },
     { status: 'completed' },
+);
+
+// Cycle 6 — D.5 subagent lifecycle merged card. Synthetic envelope.
+const lifecycleAgentTool = makeTool(
+    'functions.subagent_lifecycle',
+    'completed',
+    {
+        sessionSubagent: 'codex-fixture-subagent',
+        prompt: 'inspect fixture rendering',
+        agentNickname: 'fixture-agent',
+        lifecycle_state: 'started',
+    },
+    {
+        status: 'completed',
+        lifecycle_state: 'completed',
+        final_summary: 'inspected fixture rendering',
+    },
 );
 
 const requestInputUnavailableTool = makeTool(
@@ -547,6 +564,26 @@ export const codexRenderFixtures: CodexRenderFixture[] = [
             inline: ['Close Agent', 'Close: fixture-agent'],
             detail: ['fixture-agent', 'completed'],
             sidebar: ['fixture-agent', 'completed'],
+        },
+    },
+    // Cycle 6 — D.5 merged subagent lifecycle card. Renders the synthetic
+    // functions.subagent_lifecycle envelope. With the suppression Map active,
+    // this is the ONLY card shown for sessionSubagent='codex-fixture-subagent'
+    // (the spawn/wait/close cards above are suppressed). When the fixture
+    // page is loaded with ?suppress=off, suppression is bypassed so all 4
+    // cards render side-by-side for visual diff.
+    {
+        id: 'subagent-lifecycle-merged',
+        matrixRow: 'subagent_lifecycle_merged',
+        matrix: makeMatrix('subagent_lifecycle', 'functions.subagent_lifecycle', 'merged subagent lifecycle', 'merged lifecycle card'),
+        title: 'subagent_lifecycle (merged D.5)',
+        description: 'Merged subagent lifecycle card replaces the 3 spawn/wait/close cards in new sessions.',
+        tool: lifecycleAgentTool,
+        message: makeToolMessage('codex-fixture-subagent-lifecycle-merged', lifecycleAgentTool, 10500),
+        expectedVisibleStrings: {
+            inline: ['Subagent', 'fixture-agent', 'inspected fixture rendering'],
+            detail: ['fixture-agent', 'completed', 'inspected fixture rendering'],
+            sidebar: ['fixture-agent', 'completed', 'inspected fixture rendering'],
         },
     },
     {

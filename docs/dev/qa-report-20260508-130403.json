@@ -1,0 +1,278 @@
+{
+  "request_id": "20260508-130403",
+  "task_id": "20260508-130403",
+  "timestamp": "2026-05-08T14:12:00Z",
+  "spec_id": "spec-20260506-203844",
+  "qa": {
+    "status": "pass",
+    "user_verbatim_complaint": "继续彻底完成没有做的 (interpreted via spec §5.3.D bullet 5: 最佳形态：合并为一个 subagent lifecycle 卡，展示 agent nickname/id、started、completed、final summary)",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": true,
+    "out_of_scope_observations": [],
+    "spec_section_updates": {
+      "section_4": "### Cycle 6 (D.5 subagent lifecycle merge — task 20260508-130403, 2026-05-08T14:12:00Z)\n\n**Measured state on dev (`http://localhost:8097/dev/codex-render-fixtures`, dev account `cmi5mv9eh00wzpg14ph73jj3n`, build `happy-app:dev` rebuilt this cycle):**\n\n- CLI vitest `src/codex/__tests__/sessionProtocolMapper.test.ts`: 21/21 pass (17 prior cases preserved + 4 new D.5 state-machine cases: spawn-wait-close → terminal completed; spawn-no-wait-close → started→completed; spawn+turn_aborted → errored/cancelled; two parallel subagents emit two disjoint lifecycle envelopes).\n- App vitest `sources/utils/codexToolRendering.test.ts`: 11/11 pass (10 prior cases + 1 new `buildLifecycleSuppressionMap` + `isControlToolSuppressedByLifecycle` case covering: lifecycle envelope present → control tools suppressed; lifecycle envelope itself NOT suppressed; empty Map → no suppression; sessionSubagent mismatch → no suppression; non-control tool → no suppression).\n- Type-checks: `yarn workspace happy-app typecheck` → 0 errors; `npx tsc --noEmit` in `packages/happy-cli` → 0 errors.\n- Playwright DOM probe at desktop 1440×900, default route `?suppress=on`:\n  - `SUBAGENT_LIFECYCLE_SPAWN` row: header + matrix metadata only; no inline card body — only `Open detail` / `Open sidebar` buttons render. Suppression active.\n  - `SUBAGENT_LIFECYCLE_WAIT` row: same — only buttons.\n  - `SUBAGENT_LIFECYCLE_CLOSE` row: same — only buttons.\n  - `SUBAGENT_LIFECYCLE_MERGED` row: lifecycle card renders with rocket icon, header `Subagent completed`, subtitle `fixture-agent · inspect fixture rendering`, body `State: completed`, final_summary `inspected fixture rendering`.\n- Playwright DOM probe at desktop 1440×900 with `?suppress=off`:\n  - `SUBAGENT_LIFECYCLE_SPAWN` row now ALSO renders `Spawn Agent completed` card.\n  - `SUBAGENT_LIFECYCLE_WAIT` row now ALSO renders `Wait for Agent completed` card.\n  - `SUBAGENT_LIFECYCLE_CLOSE` row now ALSO renders `Close Agent completed` card.\n  - Plus the lifecycle card → 4 cards total. AC8 default-not-suppress fail-safe verified (any bug surfaces as 4 cards, never as 0).\n- Playwright DOM probe at mobile 390×844, default `?suppress=on`: lifecycle card renders within viewport, no horizontal overflow, control rows suppressed. Snapshot confirms structure (e273/e285/e297 rows show only buttons; e309 row shows full lifecycle card body).\n- Build/deploy: `bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend` rebuilt `happy-app:dev` and recreated `happy-web-dev`. `docker ps` confirms `happy-web-dev` Up; production `happy-web` and `happy-server` containers untouched (isolation verified).\n- Screenshot evidence (4 PNGs at `docs/dev/qa-artifacts/20260508-130403/`):\n  - `lifecycle-card.png` — rendered merged card (rocket icon · Subagent completed · fixture-agent · inspect fixture rendering · State: completed · inspected fixture rendering).\n  - `three-cards-fallback.png` — `?suppress=off` route shown; sidebar navigation visible.\n  - `matrix-desktop.png` / `matrix-mobile.png` — full-page screenshots at both viewports.\n\n**Result for this cycle**: §5.3.D bullet 5 (merge into single lifecycle card) is implemented and live-verified on dev fixture page. Cycle-2 fallback for old SessionMessage blobs preserved (suppression Map empty for them; 3 cards continue to render).",
+      "section_6": null,
+      "section_7": null
+    },
+    "verified_location_keywords": [
+      "codex-render-fixtures",
+      "subagent_lifecycle",
+      "subagent_lifecycle_merged",
+      "subagent_lifecycle_spawn",
+      "subagent_lifecycle_wait",
+      "subagent_lifecycle_close",
+      "lifecycle",
+      "sessionsubagent"
+    ],
+    "location_overlap": [
+      "subagent_lifecycle",
+      "lifecycle"
+    ],
+    "complaint_resolution_evidence": "User-need clause §5.3.D bullet 5 'agent nickname/id, started, completed, final summary' satisfied by single merged card rendered on the fixture page: rocket-icon Subagent header (id+state badge); 'fixture-agent' subtitle (nickname); 'State: completed' body (terminal state derivation; 'started' lifecycle is exercised by AC1 vitest case mapping spawn → tool-call-start with args.lifecycle_state='started'); 'inspected fixture rendering' final_summary text. The 3 underlying spawn/wait/close cards are suppressed when the lifecycle envelope is present, satisfying the 'merged into ONE card' requirement. Cycle-2 fallback preserved (W5/M12) for old encrypted blobs without the synthetic envelope.",
+    "complaint_element_pointer": {
+      "selector": "div[role='generic'] > div containing text 'subagent_lifecycle (merged D.5)' (matrix row id e309-e334 in mobile snapshot; scope: SUBAGENT_LIFECYCLE_MERGED fixture row)",
+      "how_located": "matrixRow id text 'subagent_lifecycle_merged' + sibling card body containing 'Subagent completed' / 'fixture-agent · inspect fixture rendering' / 'State: completed' / 'inspected fixture rendering'",
+      "found_in_dom": true,
+      "page_url": "http://localhost:8097/dev/codex-render-fixtures"
+    },
+    "element_screenshots": {
+      "before_selector": "matrixRow=subagent_lifecycle_merged (lifecycle card region)",
+      "before_path": "N/A — cycle-2 baseline shows 3 separate cards; cycle-6 introduces the merged card. Comparison evidence: with ?suppress=off the SUBAGENT_LIFECYCLE_SPAWN/WAIT/CLOSE rows show 'Spawn Agent completed'/'Wait for Agent completed'/'Close Agent completed' cards AND the merged card; with default ?suppress=on those 3 rows show no card body, only the merged card renders.",
+      "after_path": "docs/dev/qa-artifacts/20260508-130403/lifecycle-card.png",
+      "same_element_verified": true
+    },
+    "overall_assessment": "PASS. All 14 acceptance criteria from BA ticket M1-M19 / AC1-AC14 verified. CLI mapper emits synthetic functions.subagent_lifecycle envelope keyed by sessionSubagent (M1-M5 verified by vitest 21/21). App renders single merged lifecycle card via CodexSubagentLifecycleView (M6-M8 verified by live DOM probe). Suppression infrastructure correctly elides the 3 underlying cards when lifecycle envelope is present (M9-M11 verified by ?suppress on/off DOM diff: AC6 collapses 4→1 cards in default mode, AC8 fail-safe shows 4 cards in ?suppress=off). Old-session compat preserved (M12 — fixture rows without lifecycle envelope render as cycle-2 3 cards). Fixture, tests, typecheck, mobile viewport, deploy isolation all green.",
+    "success_criteria_results": [
+      {
+        "requirement_id": "R1",
+        "source_phrase": "继续彻底完成没有做的 (spec §5.3.D bullet 5: merge into single subagent lifecycle card showing agent nickname/id, started, completed, final summary)",
+        "criterion": "A single lifecycle card replaces the three control cards for a sessionSubagent in the new path; cycle-2 fallback preserved for old sessions",
+        "verification_method": "Playwright DOM probe at desktop 1440x900 + mobile 390x844 with ?suppress=on (default) and ?suppress=off variant; vitest state-machine cases for CLI mapper and app suppression Map; screenshot evidence",
+        "status": "pass",
+        "result": "pass",
+        "details": "Default mode renders ONE lifecycle card (rocket-icon Subagent + fixture-agent nickname + State: completed + inspected fixture rendering); ?suppress=off renders 4 cards (3 underlying + lifecycle) confirming default-not-suppress fail-safe; CLI mapper emits 4-envelope sequence (3 control + 1 synthetic lifecycle) per spawn-wait-close lifecycle.",
+        "evidence": "qa-artifacts/20260508-130403/lifecycle-card.png + matrix-desktop.png + matrix-mobile.png + Playwright snapshot (e309-e334) + vitest 21/21 + 11/11"
+      }
+    ],
+    "_success_criteria_rule": "BA ticket has 1 entry in requirements_decomposition (R1) — QA produces 1 entry in success_criteria_results. Match.",
+    "root_cause_verification": {
+      "addressed": true,
+      "confidence": "high",
+      "rationale": "D.5 was a deferred enhancement (cycle-4 explicitly deferred per architect memo §current_state_summary). Hybrid approach (architect option c) emits a synthetic envelope at the only canonical begin/end ordering point (CLI mapper) and suppresses the 3 underlying cards via memoized Map at the only renderer feed-point (ChatList → MessageView via context). The synthetic envelope is additive (no removal of existing 3-envelope path), so old encrypted SessionMessage blobs continue to render as 3 cards (cycle-2 fallback). Architect memo §q1 verdict 'RECOMMENDED — minimum blast radius, perfect retroactive compat' is implemented as specified."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend",
+      "deploy_command": "docker compose up -d happy-web-dev (orchestrated by the build script)",
+      "build_output_summary": "happy-app:dev rebuilt with HAPPY_SERVER_URL=https://api-dev.life-ai.app; happy-web-dev recreated; production happy-web/happy-server untouched.",
+      "service_healthy": true,
+      "changes_verified_live": true,
+      "skip_reason": null
+    },
+    "script_quality_results": [],
+    "regression_test_results": [
+      {
+        "test": "CLI vitest sessionProtocolMapper.test.ts (full file)",
+        "result": "pass",
+        "details": "21/21 tests pass (17 pre-existing + 4 new D.5 cases). No regression in pre-existing cases."
+      },
+      {
+        "test": "App vitest codexToolRendering.test.ts (full file)",
+        "result": "pass",
+        "details": "11/11 tests pass (10 pre-existing + 1 new suppression Map case). No regression."
+      },
+      {
+        "test": "App typecheck (yarn workspace happy-app typecheck)",
+        "result": "pass",
+        "details": "0 TS errors."
+      },
+      {
+        "test": "CLI typecheck (npx tsc --noEmit in packages/happy-cli)",
+        "result": "pass",
+        "details": "0 TS errors (silent successful exit)."
+      }
+    ],
+    "code_quality_findings": [],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 13,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      }
+    },
+    "standards_compliance": {
+      "checked": true,
+      "role_table_source": "packages/happy-app/CLAUDE.md (no role-color table declared; styling uses Unistyles theme tokens like theme.colors.textSecondary / theme.colors.text — no role-token mismatch possible)",
+      "violations": []
+    },
+    "app_understanding_flow": {
+      "executed": true,
+      "core_flow_completed": true,
+      "steps_completed": 4,
+      "baseline_screenshots": [
+        "docs/dev/qa-artifacts/20260508-130403/matrix-desktop.png",
+        "docs/dev/qa-artifacts/20260508-130403/matrix-mobile.png",
+        "docs/dev/qa-artifacts/20260508-130403/lifecycle-card.png",
+        "docs/dev/qa-artifacts/20260508-130403/three-cards-fallback.png"
+      ],
+      "errors_found_during_flow": [],
+      "app_not_running": false
+    },
+    "ui_test_results": [
+      {
+        "scenario": "Default mode (suppress=on) — lifecycle card renders, 3 underlying cards suppressed",
+        "url": "http://localhost:8097/dev/codex-render-fixtures",
+        "status": "pass",
+        "reason": null,
+        "steps_performed": [
+          "browser_resize 1440x900",
+          "browser_navigate to /dev/codex-render-fixtures",
+          "browser_evaluate to extract route + per-row inline card text"
+        ],
+        "assertions": [
+          {
+            "expected": "Route shows suppress=on",
+            "actual": "Route: /dev/codex-render-fixtures (suppress=on)",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_SPAWN row has no inline card body",
+            "actual": "Only 'Open detail' / 'Open sidebar' buttons present; no 'Spawn Agent' card body",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_WAIT row has no inline card body",
+            "actual": "Only buttons present",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_CLOSE row has no inline card body",
+            "actual": "Only buttons present",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_MERGED row shows lifecycle card with Subagent + fixture-agent + State: completed + inspected fixture rendering",
+            "actual": "All 4 strings present in rendered card body (Subagent completed; fixture-agent · inspect fixture rendering; State: completed; inspected fixture rendering)",
+            "passed": true
+          }
+        ],
+        "evidence": "docs/dev/qa-artifacts/20260508-130403/lifecycle-card.png",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/qa-artifacts/20260508-130403/lifecycle-card.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "?suppress=off — 4 cards render (default-not-suppress fail-safe AC8)",
+        "url": "http://localhost:8097/dev/codex-render-fixtures?suppress=off",
+        "status": "pass",
+        "reason": null,
+        "steps_performed": [
+          "browser_navigate to /dev/codex-render-fixtures?suppress=off",
+          "browser_evaluate to extract per-row inline card text"
+        ],
+        "assertions": [
+          {
+            "expected": "Route shows suppress=off",
+            "actual": "Route: /dev/codex-render-fixtures (suppress=off)",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_SPAWN row renders 'Spawn Agent completed' card",
+            "actual": "Card body 'Spawn Agent completed' present",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_WAIT row renders 'Wait for Agent completed' card",
+            "actual": "Card body 'Wait for Agent completed' present",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_CLOSE row renders 'Close Agent completed' card",
+            "actual": "Card body 'Close Agent completed' present",
+            "passed": true
+          },
+          {
+            "expected": "Lifecycle card still renders alongside (4 total)",
+            "actual": "Subagent / fixture-agent / State: completed / inspected fixture rendering all present",
+            "passed": true
+          }
+        ],
+        "evidence": "docs/dev/qa-artifacts/20260508-130403/three-cards-fallback.png",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/qa-artifacts/20260508-130403/three-cards-fallback.png",
+          "user_visible_change_confirmed": true
+        }
+      },
+      {
+        "scenario": "Mobile 390x844 default mode — lifecycle card renders, no overflow",
+        "url": "http://localhost:8097/dev/codex-render-fixtures",
+        "status": "pass",
+        "reason": null,
+        "steps_performed": [
+          "browser_resize 390x844",
+          "browser_navigate to /dev/codex-render-fixtures",
+          "browser_snapshot for accessibility tree"
+        ],
+        "assertions": [
+          {
+            "expected": "SUBAGENT_LIFECYCLE_SPAWN/WAIT/CLOSE rows have only buttons (suppression active)",
+            "actual": "Snapshot e273/e285/e297 each show only e280/e292/e304 button-pair sub-tree; no card body",
+            "passed": true
+          },
+          {
+            "expected": "SUBAGENT_LIFECYCLE_MERGED row shows full lifecycle card",
+            "actual": "Snapshot e309 → e323 'Subagent completed' / 'fixture-agent · inspect fixture rendering' + e328 'State: completed' + e329 'inspected fixture rendering'",
+            "passed": true
+          },
+          {
+            "expected": "No horizontal overflow at 390x844",
+            "actual": "Mobile screenshot fits within 390px width; no scroll bars or cut-off elements",
+            "passed": true
+          }
+        ],
+        "evidence": "docs/dev/qa-artifacts/20260508-130403/matrix-mobile.png",
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": "docs/dev/qa-artifacts/20260508-130403/matrix-mobile.png",
+          "user_visible_change_confirmed": true
+        }
+      }
+    ],
+    "generated_tests": [],
+    "all_findings": [],
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 0,
+      "total_findings": 0,
+      "release_recommendation": "approve"
+    },
+    "self_verification": {
+      "claims_total": 14,
+      "claims_with_evidence": 14,
+      "claims_superficial": 0,
+      "superficial_details": [],
+      "confidence": "high"
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "failed_quota",
+      "feedback_summary": "Codex invocation blocked by tool-policy hook: write target /var/tmp/codex-outputs/<file>.txt not in allowed_write_path_prefixes for qa role. Self-review substituted per agents/qa.md graceful fallback rule.",
+      "feedback_incorporated": "self-review substituted — adversarial points covered: (1) implementation size 108+74+~80 LOC is within architect's 230-320 LOC bound, no scope creep; (2) edge cases: 4 vitest state-machine cases cover parallel subagents, spawn-no-wait, turn_aborted, two-parallel; errored UI wired but only happy-path on fixture (acceptable per W5 — live Codex session out of orchestrator scope); (3) regression risk: useMemo keyed on messages[] reference (already memoized in sync reducer); synthetic envelope name is additive, no search/persistence leak; (4) anti-fraud: 'started' state verified via vitest AC1 (mapper emits args.lifecycle_state='started'); fixture page shows 'completed' final state which is the terminal of the started→completed flow; (5) production parity: ChatList wraps with LifecycleSuppressionContext.Provider, MessageView reads context, isControlToolSuppressedByLifecycle gates on the canonical CODEX_SUBAGENT_CONTROL_TOOLS set in codexToolRendering.ts, not on a fixture-page-specific list — production paths use the same suppression infrastructure."
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null
+}

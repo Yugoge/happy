@@ -1,0 +1,149 @@
+{
+  "request_id": "20260508-134003",
+  "task_id": "20260508-134003",
+  "spec_id": "spec-20260508-134003",
+  "cycle": 5,
+  "predecessor_saga": "spec-20260506-203755",
+  "timestamp": "2026-05-08T14:53:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260508-134003.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx"
+    ],
+    "files_created": [
+      "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+      "docs/dev/evidence/20260508-134003/qa-table-rendering-desktop.png",
+      "docs/dev/evidence/20260508-134003/qa-table-rendering-mobile.png",
+      "docs/dev/evidence/20260508-134003/qa-mobile-widetable-reprobe.png",
+      "docs/dev/evidence/20260508-134003/qa-skill-chip-no-live-session.png",
+      "docs/dev/evidence/20260508-134003/ui-measurements.json"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "#5b — Extract web table renderer to MarkdownTableWeb.tsx (Option iii render-prop) and wrap <td>/<th> in single parent <Text> with correct styles",
+        "type": "code-extraction-and-structural-fix",
+        "files_created": ["packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx"],
+        "files_modified": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"],
+        "rationale": "Cycle 1's regression: <RenderSpans> placed directly inside web <td>/<th> without parent <Text> caused RNW to render each sibling <Text> as block-level, stacking spans vertically. Native path at MarkdownView.tsx:470-472 (header) + 478-480 (body) wraps <RenderSpans> in <Text style={tableHeaderText|tableCellText}>. Cycle 5 mirrors this proven pattern in the web path. Architecture chosen: render-prop (Option iii from BA spec REV-6 — codex-canonical) — new sibling MarkdownTableWeb.tsx imports nothing from MarkdownView.tsx (no circular import); MarkdownView.tsx passes RenderSpans + tableHeaderTextStyle + tableCellTextStyle as props. Result: MarkdownView.tsx shrinks from 819 to 755 lines (under 800-line cap); zero cap-waiver needed; native path remains untouched.",
+        "structural_check_evidence": "Live DOM inspection on dev.life-ai.app/dev/codex-render-fixtures: every <td> and <th> now contains exactly one <div dir=\"auto\"> child (the React Native Web Text element) with display: inline. Spans are children of the wrapper div and flow inline. This is the exact pattern that the native path uses at MarkdownView.tsx:478-482 (which already worked correctly)."
+      },
+      {
+        "id": 2,
+        "description": "#15 — CronList.extractSubtitle returns null on empty input instead of literal '{}'",
+        "type": "single-line-fix",
+        "files_modified": ["packages/happy-app/sources/components/tools/knownTools.tsx"],
+        "rationale": "Cycle-203844 ToolView gating suppresses the BODY for unknown Claude-side tools, but HEADER subtitle path is independent (rendered at ToolView.tsx:107-110 from extractSubtitle/cfg.description). CronList's extractSubtitle at lines 949-957 literally returned '{}' for empty input. Fix changes that branch to return null. Non-empty branch (JSON.stringify with truncation at 40 chars) is preserved unchanged per BA pre_existing_guards constraint."
+      },
+      {
+        "id": 3,
+        "description": "#16 Skill verify-only probe (static analysis)",
+        "type": "verify-no-code-change",
+        "files_modified": [],
+        "rationale": "BA spec P0 VERIFY-ONLY: 'do NOT add code unless live probe surfaces a leak'. No live Skill invocation is available in dev environment without an active session. STATIC ANALYSIS findings: (1) Inline chat transcript: Skill is Claude-side, has no entry in knownTools.tsx, falls through to generic path. shouldRenderToolContent returns false → body suppressed. PASS by static analysis. (2) Sidebar/ToolFullView: ToolFullView.tsx:172 unconditionally renders ToolInputSection (which dumps JSON.stringify(tool.input, null, 2)) for tools NOT in SPECIALIZED_FULL_PAYLOAD_TOOLS set AND without a SpecializedFullView. Skill is in neither, so its prompt body WOULD be visible in the full-view modal. STATIC LEAK CONFIRMED but no source change made — BA spec requires LIVE probe before code change. QA's live probe is the trigger. If QA confirms leak in browser, gate must be added (Cycle 6 or QA may add it inline)."
+      },
+      {
+        "id": 4,
+        "description": "#17 MCP verify-only probe (static analysis)",
+        "type": "verify-no-code-change",
+        "files_modified": [],
+        "rationale": "BA spec REV-8 reclassification: partial-fix-deferred-Cycle-6. STATIC ANALYSIS: (1) Inline body suppressed for unknown Claude-flavor MCP via shouldRenderToolContent. (2) Registered MCP variants like mcp__playwright__browser_navigate at knownTools.tsx:1425-1446 emit URL via extractSubtitle. RECORD-ONLY this cycle. User-disambiguation question for close-report: 'Should registered MCP variants render chip-only like CronDelete (no subtitle), or is the URL subtitle acceptable?'"
+      },
+      {
+        "id": 5,
+        "description": "#4 mobile wide-table sibling-overflow re-probe",
+        "type": "verify-fresh-probe",
+        "files_modified": [],
+        "rationale": "Re-probed at mobile 390x844 with the messages-demo 4-column table (File/Errors/Warnings/Status). Findings: documentElement.scrollWidth (390) === window.innerWidth (390) — no PAGE-LEVEL horizontal overflow. Wide table itself is 714px scrollWidth but its container is overflow:auto with clientWidth=358 (proper self-scrolling). Two sibling <div>s (paragraphs above/below the table) had bounding-rect.right=396 vs winInner=390 (delta 6px, exceeds AC4 ±1px tolerance). However the PAGE does NOT scroll horizontally — the parent flex container is clipping these siblings visually. This is a pre-existing minor layout quirk (we did not touch MessageView flex chain). Per BA spec: 'If overflow observed: report finding, do NOT fix in this cycle (escalate to Cycle 6).'",
+        "classification": "escalate-Cycle-6"
+      }
+    ],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+        "imported_by": [
+          "packages/happy-app/sources/components/MessageView.tsx",
+          "packages/happy-app/sources/components/sidebar/SidebarAgentConversation.tsx",
+          "packages/happy-app/sources/components/tools/views/TaskViewFull.tsx",
+          "packages/happy-app/sources/components/tools/views/ExitPlanToolView.tsx",
+          "packages/happy-app/sources/app/(app)/changelog.tsx",
+          "packages/happy-app/sources/app/(app)/session/[id]/message/[messageId].tsx",
+          "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures.tsx",
+          "packages/happy-app/sources/app/(app)/artifacts/[id].tsx"
+        ],
+        "high_impact": true,
+        "qa_test_breadth_recommendation": "All MarkdownView consumers (8 callers) — table-bearing messages in chat, sidebar agent conversation, TaskViewFull (subagent reports), ExitPlan tool view, changelog page, session message detail page, codex fixtures dev page, artifact detail page. Tables are now rendered via MarkdownTableWeb.tsx import. No public-API changes."
+      },
+      {
+        "modified": "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+        "imported_by": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"],
+        "high_impact": false,
+        "qa_test_breadth_recommendation": "New file; only consumer is MarkdownView's web table dispatch path."
+      },
+      {
+        "modified": "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "imported_by_count_estimate": "20+ (used by ToolView, ToolHeader, sidebar/* views, tools/views/*)",
+        "high_impact": true,
+        "qa_test_breadth_recommendation": "Only the CronList branch was modified (lines 949-957). Non-empty CronList behavior is preserved (JSON.stringify with 40-char truncation). Risk: only zero-arg CronList chip subtitle changes. Other tools unaffected."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "Cycle 1 of saga -203755 (task-id 20260507-055611) added <RenderSpans> directly inside web <td>/<th> without a parent <Text> wrapper. /close: NO Branch 2 (codex Round 1+2 + QA Round 2 unanimous).",
+      "why_issue_occurred": "Cycle 1 BA directed dev to route table cell strings through parseMarkdownSpans at render time. Dev added the parser call faithfully but missed that the JSX tree needed to mirror the native path's parent <Text> wrapper to establish RNW inline text-flow context.",
+      "how_fix_addresses_root": "L2 structural change: extracted web table renderer to a sibling file via render-prop pattern (no circular import), and wrapped <RenderSpans> in single parent <Text style={tableHeaderText|tableCellText}> for both <td> and <th>. This mirrors the proven native pattern at MarkdownView.tsx:470-482 verbatim. RNW Text wrapper establishes inline text-flow context; child spans flow horizontally instead of stacking vertically."
+    },
+    "diff_stats": {
+      "files_changed": 3,
+      "lines_added": 220,
+      "lines_removed": 75,
+      "new_symbols_introduced": [
+        "MarkdownTableWeb.tsx::RenderSpansFn (type alias)",
+        "MarkdownTableWeb.tsx::useTableStyles (hook, extracted from MarkdownView)",
+        "MarkdownTableWeb.tsx::WebTableCell (component, extracted to satisfy ≤30-line function quality gate)",
+        "MarkdownTableWeb.tsx::WebTableHeaderCell (component, extracted to satisfy ≤30-line function quality gate)",
+        "MarkdownTableWeb.tsx::WebTableRow (component, extracted from MarkdownView)",
+        "MarkdownTableWeb.tsx::WebTableHead (component, extracted to satisfy ≤30-line function quality gate)",
+        "MarkdownTableWeb.tsx::WebTableBody (component, extracted to satisfy ≤30-line function quality gate)",
+        "MarkdownTableWeb.tsx::WebTableInner (component, extracted to satisfy ≤30-line function quality gate)",
+        "MarkdownTableWeb.tsx::RenderTableBlockWeb (component, exported, extracted from MarkdownView)"
+      ],
+      "minimum_possible_lines_estimate": 30,
+      "justification_for_overage": "Inline-fix (Option i, ~10 lines) was rejected by BA because MarkdownView.tsx is at 819 > 800-line cap and an inline fix would exceed the cap further. BA selected Option iii render-prop extraction (REV-6) which moves ~50 lines of web-table code OUT of MarkdownView.tsx into the new sibling, plus adds JSX wrapping <Text> + render-prop props plumbing. Total new file is 214 lines because the project quality gate caps functions at 30 lines; the original 50-line web-table block had to be split into 8 smaller function components (WebTableCell, WebTableHeaderCell, WebTableRow, WebTableHead, WebTableBody, WebTableInner, RenderTableBlockWeb, useTableStyles) to satisfy the gate. Each component is a thin wrapper preserving the original logic verbatim. MarkdownView.tsx's net delta is -64 lines (819→755), bringing it under cap. Overall solution achieves the spec goal: structural fix lands, no cap-waiver needed."
+    },
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": [
+      "AC1 (#5b headline regression): live-verify multi-span flow in a session-bearing table with markdown content. Send the BA's short-content sentinel `| col1 | col2 |\\n|------|------|\\n| **a** ~~b~~ [c](https://example.com) `d` | x |` to an existing session and assert (a) span y-rect equality ±2px, (b) monotonic x-order. Static-DOM evidence already proves the structural fix works — the `<td><div dir=\"auto\"><span>...</span></div></td>` pattern matches the proven native path.",
+      "AC0.5 (parser non-regression): yarn test parseMarkdown --run confirms 7/7 pass. Full vitest 461 tests pass.",
+      "AC2 (#15): trigger CronList in a live session and verify the chip subtitle is empty/absent (NOT '{}').",
+      "AC3 (#16): trigger a Skill invocation in a live session. Verify (a) inline body suppressed (PASS by static analysis). (b) Tap the chip; if a sidebar / ToolFullView modal pushes, capture the rendered content. If `JSON.stringify(tool.input)` containing the Skill prompt body is visible, ADD a Skill-specific gate in ToolFullView.tsx (e.g. add Skill to a `SUPPRESS_RAW_INPUT_TOOLS` set). Dev did NOT make this change in Cycle 5 because no live probe was performed.",
+      "AC3.5 (#17): trigger mcp__playwright__browser_navigate in a live session. Record subtitle string. Surface user-disambiguation question (chip-only vs URL-OK) in close-report.",
+      "AC4 (#4 reverify): static probe at mobile 390x844 already confirms documentElement.scrollWidth === innerWidth (no page-level overflow). Sibling-overflow micro-quirk (6px on 2 paragraphs) is pre-existing — escalate to Cycle 6.",
+      "Build: bash scripts/dev-overnight-build-deploy.sh /dev/shm/dev-workspace/happy-dev frontend already executed; happy-web-dev container is restarted with the new code. Dev URL: http://localhost:8097 or https://dev.life-ai.app."
+    ],
+    "permissions_to_add": [],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "yarn typecheck passes (5.79s, then 9.64s after #15). yarn test --run: 461 passed, 57 skipped (518 total), 0 failed. Docker frontend build completes 47.5s and happy-web-dev container restarts cleanly. Live verification on https://dev.life-ai.app/dev/codex-render-fixtures confirms <td>/<th> structure: each contains a single <div dir=\"auto\"> wrapper with display:inline (matches native path pattern). Mobile 390x844: page does not scroll horizontally (documentElement.scrollWidth === window.innerWidth). MarkdownView.tsx final line count: 755 (cap: 800). MarkdownTableWeb.tsx: 214 lines (under 300 file cap, well within reason for split-function quality-gate compliance)."
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Cycle 6 candidate: add Skill-specific gate in ToolFullView.tsx if QA's live probe confirms the prompt-body leak in the sidebar modal. Suggested implementation: extend SPECIALIZED_FULL_PAYLOAD_TOOLS (or add a SUPPRESS_RAW_INPUT_TOOLS set) to include 'Skill' so ToolInputSection is suppressed. ~3 lines.",
+    "Cycle 6 candidate: user-disambiguation question for #17 — should registered MCP variants (browser_navigate, etc.) render chip-only like CronDelete, or is the URL subtitle acceptable?",
+    "Cycle 6 candidate: investigate the 6px sibling-overflow micro-quirk on mobile (paragraphs above/below wide tables). Likely a missing minWidth:0 on a flex ancestor in MessageView.tsx flex chain.",
+    "Cycle 6+ candidates: 12 NOT_STARTED bugs from spec-20260506-203755 (#1 Mermaid scrollbar, #2 context window denominator, #3 AgentInput capacity toggle, #6 Mermaid timeline/ER/quadrant, #7 Mermaid error i18n, #14 AskUserQuestion preview, #18 historical Command rehydration); Cycle 7+ (#8 mhchem, #9 HTML inline, #10 reference links, #11 footnotes, #13 nested ordered list)."
+  ],
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "rounds": 1,
+    "feedback_summary": "Codex confirmed the render-prop architecture is sound: (1) Calling RenderSpans as a plain function vs JSX-element is NOT semantically problematic in this case because RenderSpans has no top-level hooks — but recommended aliasing as `const RenderSpans = props.renderSpans;` and JSX-rendering it for future-proofing if RenderSpans ever gains hooks. ADOPTED. (2) useUnistyles in sibling file: no concern — context propagates by React tree, not file location. ADOPTED. (3) Empty-cell fallback row[colIndex] ?? '': preserve. ADOPTED. (4) Last-column-no-borderRight for both <td> and <th>: preserve. ADOPTED. (5) ScrollView container CSS (overflowX:auto, width:fit-content, maxWidth:min(100%, calc(100vw-32px))): preserve exactly. ADOPTED. (6) `any` style typing: acceptable matching existing baseStyle?: any pragma. ADOPTED. (7) Add `selectable={props.selectable}` to wrapper <Text>: ADOPTED. (8) Preserve @ts-ignore on raw <div>/<table>: ADOPTED. (9) Import React and MarkdownSpan type: ADOPTED.",
+    "feedback_incorporated": "All 9 substantive points adopted before any Edit/Write tool call. The MarkdownTableWeb.tsx file was written with: aliased RenderSpans pattern in WebTableCell + WebTableHeaderCell, useUnistyles unchanged, empty-cell fallback preserved, last-column logic preserved for both td and th, container CSS preserved verbatim, baseStyle typed as any, selectable prop on wrapper Text, @ts-ignore on raw div/table, React import, MarkdownSpan type-only import."
+  }
+}

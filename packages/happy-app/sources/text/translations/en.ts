@@ -842,7 +842,7 @@ export const en: TranslationStructure = {
         // Markdown copy functionality
         codeCopied: 'Code copied',
         copyFailed: 'Failed to copy',
-        mermaidRenderFailed: 'Failed to render mermaid diagram',
+        mermaidRenderFailed: ({ type }: { type: string }) => `${type} diagram could not be rendered`,
         downloadFailed: 'Failed to download',
     },
 

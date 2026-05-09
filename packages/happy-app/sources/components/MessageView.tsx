@@ -13,6 +13,7 @@ import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
 import { Ionicons } from '@expo/vector-icons';
 import { useMessageContentMaxWidth } from '@/hooks/useMessageContentMaxWidth';
+import { LifecycleSuppressionContext, isControlToolSuppressedByLifecycle } from '@/utils/codexToolRendering';
 
 
 export type ToolContentPressData = {
@@ -187,19 +188,17 @@ function ToolCallBlock(props: {
   getMessageById?: (id: string) => Message | null;
   onContentPress?: (data: ToolContentPressData) => void;
 }) {
-  if (!props.message.tool) {
-    return null;
-  }
+  // Cycle 6 — D.5 lifecycle merge: suppress underlying control card when a
+  // synthetic functions.subagent_lifecycle envelope exists for its
+  // sessionSubagent. Default-not-suppress (AC8): empty Map renders all cards.
+  const suppressionMap = React.useContext(LifecycleSuppressionContext);
+  if (!props.message.tool) return null;
+  if (isControlToolSuppressedByLifecycle(props.message.tool, suppressionMap)) return null;
   return (
     <View style={styles.toolContainer}>
-      <ToolView
-        tool={props.message.tool}
-        metadata={props.metadata}
-        messages={props.message.children}
-        sessionId={props.sessionId}
-        messageId={props.message.id}
-        onContentPress={props.onContentPress}
-      />
+      <ToolView tool={props.message.tool} metadata={props.metadata}
+        messages={props.message.children} sessionId={props.sessionId}
+        messageId={props.message.id} onContentPress={props.onContentPress} />
     </View>
   );
 }

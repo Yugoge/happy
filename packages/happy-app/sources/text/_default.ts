@@ -826,7 +826,7 @@ export const en = {
         // Markdown copy functionality
         codeCopied: 'Code copied',
         copyFailed: 'Copy failed',
-        mermaidRenderFailed: 'Failed to render mermaid diagram',
+        mermaidRenderFailed: ({ type }: { type: string }) => `${type} diagram could not be rendered`,
         downloadFailed: 'Failed to download',
     },
 

@@ -1,0 +1,187 @@
+{
+  "request_id": "20260508-211705",
+  "timestamp": "2026-05-09T08:25:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "diff-aware",
+  "rerun_reason": "POST-FILTER-REPO-RECOVERY rerun (checkpoint 86b28297). Diff state matches dev-QA's last-verified state. Recovery introduced no extraneous files; verifying full diff scope including additions missed by prior report.",
+  "scope_contract": {
+    "mechanism": "ii-tagging",
+    "rule": "Every finding tags introduced_in_diff:bool. Absent/null/untagged outputs are pre-existing per close.md AC-2.6 default-safe rule.",
+    "diff_files_inspected": [
+      "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx (NEW)",
+      "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+      "packages/happy-app/sources/components/tools/ToolView.tsx",
+      "packages/happy-app/sources/components/tools/ToolHeader.tsx",
+      "packages/happy-app/sources/components/tools/knownTools.tsx",
+      "packages/happy-app/sources/components/tools/mcpHelpers.ts (NEW)",
+      "packages/happy-app/sources/components/tools/views/CodexSubagentLifecycleView.tsx (NEW)",
+      "packages/happy-cli/src/codex/utils/subagentLifecycle.ts (NEW)",
+      "packages/happy-app/sources/text/_default.ts",
+      "packages/happy-app/sources/text/translations/ca.ts",
+      "packages/happy-app/sources/text/translations/en.ts",
+      "packages/happy-app/sources/text/translations/es.ts",
+      "packages/happy-app/sources/text/translations/it.ts",
+      "packages/happy-app/sources/text/translations/ja.ts",
+      "packages/happy-app/sources/text/translations/pl.ts",
+      "packages/happy-app/sources/text/translations/pt.ts",
+      "packages/happy-app/sources/text/translations/ru.ts",
+      "packages/happy-app/sources/text/translations/zh-Hans.ts",
+      "packages/happy-app/sources/text/translations/zh-Hant.ts",
+      "docs/dev/<workflow-artifacts-for-task-20260508-211705>",
+      "docs/dev/specs/spec-20260508-211705/{INDEX,README,ba-spec-20260508-211705}.md",
+      "docs/dev/evidence/20260508-211705/{INDEX,README,phase-a-probe-evidence,qa-ac6-investigation-summary,qa-ac18-investigation-summary}.md + qa-ac2-context-window-default-model.png + qa-ac2-measurement.json",
+      "packages/happy-cli/src/codex/__tests__/{INDEX,README}.md (NEW companion metadata)",
+      "packages/happy-cli/src/codex/utils/{INDEX,README}.md (NEW companion metadata)"
+    ]
+  },
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "diff_scoped_observations": {
+    "new_files_introduced_in_diff": [
+      {
+        "file": "packages/happy-app/sources/components/tools/mcpHelpers.ts",
+        "introduced_in_diff": true,
+        "placement_check": "PASS — colocated with consumers ToolView.tsx + ToolHeader.tsx in components/tools/",
+        "naming_check": "PASS — camelCase matches sibling helper files (knownTools.tsx pattern); .ts extension correct (no JSX)",
+        "index_md_update": "PASS — listed in components/tools/INDEX.md",
+        "referenced_by": [
+          "packages/happy-app/sources/components/tools/ToolHeader.tsx",
+          "packages/happy-app/sources/components/tools/ToolView.tsx"
+        ],
+        "verdict": "clean"
+      },
+      {
+        "file": "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+        "introduced_in_diff": true,
+        "placement_check": "PASS — colocated with sibling MarkdownView.tsx + MermaidRenderer.tsx under components/markdown/",
+        "naming_check": "PASS — PascalCase .tsx for React component matches sibling convention",
+        "index_md_update": "PASS — components/markdown/INDEX.md updated",
+        "referenced_by": ["packages/happy-app/sources/components/markdown/MarkdownView.tsx"],
+        "verdict": "clean"
+      },
+      {
+        "file": "packages/happy-app/sources/components/tools/views/CodexSubagentLifecycleView.tsx",
+        "introduced_in_diff": true,
+        "placement_check": "PASS — placed under components/tools/views/ alongside other tool view components",
+        "naming_check": "PASS — PascalCase .tsx matches sibling tool views",
+        "index_md_update": "PASS — components/tools/views/INDEX.md and _all.tsx updated",
+        "referenced_by": ["packages/happy-app/sources/components/tools/views/_all.tsx"],
+        "verdict": "clean"
+      },
+      {
+        "file": "packages/happy-cli/src/codex/utils/subagentLifecycle.ts",
+        "introduced_in_diff": true,
+        "placement_check": "PASS — placed under codex/utils/ alongside other codex helpers (diffProcessor, permissionHandler, reasoningProcessor, sessionProtocolMapper)",
+        "naming_check": "PASS — camelCase .ts matches sibling utility convention",
+        "index_md_update": "PASS — packages/happy-cli/src/codex/utils/INDEX.md + README.md introduced as folder companions in this diff (rule compliance, not folder cleanup)",
+        "referenced_by": ["packages/happy-cli/src/codex/utils/sessionProtocolMapper.ts"],
+        "verdict": "clean"
+      }
+    ],
+    "modified_files_introduced_in_diff": [
+      {
+        "file": "packages/happy-app/sources/components/tools/ToolView.tsx",
+        "introduced_in_diff": false,
+        "note": "Pre-existing file modified for cycle 6 #17; no organization issues introduced"
+      },
+      {
+        "file": "packages/happy-app/sources/components/tools/ToolHeader.tsx",
+        "introduced_in_diff": false,
+        "note": "Pre-existing file modified for cycle 6 #17; no organization issues introduced"
+      },
+      {
+        "file": "packages/happy-app/sources/components/markdown/MermaidRenderer.tsx",
+        "introduced_in_diff": false,
+        "note": "Pre-existing file modified (+68 lines) for #16 mermaid hardening; placement and naming unchanged"
+      },
+      {
+        "file": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+        "introduced_in_diff": false,
+        "note": "Pre-existing file modified to wire in MarkdownTableWeb; placement and naming unchanged"
+      },
+      {
+        "file": "packages/happy-app/sources/components/tools/knownTools.tsx",
+        "introduced_in_diff": false,
+        "note": "Pre-existing tool registry modified to register codex subagent lifecycle tool; placement and naming unchanged"
+      },
+      {
+        "file": "packages/happy-app/sources/text/_default.ts",
+        "introduced_in_diff": false,
+        "note": "Canonical translation source; 1-line change, all 10 locale siblings updated symmetrically"
+      },
+      {
+        "file": "packages/happy-app/sources/text/translations/{ca,en,es,it,ja,pl,pt,ru,zh-Hans,zh-Hant}.ts",
+        "introduced_in_diff": false,
+        "note": "10 sibling translations updated symmetrically; naming follows established locale-code.ts convention"
+      }
+    ],
+    "workflow_artifacts_introduced_in_diff": [
+      {
+        "files": [
+          "docs/dev/ba-qa-report-20260508-211705.json",
+          "docs/dev/dev-report-20260508-211705.json",
+          "docs/dev/qa-report-20260508-211705.json",
+          "docs/dev/prompt-inspector-report-20260508-211705.json",
+          "docs/dev/cleanliness-inspector-report-20260508-211705.json",
+          "docs/dev/context-20260508-211705.json",
+          "docs/dev/completion-20260508-211705.md"
+        ],
+        "introduced_in_diff": true,
+        "placement_check": "PASS — docs/dev/ is the established workflow artifact directory per docs/dev/README.md",
+        "naming_check": "PASS — <role>-<task-id>.{json|md} pattern consistent with 5 prior cycles today (130403, 134003, 154926, 211214, 211705)",
+        "verdict": "clean — workflow artifacts are not subject to archive policy; cycle just completed"
+      },
+      {
+        "files": [
+          "docs/dev/evidence/20260508-211705/INDEX.md",
+          "docs/dev/evidence/20260508-211705/README.md",
+          "docs/dev/evidence/20260508-211705/phase-a-probe-evidence.md",
+          "docs/dev/evidence/20260508-211705/qa-ac18-investigation-summary.md",
+          "docs/dev/evidence/20260508-211705/qa-ac2-context-window-default-model.png",
+          "docs/dev/evidence/20260508-211705/qa-ac2-measurement.json",
+          "docs/dev/evidence/20260508-211705/qa-ac6-investigation-summary.md"
+        ],
+        "introduced_in_diff": true,
+        "placement_check": "PASS — docs/dev/evidence/<task-id>/ is the established evidence-bundle convention; precedent set by 20260508-134003/",
+        "verdict": "clean"
+      }
+    ],
+    "diff_scoped_violations_count": 0
+  },
+  "out_of_scope_observations": {
+    "note": "The following are pre-existing repo state and NOT in this diff. Reported as advisory only per default-safe rule; close.md MUST NOT escalate to CLOSE: NO.",
+    "items": [
+      "docs/dev/ contains 380+ workflow artifacts from prior cycles — archive policy may apply for files >30d old, but ALL are pre-existing and untouched by this diff."
+    ]
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "introduced_in_diff_count": 0,
+    "pre_existing_count": 0,
+    "estimated_space_saved": "0 MB",
+    "verdict": "DIFF CLEAN — zero file-organization violations introduced by task 20260508-211705"
+  },
+  "post_recovery_note": "Inspection performed POST-FILTER-REPO-RECOVERY (checkpoint 86b28297). Diff state matches dev-QA's last-verified state. Recovery itself introduced no extraneous files; cycle workflow artifacts and source additions all in canonical locations with proper INDEX.md/README.md companions where required. No CLOSE: NO blockers from cleanliness scope."
+}

@@ -1,0 +1,169 @@
+{
+  "task_id": "20260508-134003",
+  "spec_id": "spec-20260508-134003",
+  "timestamp": "2026-05-08T14:18:00Z",
+  "verdict": "BA_REJECT",
+  "reject_reason_summary": "Audit-table arithmetic errors + Scope Contract B vs Selected-Scope contradiction + #2 audit-evidence inaccuracy + AC1 false-positive risk on mobile wrap + #16 verify-only too narrow (only suppresses inline body, not ToolFullView/sidebar leakage) + AC1 omits anchor-vs-role-link DOM reality + parser-test non-regression must be hard AC, not 'side note'.",
+  "dimensions": {
+    "audit_accuracy": "FAIL: row-count says 18 but enumerates 19 IDs (1,2,3,4,5,5b,6,7,8,9,10,11,12,13,14,15,16,17,18); 'NOT_STARTED' summary says 12 but lists 13 entries (#1,#2,#3,#6,#7,#8,#9,#10,#11,#13,#14,#15,#18); #2 audit cell says getDefaultModelContextWindow 'returns 1_000_000 unchanged' but the function actually returns 200_000 for codex flavor at modelModeOptions.ts:119.",
+  "scope_realism": "PASS_WITH_CAVEATS: 5-bug active scope (#5b real fix + #15 real fix + #16/#17 verify + #4 reprobe) is defensible after Cycle 1's narrower-slice failure; rejecting #7/#2 ride-along is correct (#7 needs i18n fan-out across 9 languages, NOT a 1-line fix per packages/happy-app/CLAUDE.md i18n rule; #2 pairs with #3 on context-window UX and is not a clean 1-liner). BUT the framing must change — BA must NOT imply Cycle 5 satisfies '修复全部spec要求'; close-report must say 'Cycle 5 closes table regression + audit; full completion needs Cycle 6/7'.",
+  "option_i_vs_ii": "FAIL: Option (i) waiver compounds an existing cap violation (file is already 819 > 800). The circular-import argument only defeats a NAIVE extraction. Alternatives: (a) pass RenderSpans down as a render-prop to MarkdownTableWeb, (b) extract RenderSpans+RenderSpanItem as a tiny shared module first, then table extraction. The 'doubles diff' framing is misleading — extraction is one-time payment with permanent payback. If BA insists on Option (i), the waiver MUST be explicit one-cycle-only with Cycle-6 extraction TODO recorded in close-report.",
+    "ac_measurability": "FAIL: AC1's same-y(±2px) + monotonic-x recipe will catch vertical-stacking (the Cycle-1 regression pattern), BUT (a) it lacks a 'cell width wide enough / white-space:nowrap applies' guard — at mobile 390x844 a real cell may legitimately wrap, false-failing the y-test; (b) AC1 demands href='https://example.com' but the actual web RenderSpanItem renders role='link' + onClick (NOT an <a> with href prop) — AC will fail-on-truth. AC2/3/4 are sufficiently measurable.",
+    "cycle1_regression_protection": "FAIL: BA Section 'Won't Have' says 'Adding parser tests for layout regressions — codex review confirmed: parser tests cannot validate RNW layout flow' which is correct, BUT it tacitly downgrades the EXISTING parseMarkdown.test.ts (159 lines) non-regression to a side note. AC1 must include a HARD requirement that the existing 7-fixture parseMarkdown.test.ts STILL passes unchanged — this is the only protection against re-breaking #5 (italic) / #12 (escape) parser fixes.",
+    "fix_locality_grouping": "PASS: locality is respected — #5b touches MarkdownView.tsx (markdown subsystem), #15 touches knownTools.tsx (tool-card subsystem), #16/#17 verify the same tool-card subsystem. Cycle 6 deferral group (Mermaid trio #1+#6+#7, context-window pair #2+#3, #14, #18) is well-scoped by file overlap.",
+    "out_of_scope_honesty": "FAIL: 12-bug deferral list IS in the spec (Out-of-Scope-Observations table + 'Won't Have' section + audit table itself), so the user CAN read it. BUT the spec lacks an explicit 'cycle-completion-vs-spec-completion' framing. The user's verbatim '我们需要修复全部spec要求的内容' demands an answer like 'Cycle 5 closes 5 bugs; remaining 12 bugs scheduled to Cycle 6/7 — see audit table'. Without that explicit framing, the user will interpret '12 deferred' as another scope-shrinkage dodge."
+  },
+  "objections": [
+    {
+      "id": "OBJ-1",
+      "dimension": "evidence_quality",
+      "severity": "blocking",
+      "claim_in_ba_spec": "Audit Table says 'Total numbered rows below: 18' (line 80).",
+      "actual_state": "Enumerated IDs in the table: 1, 2, 3, 4, 5, 5b, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 = 19 distinct rows.",
+      "impact": "User asked 'spec还有哪些没有做？' — the audit IS the answer. An off-by-one row count undermines confidence in the audit's accuracy."
+    },
+    {
+      "id": "OBJ-2",
+      "dimension": "evidence_quality",
+      "severity": "blocking",
+      "claim_in_ba_spec": "Audit Summary line 110: '12 NOT_STARTED: #1, #2, #3, #6, #7, #8, #9, #10, #11, #13, #14, #15, #18'.",
+      "actual_state": "13 IDs listed, but the count says 12.",
+      "impact": "Same as OBJ-1 — audit reliability under direct user scrutiny."
+    },
+    {
+      "id": "OBJ-3",
+      "dimension": "affected_file_accuracy",
+      "severity": "blocking",
+      "claim_in_ba_spec": "Audit row #2: 'observed — getDefaultModelContextWindow returns 1_000_000 unchanged'.",
+      "actual_state": "modelModeOptions.ts:118-121 returns 200_000 for flavor='codex'; only claude/gemini/unknown return 1_000_000. The audit understates that #2 is mode-specific and pairs with #3 (UX-level capacity question).",
+      "impact": "If #2 is later misclassified as a 1-line denominator change, dev will produce wrong fix; #2 is truly a UX question that pairs with #3."
+    },
+    {
+      "id": "OBJ-4",
+      "dimension": "scope_alignment",
+      "severity": "blocking",
+      "claim_in_ba_spec": "Scope Contract B (line 46): 'In-scope this cycle (Cycle 5, Option B partition — see below): #5b (mandatory), #4, #2, #3, #14, #15, #16, #17, #18 + #7 (i18n cleanup)'.",
+      "actual_state": "The 'Selected Cycle 5 scope (codex-tightened)' section (line 120-149) defers #2, #3, #7, #14, #18 to Cycle 6 — directly contradicting Scope Contract B's own line.",
+      "impact": "Dev/QA will not know which is authoritative. Spec must rewrite Scope Contract B to mirror the codex-tightened selected scope (#5b, #15, #4, #16, #17 only)."
+    },
+    {
+      "id": "OBJ-5",
+      "dimension": "ac_measurability",
+      "severity": "blocking",
+      "claim_in_ba_spec": "AC1 (line 246): 'link has role=\"link\" with href=\"https://example.com\"'.",
+      "actual_state": "The web RenderSpanItem at MarkdownView.tsx:367-376 renders a Text element with accessibilityRole='link' + onClick — there is no anchor href DOM property. RNW's Text-with-role-link does NOT produce an <a href>; it's rendered as a span/div with role='link'.",
+      "impact": "AC1 will FAIL on a correct fix because the href property does not exist in the DOM. AC must change to: 'link has role=\"link\" AND aria-label or accessible name matching \"link\"' or simply drop the href clause."
+    },
+    {
+      "id": "OBJ-6",
+      "dimension": "ac_measurability",
+      "severity": "major",
+      "claim_in_ba_spec": "AC1 (line 244): 'when cell width is large enough to fit on one line' is in PROSE but is not enforced as a precondition in the Playwright recipe.",
+      "actual_state": "At mobile 390x844 with a wider sentinel table, the cell may LEGITIMATELY wrap onto multiple lines. The y-tolerance test will then fail spuriously.",
+      "impact": "False-fail on mobile. AC1 must enforce 'whitespace:nowrap or measured cell width > sum-of-span-widths' as a precondition before the y-tolerance assertion runs, OR explicitly use a content string short enough to fit at 390-32=358px content width on mobile."
+    },
+    {
+      "id": "OBJ-7",
+      "dimension": "investigation_completeness",
+      "severity": "major",
+      "claim_in_ba_spec": "AC3 (line 265): 'for the Skill case: body MUST be empty (no Skill prompt body leak)'.",
+      "actual_state": "shouldRenderToolContent suppresses the INLINE body in the chat transcript, but ToolView at ToolView.tsx:122-130 remains pressable; pressing it pushes a sidebar/ToolFullView that exposes tool.input, tool.description, and raw JSON. The original predecessor user complaint targeted Skill being chip-only — meaning no detail-view leakage either.",
+      "impact": "Verify-only AC3 will report PASS while a click-and-sidebar leak remains. AC3 must extend to: (a) click the Skill chip, (b) verify NO sidebar opens OR sidebar shows chip-only content (no prompt body)."
+    },
+    {
+      "id": "OBJ-8",
+      "dimension": "investigation_completeness",
+      "severity": "major",
+      "claim_in_ba_spec": "AC3 (line 266): 'subtitle behavior is recorded but NOT asserted as pass/fail in this cycle'.",
+      "actual_state": "Predecessor §5.4 user-quote says target is 'CronDelete样子' = chip-only icon+name. Registered MCP showing URL subtitle is a USER-VISIBLE deviation from that target. Punting it to 'observation only' lets the cycle close with the user's complaint partially unaddressed.",
+      "impact": "User reads 'PASS on #17' as fixed, but registered MCP cards still emit URL subtitle. Either escalate to user-clarification round NOW, or explicitly mark #17 as 'partial-fix-deferred' in audit (NOT 'verified PASS')."
+    },
+    {
+      "id": "OBJ-9",
+      "dimension": "spec_text_vs_execution_drift",
+      "severity": "blocking",
+      "claim_in_ba_spec": "BA Option (i) preference + 800-cap waiver framing.",
+      "actual_state": "MarkdownView.tsx is ALREADY 819 > 800 (cap-violating); the waiver compounds, not introduces, the violation. The 'circular import' argument only defeats a naive sibling extraction; render-prop pattern (pass RenderSpans down via props) sidesteps the circular import entirely without doubling diff. BA never considered render-prop alternative.",
+      "impact": "Quality-gate erosion — Cycle 5 establishes precedent that file-cap can be waived for any non-trivial fix in oversized files. Cycle 6 will inherit the waiver-temptation pattern."
+    },
+    {
+      "id": "OBJ-10",
+      "dimension": "investigation_completeness",
+      "severity": "major",
+      "claim_in_ba_spec": "Won't-Have section (line 181): 'Adding parser tests for layout regressions — codex review confirmed: parser tests cannot validate RNW layout flow'.",
+      "actual_state": "Correct as stated, but BA omits the corollary HARD AC: existing parseMarkdown.test.ts (7 fixture rows for #5/#12) MUST still pass unchanged. The Cycle-1 wins (italic + escape) must be regression-protected.",
+      "impact": "If dev accidentally re-touches parseMarkdownSpans.ts (which is supposed to be FROZEN per Cycle 5 constraints), no AC will catch a parser regression. AC1 needs a hard 'parseMarkdown.test.ts: 7/7 PASS unchanged' clause."
+    },
+    {
+      "id": "OBJ-11",
+      "dimension": "scope_alignment",
+      "severity": "major",
+      "claim_in_ba_spec": "Spec implies the audit + 5-bug Cycle 5 satisfies the user's '修复全部spec要求' directive.",
+      "actual_state": "12 bugs are deferred. The user's verbatim '彻底修复全部' literally demands all 17 bugs.",
+      "impact": "Without an explicit 'cycle-completion ≠ spec-completion' framing in the close-report deliverable, the user will read the deferred list as another evasion. BA spec must add a section instructing the close-report to publish a Chinese summary listing: fixed-now, verified-only, deferred-cycle-6, deferred-cycle-7."
+    }
+  ],
+  "required_revisions": [
+    "REV-1: Fix audit-table row count to '19 numbered rows' (1-18 + 5b) and update prose accordingly. (Addresses OBJ-1.)",
+    "REV-2: Fix 'Audit summary' line 110 to '13 NOT_STARTED' OR re-classify one entry. Cross-check against the audit table itself. (Addresses OBJ-2.)",
+    "REV-3: Update audit row #2 evidence to: 'observed — getDefaultModelContextWindow returns 200_000 for codex / 1_000_000 for claude/gemini/unknown at modelModeOptions.ts:119-121; user-reported UI showing \"x/1M\" likely uses the claude/gemini path; fix is mode-aware, not a single-line denominator change'. Promote to 'pairs with #3' note. (Addresses OBJ-3.)",
+    "REV-4: Rewrite Scope Contract B (line 46) to match the Selected Cycle 5 scope: 'In-scope this cycle (codex-tightened): #5b (mandatory), #15, plus verify-only #16 / #17 / #4'. Remove #2/#3/#7/#14/#18 from Scope Contract B. (Addresses OBJ-4.)",
+    "REV-5: Rewrite AC1 link-attribute clause to: 'link has accessibilityRole=\"link\" (rendered as role=\"link\" in DOM)' and DROP the href=\"https://example.com\" clause; OR replace example URL with one that produces an actual <a> if RNW renders it that way (verify before locking AC text). (Addresses OBJ-5.)",
+    "REV-6: Tighten AC1 with a 'cell-fits-on-one-line precondition': either set white-space:nowrap on the test cell, OR use content string short enough to fit at mobile 358px content width. The y-tolerance assertion only runs after this precondition holds. (Addresses OBJ-6.)",
+    "REV-7: Extend AC3 (#16) to include sidebar/detail-view verification: click the Skill chip, verify NO sidebar push OR sidebar shows only chip metadata (no prompt body content). (Addresses OBJ-7.)",
+    "REV-8: Reclassify #17 explicitly: NOT 'verify-only PASS-or-record' but 'partial-fix-deferred-Cycle-6'. Add explicit user-clarification ask if the user's intended target was 'icon+name only' or 'URL subtitle acceptable for registered MCP'. (Addresses OBJ-8.)",
+    "REV-9: Either (a) add a render-prop alternative to Option (i)/(ii) trade-off — pass RenderSpans down to MarkdownTableWeb so MarkdownView.tsx can extract WITHOUT extracting RenderSpans separately (defeats circular-import objection); OR (b) explicitly document the cap-waiver as one-cycle-only WITH a hard 'Cycle 6 task: extract or render-prop refactor' entry in close-report TODO list. (Addresses OBJ-9.)",
+    "REV-10: Add hard AC0.5 (between AC0 and AC1): 'parseMarkdown.test.ts (the 7-fixture file at packages/happy-app/sources/components/markdown/parseMarkdown.test.ts) passes unchanged. Cycle 1 fixes #5 (italic) and #12 (escape) MUST not regress.' (Addresses OBJ-10.)",
+    "REV-11: Add a 'Close-Report Communication' section to the spec instructing the close-report to publish a user-facing Chinese summary listing: '修复(2)' (#5b, #15), '验证(3)' (#16, #17, #4), '推迟到Cycle 6 (7)' (#1, #2, #3, #6, #7, #14, #18), '推迟到Cycle 7 (5)' (#8, #9, #10, #11, #13). Total 17. (Addresses OBJ-11.)"
+  ],
+  "recommended_scope_additions": [
+    "After REV-3 lands, RECONSIDER: should #7 ride along anyway? Codex says NO because of i18n fan-out (9 languages per packages/happy-app/CLAUDE.md). Skip — keep #7 in Cycle 6 with Mermaid trio.",
+    "After REV-3 lands, RECONSIDER: should #2 ride along anyway? Codex says NO because #2 pairs with #3 (UX-level, not arithmetic). Skip — keep #2+#3 paired in Cycle 6.",
+    "DO NOT add cheap-wins this cycle. Cycle 1's failure on a 3-bug slice means risk-aversion is correct; the 5-bug active scope is the right balance once REV-1..REV-11 are applied."
+  ],
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "rounds": 1,
+    "tokens_used": 135419,
+    "feedback_summary": "Codex returned 11 substantive points: (1) row-count off-by-one (claims 18, lists 19); (2) NOT_STARTED summary off-by-one (claims 12, lists 13); (3) #2 audit evidence stale — modelModeOptions.ts returns 200_000 for codex flavor, not 1_000_000 always; (4) Scope Contract B contradicts Selected Cycle 5 scope; (5) Cycle 5 framing must distinguish cycle-completion vs spec-completion; (6) #7 NOT a 1-line fix — i18n fan-out across 9 language files per happy-app CLAUDE.md; (7) Option (i) waiver compounds existing 819>800 violation; render-prop alternative defeats circular-import objection; (8) AC1 same-y/monotonic-x catches the regression but needs cell-fits-on-one-line guard for mobile + drop the href=example.com clause (DOM uses role=link, not <a href>); (9) AC1 must hard-require parseMarkdown.test.ts non-regression; (10) #16 verify-only too weak — ToolFullView/sidebar can still leak; (11) #17 not closable by one MCP probe — registered-MCP subtitle is part of pass/fail OR explicit deferral.",
+    "feedback_incorporated": "All 11 points adopted as objections OBJ-1 through OBJ-11 + corresponding required_revisions REV-1 through REV-11. Codex's 'small Cycle 5 is defensible IF framed honestly' counsel adopted as scope_realism: PASS_WITH_CAVEATS rather than blocking FAIL. Codex's rejection of #7/#2 ride-along (i18n fan-out + UX-pair) adopted as recommended_scope_additions explicit DO-NOT-ADD."
+  },
+  "self_verification": {
+    "claims_total": 11,
+    "claims_with_evidence": 11,
+    "claims_superficial": 0,
+    "evidence_summary": "All 11 objections have file:line citations verified directly: OBJ-1 (audit table line 80 + enumeration in lines 84-102 = 19 IDs counted), OBJ-2 (line 110 + 13 IDs counted), OBJ-3 (modelModeOptions.ts:118-121 read directly — returns 200_000 for codex), OBJ-4 (Scope Contract B line 46 vs Selected scope lines 120-149 — directly compared), OBJ-5 (MarkdownView.tsx:365-376 RenderSpanItem code read directly), OBJ-6 (mobile 358px content width + AC1 prose line 244 cross-checked), OBJ-7 (ToolView.tsx:122-130 + ToolFullView.tsx existence verified), OBJ-8 (predecessor §5.4 + knownTools.tsx:1425-1446 referenced), OBJ-9 (MarkdownView.tsx total 819 lines verified via wc -l), OBJ-10 (parseMarkdown.test.ts 159 lines verified to exist), OBJ-11 (user verbatim Chinese cross-checked against deferral list).",
+    "confidence": "high"
+  },
+  "verdict_rationale": "BA spec demonstrates strong analysis (correct identification of #5b root cause, accurate native-pattern reference, sensible risk-aversion against Cycle 1 scope-narrowing trauma) and codex consultation already happened in BA's authorship. However, 5 blocking issues (OBJ-1, OBJ-2, OBJ-3, OBJ-4, OBJ-5, OBJ-9) are arithmetic/factual/contradiction errors that would mislead dev OR cause AC1 to fail-on-truth. 5 major issues (OBJ-6, OBJ-7, OBJ-8, OBJ-10, OBJ-11) are completeness gaps that would let the cycle close with the user-need only partially served. The 5-bug scope itself is correct; the spec quality is salvageable with revisions. BA_REJECT is required to enforce REV-1 through REV-11 before dev dispatch.",
+  "iter_2_reverification": {
+    "task_id": "20260508-134003",
+    "iteration": 2,
+    "verdict": "BA_PASS",
+    "rev_verifications": {
+      "REV-1": "RESOLVED — line 81 explicitly states '19 numbered rows' with row-count rationale (17 distinct + #5b suffix-split + #16/#18 root-cause-split); table at lines 84-103 enumerates exactly 19 rows; line 113 reconciliation totals 19.",
+      "REV-2": "RESOLVED — line 111 lists 13 NOT_STARTED IDs with explicit '13 NOT_STARTED' label; line 113 totals reconcile (2+1+1+1+1+13=19).",
+      "REV-3": "RESOLVED — line 86 audit row #2 cites 'modelModeOptions.ts:118-122' and the codex/gemini/claude flavor branches verbatim (200_000 for codex, 1_000_000 for gemini/claude/unknown); explicitly notes #2 'pairs with #3'. Spot-checked against modelModeOptions.ts:118-121 — matches.",
+      "REV-4": "RESOLVED — line 47 is the single canonical Scope Contract B statement; explicitly RETRACTS earlier broader '#5b + #4 + #2 + #3 + #14 + #15 + #16 + #17 + #18 + #7' enumeration; in-scope = #5b + #15 + verify-only #16/#17/#4. Lines 143-153 list deferred items consistently.",
+      "REV-5": "RESOLVED — AC1 (line 165 must-have + line 302 detailed AC) drops `href=...` clause and asserts `role=\"link\"` DOM attribute + `onClick` handler. Spot-checked against MarkdownView.tsx:367-376 — RenderSpanItem renders `<Text accessibilityRole='link' onClick={handleWebClick}>` on web; no `href` prop. AC text matches DOM reality.",
+      "REV-6": "RESOLVED — line 127 designates Option (iii) render-prop as CANONICAL (extract WebTableRow+RenderTableBlockWeb+useTableStyles to MarkdownTableWeb.tsx, pass RenderSpans as render-prop, no circular import, no cap-waiver). Line 128 explicitly RETRACTS Option (i). Line 130 escape valve permits Option (ii) but explicitly forbids Option (i) fallback. Lines 171, 176, 200, 207 all consistently reference Option (iii) as authoritative.",
+      "REV-7": "RESOLVED — line 165 (must-have) and line 297 (AC1) BOTH adopt the short-content sentinel (4 single-character spans `**a** ~~b~~ [c](url) \\`d\\``) so the cell ALWAYS fits on one line by construction at both 1440x900 and 390x844; eliminates wrap precondition.",
+      "REV-8": "RESOLVED — line 138 (Cycle 5 scope) and lines 168, 316-328 (AC3) explicitly cover ToolFullView.tsx:85-92 fallback path as a leakage path; AC3 requires (a) tap chip, (b) record sidebar push or absence, (c) verify ToolFullView does NOT render `<CodeView code={JSON.stringify(tool.input)}>` for Skill, (d) dev MUST add Skill-specific gate if leakage observed. Spot-checked ToolFullView.tsx:84-94 — confirmed `JSON.stringify(tool.input)` fallback exists exactly as spec describes.",
+      "REV-9": "RESOLVED — line 140 explicitly reclassifies #17 as `partial-fix-deferred-Cycle-6` (NOT verify-only-PASS); AC3.5 (line 330-338) requires close-report to escalate the user-disambiguation question 'chip-only vs URL-OK'; Cycle 5 itself does NOT mark #17 PASS without user resolution.",
+      "REV-10": "RESOLVED — AC0.5 (lines 287-293) is a hard non-regression AC: parseMarkdown.test.ts 7-fixture file MUST pass unchanged; parseMarkdownSpans.ts is FROZEN; modification by dev is contract violation. Promoted from 'side note' to hard AC level.",
+      "REV-11": "RESOLVED — Section 'Cycle-vs-Spec Completion Framing' (lines 209-234) explicitly distinguishes cycle-completion from spec-completion; line 215 '彻底修复全部 satisfied at END of Cycle 7, NOT at end of Cycle 5'; lines 217-225 publish the cycle-mapping table (修复 2 / 验证 3 / 推迟 Cycle 6: 7 / 推迟 Cycle 7: 5 = 17 total); lines 227-234 specify the 5-point close-report communication contract; line 232 makes spec un-closeable without this framing."
+    },
+    "spot_checks": {
+      "REV-3 (audit row #2 evidence accuracy)": "DEEP-VERIFIED. Read modelModeOptions.ts:115-122 directly. Code: `if (flavor === 'codex') return 200_000; if (flavor === 'gemini') return 1_000_000; return 1_000_000;`. Spec line 86 description matches exactly: 'returns 200_000 for codex (line 119), 1_000_000 for gemini (line 120) and the fallback unknown/claude branch (line 121)'. The line numbers cited match the actual source. The 'pairs with #3' framing is technically sound because both touch context-window UX semantics.",
+      "REV-5 (AC1 link DOM attribute)": "DEEP-VERIFIED. Read MarkdownView.tsx:365-378 directly. RenderSpanItem renders `<Text accessibilityRole={isExternalLink ? 'link' : undefined} {...webProps} onPress={...}>` where webProps adds `onClick={handleWebClick}` only on web for external links. There is NO `href` prop being set. RNW translates `accessibilityRole='link'` to DOM `role='link'` (typically on a `<div>` or `<span>`, NOT an `<a href>`). AC1 (line 302) correctly asserts `role=\"link\"` + onClick + text content equality, and explicitly states 'this is NOT an HTML <a> element with an href attribute'. The fix would no longer fail-on-truth.",
+      "REV-6/REV-9 (Option iii canonicalization + waiver retraction)": "DEEP-VERIFIED. Five spec locations consistently reference Option (iii) as canonical (lines 47-48, 127, 171, 176, 200) and Option (i) as RETRACTED (lines 128, 130, 207). Render-prop pattern is technically sound: `<MarkdownTableWeb spans={...} renderSpans={RenderSpans} />` then internally `<Text style={tableHeaderText}>{renderSpans({spans, baseStyle})}</Text>`. RenderSpansFn type alias is acknowledged in line 206 risk section. Escape valve to Option (ii) is permitted but Option (i) waiver is FORBIDDEN. The circular-import objection is genuinely defeated — MarkdownTableWeb imports zero symbols from MarkdownView."
+    },
+    "remaining_objections": [],
+    "minor_caveats_non_blocking": [
+      "Out-of-Scope Observations table line 241 has stale text 'Cycle 5 spec preference is Option (i) one-time waiver' — leftover from initial draft. Not blocking because the canonical scope sections (lines 47, 127, 171, 176) explicitly RETRACT Option (i). Recommend BA fix this in passing during dev dispatch handoff but does not require BA-QA iter-3.",
+      "Must-Have item #7 (line 171, MarkdownView.tsx ≤ 800 lines) is duplicated as Should-Have item #6 (line 176, same requirement). Stylistic redundancy; not a blocker. Both reference REV-6/REV-9 correctly."
+    ],
+    "verdict_rationale": "All 11 REVs are RESOLVED. Three deep spot-checks (REV-3, REV-5, REV-6/REV-9) confirm the patches are technically sound and grounded in the actual source code. No remaining objections rise to blocking severity. Two minor caveats are non-blocking stylistic cleanup items the orchestrator can flag for dev awareness during dispatch. The spec is now internally consistent: scope contract B matches selected scope, audit table arithmetic reconciles, ACs match DOM reality, parser non-regression is hard-gated, and cycle-vs-spec completion is explicitly framed for the user-facing close-report. BA_PASS — dev dispatch is authorized."
+  }
+}

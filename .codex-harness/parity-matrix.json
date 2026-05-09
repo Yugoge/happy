@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-05-07T22:11:40+00:00",
+  "generated_at": "2026-05-09T09:04:29+00:00",
   "source_inventory_sha256": null,
   "source": "claude-compat/sync-report.json",
   "safe_claim": "Codex-native workflow/todo/lifecycle state is authoritative. Imported Claude metadata is classified per feature and unsupported/fallback rows block full parity.",

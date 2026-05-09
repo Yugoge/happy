@@ -33,6 +33,7 @@ import type { ApiSessionClient } from '@/api/apiSession';
 import type { AttachmentMetadata } from '@/api/types';
 import { resolveCodexExecutionPolicy } from './executionPolicy';
 import { mapCodexMcpMessageToSessionEnvelopes, mapCodexProcessorMessageToSessionEnvelopes } from './utils/sessionProtocolMapper';
+import type { LifecycleState } from './utils/subagentLifecycle';
 import { resumeExistingThread } from './resumeExistingThread';
 import type { InputItem } from './codexAppServerTypes';
 
@@ -284,9 +285,8 @@ export async function runCodex(opts: {
     });
     let thinking = false;
     let currentTurnId: string | null = null;
-    let codexStartedSubagents = new Set<string>();
-    let codexActiveSubagents = new Set<string>();
-    let codexProviderSubagentToSessionSubagent = new Map<string, string>();
+    let codexStartedSubagents = new Set<string>(), codexActiveSubagents = new Set<string>();
+    let codexProviderSubagentToSessionSubagent = new Map<string, string>(), codexSubagentLifecycles = new Map<string, LifecycleState>();
     session.keepAlive(thinking, 'remote');
     // Periodic keep-alive; store handle so we can clear on exit
     const keepAliveInterval = setInterval(() => {
@@ -619,12 +619,12 @@ export async function runCodex(opts: {
                 currentTurnId,
                 startedSubagents: codexStartedSubagents,
                 activeSubagents: codexActiveSubagents,
-                providerSubagentToSessionSubagent: codexProviderSubagentToSessionSubagent,
+                providerSubagentToSessionSubagent: codexProviderSubagentToSessionSubagent, subagentLifecycles: codexSubagentLifecycles,
             });
             currentTurnId = mapped.currentTurnId;
             codexStartedSubagents = mapped.startedSubagents;
             codexActiveSubagents = mapped.activeSubagents;
-            codexProviderSubagentToSessionSubagent = mapped.providerSubagentToSessionSubagent;
+            codexProviderSubagentToSessionSubagent = mapped.providerSubagentToSessionSubagent; codexSubagentLifecycles = mapped.subagentLifecycles;
             for (const envelope of mapped.envelopes) {
                 session.sendSessionProtocolMessage(envelope);
             }

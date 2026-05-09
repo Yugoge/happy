@@ -950,7 +950,7 @@ export const knownTools = {
             const input = opts.tool.input || {};
             const keys = Object.keys(input);
             if (keys.length === 0) {
-                return '{}';
+                return null;
             }
             const summary = JSON.stringify(input);
             return summary.length > 40 ? summary.substring(0, 40) + '...' : summary;
@@ -1205,6 +1205,33 @@ export const knownTools = {
             return `Close: ${name}`;
         },
         extractStatus: codexToolStateStatus
+    },
+    // Cycle 6 — D.5 subagent lifecycle merged card. Synthetic envelope name
+    // emitted by the CLI mapper (sessionProtocolMapper.ts) per spawn_agent;
+    // the renderer suppresses the underlying spawn/wait/close cards via
+    // codexToolRendering.useLifecycleSuppressionMap when this envelope is
+    // present for the same sessionSubagent.
+    'functions.subagent_lifecycle': {
+        title: 'Subagent',
+        icon: ICON_TASK,
+        isMutable: true,
+        minimal: false,
+        input: z.object({
+            sessionSubagent: z.string().optional(),
+            prompt: z.string().optional(),
+            agentNickname: z.string().nullish(),
+            lifecycle_state: z.string().optional(),
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const nickname = typeof input.agentNickname === 'string' && input.agentNickname
+                ? input.agentNickname
+                : (typeof input.sessionSubagent === 'string' ? input.sessionSubagent.slice(0, 8) : 'agent');
+            const prompt = typeof input.prompt === 'string' ? input.prompt : '';
+            const truncated = prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt;
+            return truncated ? `${nickname} · ${truncated}` : nickname;
+        },
+        extractStatus: codexToolStateStatus,
     },
     // §5.15 Phase D — Codex tool-suggest / parallel renderers (DORMANT until protocol emits events)
     'functions.tool_suggest': {

@@ -97,3 +97,10 @@ docs/competition/opencode/traces/
 # (docs/* under docs/dev/ — ALL tracked per project policy; including evidence/, specs.pre-merge-backup/,
 #  qa-partial-*/, etc. The whole audit trail is project-canonical history. Use docs/notes/ — already
 #  ignored above — for personal scratch that should NOT enter the record.)
+
+# Banned: large QA trace artifacts. GitHub rejects single files >100MB.
+# Origin: 2026-05-08 incident, qa-20260507-055611-trace.zip = 107.34MB blocked
+# /push, triggered the filter-repo cascade that wiped Session B's cycle-6 work.
+docs/dev/evidence/**/qa-*-trace.zip
+docs/dev/evidence/**/*.zip
+docs/dev/qa-artifacts/**/*.zip

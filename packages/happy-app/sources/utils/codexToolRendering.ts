@@ -1,5 +1,6 @@
+import * as React from 'react';
 import { stringifyToolCommand } from './toolCommand';
-import type { ToolCall } from '@/sync/typesMessage';
+import type { Message, ToolCall } from '@/sync/typesMessage';
 import type { Metadata } from '@/sync/storageTypes';
 
 export type TerminalRenderData = {
@@ -43,6 +44,44 @@ const CODEX_SUBAGENT_CONTROL_TOOLS = new Set<string>([
     'functions.resume_agent',
     'functions.close_agent',
 ]);
+
+// Cycle 6 — D.5 subagent lifecycle merged card. Synthetic envelope name.
+export const CODEX_LIFECYCLE_TOOL = 'functions.subagent_lifecycle';
+
+// Map<sessionSubagent, messageId> derived once per messages[] reference change
+// in ChatList; consumed by MessageView to suppress underlying spawn/wait/close
+// cards when a lifecycle envelope exists for the same sessionSubagent.
+// Default-not-suppress: an empty Map renders ALL cards (failure mode = 4 cards
+// instead of 0 cards, per AC8).
+export type LifecycleSuppressionMap = ReadonlyMap<string, string>;
+
+export const LifecycleSuppressionContext = React.createContext<LifecycleSuppressionMap>(new Map());
+
+export function buildLifecycleSuppressionMap(messages: ReadonlyArray<Message>): LifecycleSuppressionMap {
+    const map = new Map<string, string>();
+    for (const m of messages) {
+        if (m.kind !== 'tool-call') continue;
+        if (m.tool.name !== CODEX_LIFECYCLE_TOOL) continue;
+        const sessionSubagent = (m.tool.input as Record<string, unknown> | undefined)?.sessionSubagent;
+        if (typeof sessionSubagent === 'string' && sessionSubagent.length > 0) {
+            map.set(sessionSubagent, m.id);
+        }
+    }
+    return map;
+}
+
+// Returns true if the given control-tool message should be suppressed because
+// a lifecycle envelope exists for its sessionSubagent. Returns false (render)
+// for any tool that is NOT in CODEX_SUBAGENT_CONTROL_TOOLS.
+export function isControlToolSuppressedByLifecycle(
+    tool: ToolCall,
+    suppressionMap: LifecycleSuppressionMap,
+): boolean {
+    if (!CODEX_SUBAGENT_CONTROL_TOOLS.has(tool.name)) return false;
+    const sessionSubagent = (tool.input as Record<string, unknown> | undefined)?.sessionSubagent;
+    if (typeof sessionSubagent !== 'string' || sessionSubagent.length === 0) return false;
+    return suppressionMap.has(sessionSubagent);
+}
 
 export function isCodexSourceTool(tool: ToolCall, metadata?: Metadata | null): boolean {
     if (CODEX_TOOL_NAME_EXACT.has(tool.name)) return true;

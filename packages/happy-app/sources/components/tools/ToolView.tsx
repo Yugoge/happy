@@ -8,6 +8,7 @@ import { ToolSectionView } from './ToolSectionView';
 import { useElapsedTime } from '@/hooks/useElapsedTime';
 import { ToolError } from './ToolError';
 import { knownTools } from '@/components/tools/knownTools';
+import { isMcpInlineChipOnlyTool } from '@/components/tools/mcpHelpers';
 import { Metadata } from '@/sync/storageTypes';
 import { useRouter } from 'expo-router';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
@@ -148,7 +149,10 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
     );
 });
 
-// Extracts status and description strings from knownTool extractors
+// Extracts status and description strings from knownTool extractors.
+// Cycle 6 (#17): registered MCP-namespace tools render chip-only inline —
+// extractSubtitle is bypassed so `description` stays null (user decision A:
+// "all registered MCP tools render chip-only").
 function extractStrings(tool: ToolCall, metadata: Metadata | null, knownTool: any) {
     let status: string | null = null;
     let description: string | null = null;
@@ -156,7 +160,7 @@ function extractStrings(tool: ToolCall, metadata: Metadata | null, knownTool: an
         const s = knownTool.extractStatus({ tool, metadata });
         if (typeof s === 'string' && s) status = s;
     }
-    if (knownTool && typeof knownTool.extractSubtitle === 'function') {
+    if (knownTool && typeof knownTool.extractSubtitle === 'function' && !isMcpInlineChipOnlyTool(tool.name)) {
         const sub = knownTool.extractSubtitle({ tool, metadata });
         if (typeof sub === 'string' && sub) description = sub;
     }

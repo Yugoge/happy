@@ -16,6 +16,7 @@ import { CodexBashView, CodexBashViewFull } from './CodexBashView';
 import { CodexPatchView, CodexPatchViewFull } from './CodexPatchView';
 import { CodexDiffView, CodexDiffViewFull } from './CodexDiffView';
 import { CodexSubagentView } from './CodexSubagentView';
+import { CodexSubagentLifecycleView } from './CodexSubagentLifecycleView';
 import { CodexParallelView } from './CodexParallelView';
 import { CodexPlanView } from './CodexPlanView';
 import { CodexAttachmentView } from './CodexAttachmentView';
@@ -59,6 +60,8 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     'functions.wait_agent': CodexSubagentView,
     'functions.resume_agent': CodexSubagentView,
     'functions.close_agent': CodexSubagentView,
+    // Cycle 6 — D.5 subagent lifecycle merged card (synthetic envelope).
+    'functions.subagent_lifecycle': CodexSubagentLifecycleView,
     // §5.15 Phase D — Codex parallel tool dispatch (DORMANT until protocol emits events)
     'multi_tool_use.parallel': CodexParallelView,
     // Gemini tools (lowercase)

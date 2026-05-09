@@ -1,0 +1,102 @@
+{
+  "task_id": "20260508-211705",
+  "spec_id": "spec-20260508-211705",
+  "report_type": "BA-QA gate (pre-implementation)",
+  "verdict": "BA_REJECT",
+  "summary": "BA's partition is mostly defensible but has TWO concrete defects that BOTH carry false-PASS risk (#14 sandbagged into investigation-only when source evidence shows it is a probe-gated 30-min fix; #16 conditional Phase 2b allows closing AC by documenting wrap-envelope rendering even though wrap rendering is itself the complained-about surface for some Skill/Command shapes). #1/#7/#17/#2/#3/#6/#18 partitioning is correct. Required revisions are scoped, not wholesale.",
+  "dimensions": {
+    "partition_correctness": "FAIL: #14 wrongly classified as investigation-only (should be probe-gated same-cycle fix per source evidence — type extension is trivial); #16 Phase 2b is too permissive (can produce false-PASS). #1/#7/#17/#2/#3/#6/#18 classification correct.",
+    "scope_realism_vs_speed": "PASS: 4 deterministic + 1 AC-only + 2 investigation-only + 1 probe-gated same-cycle fix + 1 deferred is realistic for 'fast'; #6/#18 genuine undecidables are not budget-padding.",
+    "ac_measurability": "PASS: AC-1 measurable (scrollWidth>clientWidth + getComputedStyle.maxWidth check); AC-7 measurable (rendered text contains diagram-type token + 9 i18n files updated); AC-17 measurable (cfg.description===null for both mcp__* and functions.read_mcp_resource); AC-2 measurable (screenshot + JSON of resolved values); AC-NONREG-* all testable. AC-16 NEEDS REVISION (see objections).",
+    "non_regression_guarantees": "PASS: NONREG-TABLE/PARSER/MARKDOWN-VIEW are concrete and re-tested (not 'presumed unchanged'). MarkdownView.tsx currently 755 lines (cap 800) — verified.",
+    "sequencing_dependencies": "PASS: #16 Phase 1 → #17 → #7 → #1 → #2 → investigations is sound. #17 helper has no conflict with #14 (different files: ToolView.tsx vs AskUserQuestionView.tsx). #6 is isolated to MermaidRenderer; #1 deterministic fix and #6 investigation share a file but different concerns (CSS injection vs library version probe).",
+    "user_clarification_for_3": "PASS: BA spec explicitly flags #3 in 'Won't Have' + 'Out-of-Scope Observations' + close-report contract item 4 ('Flag #3 deferral as user-decision-needed: product-cycle vs in-saga'). User can override at /close.",
+    "fast_honesty": "FAIL: BA's framing of #14 as 'investigation-only with fix landing Cycle 7+' would be honest IF the type-extension truly required deep upstream investigation, but source evidence shows it is just 'add `preview?: string` to QuestionOption + render it'. Calling a 30-min fix 'investigation-only' is sandbagging when user explicitly said '立刻快速开发完成'. #6 and #18 are genuinely undecidable from source — those are correctly investigation-only."
+  },
+  "objections": [
+    {
+      "id": "OBJ-1",
+      "dimension": "scope_alignment",
+      "severity": "major",
+      "bug": "#14",
+      "ba_classification": "INVESTIGATION-ONLY (defer fix to Cycle 7+)",
+      "qa_proposed_classification": "PROBE-GATED SAME-CYCLE FIX",
+      "evidence": "AskUserQuestionView.tsx:10-13 — QuestionOption type only has {label, description}. ToolCall.input is `any` (typesMessage.ts:5-9). CLI permissionHandler forwards raw args (permissionHandler.ts:266-269). If upstream emits `preview`, the app does NOT drop it at transport — it simply ignores it in rendering. The fix is: (1) probe one live AskUserQuestion raw payload, (2) if `preview` exists, add `preview?: string` to QuestionOption + render it (preferably via MarkdownView if markdown-capable), (3) if absent, close by evidence/communication. This is a 30-min fix gated on the probe, not a multi-cycle investigation.",
+      "codex_concurrence": "Codex independently agreed: 'BA is wrong / too conservative on #14. Should be probe-gated same-cycle fix, not investigation-only with fix deferred.'",
+      "required_revision": "Reclassify #14 as DETERMINISTIC-CONDITIONAL (or PROBE-GATED). Rewrite AC-14 with two branches: (a) `preview` field absent in raw payload → close with evidence; (b) `preview` field present → ship type extension + render path THIS cycle. Update Audit Table row 14 (currently 'INVESTIGATION-ONLY' with cycle-fix-Cycle 7+) to 'DETERMINISTIC, conditional' matching #16's pattern."
+    },
+    {
+      "id": "OBJ-2",
+      "dimension": "evidence_quality",
+      "severity": "major",
+      "bug": "#16",
+      "ba_classification": "DETERMINISTIC-conditional with Phase 2b 'no Skill surface → document wrap path → close no-code'",
+      "qa_concern": "Phase 2b false-PASS risk",
+      "evidence": "BA's Phase 2b reasoning is: if Skill prompts route through `wrap` envelope and WrappedEventBlock already calls <MarkdownView markdown={props.content} />, then 'no code change needed, document the absence with screenshot'. PROBLEM: the user's complaint at original spec §5.2 #10 was that Skill/Command rendering was VISUALLY WRONG — not specifically that markdown parsing failed. The wrap-envelope dropdown carrying full prompt content may still be the complained-about surface, especially for: (i) older/replayed historical Skill/Command messages where isSkillPrompt detection state may be lost across restart (overlaps with #18), (ii) sessions where the Skill emitter takes a non-wrap path. AC-16 Phase 2b as written would close by showing a wrap-rendered MarkdownView screenshot — but that is not necessarily the user's accepted target shape.",
+      "codex_concurrence": "Codex independently agreed: 'Do NOT treat \"wrap renders markdown\" as automatically PASS. The user complaint may still apply to wrap dropdown.' Suggested adding: probe historical Skill/Command-like messages, only close no-code if evidence proves the user-visible Skill prompt is hidden/collapsed according to the accepted target shape.",
+      "required_revision": "Tighten AC-16 Phase 2b: in addition to live-probe of a fresh Skill invocation, the AC must also (i) capture at least one HISTORICAL Skill/Command-like message in the session (post-restart replay), (ii) verify the rendered output matches the user-disambiguation target ('original Skill prompt body rendered as readable markdown, NOT JSON.stringify code dump'), (iii) explicitly distinguish between 'wrap envelope renders markdown correctly' (the desired shape per Cycle 5 user disambiguation) and 'wrap envelope renders something but the user is still complaining' (false-PASS to avoid). If Phase 2b can't produce evidence of historical Skill rendering matching the target shape, escalate Phase 2a fix as fallback."
+    },
+    {
+      "id": "OBJ-3",
+      "dimension": "spec_text_vs_execution_drift",
+      "severity": "minor",
+      "bug": "#7",
+      "concern": "AC-7 requires 9 i18n translations updated. BA spec line 287 says 'use the i18n-translator agent for the 9 translations' but the AC verification only spot-checks 3 randomly-selected language files. This leaves 6 unchecked language files that could ship with broken substitution.",
+      "evidence": "BA spec Risk-mitigation says 'QA spot-checks 3 randomly-selected language files'. AC-7 then says '9 translation files updated'. The spot-check coverage is 33%. If the i18n-translator agent fails on a single language (e.g., Japanese particle disagreement when type token is English), the failure would not be caught.",
+      "required_revision": "Either: (a) tighten AC-7 to require ALL 9 language files have a non-empty function-form translation that successfully substitutes the {type} parameter (verified by `t('markdown.mermaidRenderFailed', {type: 'erDiagram'})` returning a non-empty string in each language), or (b) explicitly accept the 33%-spot-check policy as a known limitation and document it in 'Out-of-Scope Observations'. Recommend (a) — the cost is one tsx import + 9 calls in a test."
+    }
+  ],
+  "required_revisions": [
+    "REV-1 (must): Reclassify #14 from INVESTIGATION-ONLY to DETERMINISTIC-CONDITIONAL (probe-gated same-cycle fix). Update AC-14 with two branches (preview present → ship type extension; preview absent → close by evidence). Update Audit Table row 14 + Cycle-vs-Spec Completion Framing table.",
+    "REV-2 (must): Tighten AC-16 Phase 2b. Require capture of at least one HISTORICAL Skill/Command-like message in addition to fresh live-probe. Phase 2b can only close no-code if (i) wrap envelope is verified to be the rendering path AND (ii) the historical replay shows the same wrap-envelope path AND (iii) the rendered output matches the user-disambiguation target shape. Otherwise fall back to Phase 2a fix.",
+    "REV-3 (should): Tighten AC-7 to require all 9 language files have non-empty function-form substitution (testable via t() call returning non-empty string), instead of 33% spot-check."
+  ],
+  "recommended_scope_adjustments": [
+    "ADJ-1: Adjusted partition becomes: 4 deterministic (#1/#7/#17/#16) + 1 probe-gated same-cycle (#14) + 1 AC-only (#2) + 2 investigation-only (#6/#18) + 1 deferred-to-product (#3). This stays faithful to '立刻快速开发完成' while adding one shippable fix relative to BA's current scope.",
+    "ADJ-2: Update Cycle-vs-Spec Completion Framing table to: '修复（本 Cycle 6）= 5 (was 4: add #14)', '调查（本 Cycle 6 → 修复 Cycle 7+）= 2 (was 3: remove #14)'.",
+    "ADJ-3: Update close-report contract: in addition to current 6 items, add: 'Confirm #14 fix shipped this cycle if probe found `preview` field, else document absence and close.'"
+  ],
+  "qa_acknowledgements": [
+    "BA correctly identified #2 mode-aware claim (verified at modelModeOptions.ts:118-122).",
+    "BA correctly identified that mcp__* prefix alone misses functions.read_mcp_resource (verified at knownTools.tsx:1359-1385).",
+    "BA correctly identified that #1 needs intrinsic-width derivation (not just removing max-width:100%) — verified that MermaidRenderer.tsx:111 injects max-width:100% AND mermaid emits SVGs with width=100% baked in.",
+    "BA correctly classified #6 as investigation-only — sanitizeMermaidTimeline scope evidence (only timeline + non-ASCII strip) does not prove deterministic fix for erDiagram/quadrantChart; multiple competing root causes (library version, syntax pattern, viewBox geometry, CJK in labels) genuinely require runtime probe.",
+    "BA correctly classified #18 as investigation-only — original spec root cause (slashCommands metadata) is verifiably wrong (slashCommands is autocomplete-only per BA grep), real root cause needs envelope-sequence diff pre/post restart.",
+    "BA correctly identified that #3 manual-toggle UI is product-feature net-new, not a rendering bug fix — adding UI control + MMKV persistence to a 1395-line file is genuine product UX scope. #3 is correctly flagged for /close user-disambiguation rather than silently dropped."
+  ],
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "model": "gpt-5.5",
+    "reasoning_effort": "xhigh",
+    "transcript_path": "/var/tmp/codex-outputs/codex-output-711157-1778276308.txt",
+    "tokens_used": 102215,
+    "summary": "Codex verdict: 'challenge the BA partition as partially sandbagging / false-PASS-prone, but not wholesale.' Concurred BA correct on #1/#7/#17/#2/#3/#6/#18. Concurred BA wrong on #14 (sandbagging — should be probe-gated same-cycle fix, type extension is trivial since CLI forwards raw args + ToolCall.input is `any`). Concurred BA loose on #16 (Phase 2b false-PASS risk — wrap envelope rendering may itself be the complained-about surface, especially for older/replayed sessions). Concurred adjusted partition: 4 deterministic + 1 probe-gated + 1 AC-only + 2 investigation + 1 deferred."
+  },
+  "iter_2_reverification": {
+    "task_id": "20260508-211705",
+    "iteration": 2,
+    "timestamp": "2026-05-08T21:50:00Z",
+    "verdict": "BA_REJECT_AGAIN",
+    "rev_verifications": {
+      "REV-1": "RESOLVED — Spec line 107 retitled '#14' to 'DETERMINISTIC-CONDITIONAL (probe-gated same-cycle fix; REV-1)'. AC-14 (lines 388-410) defines Phase 1 (probe), Phase 2a (probe positive → ship type extension at AskUserQuestionView.tsx:10-13 + render path THIS cycle), Phase 2b (probe negative → document absence and close THIS cycle, NOT Cycle 7+). Line 410 explicitly states 'Phase 2a OR Phase 2b completes WITHIN this cycle; AC-14 does NOT defer to Cycle 7+'. AskUserQuestionView.tsx:10-13 named as type-extension target (line 111, 140). Audit Table row 14 (line 233) updated to 'DETERMINISTIC-CONDITIONAL (REV-1)'. Cycle-vs-Spec Completion Framing (line 477) records #14 in '探针条件性修复（本 Cycle 6；REV-1）' row. Close-report contract item 6 (line 490) explicitly addresses #14. Anti-fraud check: Phase 2b closes THIS cycle by evidence (not deferred) — confirmed at line 410.",
+      "REV-2": "STILL_REJECTED — Bug #16 description (lines 86-91) was rewritten to acknowledge the REV-2 concern (line 89: 'inline-markdown-of-full-body matches the original user complaint pattern' + line 91: 'three branches — see AC-16 below for Phase 2a / 2b / 2c'). HOWEVER, AC-16 itself (lines 354-366) only defines Phase 2a and Phase 2b. Phase 2c is referenced in the bug description but is ABSENT from AC-16. AC-16 Phase 2b text (lines 363-366) is unchanged from iter-0: it still says 'documents absence + screenshot of expanded WrappedEventBlock' — it does NOT enforce (i) capture of HISTORICAL Skill/Command-like message in addition to live-probe, (ii) distinction between wrap-envelope-renders-markdown-correctly (passing) vs wrap-envelope-inline-renders-body (the false-PASS user complaint pattern), (iii) escalation to a Phase 2c refactor when wrap inline-renders body. Dev follows the AC, not the bug description; the missing Phase 2c branch in AC-16 means Dev would close on the same false-PASS path the original QA REJECT identified.",
+      "REV-3": "RESOLVED_WITH_CAVEAT — All 9 languages explicitly named at line 340: '(en, ru, pl, es, ca, it, pt, ja, zh-Hans)' (covers REV-3's 'all 9 language files explicitly named' requirement). Line 76 + 152 + 259 reinforce 9-language scope. Line 298 references 'i18n function-form pattern t(markdown.mermaidRenderFailed, { type })'. CAVEAT: AC-7 verification text (lines 335-342) only says 'updated in all 9 language files' — it does NOT explicitly require the function-form substitution test (`t('markdown.mermaidRenderFailed', {type: 'erDiagram'})` returning non-empty in each language) that REV-3 prescribed as the verification mechanism. Line 303 (Risk-mitigation) still says 'QA spot-checks 3 randomly-selected language files' — the original 33%-spot-check policy that REV-3 told BA to replace is preserved. Diagram-type token coverage is acceptable (function-form substitution accepts any string token from mermaid's first line). Net: 9 languages named (good), but verification mechanism is partial (33% spot-check still in spec)."
+    },
+    "spot_checks": {
+      "REV-1_phase_2b_close_this_cycle": "PASS — Spec line 410 verbatim: 'Phase 2a OR Phase 2b completes WITHIN this cycle; AC-14 does NOT defer to Cycle 7+. (The only deferral is the CLI-side feature request escalation in Phase 2b, which is communicated, not implemented.)' Phase 2b closes THIS cycle by evidence; only the CLI-side feature investigation (separate concern) is escalated.",
+      "REV-2_phase_2c_branch_present": "FAIL — AC-16 (spec lines 354-366) contains ONLY Phase 1, Phase 2a (line 359), Phase 2b (line 363). Phase 2c is referenced ONLY in the bug-description preamble (line 91) but NOT defined in AC-16 itself. The orchestrator's grep at line 86, 89 confirmed the bug DESCRIPTION mentions wrap-inline-rendering as a complaint pattern, but the AC's verification mechanism does NOT include a Phase 2c branch. Dev follows AC-16, not the bug description. This is a structural inconsistency: bug description PROMISES three branches; AC-16 DELIVERS two.",
+      "REV-3_all_9_languages_named": "PASS — Spec line 340 names all 9 languages explicitly: 'updated in all 9 language files (en, ru, pl, es, ca, it, pt, ja, zh-Hans)'. Line 152 + 259 + 298 reinforce 9-language scope and function-form substitution pattern. CAVEAT: function-form substitution test mechanism (`t()` returning non-empty for each of 9 languages) is described in line 298 mitigation but not enforced as AC-7 verification step; line 303 retains the original 33% spot-check policy."
+    },
+    "context_json_staleness_note": "context-20260508-211705.json was NOT updated by iter-1; spec is canonical source. Documented for downstream consumers; not blocking on this iteration.",
+    "remaining_objections": [
+      "REV-2 NOT FULLY ADDRESSED — AC-16 still has only Phase 2a + Phase 2b. Phase 2c (referenced at spec line 91) is absent from AC-16's verification block (lines 354-366). REQUIRED REVISION: Add explicit Phase 2c to AC-16 with text like: 'Phase 2c — IF Phase 1 finds NO Skill tool surface BUT the wrap envelope inline-renders the FULL prompt body in the main chat flow (matching the user complaint pattern at §5.2 #10): Dev refactors WrappedEventBlock (MessageView.tsx:133-150) to render chip-only inline (collapse the body to a label + expand affordance) + push body into a sidebar/expandable surface via MarkdownView. Phase 2b only applies if wrap envelope already renders chip-only inline (no full body inline) AND historical-replay shows same shape. Phase 2c is the false-PASS-avoidance branch.' Additionally, Phase 2b must require capture of at least one HISTORICAL Skill/Command-like message (post-restart replay) to verify the rendering path matches the user-disambiguation target shape, otherwise escalate to Phase 2c.",
+      "REV-3 PARTIAL — Verification mechanism in AC-7 should explicitly call function-form substitution per language. RECOMMENDED REVISION (minor): Add to AC-7 (around line 340) text like: 'AND verified by calling t(\"markdown.mermaidRenderFailed\", {type: \"erDiagram\"}) (or equivalent) in each of the 9 locales and asserting the returned string is non-empty AND contains the substituted type token.' Replace line 303 spot-check policy. This is a SHOULD revision (REV-3 was 'minor'), not blocking on its own — but combined with REV-2 it warrants reject."
+    ],
+    "verdict_rationale": "REV-1 fully resolved (#14 reclassified, both phases close THIS cycle, type-extension target named). REV-3 mostly resolved (all 9 languages named) with a caveat (verification mechanism still uses 33% spot-check at line 303). REV-2 STILL REJECTED — although the bug description preamble was rewritten to acknowledge the false-PASS concern AND references 'three branches Phase 2a / 2b / 2c', AC-16 itself still contains only Phase 2a + Phase 2b. The Phase 2c branch (refactor wrap-envelope to chip-only inline + sidebar when wrap inline-renders body) is the actual structural fix that REV-2 demanded. Dev follows the AC, not the preamble; the missing Phase 2c means Dev could still produce a false-PASS by closing on Phase 2b when wrap inline-renders body. This is the exact failure mode REV-2 was raised to prevent. Per QA Anti-Fraud Principle 5 ('Never substitute related-but-different verification') and Principle 6 ('Never write process-section claims that contradict the findings section'), the bug description's promise of three branches must match AC-16's delivery of three branches.",
+    "required_revisions_iter_2": [
+      "REV-2-iter-2 (must): Extend AC-16 (spec lines 354-366) with an explicit Phase 2c block. Phase 2c triggers when Phase 1 probe finds NO Skill tool surface BUT the wrap-envelope path inline-renders the full prompt body in the chat flow. Phase 2c REQUIRES Dev to refactor WrappedEventBlock (MessageView.tsx:133-150) to render chip-only inline + push body into ToolFullView or equivalent expandable surface via MarkdownView. Additionally tighten Phase 2b to require historical Skill/Command-like message capture (post-restart replay verification) before allowing no-code closure.",
+      "REV-3-iter-2 (should): Tighten AC-7 verification to require function-form substitution test for each of the 9 languages (call t() per locale + assert non-empty substituted output). Remove or update line 303's 33% spot-check policy to match the new AC-7 verification. This is non-blocking on its own but recommended."
+    ]
+  }
+}

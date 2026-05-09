@@ -1120,6 +1120,116 @@ describe('CodexAppServerClient sandbox integration', () => {
         await client.disconnect();
     });
 
+    // Cycle 7 (spec-20260506-203844 §5.3.D bullet 5) AC1: bridge MUST forward
+    // agentsStates on item/completed for collabAgentToolCall, mirroring the
+    // existing forwarding on item/started. Source field shape per
+    // /tmp/codex-ts-v0.125.0/v2/CollabAgentState.ts.
+    it('forwards agentsStates on item/completed for collabAgentToolCall (with and without payload)', async () => {
+        const proc = createMockProcess({
+            pid: 3010,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-cycle7', path: '/tmp/thread-cycle7' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: { turn: { id: 'turn-cycle7', items: [], status: 'inProgress', error: null } },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'turn/started',
+                            params: { threadId: 'thread-cycle7', turn: { id: 'turn-cycle7', items: [], status: 'inProgress', error: null } },
+                        });
+                        // item/completed for collabAgentToolCall WITH agentsStates payload (real Codex shape)
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'thread-cycle7',
+                                turnId: 'turn-cycle7',
+                                item: {
+                                    type: 'collabAgentToolCall',
+                                    id: 'wait-c7-1',
+                                    tool: 'wait',
+                                    status: 'completed',
+                                    senderThreadId: 'thread-cycle7',
+                                    receiverThreadIds: ['child-c7'],
+                                    agentsStates: { 'child-c7': { status: 'completed', message: 'real summary' } },
+                                },
+                            },
+                        });
+                        // item/completed for collabAgentToolCall WITHOUT agentsStates (fallback to {})
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'thread-cycle7',
+                                turnId: 'turn-cycle7',
+                                item: {
+                                    type: 'collabAgentToolCall',
+                                    id: 'close-c7-1',
+                                    tool: 'closeAgent',
+                                    status: 'completed',
+                                    senderThreadId: 'thread-cycle7',
+                                    receiverThreadIds: ['child-c7'],
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'thread-cycle7',
+                                turnId: 'turn-cycle7',
+                                item: { type: 'agentMessage', id: 'final-c7', text: 'done', phase: 'final_answer' },
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const events: Array<Record<string, unknown>> = [];
+        client.setEventHandler((msg) => { events.push(msg as Record<string, unknown>); });
+
+        await client.connect();
+        await client.startThread({ model: 'gpt-test', cwd: '/tmp/project', approvalPolicy: 'never', sandbox: 'danger-full-access' });
+        await expect(client.sendTurnAndWait('cycle 7 agentsStates forwarding')).resolves.toEqual({ aborted: false });
+
+        // Wait-end forwarded event includes agentsStates with real CollabAgentState shape
+        const waitEnd = events.find((event) => event.type === 'collab_agent_call_end' && event.callId === 'wait-c7-1');
+        expect(waitEnd).toBeDefined();
+        expect(waitEnd).toEqual(expect.objectContaining({
+            type: 'collab_agent_call_end',
+            callId: 'wait-c7-1',
+            tool: 'wait',
+            status: 'completed',
+            receiverThreadIds: ['child-c7'],
+            agentsStates: { 'child-c7': { status: 'completed', message: 'real summary' } },
+        }));
+
+        // Close-end forwarded event has agentsStates defaulted to {} when item.agentsStates is missing
+        const closeEnd = events.find((event) => event.type === 'collab_agent_call_end' && event.callId === 'close-c7-1');
+        expect(closeEnd).toBeDefined();
+        expect((closeEnd as Record<string, unknown>).agentsStates).toEqual({});
+
+        await client.disconnect();
+    });
+
     it('falls back to final answer completion when raw turn/completed is missing', async () => {
         const proc = createMockProcess({
             pid: 3002,

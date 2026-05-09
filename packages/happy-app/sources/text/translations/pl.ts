@@ -833,7 +833,7 @@ export const pl: TranslationStructure = {
         // Markdown copy functionality
         codeCopied: 'Kod skopiowany',
         copyFailed: 'Błąd kopiowania',
-        mermaidRenderFailed: 'Nie udało się wyświetlić diagramu mermaid',
+        mermaidRenderFailed: ({ type }: { type: string }) => `Nie udało się wyświetlić diagramu ${type}`,
         downloadFailed: 'Nie udało się pobrać',
     },
 

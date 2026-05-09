@@ -1,0 +1,77 @@
+{
+  "request_id": "20260508-130403",
+  "task_id": "20260508-130403",
+  "spec_id": "spec-20260506-203844",
+  "cycle": 6,
+  "mode": "ba_validation",
+  "timestamp": "2026-05-08T13:04:03Z",
+  "verdict": "pass",
+  "summary": "BA correctly scoped cycle 6 to D.5 hybrid implementation per architect memo; all file:line claims verified; deferrals justified; M1-M19 trace cleanly to architect q5; only minor spec-text drift on AC8 ?suppress=off toggle (non-blocking).",
+  "dimensions": {
+    "evidence_quality": {
+      "verdict": "pass",
+      "notes": "Sampled 5 file:line claims, all verify exactly: sessionProtocolMapper.ts:651-660 (sessionSubagent linkage via ensureReceiverSessionSubagent), sessionProtocolMapper.ts:425-427 (task_started clears 3 maps), sessionProtocolMapper.ts:638-713 (collab_agent_call_begin/end with COLLAB_VERB_MAP), ChatList.tsx:47-48 (FlashList renderItem feeds one Message at a time), codexToolRendering.ts:39-45 (CODEX_SUBAGENT_CONTROL_TOOLS Set with 5 entries), codex-render-fixtures-data.ts:181-204 (spawnAgentTool/waitAgentTool/closeAgentTool factories), knownTools.tsx:1105-1208 (5 per-verb control entries with 'Codex subagent lifecycle verbs' comment), _all.tsx:57-61 (5 control verbs route to CodexSubagentView), CodexSubagentView.tsx:21-54 (spawn_agent vs degenerate branches). BA cites architect memo for every D.5 design decision (M1-M19 each traceable to memo q5.files_to_change). No fabricated citations."
+    },
+    "scope_alignment": {
+      "verdict": "pass",
+      "notes": "User's verbatim 'continue to thoroughly complete what wasn't done' is broad. BA correctly grounded interpretation via (a) the explicit spec dispatch and (b) cycle-4 deferral note at spec line 183. The single user-need clause (R1) is mapped to spec §5.3.D bullet 5 verbatim 最佳形态:合并为一个 subagent lifecycle 卡, which I verified at source spec line 569. Deferrals (W5 real-Codex-session, W6 PTY/Plan-mode, W7 4 extractSubtitle vitests, W8 native translations) are documented in Out-of-Scope Observations table with proper schema (ts/file/line/observation/security_relevant) per spec §5.4 rule 1+2. Each deferral has a concrete justification: structural orchestrator blocker (W5/W6) or codex-classified scope-extending (W7) or already-verified (W8). No over-narrowing detected (the user-need clause is the named bullet 5 item; no other in-scope user-need was dropped). No under-narrowing detected (the architect memo's bounded blast radius matches the cycle scope)."
+    },
+    "investigation_completeness": {
+      "verdict": "pass",
+      "notes": "Spec §5.3.D bullet 5 verified at source spec line 569 verbatim: '[ ] 最佳形态：合并为一个 subagent lifecycle 卡，展示 agent nickname/id、started、completed、final summary。' This IS the named outstanding item. Cycle-4 deferral at spec line 183 cited correctly. BA pulled in architect memo's full pipeline analysis (24 file:line citations) rather than skipping investigation. Architect memo q1 evaluated 3 design options (a/b/c), selected c (Hybrid) with documented blast-radius / old-message-compat / failure-mode reasoning."
+    },
+    "affected_file_accuracy": {
+      "verdict": "pass",
+      "notes": "All 10 files cited (9 modify + 1 new) exist in the codebase. Sampled and verified: sessionProtocolMapper.ts (mapper, lines verified 8-13/425-462/638-713/651-660/684), ChatList.tsx (lines 47-48 verified), codexToolRendering.ts (lines 39-45 verified), knownTools.tsx (1100-1124 verified — 'functions.spawn_agent' entry begins at line 1105 with correct icon ICON_TASK), _all.tsx (lines 57-61 verified — 5 verbs route to CodexSubagentView), CodexSubagentView.tsx (lines 21-54 verified — spawn_agent branch at 28-45 + degenerate branch at 47+), codex-render-fixtures-data.ts (lines 181-204 verified — spawnAgentTool/waitAgentTool/closeAgentTool factories present, sessionSubagent='codex-fixture-subagent' confirmed at line 187). The new file CodexSubagentLifecycleView.tsx is correctly marked NEW. Import-chain assumptions match actual code structure (toolViewRegistry at _all.tsx routes by name string, knownTools provides header metadata, CodexSubagentView is the existing fallback)."
+    },
+    "spec_text_vs_execution_drift": {
+      "verdict": "pass_with_minor_observation",
+      "notes": "M1-M19 are mostly mechanically verifiable: AC1-AC4 are state-machine assertions on mapper output (testable via vitest); AC5-AC8 are DOM assertions on fixture page (testable via Playwright with text matchers); AC9-AC11 are command-output assertions ('yarn typecheck'/'yarn test' exit 0); AC12 is curl + isolation checks. Minor drift: AC8's 'verifiable by toggling a ?suppress=off query param on the fixture page that explicitly empties the suppression map' introduces a NEW fixture-page infrastructure (the toggle) that is not enumerated as a separate M-task — M13 only mentions fixture row updates. Dev should implement this as part of M13 (the lifecycleAgentTool factory + fixture row work). Not a fail because dev can mechanically infer the toggle requirement from AC8 text. Logged as advisory.",
+      "advisory_objections": [
+        {
+          "dimension": "spec_text_vs_execution_drift",
+          "ac_id": "AC8",
+          "issue": "AC8 references '?suppress=off query param toggle' as the verification mechanism but no must-have task explicitly creates this fixture-page toggle. Recommend updating M13 (or adding M13b) to call out: 'Add ?suppress=off query param handling to /dev/codex-render-fixtures page that, when present, passes an empty suppression map to ChatList for AC8 verification.' Severity: minor / non-blocking (dev can infer from AC8 text)."
+        }
+      ]
+    }
+  },
+  "architect_design_trace_check": {
+    "verdict": "pass",
+    "samples": [
+      {
+        "task": "M1 (mapper synthetic envelope on spawn)",
+        "architect_source": "memo q5.files_to_change[0] step 2: 'On collab_agent_call_begin where tool=spawnAgent, after computing sessionSubagent (line 651-660), additionally emit a tool-call-start envelope with name=functions.subagent_lifecycle, call=lifecycle:${sessionSubagent}, args={sessionSubagent, prompt, agentNickname, lifecycle_state:started}'",
+        "trace": "exact match — BA M1 reproduces architect prescription including distinct call-id 'lifecycle:${sessionSubagent}' from memo q4 risk mitigation #4"
+      },
+      {
+        "task": "M9 (CODEX_LIFECYCLE_TOOL constant + suppression-aware shouldRenderToolContent)",
+        "architect_source": "memo q5.files_to_change[4]: 'Add export const CODEX_LIFECYCLE_TOOL = functions.subagent_lifecycle. Modify shouldRenderToolContent (line 56-64) so that for a tool in CODEX_SUBAGENT_CONTROL_TOOLS, it returns false IF the tool's input.sessionSubagent has a matching lifecycle envelope in the messages[] context'",
+        "trace": "exact match — BA M9 reproduces this with the additional MessageView guard hook (memo q5.files_to_change[5])"
+      },
+      {
+        "task": "M11 (default-not-suppress fail-safe)",
+        "architect_source": "memo q5.blast_radius_estimate.risk_level: 'any bug surfaces as 4 cards instead of 1, never as 0 cards'",
+        "trace": "exact match — BA M11 reproduces this invariant verbatim"
+      },
+      {
+        "task": "M14 (4 vitest cases)",
+        "architect_source": "memo q5.files_to_change[8]: 4 cases (a) spawn-wait-close (b) spawn-no-wait-close (c) spawn-then-turn_aborted (d) two-parallel-subagents",
+        "trace": "exact match — BA M14 reproduces all 4 cases with same names"
+      }
+    ]
+  },
+  "objections": [],
+  "codex_consult": {
+    "invoked": false,
+    "status": "skipped",
+    "reason": "BA already invoked codex during scoping (per BA's codex_consult.feedback_summary in context JSON line 444); substantive feedback was incorporated (W7 demotion + W8 verification). No QA-side concern warranted a second adversarial pass — verdict is pass with one minor advisory."
+  },
+  "dispositions": {
+    "ba_spec_path": "docs/dev/ticket-20260508-130403.md",
+    "context_path": "docs/dev/context-20260508-130403.json",
+    "architect_memo_path": "docs/dev/architect-d5-subagent-lifecycle-merge-20260508-130403.json",
+    "spec_path": "docs/dev/specs/spec-20260506-203844.md",
+    "next_step": "Proceed to dev cycle 6 implementation with BA spec as authoritative blueprint. Dev should treat AC8 ?suppress=off toggle as part of M13 work (advisory only; non-blocking)."
+  }
+}
