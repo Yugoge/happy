@@ -1,0 +1,70 @@
+{
+  "request_id": "20260510-115954",
+  "timestamp": "2026-05-10T12:00:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "--changed-files",
+  "scope": {
+    "changed_files": [
+      "/dev/shm/dev-workspace/dot-claude/commands/push.md",
+      "/dev/shm/dev-workspace/dot-claude/commands/close.md"
+    ],
+    "tagging_mechanism": "ii_inspector_side_tagging",
+    "contract": "Every finding object MUST include explicit introduced_in_diff:true|false. Untagged/absent findings default to advisory/non-blocking per AC-2.6 (b)."
+  },
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB"
+  },
+  "scope_notes": {
+    "files_inspected": 2,
+    "file_types": ["slash-command docstring (.md in commands/)"],
+    "diff_nature": "prose-only clarifications; no new files, no relocations, no script/agent additions, no schema changes",
+    "checklist_axes_evaluated": [
+      "1_document_structure: PASS — both files correctly located in commands/ per folder convention",
+      "2_archive_candidates: PASS — neither matches archive patterns; both are active command definitions referenced by the slash-command system",
+      "3_dev_context_cleanup: N/A — not docs/dev/ JSON files",
+      "4_one_time_scripts: N/A — not scripts",
+      "5_duplicate_scripts: N/A — not scripts",
+      "6_one_time_tests: N/A — not tests",
+      "7_non_functional_files: N/A — diff produces no temp/build artifacts",
+      "8_orphaned_subagents: N/A — diff does not touch agents/",
+      "9_unreferenced_scripts: N/A — diff does not touch scripts",
+      "10_orphaned_tests: N/A — not tests",
+      "11_historical_feature_docs: N/A — these are active command docstrings, not feature-history docs",
+      "12_docs_categorization: PASS — already in correct subdirectory (commands/), not loose in docs/",
+      "13_obsolete_functionality: PASS — diff INTENTIONALLY removes obsolete v3 framing ('V3 safety contract' → 'Safety contract'; removes 'v3 semantic commit' reference). This is a cleanup move, not a violation",
+      "14_non_functional_folders: N/A — diff does not touch folder structure",
+      "15_orphan_commands: N/A — both push.md and close.md remain actively referenced (push by close.md Workflow Integrity Dimension #4 sub-item ii; close by /dev → /close → /commit pipeline)",
+      "16_dead_functions: N/A — not Python source",
+      "17_duplicate_content: N/A — diff is delta on existing files, no new duplicate files introduced"
+    ],
+    "diff_summary": {
+      "push.md": "Rewrote opening paragraph (removed misleading 'human-triggered wrapper' framing from commit 5ffe628); added new paragraph clarifying disable-model-invocation only blocks SDK self-dispatch, agent CAN call push.sh via Bash; renamed 'V3 safety contract' → 'Safety contract'; updated /commit Related entry from v3-specific to current form. Net: 13 lines added, 4 modified.",
+      "close.md": "5 micro-edits to existing prose: (a) replaced concrete task-id examples with generic 'timestamp-style task id'; (b) replaced 'schemas' wording with 'artifact contracts' / 'artifact fields' / 'report contract' / 'required format' (4 sites); (c) ONE substantive instruction tightening: changed 'At bottom: final verdict line' to require LAST non-empty line be a bare CLOSE: form (no 'Final verdict:' prefix), citing hooks/lib/close-verdict.py parser requirement; (d) added 'CLOSE: YES (FORCED)' to legal Return value forms list with shared close-verdict-helper classification note. Net: 7 lines modified, 1 line added."
+    },
+    "rationale": "Diff is pure prose clarification on two correctly-located, actively-referenced slash-command docstrings. No file moves, no new files, no deletions, no script/agent surface changes. Both instruction tightenings (push.md disable-model-invocation clarification; close.md final-verdict-line specificity) are corrections to defects observed in this very session — they REDUCE harness ambiguity rather than introduce cleanliness debt. No findings emitted."
+  }
+}

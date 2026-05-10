@@ -1,0 +1,52 @@
+{
+  "request_id": "20260510-115954",
+  "timestamp": "2026-05-10T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "changed_files_scope": [
+    "/dev/shm/dev-workspace/dot-claude/commands/push.md",
+    "/dev/shm/dev-workspace/dot-claude/commands/close.md"
+  ],
+  "tagging_mechanism": "ii (inspector-side tagging via introduced_in_diff: bool per finding)",
+  "findings": [],
+  "files_analyzed": [
+    {
+      "file": "/dev/shm/dev-workspace/dot-claude/commands/push.md",
+      "total_lines": 74,
+      "diff_lines_added": 19,
+      "diff_lines_removed": 3,
+      "verbose_sections_detected": [],
+      "verbose_lines": 0,
+      "verbosity_percentage": 0,
+      "introduced_in_diff": false,
+      "rationale": "Diff replaces a 3-line summary with a 19-line agent-vs-human invocation contract clarification. New content is functional execution-rule language (cites pretool-git-privilege-guard.py, ~/.claude/hooks/push.sh, CLAUDE_PUSH_COMMAND_ACTIVE=1, Scheme 6 grant manifest) and an explicit DO NOT directive against bouncing work back to the user. No Philosophy / Overview / Quality Standards / Safety Features / Helper Scripts sections introduced. Existing sections (Usage, Behavior summary, Safety contract, Pre-conditions, Exit codes, Related) remain concise and execution-oriented. Per the 'rules not stories' principle, this is rules — not stories."
+    },
+    {
+      "file": "/dev/shm/dev-workspace/dot-claude/commands/close.md",
+      "total_lines": 377,
+      "diff_lines_added": 1,
+      "diff_lines_removed": 1,
+      "verbose_sections_detected": [],
+      "verbose_lines": 0,
+      "verbosity_percentage": 0,
+      "introduced_in_diff": false,
+      "rationale": "Diff is a 1-for-1 line swap on line 340: ambiguous 'At bottom: final verdict line.' replaced by a precise behavioral rule requiring the LAST non-empty line to be a bare CLOSE: form (no 'Final verdict:' / 'Verdict:' prefix), citing the runtime parser hooks/lib/close-verdict.py. Net delta: 0 lines. The replacement IS execution-rule prose — it prevents the parser-failure mode observed this session. Pre-existing file size (377 lines) reflects functional content density (argument parsing, forced-override path, task-id resolution, 3-inspector dispatch, debate protocol, 7 verdict branches, return-value contract); no Philosophy / Overview / Quality Standards / Safety Features / Helper Scripts sections present. Subsections like 'When to use' / 'What it preserves' / 'What it skips' are short bulleted operational notes. No NEW verbose sections introduced by this diff."
+    }
+  ],
+  "summary": {
+    "files_inspected": 2,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "new_in_diff_violations": 0,
+    "pre_existing_violations": 0,
+    "estimated_reduction": "n/a — no violations to reduce",
+    "verdict": "PASS — both diffs add functional execution-rule behavioral instruction language to fix prior misinference. Per AC-2.6 file-level granularity: every finding (none) carries explicit introduced_in_diff tagging; the empty findings array signals zero NEW-in-this-diff prompt-verbosity violations. Under the close.md AC-2.6 default-safe rule for ambiguity, the empty findings array MUST NOT escalate to CLOSE: NO."
+  },
+  "ac_compliance": {
+    "ac_2_6_file_level_tagging": "satisfied — Mechanism (ii) inspector-side tagging declared; introduced_in_diff present on every per-file analysis entry",
+    "ac_12_1_changed_files_mode": "satisfied — invoked with --changed-files; scope restricted to the 2 listed files; not a full-repo scan"
+  }
+}
