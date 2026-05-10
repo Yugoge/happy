@@ -4,7 +4,10 @@ import {
     getAvailablePermissionModes,
     getCodexModelModes,
     getClaudePermissionModes,
+    getDefaultModelContextWindow,
+    getModelContextWindow,
     mapMetadataOptions,
+    resolveContextWindow,
     resolveCurrentOption,
 } from './modelModeOptions';
 
@@ -97,5 +100,100 @@ describe('modelModeOptions', () => {
 
         expect(resolveCurrentOption(options, ['missing', 'b', 'a'])).toEqual({ key: 'b', name: 'B' });
         expect(resolveCurrentOption(options, ['missing'])).toBeNull();
+    });
+
+    // Cycle 10 M4: getDefaultModelContextWindow flavor mapping
+    describe('getDefaultModelContextWindow (Cycle 10 M1)', () => {
+        it('returns 200_000 for claude (was 1_000_000 pre-Cycle-10)', () => {
+            expect(getDefaultModelContextWindow('claude')).toBe(200_000);
+        });
+
+        it('returns 200_000 for codex (unchanged)', () => {
+            expect(getDefaultModelContextWindow('codex')).toBe(200_000);
+        });
+
+        it('returns 1_000_000 for gemini (unchanged — Gemini 2.5 spec)', () => {
+            expect(getDefaultModelContextWindow('gemini')).toBe(1_000_000);
+        });
+
+        it('returns 200_000 for unknown/null/undefined flavor (conservative fallback)', () => {
+            expect(getDefaultModelContextWindow(undefined)).toBe(200_000);
+            expect(getDefaultModelContextWindow(null)).toBe(200_000);
+            expect(getDefaultModelContextWindow('openclaw')).toBe(200_000);
+        });
+    });
+
+    // Cycle 10 M4: getModelContextWindow 1M-marker detection (incl. F4 case-insensitivity)
+    describe('getModelContextWindow (Cycle 10 M2)', () => {
+        it('returns 1_000_000 for bracket-suffix [1m] variants', () => {
+            expect(getModelContextWindow('opus[1m]')).toBe(1_000_000);
+            expect(getModelContextWindow('sonnet[1m]')).toBe(1_000_000);
+            expect(getModelContextWindow('claude-opus-4-7[1m]')).toBe(1_000_000);
+        });
+
+        it('returns 1_000_000 for uppercase bracket [1M] (F4 case-insensitive)', () => {
+            expect(getModelContextWindow('opus[1M]')).toBe(1_000_000);
+            expect(getModelContextWindow('claude-opus-4-7[1M]')).toBe(1_000_000);
+        });
+
+        it('returns 1_000_000 for uppercase trailing -1M / suffix (F4 case-insensitive)', () => {
+            expect(getModelContextWindow('claude-OPUS-1M')).toBe(1_000_000);
+            expect(getModelContextWindow('claude-opus-4-7-1M')).toBe(1_000_000);
+        });
+
+        it('returns 1_000_000 for uppercase :1M qualifier (F4 case-insensitive)', () => {
+            expect(getModelContextWindow('claude:1M')).toBe(1_000_000);
+            expect(getModelContextWindow('claude-3-7-sonnet:thinking:1M')).toBe(1_000_000);
+        });
+
+        it('returns 1_000_000 for prior matching forms (no regression)', () => {
+            expect(getModelContextWindow('claude-opus-4-7-20260301-1m')).toBe(1_000_000);
+            expect(getModelContextWindow('claude-opus-4-7-1m-experimental')).toBe(1_000_000);
+            expect(getModelContextWindow('claude-3-7-sonnet:thinking:1m')).toBe(1_000_000);
+        });
+
+        it('returns 200_000 for non-1M Claude variants (negative case)', () => {
+            expect(getModelContextWindow('claude-sonnet')).toBe(200_000);
+            expect(getModelContextWindow('claude-opus-4-7')).toBe(200_000);
+            expect(getModelContextWindow('claude-haiku-4-5')).toBe(200_000);
+        });
+
+        it('returns 200_000 for null/undefined/empty key', () => {
+            expect(getModelContextWindow(null)).toBe(200_000);
+            expect(getModelContextWindow(undefined)).toBe(200_000);
+            expect(getModelContextWindow('')).toBe(200_000);
+        });
+    });
+
+    // Cycle 10 M4b: resolveContextWindow precedence helper
+    describe('resolveContextWindow (Cycle 10 M3 / M4b)', () => {
+        it('returns 200_000 for default modelMode + no metadata (conservative fallback)', () => {
+            expect(resolveContextWindow({ key: 'default', name: 'default model' }, 'claude', undefined)).toBe(200_000);
+        });
+
+        it('returns 1_000_000 for default modelMode + 1M-marker metadata (metadata-aware path)', () => {
+            expect(resolveContextWindow({ key: 'default', name: 'default model' }, 'claude', 'claude-sonnet-4.5-1m')).toBe(1_000_000);
+        });
+
+        it('returns 200_000 for default modelMode + non-1M metadata', () => {
+            expect(resolveContextWindow({ key: 'default', name: 'default model' }, 'claude', 'claude-sonnet')).toBe(200_000);
+        });
+
+        it('explicit non-default modelMode wins over currentModelCode (precedence step 1)', () => {
+            expect(resolveContextWindow({ key: 'opus[1m]', name: 'opus 1M' }, 'claude', 'claude-sonnet')).toBe(1_000_000);
+            expect(resolveContextWindow({ key: 'sonnet', name: 'sonnet 4.6' }, 'claude', 'claude-opus-4-7-1m')).toBe(200_000);
+        });
+
+        it('returns 200_000 when modelMode is null and no metadata (fallback)', () => {
+            expect(resolveContextWindow(null, 'claude', undefined)).toBe(200_000);
+        });
+
+        it('returns 1_000_000 for gemini fallback unchanged', () => {
+            expect(resolveContextWindow(undefined, 'gemini', undefined)).toBe(1_000_000);
+        });
+
+        it('treats empty-string currentModelCode as missing (falls through to flavor default)', () => {
+            expect(resolveContextWindow({ key: 'default', name: 'default model' }, 'claude', '')).toBe(200_000);
+        });
     });
 });

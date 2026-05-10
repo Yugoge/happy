@@ -8,7 +8,7 @@ import { layout } from './layout';
 import { MultiTextInput, KeyPressEvent } from './MultiTextInput';
 import { Typography } from '@/constants/Typography';
 import { PermissionMode, ModelMode } from './PermissionModeSelector';
-import { getDefaultModelContextWindow, getDefaultModelKey, getModelContextWindow } from './modelModeOptions';
+import { getDefaultModelKey, resolveContextWindow } from './modelModeOptions';
 import { hapticsLight, hapticsError } from './haptics';
 import { Shaker, ShakeInstance } from './Shaker';
 import { StatusDot } from './StatusDot';
@@ -356,11 +356,9 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         return label;
     }, [isSandboxEnabled]);
 
-    // Calculate context warning — per-model context window (§5.2 cycle 6 L4)
-    const resolvedModelKey = (props.modelMode?.key && props.modelMode.key !== 'default')
-        ? props.modelMode.key
-        : (props.metadata?.currentModelCode ?? null);
-    const maxContextSize = (!props.modelMode?.key || props.modelMode.key === 'default') ? getDefaultModelContextWindow(modelFlavor) : getModelContextWindow(resolvedModelKey);
+    // Calculate context warning — per-model context window (Cycle 10 M3).
+    // Precedence: explicit non-default modelMode > metadata.currentModelCode > flavor default.
+    const maxContextSize = resolveContextWindow(props.modelMode, modelFlavor, props.metadata?.currentModelCode);
     const contextWarning = props.usageData
         ? getContextWarning(props.usageData.contextSize ?? 0, props.alwaysShowContextSize ?? false, theme, maxContextSize)
         : null;

@@ -82,43 +82,78 @@ export function getClaudeModelModes(): ModelMode[] {
 // Per-model context-window ceiling (in tokens) used as the denominator
 // for the status-bar "N% left" context indicator.
 //
-// Detection patterns for Anthropic 1M-context model variants (authoritative
-// list — extend here when Anthropic introduces new 1M naming schemes):
-//   - /1m$/i         matches trailing "-1m" or "-1M" suffix
-//                    (e.g., "claude-opus-4-7-20260301-1m")
-//   - '-1m-'         matches "-1m-" anywhere in the key
-//   - ':1m'          matches ":1m" variant qualifier
-//                    (e.g., "claude-3-7-sonnet-20250219:thinking:1m")
+// app-side conservative fallback: default 200K; 1M when [1m] marker,
+// ':1m', '-1m-', or trailing '1m' detected (case-insensitive). Note:
+// Anthropic platform may auto-upgrade some plans to 1M without marker —
+// this app cannot detect that without metadata.currentModelCode
+// (populated by both ACP and normal Claude SDK paths post-Cycle-10 M3').
 //
-// Source: Anthropic public API model documentation
-// (https://www.anthropic.com/api) — Claude 3/4 = 200k, 1M variants = 1M.
+// Detection patterns for Anthropic 1M-context model variants (matched
+// against `modelKey.toLowerCase()` so all checks are case-insensitive):
+//   - /1m$/         matches trailing "-1m" / "-1M" suffix
+//                   (e.g., "claude-opus-4-7-20260301-1m")
+//   - '-1m-'        matches "-1m-" anywhere in the key
+//   - ':1m'         matches ":1m" variant qualifier
+//                   (e.g., "claude-3-7-sonnet-20250219:thinking:1m")
+//   - /\[1m\]/      matches bracket-suffix variants
+//                   (e.g., "opus[1m]", "sonnet[1m]", "claude-opus-4-7[1m]")
+//
+// Source: Anthropic Claude Code model config documentation
+// (https://code.claude.com/docs/en/model-config) — Claude 3/4 standard
+// models are 200K context; only opus[1m] / sonnet[1m] / *-1m* variants
+// carry 1M.
 export function getModelContextWindow(modelKey: string | null | undefined): number {
     if (!modelKey) return 200_000;
-    if (/1m$/i.test(modelKey) || modelKey.includes('-1m-') || modelKey.includes(':1m')) {
+    const lk = modelKey.toLowerCase();
+    if (/1m$/.test(lk) || lk.includes('-1m-') || lk.includes(':1m') || /\[1m\]/.test(lk)) {
         return 1_000_000;
     }
     return 200_000;
 }
 
-// Default-picker context-window resolution (§5.2 cycle 6 L4 fix).
+// Default-picker context-window resolution (Cycle 10 M1 fix).
 //
-// When the picker key is 'default' (or absent), the underlying model
-// identity is not encoded in the picker. For Claude sessions in
-// happy-dev, the user has asserted the default model carries a 1M
-// context window (spec-20260424-084848.md line 2801). The Claude CLI
-// path does not write `metadata.currentModelCode`, so we cannot rely
-// on per-session model-id discovery — flavor is the authoritative
-// signal here.
+// When the picker key is 'default' (or absent) AND `metadata.currentModelCode`
+// is also absent, the underlying model identity is not encoded anywhere
+// the app can see. The conservative fallback is 200K because Claude
+// 3/4 standard models ship at 200K; only explicit 1M-marker variants
+// (`opus[1m]`, `sonnet[1m]`, `*-1m`, etc.) carry 1M.
 //
-// Mapping (per user product decision + Anthropic public docs):
-//   - claude  → 1_000_000  (default Claude in happy-dev is 1M)
+// Mapping (per Anthropic Claude Code public docs):
+//   - claude  →   200_000  (Claude 3/4 standard)
 //   - gemini  → 1_000_000  (Gemini 2.5 series is ≥ 1M)
 //   - codex   →   200_000  (gpt-5 series effective context)
-//   - unknown → 1_000_000  (default to claude semantics)
+//   - unknown →   200_000  (conservative fallback)
+//
+// Source: https://code.claude.com/docs/en/model-config
 export function getDefaultModelContextWindow(flavor: AgentFlavor): number {
-    if (flavor === 'codex') return 200_000;
     if (flavor === 'gemini') return 1_000_000;
-    return 1_000_000;
+    return 200_000;
+}
+
+// Cycle 10 M3: precedence-based context-window resolution helper.
+//
+// Behaviorally testable pure function used by AgentInput's context-remaining
+// indicator. Replaces the prior inline expression so vitest can directly
+// cover all four precedence cases.
+//
+// Precedence:
+//   1. modelMode?.key set AND not 'default'  → getModelContextWindow(modelMode.key)
+//   2. currentModelCode non-empty             → getModelContextWindow(currentModelCode)
+//   3. otherwise                              → getDefaultModelContextWindow(flavor)
+export function resolveContextWindow(
+    modelMode: ModelMode | null | undefined,
+    flavor: AgentFlavor,
+    currentModelCode: string | null | undefined,
+): number {
+    const key = modelMode?.key;
+    if (key && key !== 'default') {
+        return getModelContextWindow(key);
+    }
+    if (currentModelCode && currentModelCode.length > 0) {
+        return getModelContextWindow(currentModelCode);
+    }
+    return getDefaultModelContextWindow(flavor);
 }
 
 export function getCodexModelModes(): ModelMode[] {

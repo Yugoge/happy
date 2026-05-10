@@ -18,6 +18,7 @@ import { getToolName } from "./utils/getToolName";
 import { createSessionScanner } from "./utils/sessionScanner";
 import { getAskUserQuestionToolCallIds } from "./utils/questionNotification";
 import { isStopHookFeedback } from "./utils/stopHookFilter";
+import { createCurrentModelCodeEmitter, type CurrentModelCodeEmitter } from "./utils/currentModelCodeEmitter";
 
 interface PermissionsField {
     date: number;
@@ -48,7 +49,7 @@ type MetaScannerState = {
     promise: Promise<void> | null;
 };
 
-type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter };
+type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter; currentModelCodeEmitter: CurrentModelCodeEmitter };
 
 function createLauncherState(): LauncherState {
     return {
@@ -164,6 +165,7 @@ function buildOnMessage(state: LauncherState, session: Session, buf: MessageBuff
     return (message: SDKMessage) => {
         formatClaudeMessageForInk(message, buf);
         svc.permissionHandler.onMessage(message);
+        svc.currentModelCodeEmitter.onMessage(message);
         if (message.type === 'assistant') { trackAssistantContent(message as SDKAssistantMessage, state); }
         notifyQuestions(message, state, session);
         if (message.type === 'user') { trackToolResults(message as SDKUserMessage, state, svc.messageQueue); }
@@ -251,7 +253,11 @@ function initServices(session: Session): Services {
         permissionHandler.getResponses(),
     );
     permissionHandler.setOnPermissionRequest((id: string) => { messageQueue.releaseToolCall(id); });
-    return { permissionHandler, messageQueue, sdkToLogConverter };
+    // Cycle 10 M3': emit metadata.currentModelCode from SDK system/init messages
+    // so the app's resolveContextWindow() helper can pick the correct
+    // 200K vs 1M denominator on the normal Claude SDK path.
+    const currentModelCodeEmitter = createCurrentModelCodeEmitter((updater) => session.client.updateMetadata(updater));
+    return { permissionHandler, messageQueue, sdkToLogConverter, currentModelCodeEmitter };
 }
 
 async function invokeClaude(
