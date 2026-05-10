@@ -1,6 +1,6 @@
 # translations
 
-*Last updated: 2026-05-07T17:50:01Z*
+*Last updated: 2026-05-10T09:53:23Z*
 **Total entries**: 10
 **Convention**: kebab
 

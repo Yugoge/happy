@@ -3,6 +3,7 @@ import { useUnistyles } from 'react-native-unistyles';
 import { Text } from '../StyledText';
 import type { MarkdownSpan } from './parseMarkdown';
 import { parseMarkdownSpans } from './parseMarkdownSpans';
+import { MarkdownDefsContext } from './MarkdownInlineDecorations';
 
 // Render-prop signature for the span renderer that lives in MarkdownView.tsx.
 // Passing as a prop avoids a circular import between this sibling and MarkdownView.
@@ -48,11 +49,14 @@ type CellProps = {
 
 function WebTableCell(props: CellProps) {
     const RenderSpans = props.renderSpans;
+    // Cycle 8: thread message-global defs (footnote/link refs) so cell-level
+    // ref-style links and footnote chips resolve at render time.
+    const defs = React.useContext(MarkdownDefsContext);
     return (
         <td style={props.cellStyle}>
             <Text selectable={props.selectable} style={props.textStyle}>
                 <RenderSpans
-                    spans={parseMarkdownSpans(props.text, false)}
+                    spans={parseMarkdownSpans(props.text, false, defs.linkDefs, defs.footnotes)}
                     baseStyle={props.textStyle}
                     selectable={props.selectable}
                     onLinkPress={props.onLinkPress}
@@ -64,11 +68,12 @@ function WebTableCell(props: CellProps) {
 
 function WebTableHeaderCell(props: CellProps & { thStyle: React.CSSProperties }) {
     const RenderSpans = props.renderSpans;
+    const defs = React.useContext(MarkdownDefsContext);
     return (
         <th style={props.thStyle}>
             <Text selectable={props.selectable} style={props.textStyle}>
                 <RenderSpans
-                    spans={parseMarkdownSpans(props.text, false)}
+                    spans={parseMarkdownSpans(props.text, false, defs.linkDefs, defs.footnotes)}
                     baseStyle={props.textStyle}
                     selectable={props.selectable}
                     onLinkPress={props.onLinkPress}

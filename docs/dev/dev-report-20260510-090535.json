@@ -22,8 +22,22 @@
       "packages/happy-app/sources/text/translations/pt.ts",
       "packages/happy-app/sources/text/translations/ja.ts",
       "packages/happy-app/sources/text/translations/zh-Hans.ts",
-      "packages/happy-app/sources/text/translations/zh-Hant.ts"
+      "packages/happy-app/sources/text/translations/zh-Hant.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+      "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "docs/dev/INDEX.md",
+      "docs/dev/README.md",
+      "packages/happy-app/sources/components/markdown/INDEX.md",
+      "packages/happy-app/sources/components/markdown/README.md",
+      "packages/happy-app/sources/text/INDEX.md",
+      "packages/happy-app/sources/text/translations/INDEX.md",
+      "packages/happy-app/sources/app/(app)/dev/INDEX.md",
+      "docs/dev/specs/spec-20260510-090535/INDEX.md",
+      "docs/dev/specs/spec-20260510-090535/README.md"
     ],
+    "carryforward_note": "parseMarkdown.ts/parseMarkdownSpans.ts/MarkdownTableWeb.tsx/codex-render-fixtures-data.ts contain Cycle 8 (#9/#10/#11) work that was created but never committed because Cycle 8 closed CLOSE: NO. Cycle 9 inherits these files in working-tree state and depends on their type definitions (LinkDef, details block variant, ParsedMarkdown.footnotes Map) for compilation — MarkdownInlineDecorations.tsx (which IS task-owned by Cycle 9 dev) imports from them. Listed here under files_modified so /commit can land them as part of the saga-closer Cycle 9 commit per task-ownership contract. INDEX.md/README.md entries are doc-sync hook auto-updates from the same edits.",
     "files_created": [],
     "tasks_completed": [
       {

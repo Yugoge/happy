@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-05-09T22:25:53Z*
-**Total entries**: 1011
+*Last updated: 2026-05-10T12:55:44Z*
+**Total entries**: 1048
 **Convention**: kebab
 
 ## Tree
@@ -101,6 +101,15 @@ dev/
 │   │   ├── `qa-ac5-mcp-strict-chip-evidence.md` - Cycle 7 — AC5 Evidence (M5 #17 MCP strict chip)
 │   │   ├── `qa-ac6-ac7-skill-command-wrap-evidence.md` - Cycle 7 — AC6 / AC7 Evidence (M6 #16 Skill wrap + M7 #18 historical Command)
 │   │   └── `qa-ac6-out-of-saga-summary.md` - Cycle 7 — AC-OUT-#6 Mermaid kernel out-of-saga (per user 绕开 directive)
+│   ├── 20260509-225006/
+│   │   ├── `qa-cycle8-desktop.png` - png file
+│   │   └── `qa-cycle8-mobile.png` - png file
+│   ├── 20260510-090535/
+│   │   ├── `qa-cycle9-desktop-live-message.png` - png file
+│   │   ├── `qa-cycle9-desktop.png` - png file
+│   │   ├── `qa-cycle9-footnote-modal-zhHans.png` - png file
+│   │   ├── `qa-cycle9-footnote-modal.png` - png file
+│   │   └── `qa-cycle9-mobile.png` - png file
 │   ├── ba-20260425-201355-5-17/
 │   │   ├── `desktop-1440x900.png` - png file
 │   │   └── `mobile-390x844.png` - png file
@@ -273,6 +282,11 @@ dev/
 │   │   └── `ba-spec-20260508-211705.md` - BA Specification — Cycle 6 of saga `spec-20260506-203755`: deterministic fixes + investigation-only items
 │   ├── spec-20260509-152243/
 │   │   └── `ba-spec-20260509-152243.md` - BA Specification: Saga spec-20260506-203755 progress (Cycle 7) — 7+1+3 Three-Phase Same-Cycle (Option C, downsized)
+│   ├── spec-20260509-225006/
+│   │   ├── `ba-spec-20260509-225006.md` - BA Specification: Cycle 8 — Parser slice (saga closer for spec-20260506-203755)
+│   │   └── `continuation-cycle9.md` - Continuation Spec — Cycle 9 (post Cycle 8 CLOSE: NO)
+│   ├── spec-20260510-090535/
+│   │   └── `ba-spec-20260510-090535.md` - BA Specification: Cycle 9 — Post-Cycle-8 codex-debate fix slice (saga closer)
 │   ├── `spec-20260423-191545.md` - Spec: Session model persistence + status bar display
 │   ├── `spec-20260423-202430.md` - Spec: Per-Session Model Persistence + Status Bar Model Display
 │   ├── `spec-20260424-084848-cycle6-corrections.md` - spec-20260424-084848 — Cycle 6 Corrections (Honest State After User Manual Verification)
@@ -431,6 +445,8 @@ dev/
 ├── `ba-qa-report-20260508-211705.json` - json config
 ├── `ba-qa-report-20260509-115500.json` - json config
 ├── `ba-qa-report-20260509-152243.json` - json config
+├── `ba-qa-report-20260509-225006.json` - json config
+├── `ba-qa-report-20260510-090535.json` - json config
 ├── `ba-qa-report-c1-20260504-223115.json` - json config
 ├── `ba-qa-report-c1-redev-20260505-001500.json` - json config
 ├── `ba-qa-report-c2-20260504-223115.json` - json config
@@ -541,6 +557,9 @@ dev/
 ├── `cleanliness-inspector-report-20260508-211705.json` - json config
 ├── `cleanliness-inspector-report-20260509-115500.json` - json config
 ├── `cleanliness-inspector-report-20260509-152243.json` - json config
+├── `cleanliness-inspector-report-20260509-225006.json` - json config
+├── `cleanliness-inspector-report-20260510-090535.json` - json config
+├── `cleanliness-inspector-report-20260510-115954.json` - json config
 ├── `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 ├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 ├── `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
@@ -573,6 +592,9 @@ dev/
 ├── `close-report-20260508-211705.md` - Close Report — Cycle 6 (task-id 20260508-211705)
 ├── `close-report-20260509-115500.md` - Close Debate Report
 ├── `close-report-20260509-152243.md` - Close Report — task-id 20260509-152243
+├── `close-report-20260509-225006.md` - Close Report — task-id 20260509-225006
+├── `close-report-20260510-090535.md` - Close-Debate Report — 20260510-090535
+├── `close-report-20260510-115954.md` - Close Debate Report
 ├── `close-report-spec-20260506-203844.md` - Close Debate Report
 ├── `codex-fork-divergence-research-20260427.md` - No description
 ├── `codex-research-20260425-bgtask-reconnect.md` - No description
@@ -606,6 +628,8 @@ dev/
 ├── `completion-20260508-211705.md` - Completion Report — task-id 20260508-211705
 ├── `completion-20260509-115500.md` - Development Completion Report — 20260509-115500
 ├── `completion-20260509-152243.md` - Completion Report — task-id 20260509-152243
+├── `completion-20260509-225006.md` - Completion Report — task-id 20260509-225006
+├── `completion-20260510-090535.md` - Completion Report — task-id 20260510-090535
 ├── `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -705,6 +729,8 @@ dev/
 ├── `context-20260508-211705.json` - json config
 ├── `context-20260509-115500.json` - json config
 ├── `context-20260509-152243.json` - json config
+├── `context-20260509-225006.json` - json config
+├── `context-20260510-090535.json` - json config
 ├── `context-c1-20260504-223115.json` - json config
 ├── `context-c1-redev-20260505-001500.json` - json config
 ├── `context-c2-20260504-223115.json` - json config
@@ -834,6 +860,8 @@ dev/
 ├── `dev-report-20260508-211705.json` - json config
 ├── `dev-report-20260509-115500.json` - json config
 ├── `dev-report-20260509-152243.json` - json config
+├── `dev-report-20260509-225006.json` - json config
+├── `dev-report-20260510-090535.json` - json config
 ├── `dev-report-c1-20260504-223115.json` - json config
 ├── `dev-report-c1-redev-20260505-001500.json` - json config
 ├── `dev-report-c3-20260504-223115.json` - json config
@@ -865,6 +893,9 @@ dev/
 ├── `prompt-inspector-report-20260508-211705.json` - json config
 ├── `prompt-inspector-report-20260509-115500.json` - json config
 ├── `prompt-inspector-report-20260509-152243.json` - json config
+├── `prompt-inspector-report-20260509-225006.json` - json config
+├── `prompt-inspector-report-20260510-090535.json` - json config
+├── `prompt-inspector-report-20260510-115954.json` - json config
 ├── `prompt-inspector-report-spec-20260506-203844.json` - json config
 ├── `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 ├── `qa-audit-20260407.json` - json config
@@ -872,6 +903,7 @@ dev/
 ├── `qa-build-deploy-20260407.json` - json config
 ├── `qa-codex-consensus-20260502-162334.txt` - txt file
 ├── `qa-codex-consensus-20260507-142952.txt` - txt file
+├── `qa-codex-schema-audit-20260509-115500.json` - json config
 ├── `qa-hooks-bash-safety.json` - json config
 ├── `qa-hooks-prod-files.json` - json config
 ├── `qa-hooks-project.json` - json config
@@ -981,6 +1013,8 @@ dev/
 ├── `qa-report-20260508-211705.json` - json config
 ├── `qa-report-20260509-115500.json` - json config
 ├── `qa-report-20260509-152243.json` - json config
+├── `qa-report-20260509-225006.json` - json config
+├── `qa-report-20260510-090535.json` - json config
 ├── `qa-report-c1-20260504-223115.json` - json config
 ├── `qa-report-c1-redev-20260505-001500.json` - json config
 ├── `qa-report-c3-20260504-223115.json` - json config
@@ -1003,6 +1037,9 @@ dev/
 ├── `style-inspector-report-20260508-211705.json` - json config
 ├── `style-inspector-report-20260509-115500.json` - json config
 ├── `style-inspector-report-20260509-152243.json` - json config
+├── `style-inspector-report-20260509-225006.json` - json config
+├── `style-inspector-report-20260510-090535.json` - json config
+├── `style-inspector-report-20260510-115954.json` - json config
 ├── `style-inspector-report-spec-20260506-203844.json` - json config
 ├── `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
 ├── `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)

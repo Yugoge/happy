@@ -1,7 +1,7 @@
 # markdown
 
-*Last updated: 2026-05-09T17:25:58Z*
-**Total entries**: 11
+*Last updated: 2026-05-10T09:54:25Z*
+**Total entries**: 12
 **Convention**: kebab
 
 ## Tree
@@ -11,6 +11,7 @@ markdown/
 ├── `LatexRenderer.tsx` - tsx file
 ├── `linkUtils.test.ts` - ts file
 ├── `linkUtils.ts` - ts file
+├── `MarkdownInlineDecorations.tsx` - tsx file
 ├── `MarkdownTableWeb.tsx` - tsx file
 ├── `MarkdownView.tsx` - tsx file
 ├── `MermaidRenderer.tsx` - tsx file
