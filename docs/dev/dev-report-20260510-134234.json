@@ -15,8 +15,14 @@
       "packages/happy-app/sources/components/modelModeOptions.ts",
       "packages/happy-app/sources/components/modelModeOptions.test.ts",
       "packages/happy-app/sources/components/AgentInput.tsx",
-      "packages/happy-cli/src/claude/claudeRemoteLauncher.ts"
+      "packages/happy-cli/src/claude/claudeRemoteLauncher.ts",
+      "docs/dev/INDEX.md",
+      "docs/dev/README.md",
+      "packages/happy-app/sources/components/INDEX.md",
+      "packages/happy-cli/src/claude/INDEX.md",
+      "packages/happy-cli/src/claude/utils/INDEX.md"
     ],
+    "doc_sync_note": "INDEX.md auto-updates from doc-sync hook; not authored by dev but required for self-consistency with the source files this cycle modifies.",
     "files_created": [
       "packages/happy-cli/src/claude/utils/currentModelCodeEmitter.ts",
       "packages/happy-cli/src/claude/utils/currentModelCodeEmitter.test.ts"

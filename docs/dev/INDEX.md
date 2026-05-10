@@ -1,7 +1,7 @@
 # dev
 
-*Last updated: 2026-05-10T12:55:44Z*
-**Total entries**: 1048
+*Last updated: 2026-05-10T19:27:30Z*
+**Total entries**: 1065
 **Convention**: kebab
 
 ## Tree
@@ -110,6 +110,9 @@ dev/
 │   │   ├── `qa-cycle9-footnote-modal-zhHans.png` - png file
 │   │   ├── `qa-cycle9-footnote-modal.png` - png file
 │   │   └── `qa-cycle9-mobile.png` - png file
+│   ├── 20260510-134234/
+│   │   ├── `qa-cycle10-desktop.png` - png file
+│   │   └── `qa-cycle10-mobile.png` - png file
 │   ├── ba-20260425-201355-5-17/
 │   │   ├── `desktop-1440x900.png` - png file
 │   │   └── `mobile-390x844.png` - png file
@@ -287,6 +290,8 @@ dev/
 │   │   └── `continuation-cycle9.md` - Continuation Spec — Cycle 9 (post Cycle 8 CLOSE: NO)
 │   ├── spec-20260510-090535/
 │   │   └── `ba-spec-20260510-090535.md` - BA Specification: Cycle 9 — Post-Cycle-8 codex-debate fix slice (saga closer)
+│   ├── spec-20260510-134234/
+│   │   └── `ba-spec-20260510-134234.md` - BA Specification: Cycle 10 — Saga Closer (#2 1M denominator fix; #14 reclassified DEFERRED_UPSTREAM)
 │   ├── `spec-20260423-191545.md` - Spec: Session model persistence + status bar display
 │   ├── `spec-20260423-202430.md` - Spec: Per-Session Model Persistence + Status Bar Model Display
 │   ├── `spec-20260424-084848-cycle6-corrections.md` - spec-20260424-084848 — Cycle 6 Corrections (Honest State After User Manual Verification)
@@ -447,6 +452,7 @@ dev/
 ├── `ba-qa-report-20260509-152243.json` - json config
 ├── `ba-qa-report-20260509-225006.json` - json config
 ├── `ba-qa-report-20260510-090535.json` - json config
+├── `ba-qa-report-20260510-134234.json` - json config
 ├── `ba-qa-report-c1-20260504-223115.json` - json config
 ├── `ba-qa-report-c1-redev-20260505-001500.json` - json config
 ├── `ba-qa-report-c2-20260504-223115.json` - json config
@@ -560,6 +566,7 @@ dev/
 ├── `cleanliness-inspector-report-20260509-225006.json` - json config
 ├── `cleanliness-inspector-report-20260510-090535.json` - json config
 ├── `cleanliness-inspector-report-20260510-115954.json` - json config
+├── `cleanliness-inspector-report-20260510-134234.json` - json config
 ├── `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 ├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 ├── `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
@@ -595,6 +602,7 @@ dev/
 ├── `close-report-20260509-225006.md` - Close Report — task-id 20260509-225006
 ├── `close-report-20260510-090535.md` - Close-Debate Report — 20260510-090535
 ├── `close-report-20260510-115954.md` - Close Debate Report
+├── `close-report-20260510-134234.md` - Close-Debate Report — 20260510-134234
 ├── `close-report-spec-20260506-203844.md` - Close Debate Report
 ├── `codex-fork-divergence-research-20260427.md` - No description
 ├── `codex-research-20260425-bgtask-reconnect.md` - No description
@@ -630,6 +638,7 @@ dev/
 ├── `completion-20260509-152243.md` - Completion Report — task-id 20260509-152243
 ├── `completion-20260509-225006.md` - Completion Report — task-id 20260509-225006
 ├── `completion-20260510-090535.md` - Completion Report — task-id 20260510-090535
+├── `completion-20260510-134234.md` - Completion Report — task-id 20260510-134234
 ├── `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -731,6 +740,8 @@ dev/
 ├── `context-20260509-152243.json` - json config
 ├── `context-20260509-225006.json` - json config
 ├── `context-20260510-090535.json` - json config
+├── `context-20260510-134234.json` - json config
+├── `context-20260510-191410.json` - json config
 ├── `context-c1-20260504-223115.json` - json config
 ├── `context-c1-redev-20260505-001500.json` - json config
 ├── `context-c2-20260504-223115.json` - json config
@@ -862,6 +873,8 @@ dev/
 ├── `dev-report-20260509-152243.json` - json config
 ├── `dev-report-20260509-225006.json` - json config
 ├── `dev-report-20260510-090535.json` - json config
+├── `dev-report-20260510-115954.json` - json config
+├── `dev-report-20260510-134234.json` - json config
 ├── `dev-report-c1-20260504-223115.json` - json config
 ├── `dev-report-c1-redev-20260505-001500.json` - json config
 ├── `dev-report-c3-20260504-223115.json` - json config
@@ -896,6 +909,7 @@ dev/
 ├── `prompt-inspector-report-20260509-225006.json` - json config
 ├── `prompt-inspector-report-20260510-090535.json` - json config
 ├── `prompt-inspector-report-20260510-115954.json` - json config
+├── `prompt-inspector-report-20260510-134234.json` - json config
 ├── `prompt-inspector-report-spec-20260506-203844.json` - json config
 ├── `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 ├── `qa-audit-20260407.json` - json config
@@ -1015,6 +1029,7 @@ dev/
 ├── `qa-report-20260509-152243.json` - json config
 ├── `qa-report-20260509-225006.json` - json config
 ├── `qa-report-20260510-090535.json` - json config
+├── `qa-report-20260510-134234.json` - json config
 ├── `qa-report-c1-20260504-223115.json` - json config
 ├── `qa-report-c1-redev-20260505-001500.json` - json config
 ├── `qa-report-c3-20260504-223115.json` - json config
@@ -1040,6 +1055,7 @@ dev/
 ├── `style-inspector-report-20260509-225006.json` - json config
 ├── `style-inspector-report-20260510-090535.json` - json config
 ├── `style-inspector-report-20260510-115954.json` - json config
+├── `style-inspector-report-20260510-134234.json` - json config
 ├── `style-inspector-report-spec-20260506-203844.json` - json config
 ├── `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
 ├── `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
@@ -1051,6 +1067,7 @@ dev/
 ├── `ticket-20260508-154926.md` - BA Specification: D.5 final_summary production data path (3-layer fix)
 ├── `ticket-20260508-211214.md` - BA Specification: Cycle 8 — spawn-begin lifecycle entry gate fix (Path A+) + fixture realism
 ├── `ticket-20260509-115500.md` - BA Specification: Restore DropdownMenu API in SessionActionsNativeMenu.android.tsx (typecheck fix)
+├── `ticket-20260510-191410.md` - BA Specification: Add §5.X-inflation prohibition + --codex mode to /spec
 ├── `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
 ├── `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
 ├── `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)

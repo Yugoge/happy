@@ -1,7 +1,7 @@
 # components
 
-*Last updated: 2026-05-03T10:06:35Z*
-**Total entries**: 169
+*Last updated: 2026-05-10T15:57:46Z*
+**Total entries**: 173
 **Convention**: kebab
 
 ## Tree
@@ -33,6 +33,8 @@ components/
 │   ├── `LatexRenderer.tsx` - tsx file
 │   ├── `linkUtils.test.ts` - ts file
 │   ├── `linkUtils.ts` - ts file
+│   ├── `MarkdownInlineDecorations.tsx` - tsx file
+│   ├── `MarkdownTableWeb.tsx` - tsx file
 │   ├── `MarkdownView.tsx` - tsx file
 │   ├── `MermaidRenderer.tsx` - tsx file
 │   ├── `parseMarkdown.test.ts` - ts file
@@ -65,6 +67,7 @@ components/
 │   │   ├── `CodexParallelView.tsx` - tsx file
 │   │   ├── `CodexPatchView.tsx` - tsx file
 │   │   ├── `CodexPlanView.tsx` - tsx file
+│   │   ├── `CodexSubagentLifecycleView.tsx` - tsx file
 │   │   ├── `CodexSubagentView.tsx` - tsx file
 │   │   ├── `EditView.tsx` - tsx file
 │   │   ├── `EditViewFull.tsx` - tsx file
@@ -79,6 +82,7 @@ components/
 │   │   ├── `TodoView.tsx` - tsx file
 │   │   └── `WriteView.tsx` - tsx file
 │   ├── `knownTools.tsx` - tsx file
+│   ├── `mcpHelpers.ts` - ts file
 │   ├── `PermissionFooter.tsx` - tsx file
 │   ├── `ToolDiffView.tsx` - tsx file
 │   ├── `ToolError.tsx` - tsx file

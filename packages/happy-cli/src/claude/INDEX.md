@@ -1,7 +1,7 @@
 # claude
 
-*Last updated: 2026-04-26T08:36:08Z*
-**Total entries**: 56
+*Last updated: 2026-05-10T16:11:30Z*
+**Total entries**: 58
 **Convention**: kebab
 
 ## Tree
@@ -30,6 +30,8 @@ claude/
 │   ├── `claudeFindLastSession.ts` - ts file
 │   ├── `claudeSettings.test.ts` - ts file
 │   ├── `claudeSettings.ts` - ts file
+│   ├── `currentModelCodeEmitter.test.ts` - ts file
+│   ├── `currentModelCodeEmitter.ts` - ts file
 │   ├── `fileContentReader.ts` - ts file
 │   ├── `generateHookSettings.ts` - ts file
 │   ├── `getToolDescriptor.ts` - ts file
