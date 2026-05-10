@@ -823,6 +823,7 @@ export const it: TranslationStructure = {
         copyFailed: 'Copia non riuscita',
         mermaidRenderFailed: ({ type }: { type: string }) => `Impossibile renderizzare il diagramma ${type}`,
         downloadFailed: 'Download non riuscito',
+        footnoteTitle: ({ label }: { label: string }) => `Nota ${label}`,
     },
 
     artifacts: {

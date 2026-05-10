@@ -1,4 +1,5 @@
-import { MarkdownSpan, parseMarkdown } from './parseMarkdown';
+import { MarkdownBlock, MarkdownSpan, parseMarkdown } from './parseMarkdown';
+import { MarkdownDefsContext, RenderInteractiveSpan, RenderDetailsBlock as RenderDetailsBlockFromDecor } from './MarkdownInlineDecorations';
 import * as React from 'react';
 import { Image, Pressable, ScrollView, View, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -20,6 +21,7 @@ import { downloadCodeOnWeb } from './codeDownload';
 import { parseMarkdownSpans } from './parseMarkdownSpans';
 import { RenderTableBlockWeb } from './MarkdownTableWeb';
 
+// Cycle 8 (#11, #9): MarkdownDefsContext / RenderInteractiveSpan / RenderDetailsBlock live in MarkdownInlineDecorations.tsx (extracted to keep this file under 800 lines per BA spec §14 R9).
 // Option type for callback
 export type Option = {
     title: string;
@@ -74,6 +76,8 @@ function renderComplexBlock(
         return <RenderImageBlock url={block.url} alt={block.alt} key={index} first={first} last={last} />;
     } else if (block.type === 'blockquote') {
         return <RenderBlockquoteBlock content={block.content} key={index} selectable={selectable} onLinkPress={handleLinkPress} onOptionPress={onOptionPress} />;
+    } else if (block.type === 'details') {
+        return <RenderDetailsBlock open={block.open} summary={block.summary} content={block.content} key={index} selectable={selectable} onLinkPress={handleLinkPress} onOptionPress={onOptionPress} />;
     }
     return null;
 }
@@ -97,11 +101,7 @@ export const MarkdownView = React.memo((props: {
 }) => {
     const blocks = React.useMemo(() => parseMarkdown(props.markdown), [props.markdown]);
 
-    // Backwards compatibility: The original version just returned the view, wrapping the list of blocks.
-    // It made each of the individual text elements selectable. When we enable the markdownCopyV2 feature,
-    // we disable the selectable property on individual text segments on mobile only. Instead, the long press
-    // will be handled by a wrapper Pressable. If we don't disable the selectable property, then you will see
-    // the native copy modal come up at the same time as the long press handler is fired.
+    // markdownCopyV2: disable per-text selectable on mobile so the wrapper Pressable long-press works without competing with the native copy modal.
     const markdownCopyV2 = useLocalSetting('markdownCopyV2');
     const selectable = Platform.OS === 'web' || !markdownCopyV2;
     const router = useRouter();
@@ -127,10 +127,18 @@ export const MarkdownView = React.memo((props: {
         }
     }, [props.markdown, router]);
 
+    // Cycle 8: thread message-global defs (footnote bodies + link refs) via context for table-cell + chip render-time resolution.
+    const defs = React.useMemo(() => ({
+        footnotes: (blocks as any).footnotes ?? new Map(),
+        linkDefs: (blocks as any).linkDefs ?? new Map(),
+    }), [blocks]);
+
     const renderContent = () => (
-        <View style={{ width: '100%', overflow: 'hidden' }}>
-            {blocks.map((block, index) => renderBlock(block, index, blocks.length, selectable, handleLinkPress, props.onOptionPress))}
-        </View>
+        <MarkdownDefsContext.Provider value={defs}>
+            <View style={{ width: '100%', overflow: 'hidden' }}>
+                {blocks.map((block, index) => renderBlock(block, index, blocks.length, selectable, handleLinkPress, props.onOptionPress))}
+            </View>
+        </MarkdownDefsContext.Provider>
     );
 
     if (!markdownCopyV2 || Platform.OS === 'web') {
@@ -197,12 +205,20 @@ function RenderTaskListBlock(props: { items: { checked: boolean, depth: number, 
     );
 }
 
-function RenderBlockquoteBlock(props: { content: ReturnType<typeof parseMarkdown>, selectable: boolean, onLinkPress: (url: string) => void, onOptionPress?: (option: Option) => void }) {
+function RenderBlockquoteBlock(props: { content: MarkdownBlock[], selectable: boolean, onLinkPress: (url: string) => void, onOptionPress?: (option: Option) => void }) {
     return (
         <View style={style.blockquote}>
             {props.content.map((block, index) => renderBlock(block, index, props.content.length, props.selectable, props.onLinkPress, props.onOptionPress))}
         </View>
     );
+}
+
+// Cycle 8 (#9): adapter — injects MarkdownView's local renderBlock + RenderSpans into the extracted RenderDetailsBlock.
+function RenderDetailsBlock(props: { open: boolean, summary: MarkdownSpan[], content: MarkdownBlock[], selectable: boolean, onLinkPress: (url: string) => void, onOptionPress?: (option: Option) => void }) {
+    const renderSpansAdapter = React.useCallback((spans: MarkdownSpan[], baseStyle: any, selectable: boolean, onLinkPress: (url: string) => void) => (
+        <RenderSpans spans={spans} baseStyle={baseStyle} selectable={selectable} onLinkPress={onLinkPress} />
+    ), []);
+    return <RenderDetailsBlockFromDecor {...props} renderBlock={renderBlock} renderSpans={renderSpansAdapter} style={style} />;
 }
 
 function RenderNumberedListBlock(props: { items: { number: number, depth: number, spans: MarkdownSpan[] }[], first: boolean, last: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
@@ -348,34 +364,38 @@ type RenderSpanItemProps = {
     onLinkPress: (url: string) => void;
 };
 
-// Single span item extracted to avoid inline nesting depth violations in RenderSpans.
-function RenderSpanItem(props: RenderSpanItemProps) {
+function RenderLinkSpan(props: RenderSpanItemProps) {
     const isExternalLink = !!props.span.url && isHttpMarkdownLink(props.span.url);
     const handleWebClick = React.useCallback(() => {
         if (typeof window !== 'undefined' && props.span.url) {
             window.open(props.span.url, '_blank', 'noopener,noreferrer');
         }
     }, [props.span.url]);
+    const webProps = isExternalLink && Platform.OS === 'web' ? { onClick: handleWebClick } as any : {};
+    return (
+        <Text key={props.index} selectable={props.selectable}
+            accessibilityRole={isExternalLink ? 'link' : undefined}
+            style={[props.baseStyle, isExternalLink && style.link, props.span.styles.map(s => style[s])]}
+            {...webProps}
+            onPress={isExternalLink && Platform.OS !== 'web' ? () => props.onLinkPress(props.span.url!) : undefined}>
+            {props.span.text}
+        </Text>
+    );
+}
 
+// Single span item extracted to avoid inline nesting depth violations in RenderSpans.
+function RenderSpanItem(props: RenderSpanItemProps) {
     if (props.span.latex) {
         return <LatexRenderer key={props.index} content={props.span.text} inline={!props.span.latexDisplay} />;
+    }
+    // Cycle 8 (#9, #11): abbr/footnote-ref need tap handlers — route to helper.
+    if (props.span.styles.includes('abbr') || props.span.styles.includes('footnote-ref')) {
+        return <RenderInteractiveSpan key={props.index} span={props.span} baseStyle={props.baseStyle} selectable={props.selectable} index={props.index} style={style} />;
     }
     if (!props.span.url) {
         return <Text key={props.index} selectable={props.selectable} style={[props.baseStyle, props.span.styles.map(s => style[s])]}>{props.span.text}</Text>;
     }
-    const webProps = isExternalLink && Platform.OS === 'web' ? { onClick: handleWebClick } as any : {};
-    return (
-        <Text
-            key={props.index}
-            selectable={props.selectable}
-            accessibilityRole={isExternalLink ? 'link' : undefined}
-            style={[props.baseStyle, isExternalLink && style.link, props.span.styles.map(s => style[s])]}
-            {...webProps}
-            onPress={isExternalLink && Platform.OS !== 'web' ? () => props.onLinkPress(props.span.url!) : undefined}
-        >
-            {props.span.text}
-        </Text>
-    );
+    return <RenderLinkSpan {...props} />;
 }
 
 function RenderSpans(props: RenderSpanProps) {
@@ -386,26 +406,42 @@ function RenderSpans(props: RenderSpanProps) {
     </>);
 }
 
+// Cycle 8: native cell that pulls defs from MarkdownDefsContext (web parity).
+function NativeTableCell(props: { text: string, isLast: boolean, selectable: boolean, onLinkPress: (url: string) => void }) {
+    const defs = React.useContext(MarkdownDefsContext);
+    return (
+        <View style={[style.tableCell, props.isLast && style.tableCellLast]}>
+            <Text selectable={props.selectable} style={style.tableCellText}>
+                <RenderSpans spans={parseMarkdownSpans(props.text, false, defs.linkDefs, defs.footnotes)}
+                    baseStyle={style.tableCellText} selectable={props.selectable} onLinkPress={props.onLinkPress} />
+            </Text>
+        </View>
+    );
+}
+
+function NativeTableHeader(props: { header: string, selectable: boolean, onLinkPress: (url: string) => void }) {
+    const defs = React.useContext(MarkdownDefsContext);
+    return (
+        <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
+            <Text selectable={props.selectable} style={style.tableHeaderText}>
+                <RenderSpans spans={parseMarkdownSpans(props.header, false, defs.linkDefs, defs.footnotes)}
+                    baseStyle={style.tableHeaderText} selectable={props.selectable} onLinkPress={props.onLinkPress} />
+            </Text>
+        </View>
+    );
+}
+
 function NativeTableColumn(props: {
     header: string, colIndex: number, columnCount: number,
     rows: string[][], rowCount: number, selectable: boolean, onLinkPress: (url: string) => void,
 }) {
     return (
         <View style={[style.tableColumn, props.colIndex === props.columnCount - 1 && style.tableColumnLast]}>
-            <View style={[style.tableCell, style.tableHeaderCell, style.tableCellFirst]}>
-                <Text selectable={props.selectable} style={style.tableHeaderText}>
-                    <RenderSpans spans={parseMarkdownSpans(props.header, false)}
-                        baseStyle={style.tableHeaderText} selectable={props.selectable} onLinkPress={props.onLinkPress} />
-                </Text>
-            </View>
+            <NativeTableHeader header={props.header} selectable={props.selectable} onLinkPress={props.onLinkPress} />
             {props.rows.map((row, rowIndex) => (
-                <View key={`cell-${rowIndex}-${props.colIndex}`}
-                    style={[style.tableCell, rowIndex === props.rowCount - 1 && style.tableCellLast]}>
-                    <Text selectable={props.selectable} style={style.tableCellText}>
-                        <RenderSpans spans={parseMarkdownSpans(row[props.colIndex] ?? '', false)}
-                            baseStyle={style.tableCellText} selectable={props.selectable} onLinkPress={props.onLinkPress} />
-                    </Text>
-                </View>
+                <NativeTableCell key={`cell-${rowIndex}-${props.colIndex}`}
+                    text={row[props.colIndex] ?? ''} isLast={rowIndex === props.rowCount - 1}
+                    selectable={props.selectable} onLinkPress={props.onLinkPress} />
             ))}
         </View>
     );
@@ -483,6 +519,19 @@ const style = StyleSheet.create((theme) => ({
         backgroundColor: theme.colors.surfaceHigh, borderWidth: 1, borderColor: theme.colors.divider,
         borderRadius: 3, paddingHorizontal: 4,
     },
+    // Cycle 8 (#9, #11): mark/sub/sup/abbr highlight, footnote-ref chip, details block.
+    mark: { backgroundColor: theme.colors.surfaceHighest, color: theme.colors.text, paddingHorizontal: 2, borderRadius: 2 },
+    // Cycle 9 (CR-3): semantic distinction sub vs sup at the style layer.
+    // translateY shifts inline baseline (RN-Web maps to CSS transform);
+    // fontSize 10 (down from 12) keeps within ~0.75em of the 16px base text style.
+    sub: { fontSize: 10, lineHeight: 14, transform: [{ translateY: 4 }] },
+    sup: { fontSize: 10, lineHeight: 14, transform: [{ translateY: -4 }] },
+    abbr: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' as const, color: theme.colors.text },
+    'footnote-ref': { fontSize: 12, lineHeight: 16, color: theme.colors.textLink, paddingHorizontal: 2 },
+    detailsBlock: { borderLeftWidth: 3, borderLeftColor: theme.colors.divider, paddingLeft: 12, marginVertical: 6 },
+    detailsSummary: { fontWeight: '600' as const },
+    detailsCaret: { color: theme.colors.textSecondary },
+    detailsBody: { paddingLeft: 8, marginTop: 4 },
     taskCheckbox: { ...Typography.default(), color: theme.colors.text },
     blockquote: {
         borderLeftWidth: 3, borderLeftColor: theme.colors.divider, paddingLeft: 12,
@@ -556,12 +605,8 @@ const style = StyleSheet.create((theme) => ({
     // Common
     //
 
-    first: {
-        // marginTop: 0
-    },
-    last: {
-        // marginBottom: 0
-    },
+    first: {},
+    last: {},
 
     //
     // Code Block

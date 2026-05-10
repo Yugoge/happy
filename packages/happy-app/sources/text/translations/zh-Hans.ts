@@ -826,6 +826,7 @@ export const zhHans: TranslationStructure = {
         copyFailed: '复制失败',
         mermaidRenderFailed: ({ type }: { type: string }) => `无法渲染 ${type} 图表`,
         downloadFailed: '下载失败',
+        footnoteTitle: ({ label }: { label: string }) => `脚注 ${label}`,
     },
 
     artifacts: {

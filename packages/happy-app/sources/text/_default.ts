@@ -828,6 +828,8 @@ export const en = {
         copyFailed: 'Copy failed',
         mermaidRenderFailed: ({ type }: { type: string }) => `${type} diagram could not be rendered`,
         downloadFailed: 'Failed to download',
+        // Cycle 9 (CR-4): footnote modal title (label is the footnote ref id).
+        footnoteTitle: ({ label }: { label: string }) => `Footnote ${label}`,
     },
 
     artifacts: {

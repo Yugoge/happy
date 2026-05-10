@@ -835,6 +835,7 @@ export const pl: TranslationStructure = {
         copyFailed: 'Błąd kopiowania',
         mermaidRenderFailed: ({ type }: { type: string }) => `Nie udało się wyświetlić diagramu ${type}`,
         downloadFailed: 'Nie udało się pobrać',
+        footnoteTitle: ({ label }: { label: string }) => `Przypis ${label}`,
     },
 
     artifacts: {

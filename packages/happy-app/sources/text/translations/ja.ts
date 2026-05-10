@@ -826,6 +826,7 @@ export const ja: TranslationStructure = {
         copyFailed: 'コピーに失敗しました',
         mermaidRenderFailed: ({ type }: { type: string }) => `${type} ダイアグラムのレンダリングに失敗しました`,
         downloadFailed: 'ダウンロードに失敗しました',
+        footnoteTitle: ({ label }: { label: string }) => `脚注 ${label}`,
     },
 
     artifacts: {

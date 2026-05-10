@@ -1,0 +1,105 @@
+{
+  "request_id": "cleanliness-20260510-090535",
+  "timestamp": "2026-05-10T10:35:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "--changed-files (cycle-9 diff scope)",
+  "scope_contract": "Tagging mechanism (ii): every finding emitted in --changed-files mode is tagged with explicit introduced_in_diff bool. Untagged or absent findings → close.md treats as pre-existing/advisory per AC-2.6 default-safe rule.",
+  "changed_files_audited": [
+    "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+    "packages/happy-app/sources/components/markdown/MarkdownInlineDecorations.tsx",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+    "packages/happy-app/sources/components/markdown/INDEX.md",
+    "packages/happy-app/sources/components/markdown/README.md",
+    "packages/happy-app/sources/text/_default.ts",
+    "packages/happy-app/sources/text/translations/en.ts",
+    "packages/happy-app/sources/text/translations/ru.ts",
+    "packages/happy-app/sources/text/translations/pl.ts",
+    "packages/happy-app/sources/text/translations/es.ts",
+    "packages/happy-app/sources/text/translations/ca.ts",
+    "packages/happy-app/sources/text/translations/it.ts",
+    "packages/happy-app/sources/text/translations/pt.ts",
+    "packages/happy-app/sources/text/translations/ja.ts",
+    "packages/happy-app/sources/text/translations/zh-Hans.ts",
+    "packages/happy-app/sources/text/translations/zh-Hant.ts",
+    "docs/dev/evidence/20260510-090535/qa-cycle9-desktop.png",
+    "docs/dev/evidence/20260510-090535/qa-cycle9-desktop-live-message.png",
+    "docs/dev/evidence/20260510-090535/qa-cycle9-mobile.png",
+    "docs/dev/evidence/20260510-090535/qa-cycle9-footnote-modal.png",
+    "docs/dev/evidence/20260510-090535/qa-cycle9-footnote-modal-zhHans.png"
+  ],
+  "findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "verifications_performed": [
+    {
+      "check": "New file MarkdownInlineDecorations.tsx — orphan check",
+      "result": "REFERENCED",
+      "details": "Imported by MarkdownView.tsx and MarkdownTableWeb.tsx. Listed in folder README.md (auto-synced). Follows PascalCase .tsx convention matching siblings (LatexRenderer, MermaidRenderer, MarkdownView, MarkdownTableWeb).",
+      "introduced_in_diff": true
+    },
+    {
+      "check": "Evidence PNG duplicate-content scan (md5)",
+      "result": "PASS",
+      "details": "5 PNGs, 5 distinct md5 hashes — no duplicates. Total 424K, all dated subdirectory docs/dev/evidence/20260510-090535/.",
+      "introduced_in_diff": true
+    },
+    {
+      "check": "Temp/backup/build-artifact scan in changed-files scope",
+      "result": "PASS",
+      "details": "No *.tmp, *.bak, *.old, *~, .DS_Store, *.pyc, __pycache__, *.log in markdown/, text/translations/, or evidence/20260510-090535/.",
+      "introduced_in_diff": false
+    },
+    {
+      "check": "Misplaced docs — markdown .md files in changed scope",
+      "result": "PASS",
+      "details": "Only INDEX.md and README.md modified — both auto-synced doc-sync stats files in their canonical folder location. No new top-level .md files introduced by cycle 9.",
+      "introduced_in_diff": false
+    },
+    {
+      "check": "Translation file naming/structure conformity",
+      "result": "PASS",
+      "details": "All 10 translation files received the SAME single-line addition (+1 line each). No new translation files introduced; no orphaned locales.",
+      "introduced_in_diff": true
+    },
+    {
+      "check": "Test file orphan-source check",
+      "result": "PASS",
+      "details": "parseMarkdown.test.ts tests parseMarkdown.ts which exists in the same folder. Test grew 342 lines as part of cycle 9 fix-coverage; no scratch_/temp_/experiment_ patterns.",
+      "introduced_in_diff": true
+    },
+    {
+      "check": "Cycle-9 diff narrative — in-place edits only",
+      "result": "CONFIRMED",
+      "details": "git diff --stat shows 28 files modified + 1 new file (MarkdownInlineDecorations.tsx) + 5 PNG evidence files. No deleted files, no relocated files, no rename events. All other diffs are codex-found-fix in-place edits as described in input."
+    }
+  ],
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB",
+    "verdict": "CLEAN — cycle-9 diff introduces zero cleanliness violations. One new functional component file (MarkdownInlineDecorations.tsx) is properly referenced and listed in the auto-synced folder README. Five evidence PNGs are correctly placed in dated evidence subdirectory with distinct content. All translation additions are uniform across 10 locales. No misplaced docs, no duplicates, no temp files, no build artifacts."
+  }
+}

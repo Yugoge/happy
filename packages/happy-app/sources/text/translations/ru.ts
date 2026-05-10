@@ -834,6 +834,7 @@ export const ru: TranslationStructure = {
         copyFailed: 'Ошибка копирования',
         mermaidRenderFailed: ({ type }: { type: string }) => `Не удалось отобразить диаграмму ${type}`,
         downloadFailed: 'Не удалось скачать',
+        footnoteTitle: ({ label }: { label: string }) => `Сноска ${label}`,
     },
 
     artifacts: {

@@ -1,0 +1,56 @@
+{
+  "request_id": "20260510-090535",
+  "timestamp": "2026-05-10T09:05:35Z",
+  "inspector": "style-inspector",
+  "cycle": "Cycle 9 — 4-issue closer (CR-1 fence-aware extractDefinitions, CR-2 compact <details>, CR-3 sub/sup transform, CR-4 i18n footnoteTitle)",
+  "scope_mode": "--changed-files",
+  "scope_contract": "cleanliness-of-this-diff only; not a regression / type-check / import-graph substitute (per spec-20260503-091826 M12 / AC-12.1)",
+  "files_audited": [
+    "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+    "packages/happy-app/sources/text/_default.ts",
+    "packages/happy-app/sources/text/translations/en.ts",
+    "packages/happy-app/sources/text/translations/ru.ts",
+    "packages/happy-app/sources/text/translations/pl.ts",
+    "packages/happy-app/sources/text/translations/es.ts",
+    "packages/happy-app/sources/text/translations/ca.ts",
+    "packages/happy-app/sources/text/translations/it.ts",
+    "packages/happy-app/sources/text/translations/pt.ts",
+    "packages/happy-app/sources/text/translations/ja.ts",
+    "packages/happy-app/sources/text/translations/zh-Hans.ts",
+    "packages/happy-app/sources/text/translations/zh-Hant.ts"
+  ],
+  "files_in_scope_with_no_diff": [
+    "packages/happy-app/sources/components/markdown/MarkdownInlineDecorations.tsx"
+  ],
+  "violations": [],
+  "standards_passed": [
+    "no-inline-code (N/A: no .claude/commands or .claude/agents files modified in cycle 9)",
+    "no-hardcoded-values (N/A: TS app source — translation strings are legitimate i18n payloads, not parameterizable; numeric style values translateY±4 / fontSize:10 / lineHeight:14 are design tokens cited and justified inline in Cycle 9 CR-3)",
+    "use-source-venv (N/A: no Python invocations modified)",
+    "integer-step-numbering (N/A: no .md workflow files modified)",
+    "meaningful-naming (PASS: extractDefinitions, classifyOutsideFenceLine, resolveFootnoteDefs, findDetailsClose, collectDetailsBody, extractDetailsSummary, tryDetailsBlock, detectFenceOpener, isFenceCloser, RenderLinkSpan, NativeTableCell, NativeTableHeader, BlockDefs, EMPTY_DEFS — all descriptive, no enhance-/fast-/optimize-/v2/improved- patterns)",
+    "english-only (PASS: code, comments, tests pure English; non-English in translation files is the legitimate purpose of those files — pretool-bash-safety.sh exemption SOP scope: code-only)",
+    "merge-similar-scripts (N/A: no scripts modified)",
+    "concise-documentation (N/A scope: no .claude/commands or .claude/agents files modified. Side-note: MarkdownView.tsx:97-104 actually replaced a 4-line stale narrative comment with a 1-line technical statement, moving toward this standard)",
+    "parameterized-scripts (N/A: no scripts modified)",
+    "dangling-references (PASS: all imports resolve — normalizeLinkLabel @ parseMarkdownSpans.ts:7, MarkdownDefsContext @ MarkdownInlineDecorations.tsx:24, RenderInteractiveSpan @ MarkdownInlineDecorations.tsx:30, RenderDetailsBlock @ MarkdownInlineDecorations.tsx:82, all type imports MarkdownBlock/MarkdownSpan/LinkDef from parseMarkdown.ts confirmed)",
+    "merge-conflicts (PASS: zero conflict markers across all 14 changed files via grep -nE '<<<<<<< |======= |>>>>>>> ')"
+  ],
+  "summary": {
+    "standards_checked": 11,
+    "violations_found": 0,
+    "critical": 0,
+    "files_audited": 14,
+    "files_total": 14,
+    "rounds_completed": 1
+  },
+  "notes": [
+    "Per AC-2.6(b): style-inspector emits findings at file:line; close.md performs diff-overlap + pre-diff-baseline newness check. Inspector reports zero NEW violations introduced by Cycle 9's diff.",
+    "Cycle 9 CR-1 (fence-aware extractDefinitions): refactored into named helpers (detectFenceOpener / isFenceCloser / classifyOutsideFenceLine / resolveFootnoteDefs / extractDefinitions). Citations to CommonMark §4.5 inline. No style violation.",
+    "Cycle 9 CR-2 (compact <details>): three small named helpers (findDetailsClose / collectDetailsBody / extractDetailsSummary M5+M6+M7), each with anchor comment citing the milestone. No style violation.",
+    "Cycle 9 CR-3 (sub/sup transform): style values fontSize:10 / lineHeight:14 / translateY:±4 cited inline against 16px base text (≈0.75em); MarkdownView.tsx:524-528 has a Cycle-9 anchor comment justifying the choice. AC-CR3-SUB-SUP-DISTINCT test pins the literal sub/sup style payload via fs.readFile snapshot to prevent silent re-equalization. No style violation.",
+    "Cycle 9 CR-4 (i18n footnoteTitle): function-form key `footnoteTitle: ({ label }) => …` added uniformly across _default.ts and 10 translation files (en, ru, pl, es, ca, it, pt, ja, zh-Hans, zh-Hant). All 10 translations are language-appropriate (Footnote / Сноска / Przypis / Nota / Nota / Nota / Nota / 脚注 / 脚注 / 註腳). The Spanish/Italian/Portuguese/Catalan rendering as `Nota` is the conventional translator-chosen short form. No style violation."
+  ]
+}

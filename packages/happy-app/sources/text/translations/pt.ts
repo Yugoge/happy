@@ -824,6 +824,7 @@ export const pt: TranslationStructure = {
         copyFailed: 'Falha ao copiar',
         mermaidRenderFailed: ({ type }: { type: string }) => `Falha ao renderizar diagrama ${type}`,
         downloadFailed: 'Falha ao baixar',
+        footnoteTitle: ({ label }: { label: string }) => `Nota ${label}`,
     },
 
     artifacts: {

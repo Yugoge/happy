@@ -825,6 +825,7 @@ export const zhHant: TranslationStructure = {
         copyFailed: '複製失敗',
         mermaidRenderFailed: ({ type }: { type: string }) => `無法渲染 ${type} 圖表`,
         downloadFailed: '下載失敗',
+        footnoteTitle: ({ label }: { label: string }) => `註腳 ${label}`,
     },
 
     artifacts: {
