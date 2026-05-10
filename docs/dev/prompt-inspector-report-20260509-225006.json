@@ -1,0 +1,67 @@
+{
+  "request_id": "20260509-225006",
+  "timestamp": "2026-05-10T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "scope_contract": {
+    "inspector_scope": ".claude/commands/*.md and .claude/agents/*.md prompt/documentation verbosity per 'rules not stories' principle",
+    "diff_aware_mode": "Mechanism (ii) inspector-side tagging — every finding object carries explicit introduced_in_diff: bool",
+    "default_safe_rule": "Absent --changed-files (full-repo run) findings are advisory and non-blocking. Absent introduced_in_diff tag, close.md treats as pre-existing/advisory per AC-2.6 (b)."
+  },
+  "changed_files_input": [
+    "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+    "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+    "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+    "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+    "packages/happy-app/sources/components/markdown/MarkdownInlineDecorations.tsx",
+    "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts"
+  ],
+  "files_in_scope": [],
+  "files_out_of_scope": [
+    {
+      "path": "packages/happy-app/sources/components/markdown/parseMarkdown.ts",
+      "reason": "TypeScript source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/components/markdown/parseMarkdownBlock.ts",
+      "reason": "TypeScript source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/components/markdown/parseMarkdownSpans.ts",
+      "reason": "TypeScript source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/components/markdown/parseMarkdown.test.ts",
+      "reason": "TypeScript test source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/components/markdown/MarkdownView.tsx",
+      "reason": "React component source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/components/markdown/MarkdownTableWeb.tsx",
+      "reason": "React component source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/components/markdown/MarkdownInlineDecorations.tsx",
+      "reason": "React component source — not a command/agent prompt .md file"
+    },
+    {
+      "path": "packages/happy-app/sources/app/(app)/dev/codex-render-fixtures-data.ts",
+      "reason": "TypeScript fixture data source — not a command/agent prompt .md file"
+    }
+  ],
+  "findings": [],
+  "summary": {
+    "files_inspected": 0,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "estimated_reduction": "n/a — no in-scope files in this diff",
+    "verdict": "PASS — Cycle 8 is a code-only cycle. No .claude/commands/*.md or .claude/agents/*.md files are present in the changed-files list, so the 'rules not stories' verbosity audit has nothing in scope. Empty findings list per inspector contract when changed-files contains zero documentation files."
+  }
+}

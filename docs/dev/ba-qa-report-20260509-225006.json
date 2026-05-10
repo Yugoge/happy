@@ -1,0 +1,49 @@
+{
+  "task_id": "20260509-225006",
+  "phase": "ba-qa",
+  "status": "pass",
+  "dimensions": {
+    "scope_coverage": {
+      "verdict": "PASS",
+      "evidence": "BA spec §1-§2 binds scope to exactly the three deferred items #10 (reference-style links), #11 (footnotes), #9 (HTML inline). §2 quotes the verbatim catalog rows from spec-20260506-203755 lines 19-25 and 60-64. Cycle 7 completion report (line 76) confirms these three are the deferred items. §13 + §8 W4 explicitly exclude all parser items not in {#9, #10, #11} (Setext H1/H2, 4-space code blocks, ~~~ fences, image-in-spans, *** HR variants).",
+      "notes": "No scope creep detected. The five additional HTML elements (<mark>, <sub>, <sup>, <abbr>, <details>) are all members of bug #9's catalog row (literally lists the five tags), not invented scope."
+    },
+    "ac_measurability": {
+      "verdict": "PASS",
+      "evidence": "§10 provides 18 ACs each bound to a recommended fixture name in parseMarkdown.test.ts plus a Given/When/Then triple. AC-10-REFLINK-PARSE/COLLAPSED/SHORTCUT/NOMATCH/CASE-INSENSITIVE; AC-11-FOOTNOTE-INLINE/DEF-CAPTURED/NOMATCH/MULTIPLE; AC-9-HTML-MARK/SUB/SUP/ABBR-TOOLTIP/DETAILS/DETAILS-OPEN/KBD-NONREG; AC-INTERACTION-TABLE-REFLINK / EMPHASIS-MIX / NESTED-OL-REFLINK; AC-NONREG-BASELINE-8; AC-MARKDOWN-VIEW-LINES. Live-render check at §10 last paragraph specifies dev/codex-render-fixtures page on desktop 1440x900 + mobile 390x844 with screenshots stored under docs/dev/evidence/20260509-225006/.",
+      "notes": "All ACs are testable: 16 fixture-bound, 2 line-count/screenshot-bound. None are vague."
+    },
+    "non_regression_coverage": {
+      "verdict": "PASS",
+      "evidence": "§12 enumerates exactly the 11 cumulative AC-NONREG-* constraints required by the dispatch: AC-NONREG-PARSER, AC-NONREG-MARKDOWN-VIEW (≤800), AC-NONREG-TABLE, AC-NONREG-MOBILE-OVERFLOW, AC-NONREG-CRONLIST, AC-NONREG-MERMAID-WEB, AC-NONREG-MERMAID-NATIVE, AC-NONREG-MHCHEM, AC-NONREG-STRICT-CHIP, AC-NONREG-NESTED-OL, AC-NONREG-PREVIEW. Each notes the protected surface and explicitly states the corresponding file is out-of-scope this cycle (codexToolRendering.ts, MermaidRenderer.tsx, AskUserQuestionView.tsx untouched). Verified MarkdownView.tsx is currently 755 lines so the ≤800 budget gives 45 lines for new style entries + 3 new render components.",
+      "notes": "Counted 14 instances of 'AC-NONREG' in the spec; redundancy is consistent (used in §10 AC-NONREG-BASELINE-8, §12 listing, §15 DoD reference)."
+    },
+    "regression_risk_analysis": {
+      "verdict": "PASS",
+      "evidence": "§7 'Layer-differentiation gloss' explicitly addresses codex iter-1's regression-trap warning: 'Codex's worry was not L3 is wrong layer but L3 changes touching the same file simultaneously collide. Cycle 8 addresses that by (a) reducing N from 4→3, (b) sequencing the 3 to land in a deterministic order (§9), (c) requiring all 8 baseline + ~15 new fixtures to stay green at every intermediate state.' §9 phases the 3 items 8.1→8.2→8.3 with validation gates between each. §14 enumerates 10 specific risk vectors with named defenses: R1 signature-change call sites, R2 label-normalization vs inline links, R3 footnote-vs-shortcut-ref [^/non-^ disambiguation], R4 unclosed <details>, R5 abbr single-quote, R6 popover state leak, R7 def-line false-positive, R8 details without summary, R9 800-line budget, R10 no-codex this cycle. Each has explicit fixture-level guard.",
+      "notes": "The mitigation is credible: (1) Phase 8.1 lands ref-links first because that probe ALSO validates the 2-pass def-collection pattern with the lowest blast radius (no new render components). (2) Phase 8.2 reuses the def-collection pattern — incremental risk only. (3) Phase 8.3 lands HTML inline with a known-good consumeKbdSpan template + the most invasive piece (<details> block) last so prior phases are stable. R3 is the highest-risk inline-token collision and the spec resolves it deterministically (^-prefix gate)."
+    },
+    "architectural_fit": {
+      "verdict": "PASS",
+      "evidence": "§11 implementation map preserves the existing block→span layering: (a) parseMarkdownBlock.ts extracts defs in a pre-pass before delegating to parseMarkdownSpans, mirroring the existing pattern; (b) <mark>/<sub>/<sup>/<abbr> follow the existing consumeKbdSpan shape (verified at parseMarkdownSpans.ts:109-115); (c) <details> follows the existing tryOptionsBlock shape (verified at parseMarkdownBlock.ts:209). MarkdownSpan styles union extension is additive (preserves existing 6 styles). Top-level ParsedMarkdown shape is the only signature change but documented as backward-compatible via optional params. §17 commits to factoring out subcomponents to MarkdownInlineDecorations.tsx if the 800-line budget is exceeded — codified as conditional. No global state, no hardcoded strings, no bypass of layering.",
+      "notes": "Verified parseMarkdown.ts is 58 lines and types are extension-compatible. parseMarkdownBlock.ts is 289 lines and parseMarkdownSpans.ts is 210 lines — both have headroom for the planned additions without architectural pressure."
+    },
+    "out_of_scope_discipline": {
+      "verdict": "PASS",
+      "evidence": "§8 W1-W6 lists 6 categorical Won't-Have items. §13 lists 12 explicit non-goals (#6 mermaid kernel, GFM task-list toggle, Setext H1/H2, 4-space indented code, ~~~ fence, inline images in spans, ***/___ HR variants, all HTML elements outside the 5-element set, end-of-message footnote accumulation, multi-line indented footnote definitions, nested footnote definitions, non-ASCII Unicode case-folding). §18 explicitly states 'no path-external grep hits surfaced during BA analysis' and notes the empty section is retained for transparency. No 'we might also fix X' or 'depends on time' wording.",
+      "notes": "Out-of-scope discipline is unusually crisp here — the spec even pre-empts edge cases (Pandoc multi-line continuation, Unicode case-folding) that a less-disciplined BA would leave ambiguous."
+    },
+    "saga_closure_assertion": {
+      "verdict": "PASS",
+      "evidence": "§16 table accounts: Cycle 1 (3 items: #5, #5b, #12) + Cycle 5 (2: #4, #15) + Cycle 6 (1: #1-web mermaid scrollbar) + Cycle 7 (11: M1-M7 + B3 + C1 + C2 + C3) + Cycle 8 (3: #10, #11, #9). The '20/19' annotation correctly explains the split-count (#1 split into web/native handled across Cycle 6 and Cycle 7 M1; #16 and #18 separately enumerated in catalog despite shared root cause). #6 mermaid kernel is preserved as 'Out-of-saga (permanent)' — NOT claimed DONE — consistent with Cycle 7 completion line 47-48 and user 绕开 directive. Cross-checked against /docs/dev/completion-20260509-152243.md line 71-79: prior cycle says 16/19 + 3 deferred + 1 out-of-saga; adding 3 yields 19/19 + 1 out-of-saga, matching saga-close criterion.",
+      "notes": "The closure claim is conservative — it correctly identifies #6 as permanent out-of-saga rather than overstating. The split-count footnote is mathematically consistent with the prior cycle's accounting in completion-20260509-152243.md."
+    }
+  },
+  "rejection_reasons": [],
+  "improvements_required": [],
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested"
+  },
+  "summary": "BA spec PASSES all 7 validation dimensions. Scope is locked to exactly #10/#11/#9 with no creep. ACs are fixture-bound and testable (18 ACs each with Given/When/Then). All 11 cumulative AC-NONREG-* constraints from Cycles 1/5/6/7 are enumerated and protected. Codex iter-1's regression-trap concern is explicitly addressed via N=3 reduction + sequenced 3-phase staggering (§9) + 10-vector risk table (§14) — most notably R3 deterministically resolves the [^]-vs-[shortcut-ref] inline-token collision via ^-prefix gating. Architectural fit verified against current code: parseMarkdown.ts (58 lines, extensible types), parseMarkdownBlock.ts (289 lines, has tryOptionsBlock template at L209), parseMarkdownSpans.ts (210 lines, has consumeKbdSpan template at L109-115), MarkdownView.tsx (755 lines, 45 lines of headroom under the 800 cap with conditional fallback to MarkdownInlineDecorations.tsx). Saga-closure tally (Cycle 8 = 19/19 numbered rows + 1 permanent out-of-saga #6 mermaid kernel) is internally consistent with completion-20260509-152243.md prior accounting. No FAIL items; spec is ready for dev. codex_consult.invoked=false per orchestrator dispatch (codex_required=false)."
+}
