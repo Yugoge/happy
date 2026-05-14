@@ -1,0 +1,23 @@
+{
+  "task_id": "20260514-143000",
+  "inspector": "cleanliness-inspector",
+  "changed_files": ["docs/dev/recovery-script-patches-final-20260514-143000.md"],
+  "findings": [
+    {
+      "file": "docs/dev/recovery-script-patches-final-20260514-143000.md",
+      "issue_type": "naming_convention",
+      "description": "The '-final-' infix in the filename is atypical for docs/dev. All other docs/dev SOP files follow the pattern '<type>-<TASK-ID>.md' (e.g. apply-sop-c1-redev-20260505-001500.md, recovery-script-patches-20260513-211054.md). The '-final-' qualifier is a human-oriented signal that the previous Cycle 1 SOP was superseded, but it is not part of the established naming convention in this folder. The correct pattern would be 'recovery-script-patches-20260514-143000.md'. Advisory only — no blocking cleanliness issue, and the deviation is limited to this one file.",
+      "severity": "minor",
+      "introduced_in_diff": true
+    },
+    {
+      "file": "docs/dev/recovery-script-patches-final-20260514-143000.md",
+      "issue_type": "overlapping_content",
+      "description": "This file is a revised and significantly expanded successor to docs/dev/recovery-script-patches-20260513-211054.md (Cycle 1 SOP). The new file explicitly cross-references the older file ('Cycle 1 SOP being re-anchored: docs/dev/recovery-script-patches-20260513-211054.md'), and both files address M6, M8 patches to /root/bin/happy-session-recovery.sh with overlapping shell code blocks. The files are NOT byte-identical (different md5: 5e426e6c vs cf3dd04c; 187 lines vs 477 lines) and serve distinct roles (draft proposal vs final user-TTY SOP with BA-QA prescription resolution). The older file is therefore an archive candidate once the patches are applied. This is a pre-existing condition — docs/dev/recovery-script-patches-20260513-211054.md predates this diff.",
+      "severity": "minor",
+      "introduced_in_diff": false,
+      "recommendation": "After the user applies Blocks 2+3+4 and closes the task, archive docs/dev/recovery-script-patches-20260513-211054.md to docs/dev/archive/2026-05/ (modified 2026-05-13, single cycle, now superseded)."
+    }
+  ],
+  "summary": "The changed file docs/dev/recovery-script-patches-final-20260514-143000.md is correctly placed in docs/dev/ per project convention for user-TTY patch SOPs. It is not a temp file, build artifact, or misplaced document. Two minor advisory findings: (1) the '-final-' infix deviates from the prevailing naming pattern (new-in-diff, non-blocking); (2) the predecessor file recovery-script-patches-20260513-211054.md is a pre-existing archive candidate now that this final SOP supersedes it (pre-existing, non-blocking for this diff). No major or critical issues. No action required to close this cycle."
+}

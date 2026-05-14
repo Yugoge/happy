@@ -1,0 +1,18 @@
+{
+  "task_id": "20260514-143000",
+  "inspector": "prompt-inspector",
+  "changed_files_mode": "--changed-files",
+  "changed_files": ["docs/dev/recovery-script-patches-final-20260514-143000.md"],
+  "findings": [],
+  "summary": {
+    "files_inspected": 1,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "file_classification": "SOP patch document — NOT a prompt/command/agent file",
+    "verbosity_assessment": "appropriate",
+    "detail": "docs/dev/recovery-script-patches-final-20260514-143000.md is 477 lines. It contains no prompt-verbosity violation patterns (no ## Philosophy, ## Overview, ## Quality Standards, ## Safety Features, ## Helper Scripts sections). The file is a one-time-use SOP patch document with user-pasteable shell invocations. Its length and detail density are appropriate and expected for this artifact class: each block follows a mandatory D1/D2/T1/T2/C1/V1 anti-fraud sequencing pattern, shell blocks include inline # Expected: comment annotations for verification, and explanatory prose is load-bearing rationale for why order-of-operations matters (e.g., apply-script-first vs restart-second). No 'rules not stories' violations apply. In --changed-files mode, this inspector tags every finding with introduced_in_diff; with zero findings there is nothing to tag.",
+    "introduced_in_diff_note": "No findings emitted. Per AC-12.1 Mechanism (ii): absent findings produce no introduced_in_diff tags. close.md default-safe rule applies — this output is advisory/non-blocking."
+  }
+}
