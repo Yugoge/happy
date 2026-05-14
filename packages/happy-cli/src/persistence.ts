@@ -6,9 +6,10 @@
 
 import { FileHandle } from 'node:fs/promises'
 import { readFile, writeFile, mkdir, open, unlink, rename, stat } from 'node:fs/promises'
-import { existsSync, writeFileSync, readFileSync, unlinkSync } from 'node:fs'
+import { existsSync, readFileSync, unlinkSync } from 'node:fs'
 import { constants } from 'node:fs'
 import { configuration } from '@/configuration'
+import { atomicWriteJson } from '@/utils/atomicWriteJson'
 import * as z from 'zod';
 import { encodeBase64 } from '@/api/encryption';
 import { logger } from '@/ui/logger';
@@ -308,10 +309,10 @@ export async function readDaemonState(): Promise<DaemonLocallyPersistedState | n
 }
 
 /**
- * Write daemon state to local file (synchronously for atomic operation)
+ * Write daemon state to local file (atomically via tmp→fsync→rename)
  */
-export function writeDaemonState(state: DaemonLocallyPersistedState): void {
-  writeFileSync(configuration.daemonStateFile, JSON.stringify(state, null, 2), 'utf-8');
+export async function writeDaemonState(state: DaemonLocallyPersistedState): Promise<void> {
+  await atomicWriteJson(configuration.daemonStateFile, state);
 }
 
 /**

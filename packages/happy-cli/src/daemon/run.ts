@@ -661,7 +661,7 @@ export async function startDaemon(): Promise<void> {
       startedWithCliVersion: packageJson.version,
       daemonLogPath: logger.logFilePath
     };
-    writeDaemonState(fileState);
+    await writeDaemonState(fileState);
     logger.debug('[DAEMON RUN] Daemon state written');
 
     // Prepare initial daemon state
@@ -779,7 +779,7 @@ export async function startDaemon(): Promise<void> {
           lastHeartbeat: new Date().toLocaleString(),
           daemonLogPath: fileState.daemonLogPath
         };
-        writeDaemonState(updatedState);
+        await writeDaemonState(updatedState);
         if (process.env.DEBUG) {
           logger.debug(`[DAEMON RUN] Health check completed at ${updatedState.lastHeartbeat}`);
         }

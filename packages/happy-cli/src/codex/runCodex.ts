@@ -375,6 +375,14 @@ export async function runCodex(opts: {
                                 ? 'Force-stopped active task after interrupt timeout. Codex backend was restarted and the previous thread was resumed.'
                                 : 'Force-stopped active task after interrupt timeout. Codex backend was restarted, but the previous thread could not be resumed.',
                         });
+                        // M3: notify daemon of new tid after forced-restart reconnect (third tid-bind site)
+                        if (abortResult.resumedThread && client.threadId) {
+                            session.updateMetadata((cur) => {
+                                const u = { ...cur, codexThreadId: client.threadId! };
+                                notifyDaemonOfCodexTid(session.sessionId, client.threadId!, u);
+                                return u;
+                            });
+                        }
                     }
                 }
 
