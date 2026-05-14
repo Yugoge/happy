@@ -1,0 +1,56 @@
+{
+  "request_id": "20260514-093200",
+  "timestamp": "2026-05-14T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "--changed-files",
+  "mechanism": "ii-inspector-side-tagging",
+  "scope_contract": "cleanliness-of-THIS-diff per AC-12.1; emits findings ONLY for files in the changed-files list; tags each finding with introduced_in_diff: bool per AC-2.6 (b)",
+  "changed_files_input": [
+    "packages/happy-cli/src/codex/codexMapping.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts",
+    "packages/happy-cli/src/daemon/controlServer.ts",
+    "packages/happy-cli/src/daemon/run.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.test.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts",
+    "packages/happy-cli/src/codex/resumeExistingThread.test.ts",
+    "packages/happy-cli/src/codex/codexMapping.cgroup.test.ts",
+    "docs/dev/codex-mapping-rollout-roadmap.md",
+    "docs/dev/completion-20260514-093200.md"
+  ],
+  "scope_filter": {
+    "in_scope_patterns": [
+      ".claude/commands/*.md",
+      ".claude/agents/*.md"
+    ],
+    "out_of_scope_count": 11,
+    "out_of_scope_reason": "prompt-inspector audits command/agent documentation only. Source code (*.ts), test code (*.test.ts), and operational reports under docs/dev/ (rollout roadmaps, completion reports) are not command/agent prompt artifacts and are out of scope for the 'rules not stories' verbosity rule.",
+    "out_of_scope_files": [
+      {"file": "packages/happy-cli/src/codex/codexMapping.ts", "reason": "TypeScript source code"},
+      {"file": "packages/happy-cli/src/codex/codexMappingDaemon.ts", "reason": "TypeScript source code"},
+      {"file": "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts", "reason": "TypeScript source code"},
+      {"file": "packages/happy-cli/src/daemon/controlServer.ts", "reason": "TypeScript source code"},
+      {"file": "packages/happy-cli/src/daemon/run.ts", "reason": "TypeScript source code"},
+      {"file": "packages/happy-cli/src/codex/codexMappingDaemon.test.ts", "reason": "TypeScript test code"},
+      {"file": "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts", "reason": "TypeScript test code"},
+      {"file": "packages/happy-cli/src/codex/resumeExistingThread.test.ts", "reason": "TypeScript test code"},
+      {"file": "packages/happy-cli/src/codex/codexMapping.cgroup.test.ts", "reason": "TypeScript test code"},
+      {"file": "docs/dev/codex-mapping-rollout-roadmap.md", "reason": "Operational rollout roadmap under docs/dev/, not a command or agent prompt"},
+      {"file": "docs/dev/completion-20260514-093200.md", "reason": "Cycle completion report under docs/dev/, not a command or agent prompt"}
+    ],
+    "in_scope_files": []
+  },
+  "findings": [],
+  "summary": {
+    "files_inspected": 0,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "estimated_reduction": "n/a — no command/agent documentation files in this diff",
+    "new_in_diff_violations": 0,
+    "preexisting_violations_in_changed_files": 0,
+    "verdict": "PASS — no command/agent documentation touched by this diff; nothing in scope for prompt-verbosity inspection"
+  }
+}

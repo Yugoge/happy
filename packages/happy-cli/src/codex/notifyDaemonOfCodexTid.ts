@@ -32,12 +32,44 @@ import { notifyDaemonSessionStarted } from '@/daemon/controlClient';
  *                       where the returned tid can be rotated)
  * @param baseMetadata   Current session metadata (will be merged with codexThreadId)
  */
+/**
+ * M2' — set `process.title` for operator observability via `ps` / `ps -ef`.
+ *
+ * Slice direction: `tid.slice(-8)` uses the random/sequence TAIL of UUIDv7.
+ * DO NOT use `slice(0,8)` — UUIDv7 first chars are a millisecond timestamp,
+ * so two sessions started in the same millisecond would collide on a prefix
+ * slice. The TAIL is the random portion and is collision-safe.
+ *
+ * Linux 16-char `comm` truncation: `"happy-codex:"` (12 chars) + 8 tail = 20
+ * chars total, exceeds Linux's 16-char `comm` cap. `ps`/`ps -ef` cmdline
+ * shows the full title; `comm` field gets truncated to ~4 visible chars of
+ * the tid. Acceptable for the observability purpose. If htop visibility
+ * becomes required, shorten to `codex:${tid.slice(-8)}` (15 chars) in a
+ * follow-up cycle.
+ *
+ * Best-effort: assignment failure is swallowed so the daemon-notify path
+ * still runs.
+ */
+function setCodexProcessTitle(tid: string): void {
+    try {
+        process.title = `happy-codex:${tid.slice(-8)}`;
+    } catch (titleError) {
+        logger.debug(
+            `[CODEX TID NOTIFY] process.title set failed for tid ${tid} (non-fatal):`,
+            titleError,
+        );
+    }
+}
+
 export async function notifyDaemonOfCodexTid(
     happySessionId: string,
     tid: string,
     baseMetadata: Metadata,
 ): Promise<void> {
     const enriched: Metadata = { ...baseMetadata, codexThreadId: tid };
+    // M2' — centralized title set so both start path (runCodex.ts) and resume
+    // path (resumeExistingThread.ts) get parity. Best-effort; does not break notify.
+    setCodexProcessTitle(tid);
     try {
         const result = await notifyDaemonSessionStarted(happySessionId, enriched);
         if (result && result.error) {

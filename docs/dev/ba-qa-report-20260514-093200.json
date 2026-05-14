@@ -1,0 +1,229 @@
+{
+    "request_id": "20260514-093200",
+    "task_id": "20260514-093200",
+    "timestamp": "2026-05-14T10:35:00Z",
+    "mode": "ba_validation",
+    "round": 1,
+    "task_id_echo": "TASK-ID: 20260514-093200",
+    "inputs": {
+        "ticket_round1": "docs/dev/ticket-20260514-093200.md",
+        "context_round1": "docs/dev/context-20260514-093200.json",
+        "prior_cycle_ticket": "docs/dev/ticket-20260513-211054.md",
+        "prior_cycle_dev_report": "docs/dev/dev-report-20260513-211054.json"
+    },
+    "user_verbatim_complaint": "/redev --codex 完成剩下的全部没做的 + 那你倒是做 (+ /do consent)",
+    "verdict": "ACCEPT_WITH_OBSERVATIONS",
+
+    "validation_summary": "BA round-1 ticket correctly bakes in codex round-1 modifications (slice(-8), structured cgroup, honest M1' labeling, scope-limited M4' doc). All five cited file:line locations verified accurate via direct source inspection. Won't-haves explicitly enumerated. ACs are testable under unit-tests + typecheck only with one parser-extraction caveat (codex round-2 finding #3). Scope is appropriately L4-additive. Recommend ACCEPT with 5 observations to fold into dev's TODO list so unit-test path stays subagent-feasible.",
+
+    "five_dimensions": {
+        "evidence_quality": {
+            "score": "high",
+            "details": [
+                "BA cites exact file:line ranges for every claim; QA verified all 5 sites via Read tool",
+                "notifyDaemonOfCodexTid.ts:35-58 confirmed lacks process.title — BA's claim accurate",
+                "codexMappingDaemon.ts:89-101 runSweepInline confirmed returns sweep.removed — BA's M1' counter source accurate",
+                "codexMappingDaemon.ts:71-80 queueUpsert confirmed as M3' cgroup read site (passes pid to upsertCodexMappingEntry) — BA accurate",
+                "codexMapping.ts:45-54 CodexMappingEntry confirmed lacks cgroup — BA accurate",
+                "controlServer.ts:98-122 /list endpoint confirmed has only schemaVersion+children (no mappingStats) — BA accurate",
+                "runCodex.ts:712 + resumeExistingThread.ts:37 both confirmed call notifyDaemonOfCodexTid — BA's centralization claim accurate"
+            ]
+        },
+        "scope_alignment": {
+            "score": "high",
+            "details": [
+                "BA correctly interprets 'completion of remaining' as the four codex-round-1-LAND items (M1'+M2'+M3'+M4')",
+                "BA correctly excludes persistence.ts atomic refactor per codex round-0 AND round-1 consensus DEFER",
+                "BA correctly excludes /root/bin Block 3+4 patches (hook-blocked)",
+                "BA correctly excludes daemon rebuild + restart per durable '我手动做' directive",
+                "No bug renaming or scope narrowing detected"
+            ]
+        },
+        "investigation_completeness": {
+            "score": "high",
+            "details": [
+                "BA documents codex round-0 vs round-1 verdict reversal explicitly in Decision Section table",
+                "BA documents the user-override chain: /redev --codex → needs_clarification → /do '那你倒是做' → broad-scope authorization",
+                "Prior-cycle context (commit 38f6bac4, 17 files / 1640 LOC) cited with outcome",
+                "BA novelty analysis distinguishes this attempt from prior deferral (codex round-1 LAND inverts round-0 DEFER on items)"
+            ]
+        },
+        "affected_file_accuracy": {
+            "score": "high",
+            "details": [
+                "All BA-listed affected files exist and contain the cited code structures",
+                "Test files (codexMapping.test.ts, codexMappingDaemon.test.ts, notifyDaemonOfCodexTid.test.ts) all exist as cited",
+                "No file:line drift detected on spot check of 6 cited sites"
+            ]
+        },
+        "spec_text_vs_execution_drift": {
+            "score": "minor_drift_detected",
+            "details": [
+                "AC2 spec text says 'counter increments' but BA technical hint M1' implementation outline says 'state.lastSweepRemoved = sweep.removed' (set, not accumulate). Codex round-2 finding #2 flags this. Recommend BA clarifies AC2 phrasing OR dev clarifies via test. Field name 'lastSweepRemoved' (last, singular) supports set-semantics; user-need is observability of recent sweep activity, both work. Treat as terminology clarification not blocker."
+            ]
+        }
+    },
+
+    "checklist": {
+        "A_file_line_citations": {
+            "verified": true,
+            "items": [
+                {"file": "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts", "lines_cited": "35-58", "verified_accurate": true, "evidence": "Read confirmed helper signature + no process.title mutation"},
+                {"file": "packages/happy-cli/src/codex/codexMappingDaemon.ts", "lines_cited": "89-101, 71-80, 120-126", "verified_accurate": true, "evidence": "runSweepInline returns sweep.removed; queueUpsert receives pid; runStartupSweep starts sweep before chain enqueue (codex round-2 #1 flags this)"},
+                {"file": "packages/happy-cli/src/codex/codexMapping.ts", "lines_cited": "45-54, 123-128, 134-149, 232-245", "verified_accurate": true, "evidence": "CodexMappingEntry interface, UpsertCodexEntryInput, mergeEntry, sweepCodexMapping all match BA description"},
+                {"file": "packages/happy-cli/src/daemon/controlServer.ts", "lines_cited": "60-122, 98-122", "verified_accurate": true, "evidence": "/list response shape confirmed, no mappingStats present"},
+                {"file": "packages/happy-cli/src/codex/runCodex.ts", "lines_cited": "702-715, 712", "verified_accurate": true, "evidence": "client.startThread branch confirmed; notifyDaemonOfCodexTid call at line 712 inside session.updateMetadata callback"},
+                {"file": "packages/happy-cli/src/codex/resumeExistingThread.ts", "lines_cited": "37", "verified_accurate": true, "evidence": "bindResumedTid calls notifyDaemonOfCodexTid at line 37 inside session.updateMetadata callback"}
+            ]
+        },
+        "B_ac_testability": {
+            "verified": true,
+            "items": [
+                {"ac": "AC1", "testable_unit_only": true, "method": "Zod schema test + in-process fastify supertest, no daemon needed"},
+                {"ac": "AC2", "testable_unit_only": true, "method": "fixture mapping file + readCodexMapping + sweepCodexMapping in-process; codex round-2 #2 flags counter set-vs-increment terminology"},
+                {"ac": "AC3", "testable_unit_only": true, "method": "Direct helper invocation in vitest; process.title assertion + afterEach restore; codex round-2 #7 + #8 flag test-isolation"},
+                {"ac": "AC4", "testable_unit_only": "conditional", "concern": "Codex round-2 #3: readCgroupForPid(pid) hardcoding /proc/<pid>/cgroup is not unit-testable on non-Linux. Recommend BA/dev add pure parser parseCgroupRaw(raw, readAt) for unit tests; integration test uses readCgroupForPid against fixture proc root or live process.pid on Linux CI"},
+                {"ac": "AC5", "testable_unit_only": true, "method": "Existence check + grep for 5-step chain markers + grep for cross-ref anchors"},
+                {"ac": "AC6", "testable_unit_only": true, "method": "yarn build + yarn test exit code 0"}
+            ]
+        },
+        "C_scope_discipline": {
+            "verdict": "OK",
+            "items": [
+                {"item": "M1' (counter exposure)", "minimal": "YES — 4 derived fields from existing readCodexMapping + 1 in-memory accumulator from existing sweepCodexMapping return"},
+                {"item": "M2' (process.title)", "minimal": "YES — single-line mutation in helper covering both start+resume sites; safety try/catch already speced"},
+                {"item": "M3' (cgroup field)", "minimal": "ACCEPTABLE — adds optional structured field; reader is Linux-only sync ≤4KB; codex round-1 explicitly required raw+parsed view per future-compat"},
+                {"item": "M4' (roadmap doc)", "minimal": "ACCEPTABLE — pure documentation, codex round-1 LAND verdict required this for fd-scan deprecation traceability; not code"}
+            ]
+        },
+        "D_wont_have_boundary": {
+            "verdict": "ENFORCED",
+            "items": [
+                {"item": "persistence.ts:writeDaemonState atomic refactor", "ticket_explicit": true, "location": "Section Won't Have line 309-311 + Out-of-Scope Observations row 1"},
+                {"item": "Daemon lifecycle ops (rebuild + restart)", "ticket_explicit": true, "location": "Section Won't Have line 313 + Constraints line 561"},
+                {"item": "/root/bin/* edits", "ticket_explicit": true, "location": "Section Won't Have line 312 + Out-of-Scope Observations row 4 + Constraints line 562-563"},
+                {"item": "Live E2E daemon verification", "ticket_explicit": true, "location": "AC6 NOTE + Won't Have line 314-316"},
+                {"item": "Destructive git verbs", "ticket_explicit": true, "location": "Won't Have line 321-322"}
+            ]
+        },
+        "E_codex_round1_modifications": {
+            "verdict": "BAKED_IN",
+            "items": [
+                {"modification": "M1' honest labeling — 'mapping-health, NOT fd-scan replacement'", "present_in_ticket": true, "location": "Decision Section table row 1 + Must Have M1' bullet 3 + AC2 explicit comment requirement"},
+                {"modification": "M2' slice(-8) NOT slice(0,8)", "present_in_ticket": true, "location": "Decision Section table row 2 + Must Have M2' first bullet + AC3 'happy-codex:EEEEFFFF' assertion (last 8 chars of fixture tid)"},
+                {"modification": "M3' structured {raw, version, paths, readAt}", "present_in_ticket": true, "location": "Must Have M3' code block lines 261-268 + AC4 field-by-field acceptance"},
+                {"modification": "M2' centralization in notifyDaemonOfCodexTid", "present_in_ticket": true, "location": "Must Have M2' second-paragraph + AC3 'same assertion holds whether ... start or resume'"}
+            ]
+        },
+        "F_codex_round2_consultation": {
+            "invoked": true,
+            "status": "ok",
+            "session_id": "019e2605-7b58-7280-9528-b5bd8e3c3ead",
+            "model": "gpt-5.5",
+            "reasoning_effort": "xhigh",
+            "verdict_summary": "Codex round-2 says mostly shippable via unit+typecheck but flags 9 concrete BA-ticket improvements to fold into dev TODO. Confirms M3 cgroup sync per upsert is OK at session cadence; M1 fs.readFile per /list is OK for doctor invocations; no daemon restart required.",
+            "findings": [
+                {"id": "C2-1", "severity": "major", "topic": "M1' race in runStartupSweep", "claim": "runStartupSweep starts runSweepInline(state) BEFORE enqueueing it (codexMappingDaemon.ts:120-123). Sweep can race with concurrent queued upserts/removes; atomicWriteJson tmp suffix .<pid> collides on same-process concurrent writes.", "qa_assessment": "Valid concern but PRE-EXISTING behavior — not introduced by M1'. Note pattern: `const p = runSweepInline(state); enqueue(state, () => p); return p;` — the enqueued task awaits the already-running promise, not a fresh invocation, so the second writer only completes after the first resolves. Recommend BA flag this as observation rather than block landing — it's existing infra, M1' merely reads sweep.removed return value."},
+                {"id": "C2-2", "severity": "minor", "topic": "lastSweepRemoved set vs increment terminology", "claim": "AC2 says 'counter increments' but field name and BA hint say 'last' (set semantics).", "qa_assessment": "Terminology clarification. Field name 'lastSweepRemoved' = set semantics (value of most-recent sweep). Recommend AC2 rephrasing: 'lastSweepRemoved reflects sweep.removed return value' — set, not increment."},
+                {"id": "C2-3", "severity": "major", "topic": "M3 parser unit-testability", "claim": "readCgroupForPid(pid) hardcoding /proc/<pid>/cgroup not unit-testable on non-Linux (vitest may run on macOS dev). Need pure parser parseCgroupRaw(raw, readAt) exported separately.", "qa_assessment": "Valid. CI runs on Linux but vitest dev loop may be cross-platform. Recommend dev extract pure parser parseCgroupRaw separately + readCgroupForPid as thin wrapper. AC4 should explicitly require the pure parser export for testability."},
+                {"id": "C2-4", "severity": "minor", "topic": "hostPid validation before /proc read", "claim": "queueUpsert only truthy-checks pid; M3 now passes pid into fs path. Should Number.isInteger + pid > 0 guard before reading /proc/<pid>/cgroup.", "qa_assessment": "Valid defensive hardening. Already implicit (TS types say pid: number) but runtime metadata is z.any per controlServer. Recommend dev adds the guard inside readCgroupForPid."},
+                {"id": "C2-5", "severity": "minor", "topic": "Read-side cgroup validation", "claim": "isValidEntry doesn't validate cgroup; malformed persisted cgroup returned as trusted. Add isValidCgroupInfo or strip on read.", "qa_assessment": "Valid for defense-in-depth. M3' new field deserves a validator. Recommend dev adds isValidCgroupInfo helper called inside isValidEntry."},
+                {"id": "C2-6", "severity": "minor", "topic": "AC4 merge ambiguity (fresh vs preserve existing)", "claim": "BA says mergeEntry 'prefer fresh else existing'; AC says non-Linux omits. Ambiguous for re-upsert where prior had valid cgroup and current read fails.", "qa_assessment": "Recommend explicit BA rule: 'New entry with unreadable cgroup → field omitted. Existing entry with valid cgroup re-upserted with unreadable cgroup → PRESERVE existing cgroup (do not overwrite with undefined).' Dev should encode in mergeEntry."},
+                {"id": "C2-7", "severity": "minor", "topic": "process.title test leakage", "claim": "resumeExistingThread.test.ts already exercises helper via mocked controlClient; M2' will leak process.title state across suites. Need afterEach restore in resume tests too, not only helper test.", "qa_assessment": "Valid. Recommend dev adds afterEach('restore original process.title') in BOTH notifyDaemonOfCodexTid.test.ts AND resumeExistingThread.test.ts. Avoid skipProcessTitle production flag — keep production path clean."},
+                {"id": "C2-8", "severity": "info", "topic": "M2 start-path unit coverage scope", "claim": "Helper unit test + resume unit test + static grep evidence that runCodex.ts:712 still calls helper is sufficient under unit-only QA. Don't require live runCodex integration.", "qa_assessment": "Agreed. AC3 already accepts this — start-path coverage is via centralization through the helper."},
+                {"id": "C2-9", "severity": "minor", "topic": "M4 wording fd-scan vs M1 distinction", "claim": "Doc should clarify lastSweepRemoved is mapping-health, NOT fd-scan fallback firing counter; bash fd-scan counter must independently read zero.", "qa_assessment": "Already in BA Must Have M1' bullet 3 ('mapping-health telemetry, NOT a replacement for the bash-side fd-scan fallback counter from Block 3'). Recommend dev mirrors that exact phrasing in M4' doc to keep consistency."}
+            ]
+        }
+    },
+
+    "rejections_required": [],
+
+    "observations_for_ba_or_dev": [
+        {
+            "dimension": "investigation_completeness",
+            "severity": "info",
+            "addressee": "dev",
+            "observation": "Codex round-2 #1 — runStartupSweep race-with-chain pattern is PRE-EXISTING. M1' does not introduce it. Dev should confirm via reading runStartupSweep that `const p = runSweepInline(state); enqueue(state, () => p); return p;` enqueues the same already-running promise (so chain serialization holds), not a fresh sweep invocation. If chain semantics break, surface as observation; otherwise no action needed."
+        },
+        {
+            "dimension": "spec_text_vs_execution_drift",
+            "severity": "minor",
+            "addressee": "ba",
+            "observation": "Codex round-2 #2 — AC2 says 'counter increments' but technical hint says 'set state.lastSweepRemoved = sweep.removed'. Field name 'lastSweepRemoved' (last, singular) supports set semantics. Recommend BA edit AC2 to: 'lastSweepRemoved reflects the most recent sweep.removed value (set on each sweep, not cumulative).' Dev should test both first-sweep (removed > 0) and second-sweep (removed = 0) cases to confirm set-not-accumulate behavior."
+        },
+        {
+            "dimension": "evidence_quality",
+            "severity": "major",
+            "addressee": "dev",
+            "observation": "Codex round-2 #3 — For AC4 unit-testability across platforms, dev should extract `parseCgroupRaw(raw: string, readAt: string): CgroupInfo` as a pure exported function in codexMapping.ts (or sibling), with `readCgroupForPid(pid)` being a thin Linux-only wrapper that reads /proc/<pid>/cgroup and calls parseCgroupRaw. Unit tests target parseCgroupRaw with v1/v2/mixed/unknown fixture strings; integration test exercises readCgroupForPid against process.pid on Linux CI."
+        },
+        {
+            "dimension": "evidence_quality",
+            "severity": "minor",
+            "addressee": "dev",
+            "observation": "Codex round-2 #4 + #5 — Defensive validation: (a) inside readCgroupForPid, guard `if (!Number.isInteger(pid) || pid <= 0) return undefined;` before fs read; (b) add `isValidCgroupInfo(c)` helper used inside isValidEntry to strip malformed persisted cgroup data. Both are minor hardening, fold into M3' implementation."
+        },
+        {
+            "dimension": "spec_text_vs_execution_drift",
+            "severity": "minor",
+            "addressee": "ba",
+            "observation": "Codex round-2 #6 — AC4 should disambiguate cgroup merge on re-upsert: 'New entry with unreadable cgroup → cgroup field omitted. Existing entry re-upserted with unreadable cgroup → PRESERVE existing cgroup (do not overwrite with undefined).' Recommend BA edits AC4 OR Technical Hints M3' to encode this rule in mergeEntry."
+        },
+        {
+            "dimension": "investigation_completeness",
+            "severity": "minor",
+            "addressee": "dev",
+            "observation": "Codex round-2 #7 — process.title test leakage: dev must add `afterEach(() => { process.title = original; })` in BOTH notifyDaemonOfCodexTid.test.ts AND resumeExistingThread.test.ts (the resume test already calls the real helper through a mocked controlClient). Avoid production `skipProcessTitle` flag — keep production-path code clean."
+        },
+        {
+            "dimension": "spec_text_vs_execution_drift",
+            "severity": "info",
+            "addressee": "dev",
+            "observation": "Codex round-2 #9 — In M4' roadmap doc, mirror BA's exact M1' phrasing ('mapping-health telemetry, NOT a replacement for the bash-side fd-scan fallback counter from Block 3') so M1' and M4' are terminology-consistent and reviewers don't conflate the two counters."
+        }
+    ],
+
+    "out_of_scope_observations": [
+        {
+            "ts": "2026-05-14T10:35Z",
+            "file": "packages/happy-cli/src/codex/codexMappingDaemon.ts:120-126",
+            "observation": "runStartupSweep race pattern flagged by codex round-2 #1 is pre-existing (not introduced by M1'). Existing pattern reuses the already-running sweep promise via enqueue closure, so serialization may already hold. Verify-and-document only; do not refactor in this cycle unless dev finds the chain semantics are broken.",
+            "in_user_path": false,
+            "security_relevant": false
+        },
+        {
+            "ts": "2026-05-14T10:35Z",
+            "file": "packages/happy-cli/src/daemon/controlServer.ts (metadata: z.any())",
+            "observation": "Codex round-2 #4 calls out that /session-started accepts z.any() metadata. Hardening the Zod schema for hostPid validation is a separate observation; M3' just needs runtime guard inside readCgroupForPid.",
+            "in_user_path": false,
+            "security_relevant": false
+        }
+    ],
+
+    "ba_iteration_prescription": null,
+
+    "codex_consult": {
+        "invoked": true,
+        "status": "ok",
+        "feedback_summary": "9 substantive findings: (1) PRE-EXISTING runStartupSweep race, (2) lastSweepRemoved set-vs-increment terminology, (3) M3 needs pure parser parseCgroupRaw for cross-platform unit testability, (4) hostPid runtime validation, (5) cgroup field validator on read, (6) AC4 merge ambiguity (new vs existing entry), (7) process.title test leak in resume suite, (8) M2 start-path coverage adequate via helper centralization, (9) M4 wording consistency. Performance: M3 cgroup sync per upsert OK; M1 mapping read per /list OK; no daemon restart needed.",
+        "feedback_incorporated": "Folded 7 of 9 findings into observations_for_ba_or_dev[] with addressee=ba (terminology drift + merge rule) and addressee=dev (testability + hardening + test isolation). Finding #1 (race) routed to out_of_scope_observations as pre-existing. Finding #8 confirmed AC3 already covers. All findings non-blocking; verdict stays ACCEPT_WITH_OBSERVATIONS — BA ticket is foundationally sound; the 7 dev-addressed items are technical hints dev should fold into their implementation; the 2 BA-addressed items are spec-text-vs-execution drift recommendations that improve future cycles but do not block this dispatch."
+    },
+
+    "self_verification": {
+        "claims_total": 14,
+        "claims_with_evidence": 14,
+        "claims_superficial": 0,
+        "superficial_details": [],
+        "confidence": "high",
+        "claim_examples": [
+            "All 6 cited file:line locations verified via Read tool (notifyDaemonOfCodexTid.ts, codexMappingDaemon.ts, codexMapping.ts, controlServer.ts, runCodex.ts, resumeExistingThread.ts)",
+            "Codex round-2 adversarial consult ran successfully — session 019e2605-7b58-7280-9528-b5bd8e3c3ead, 125k tokens, 9 findings parsed",
+            "Won't-have items cross-checked against ticket line numbers (Section Won't Have line 309-322, Constraints line 561-563)",
+            "Codex round-1 modifications (slice(-8), structured cgroup, honest M1' labeling) traced to specific ticket line locations"
+        ]
+    },
+
+    "verdict_rationale": "BA round-1 ticket passes all five validation dimensions with high scores. File:line citations are exhaustively accurate. Codex round-1 substantive modifications are correctly baked in. Won't-haves are explicitly enumerated with both 'Won't Have' section and 'Constraints' section reinforcement. ACs are testable under unit-tests + typecheck only with one parser-extraction caveat from codex round-2 (M3 cgroup needs pure parser). Codex round-2 produced 9 substantive findings, all of which are non-blocking improvements to fold into dev's TODO (7 for dev, 2 spec-text-clarifications for BA's future-cycle reference). Recommend ACCEPT_WITH_OBSERVATIONS so the orchestrator dispatches dev with the 7 dev-addressed observations as supplementary technical guidance, and BA notes the 2 spec-clarification observations for terminology improvements either in a quick AC2/AC4 patch or in a future cycle. No REJECT-grade issues found.",
+
+    "next_step_recommendation": "Orchestrator dispatches dev for round-1 implementation. Dev MUST read this QA report and address the 7 dev-addressed observations during implementation (pure parser extraction, runtime guards, validator, test isolation, M4 wording consistency, sweep race pre-existing note). BA MAY also patch AC2/AC4 inline before dispatch to remove the 2 spec-text-drift items, but this is OPTIONAL — the observations capture the disambiguation rules sufficiently for dev to proceed."
+}

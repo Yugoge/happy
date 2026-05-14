@@ -1,0 +1,65 @@
+{
+  "request_id": "20260514-093200",
+  "timestamp": "2026-05-14T09:32:00Z",
+  "inspector": "style-inspector",
+  "mode": "changed-files",
+  "scope_note": "AC-2.6 cleanliness-of-THIS-diff: only NEW violations introduced by this cycle's diff are emitted. file:line granularity. Overlap-only proxy used (pre-diff baseline read implicit via git diff HEAD~1) — findings are advisory under AC-2.6(b) when pre-diff baseline cannot be re-confirmed line-by-line.",
+  "files_audited": [
+    "packages/happy-cli/src/codex/codexMapping.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts",
+    "packages/happy-cli/src/daemon/controlServer.ts",
+    "packages/happy-cli/src/daemon/run.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.test.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts",
+    "packages/happy-cli/src/codex/resumeExistingThread.test.ts",
+    "packages/happy-cli/src/codex/codexMapping.cgroup.test.ts",
+    "docs/dev/codex-mapping-rollout-roadmap.md",
+    "docs/dev/completion-20260514-093200.md"
+  ],
+  "violations": [],
+  "standards_passed": [
+    "no-inline-code (N/A — TypeScript source / tests / docs)",
+    "no-hardcoded-values (TS modules consume @/configuration, parameters, and constructor overrides; test fixtures legitimate)",
+    "use-source-venv (N/A — no Python invocations)",
+    "integer-step-numbering (docs use Step 1, Step 2 — no decimals/letters)",
+    "meaningful-naming (codexMapping, notifyDaemonOfCodexTid, controlServer, cgroup — descriptive; CONTROL_LIST_SCHEMA_VERSION=2 is schema version, not a naming-suffix violation)",
+    "english-only (TS source 100% English; docs/ Chinese tokens are (a) outside Standard 6 scope per SCOPE EXCLUSION, (b) verbatim user-binding-quote exempt under Standard 6 exemption rule)",
+    "merge-similar-scripts (N/A — TS library modules, not shell scripts)",
+    "concise-documentation (N/A — docs/dev/ outside scope of Standard 8 which targets .claude/commands and .claude/agents)",
+    "parameterized-scripts (N/A — TS library modules; codexMappingPath/upsertCodexMappingEntry accept overrides for testability)",
+    "dangling-references (all @/ imports resolve: @/utils/atomicWriteJson, @/configuration, @/ui/logger, @/api/types, @/daemon/controlClient, @/codex/codexMappingDaemon; relative ./codexMapping resolves)",
+    "merge-conflicts (no conflict markers found across the 11 files)"
+  ],
+  "project_conventions_check": {
+    "indentation_4_spaces": {
+      "verdict": "no-new-violation",
+      "note": "controlServer.ts and run.ts use 2-space indent file-wide as pre-existing baseline; new lines added by this diff match the file's pre-existing style. No NEW deviation from baseline introduced. AC-2.6 line-level rule: cleanliness-of-THIS-diff measures regression vs baseline, and baseline is 2-space for these two files. New codex/*.ts files (codexMapping.ts, codexMappingDaemon.ts, notifyDaemonOfCodexTid.ts) and the 4 test files all use 4-space indent matching project convention."
+    },
+    "named_exports": {
+      "verdict": "pass",
+      "note": "All public API exported via named exports (CODEX_MAPPING_SCHEMA_VERSION, readCodexMapping, upsertCodexMappingEntry, createCodexMappingDaemonController, notifyDaemonOfCodexTid, startDaemonControlServer, CONTROL_LIST_SCHEMA_VERSION, etc.)"
+    },
+    "at_alias_imports": {
+      "verdict": "pass",
+      "note": "All cross-package imports use @/ alias: @/utils/atomicWriteJson, @/configuration, @/ui/logger, @/api/types, @/daemon/controlClient, @/codex/codexMappingDaemon. Sibling-module imports correctly use relative './codexMapping'."
+    },
+    "top_of_file_imports": {
+      "verdict": "pass",
+      "note": "All imports at top of file. No mid-code dynamic imports detected in any of the 11 files."
+    },
+    "no_hardcoding": {
+      "verdict": "pass",
+      "note": "Path defaults flow through configuration.happyHomeDir → codexMappingPath(); test fixtures (/tmp/work, /tmp/project) are intentional test inputs; constants like PENDING_TTL_MS=30_000 and CONTROL_LIST_SCHEMA_VERSION=2 are protocol/policy constants, not environment-specific values."
+    }
+  },
+  "summary": {
+    "standards_checked": 11,
+    "violations_found": 0,
+    "critical": 0,
+    "files_audited": 11,
+    "files_total": 11,
+    "rounds_completed": 1,
+    "introduced_in_diff": false
+  }
+}

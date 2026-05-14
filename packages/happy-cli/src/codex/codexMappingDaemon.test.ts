@@ -125,3 +125,64 @@ describe('createCodexMappingDaemonController (Q1 serialization)', () => {
         expect(pending.has('pending-1')).toBe(true);
     });
 });
+
+/**
+ * M1' — getMappingStats returns derived entry counts + monotonic sweepRemovedCount.
+ *
+ * The sweepRemovedCount is per-daemon-process and monotonic (increments on each
+ * sweep with removals); entryCount/pendingCount/boundCount are point-in-time
+ * derived from a fresh read of codex-mapping.json.
+ *
+ * NOT a replacement for the bash-side fd-scan fallback counter — see
+ * codexMappingDaemon.ts MappingStats TSDoc.
+ */
+describe('getMappingStats (M1 mapping-health telemetry)', () => {
+    it('returns zeros for an empty/missing mapping file', async () => {
+        const controller = createCodexMappingDaemonController(mappingFile);
+        const stats = await controller.getMappingStats();
+        expect(stats.entryCount).toBe(0);
+        expect(stats.pendingCount).toBe(0);
+        expect(stats.boundCount).toBe(0);
+        expect(stats.sweepRemovedCount).toBe(0);
+    });
+
+    it('counts entries by state after upserts settle', async () => {
+        const controller = createCodexMappingDaemonController(mappingFile);
+        controller.onWebhook('bound-1', codexMeta({ codexThreadId: 'tid-bound-1' }));
+        controller.onWebhook('bound-2', codexMeta({ codexThreadId: 'tid-bound-2' }));
+        controller.onWebhook('pending-1', codexMeta());
+        await settle();
+        const stats = await controller.getMappingStats();
+        expect(stats.entryCount).toBe(3);
+        expect(stats.boundCount).toBe(2);
+        expect(stats.pendingCount).toBe(1);
+    });
+
+    it('sweepRemovedCount accumulates across sweeps (monotonic)', async () => {
+        // Seed two dead-pid entries via controller#1, then sweep with controller#2 twice.
+        const seeder = createCodexMappingDaemonController(mappingFile);
+        seeder.onWebhook('dead-1', codexMeta({ hostPid: 999999, codexThreadId: 'tid-d1' }));
+        seeder.onWebhook('dead-2', codexMeta({ hostPid: 999998, codexThreadId: 'tid-d2' }));
+        await settle();
+        const sweeper = createCodexMappingDaemonController(mappingFile);
+        await sweeper.runStartupSweep();
+        const after1 = await sweeper.getMappingStats();
+        expect(after1.sweepRemovedCount).toBeGreaterThanOrEqual(2);
+        // Second sweep with no removals — count holds steady (monotonic, not reset).
+        await sweeper.runStartupSweep();
+        const after2 = await sweeper.getMappingStats();
+        expect(after2.sweepRemovedCount).toBe(after1.sweepRemovedCount);
+    });
+
+    it('sweepRemovedCount resets per controller (per-daemon-process)', async () => {
+        const c1 = createCodexMappingDaemonController(mappingFile);
+        c1.onWebhook('dead-isolated', codexMeta({ hostPid: 999997, codexThreadId: 'tid-x' }));
+        await settle();
+        const sweep1 = createCodexMappingDaemonController(mappingFile);
+        await sweep1.runStartupSweep();
+        expect((await sweep1.getMappingStats()).sweepRemovedCount).toBeGreaterThanOrEqual(1);
+        // Fresh controller — counter is per-process, starts at 0.
+        const sweep2 = createCodexMappingDaemonController(mappingFile);
+        expect((await sweep2.getMappingStats()).sweepRemovedCount).toBe(0);
+    });
+});

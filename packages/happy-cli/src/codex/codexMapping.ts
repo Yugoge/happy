@@ -29,8 +29,10 @@
  * @module codexMapping
  */
 
+import { readFileSync } from 'node:fs';
 import { readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { platform } from 'node:os';
 
 import { atomicWriteJson, cleanOrphanTmpFiles } from '@/utils/atomicWriteJson';
 import { configuration } from '@/configuration';
@@ -42,6 +44,26 @@ export const PENDING_TTL_MS = 30_000;
 
 export type CodexMappingState = 'pending' | 'bound' | 'stale';
 
+/**
+ * M3' — optional structured cgroup metadata captured at upsert time on Linux.
+ *
+ * Snapshot-at-upsert; not refreshed on later sweeps. `paths` is empty when
+ * /proc/<pid>/cgroup is unreadable or unparseable. `version` distinguishes
+ * cgroup v1 (multiple `N:subsys:/path` lines with non-zero hierarchyId), v2
+ * (single `0::/path` line with empty controllers), `mixed` (both shapes
+ * present), and `unknown` (recognized neither). Field is OMITTED (not null)
+ * on non-Linux platforms and on read failure.
+ *
+ * NOTE: This is observability metadata captured at session bind time, NOT a
+ * replacement for the bash-side fd-scan fallback counter from Block 3.
+ */
+export interface CgroupInfo {
+    raw: string;
+    version: 'v1' | 'v2' | 'mixed' | 'unknown';
+    paths: string[];
+    readAt: string;
+}
+
 export interface CodexMappingEntry {
     happySessionId: string;
     codexThreadId?: string;
@@ -51,6 +73,7 @@ export interface CodexMappingEntry {
     state: CodexMappingState;
     firstSeenAt: string;
     lastUpdatedAt: string;
+    cgroup?: CgroupInfo;
 }
 
 export interface CodexMappingFile {
@@ -97,16 +120,125 @@ export async function readCodexMapping(
     }
 }
 
+/**
+ * M3' — validate persisted cgroup blob. Defensive: a malformed `cgroup` field
+ * on disk MUST NOT poison the entry. Returns true only for the exact shape
+ * produced by `parseCgroupRaw`. Lines in `raw` are NOT independently
+ * re-validated here — `parseCgroupRaw` already classified the version.
+ */
+export function isValidCgroupInfo(value: unknown): value is CgroupInfo {
+    if (!value || typeof value !== 'object') return false;
+    const c = value as Record<string, unknown>;
+    if (typeof c.raw !== 'string') return false;
+    if (c.version !== 'v1' && c.version !== 'v2' && c.version !== 'mixed' && c.version !== 'unknown') {
+        return false;
+    }
+    if (!Array.isArray(c.paths)) return false;
+    if (!c.paths.every(p => typeof p === 'string')) return false;
+    if (typeof c.readAt !== 'string') return false;
+    return true;
+}
+
 function isValidEntry(entry: unknown): entry is CodexMappingEntry {
     if (!entry || typeof entry !== 'object') return false;
     const e = entry as Record<string, unknown>;
-    return typeof e.happySessionId === 'string'
+    const baseOk = typeof e.happySessionId === 'string'
         && typeof e.pid === 'number'
         && typeof e.cwd === 'string'
         && e.flavor === 'codex'
         && (e.state === 'pending' || e.state === 'bound' || e.state === 'stale')
         && typeof e.firstSeenAt === 'string'
         && typeof e.lastUpdatedAt === 'string';
+    if (!baseOk) return false;
+    // Strip malformed persisted cgroup data — entry remains valid; cgroup becomes undefined.
+    if (e.cgroup !== undefined && !isValidCgroupInfo(e.cgroup)) {
+        delete (entry as Record<string, unknown>).cgroup;
+    }
+    return true;
+}
+
+interface CgroupLineClass {
+    path: string | undefined;
+    kind: 'v1' | 'v2' | 'unknown';
+}
+
+function classifyCgroupLine(line: string): CgroupLineClass {
+    const firstColon = line.indexOf(':');
+    if (firstColon < 0) return { path: undefined, kind: 'unknown' };
+    const secondColon = line.indexOf(':', firstColon + 1);
+    if (secondColon < 0) return { path: undefined, kind: 'unknown' };
+    const hierarchyId = line.slice(0, firstColon);
+    const controllers = line.slice(firstColon + 1, secondColon);
+    const path = line.slice(secondColon + 1);
+    if (!/^\d+$/.test(hierarchyId)) return { path: undefined, kind: 'unknown' };
+    if (hierarchyId === '0' && controllers === '') return { path, kind: 'v2' };
+    if (hierarchyId !== '0' && controllers !== '') return { path, kind: 'v1' };
+    return { path, kind: 'unknown' };
+}
+
+function decideCgroupVersion(sawV1: boolean, sawV2: boolean, unrecognized: boolean): CgroupInfo['version'] {
+    if (sawV1 && sawV2) return 'mixed';
+    if (sawV1 && !sawV2) return 'v1';
+    if (sawV2 && !sawV1) return 'v2';
+    if (unrecognized) return 'unknown';
+    return 'unknown';
+}
+
+/**
+ * M3' — pure parser for /proc/<pid>/cgroup contents.
+ *
+ * Exported separately from `readCgroupForPid` so unit tests can exercise
+ * v1/v2/mixed/unknown classification with fixture strings on any platform
+ * (vitest dev loop runs on macOS as well as Linux CI).
+ *
+ * Line shapes:
+ *   - cgroup v2 single-line: `0::/some/path` (hierarchyId=0, controllers empty)
+ *   - cgroup v1 multi-line:  `N:controller[,controller2]:/some/path`
+ *   - hybrid (rare):         mixture of both forms
+ *
+ * @param raw     verbatim file contents
+ * @param readAt  ISO-8601 timestamp captured at read time (caller-supplied
+ *                so the parser stays pure / deterministic for tests)
+ */
+export function parseCgroupRaw(raw: string, readAt: string): CgroupInfo {
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    let sawV1 = false;
+    let sawV2 = false;
+    let unrecognized = false;
+    const paths: string[] = [];
+    for (const line of lines) {
+        const cls = classifyCgroupLine(line);
+        if (cls.path !== undefined) paths.push(cls.path);
+        if (cls.kind === 'v1') sawV1 = true;
+        else if (cls.kind === 'v2') sawV2 = true;
+        else unrecognized = true;
+    }
+    return { raw, version: decideCgroupVersion(sawV1, sawV2, unrecognized), paths, readAt };
+}
+
+/**
+ * M3' — read /proc/<pid>/cgroup on Linux only and parse via `parseCgroupRaw`.
+ *
+ * Returns `undefined` on:
+ *   - non-Linux platforms (darwin / win32 / freebsd)
+ *   - invalid pid (not a positive integer)
+ *   - read failure (ENOENT, EACCES, etc.)
+ *
+ * Sync read because /proc/<pid>/cgroup is a small (≤4KB) kernel-synthesized
+ * file and the caller (`queueUpsert`) runs inside the daemon's serialized
+ * mutation chain where sync I/O is acceptable.
+ */
+export function readCgroupForPid(pid: number): CgroupInfo | undefined {
+    if (platform() !== 'linux') return undefined;
+    if (!Number.isInteger(pid) || pid <= 0) return undefined;
+    let raw: string;
+    try {
+        raw = readFileSync(`/proc/${pid}/cgroup`, 'utf8');
+    } catch (error) {
+        logger.debug(`[CODEX MAPPING] cgroup read failed for pid ${pid} (non-fatal):`, error);
+        return undefined;
+    }
+    return parseCgroupRaw(raw, new Date().toISOString());
 }
 
 /**
@@ -125,10 +257,36 @@ export interface UpsertCodexEntryInput {
     codexThreadId?: string;
     pid: number;
     cwd: string;
+    /**
+     * M3' — optional cgroup snapshot captured by the daemon when binding the
+     * entry. Caller passes `undefined` on non-Linux or when /proc read fails.
+     *
+     * Merge rule (codex round-2 #6 + BA-QA observation #2):
+     *   - Fresh upsert with cgroup defined → REPLACE existing cgroup
+     *     (cgroup paths don't change for a live pid, but readAt should
+     *     refresh on each successful bind)
+     *   - Fresh upsert with cgroup undefined AND existing entry has cgroup →
+     *     PRESERVE existing cgroup (don't overwrite real data with read failure)
+     *   - New entry with cgroup undefined → field omitted
+     */
+    cgroup?: CgroupInfo;
 }
 
 function nowIso(): string {
     return new Date().toISOString();
+}
+
+function resolveMergedCgroup(
+    existing: CodexMappingEntry | undefined,
+    input: UpsertCodexEntryInput,
+): CgroupInfo | undefined {
+    if (input.cgroup) return input.cgroup;
+    // Codex round-3 F4 defensive rule: only preserve existing cgroup if the
+    // pid hasn't changed. If happySessionId is rebound to a different pid AND
+    // the fresh cgroup read fails, the old pid's cgroup is no longer
+    // applicable — better to omit than to mislabel.
+    if (existing?.cgroup && existing.pid === input.pid) return existing.cgroup;
+    return undefined;
 }
 
 function mergeEntry(
@@ -137,7 +295,7 @@ function mergeEntry(
 ): CodexMappingEntry {
     const ts = nowIso();
     const state: CodexMappingState = input.codexThreadId ? 'bound' : 'pending';
-    return {
+    const merged: CodexMappingEntry = {
         happySessionId: input.happySessionId,
         codexThreadId: input.codexThreadId ?? existing?.codexThreadId,
         pid: input.pid,
@@ -147,6 +305,9 @@ function mergeEntry(
         firstSeenAt: existing?.firstSeenAt ?? ts,
         lastUpdatedAt: ts,
     };
+    const cgroup = resolveMergedCgroup(existing, input);
+    if (cgroup) merged.cgroup = cgroup;
+    return merged;
 }
 
 /**

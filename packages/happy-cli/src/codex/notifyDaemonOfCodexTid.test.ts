@@ -6,7 +6,7 @@
  * no shared `/root/.codex/sessions/` pollution).
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the daemon controlClient BEFORE importing the helper so the helper
 // picks up the mocked module at import time.
@@ -18,8 +18,18 @@ vi.mock('@/daemon/controlClient', () => ({
 import { notifyDaemonOfCodexTid } from './notifyDaemonOfCodexTid';
 import type { Metadata } from '@/api/types';
 
+// M2' — restore process.title after each test so suites running later (e.g.,
+// resumeExistingThread.test.ts which calls the real helper through a mocked
+// controlClient) don't inherit leaked state from this suite.
+let originalProcessTitle: string;
+
 beforeEach(() => {
     notifyDaemonSessionStarted.mockReset();
+    originalProcessTitle = process.title;
+});
+
+afterEach(() => {
+    process.title = originalProcessTitle;
 });
 
 function baseMetadata(overrides: Partial<Metadata> = {}): Metadata {
@@ -92,5 +102,52 @@ describe('notifyDaemonOfCodexTid (AC1/AC2 primary)', () => {
         const first = notifyDaemonSessionStarted.mock.calls[0][1];
         const second = notifyDaemonSessionStarted.mock.calls[1][1];
         expect(first).toEqual(second);
+    });
+});
+
+/**
+ * M2' — process.title parity tests.
+ *
+ * Codex round-1 verdict: use tid.slice(-8) (random/sequence TAIL of UUIDv7),
+ * NOT tid.slice(0,8) which would collide on the millisecond-timestamp prefix.
+ *
+ * AC3: helper sets process.title to `happy-codex:<last 8 chars of tid>` and
+ * propagates regardless of daemon-notify outcome (best-effort).
+ */
+describe('notifyDaemonOfCodexTid process.title (M2)', () => {
+    it("sets process.title to 'happy-codex:<last 8 chars of tid>'", async () => {
+        notifyDaemonSessionStarted.mockResolvedValue({ status: 'ok' });
+        const tid = '0192abcd-AAAA-BBBB-CCCC-DDDDEEEEFFFF';
+        await notifyDaemonOfCodexTid('h-title-1', tid, baseMetadata());
+        expect(process.title).toBe('happy-codex:EEEEFFFF');
+    });
+
+    it('AC3: uses TAIL slice (-8), NOT prefix slice(0,8)', async () => {
+        notifyDaemonSessionStarted.mockResolvedValue({ status: 'ok' });
+        const tid = '0192abcd-AAAA-BBBB-CCCC-DDDDEEEEFFFF';
+        await notifyDaemonOfCodexTid('h-title-2', tid, baseMetadata());
+        // Negative assertion: must NOT be the first 8 chars (which would be
+        // millisecond-timestamp-heavy and collision-prone).
+        expect(process.title).not.toBe('happy-codex:0192abcd');
+        expect(process.title).toBe('happy-codex:EEEEFFFF');
+    });
+
+    it('sets title even when daemon notify returns an error', async () => {
+        notifyDaemonSessionStarted.mockResolvedValue({ error: 'daemon offline' });
+        await notifyDaemonOfCodexTid('h-title-3', 'abcdef0123456789', baseMetadata());
+        expect(process.title).toBe('happy-codex:23456789');
+    });
+
+    it('sets title even when daemon notify throws', async () => {
+        notifyDaemonSessionStarted.mockRejectedValue(new Error('boom'));
+        await notifyDaemonOfCodexTid('h-title-4', 'abcdef0123456789', baseMetadata());
+        expect(process.title).toBe('happy-codex:23456789');
+    });
+
+    it('handles short tids (slice(-8) on <8 chars yields whole string)', async () => {
+        notifyDaemonSessionStarted.mockResolvedValue({ status: 'ok' });
+        await notifyDaemonOfCodexTid('h-title-5', 'short', baseMetadata());
+        // String#slice(-8) on a 5-char string returns the whole string.
+        expect(process.title).toBe('happy-codex:short');
     });
 });

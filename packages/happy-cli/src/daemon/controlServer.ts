@@ -95,54 +95,82 @@ const LIST_ROW_SCHEMA = z.object({
   tidPending: z.boolean().optional()
 });
 
+/**
+ * M1' — additive optional mapping-health telemetry. v1 consumers ignore the
+ * field entirely; v2+ consumers may surface the values for observability
+ * tooling. NOT a replacement for the bash-side fd-scan fallback counter
+ * (recovery-script-patches-20260513-211054.md, Block 3) — see codexMappingDaemon.ts
+ * MappingStats TSDoc for the distinction.
+ */
+const MAPPING_STATS_SCHEMA = z.object({
+  entryCount: z.number(),
+  pendingCount: z.number(),
+  boundCount: z.number(),
+  sweepRemovedCount: z.number()
+});
+
+export interface MappingStatsResponseShape {
+  entryCount: number;
+  pendingCount: number;
+  boundCount: number;
+  sweepRemovedCount: number;
+}
+
+const LIST_RESPONSE_SCHEMA = z.object({
+  schemaVersion: z.literal(CONTROL_LIST_SCHEMA_VERSION).optional(),
+  children: z.array(LIST_ROW_SCHEMA),
+  mappingStats: MAPPING_STATS_SCHEMA.optional()
+});
+
 function registerListEndpoint(
   typed: TypedApp,
   getChildren: () => TrackedSession[],
-  getPendingCodexSessionIds: (() => Set<string>) | undefined
+  getPendingCodexSessionIds: (() => Set<string>) | undefined,
+  getMappingStats: (() => Promise<MappingStatsResponseShape>) | undefined
 ): void {
   typed.post('/list', {
-    schema: {
-      response: {
-        200: z.object({
-          schemaVersion: z.literal(CONTROL_LIST_SCHEMA_VERSION).optional(),
-          children: z.array(LIST_ROW_SCHEMA)
-        })
-      }
-    }
+    schema: { response: { 200: LIST_RESPONSE_SCHEMA } }
   }, async () => {
     const children = getChildren();
     logger.debug(`[CONTROL SERVER] Listing ${children.length} sessions`);
     const pending = getPendingCodexSessionIds ? getPendingCodexSessionIds() : new Set<string>();
+    const mappingStats = getMappingStats ? await getMappingStats() : undefined;
     return {
       schemaVersion: CONTROL_LIST_SCHEMA_VERSION,
       children: children
         .filter(child => child.happySessionId !== undefined)
-        .map(child => buildListRow(child, pending))
+        .map(child => buildListRow(child, pending)),
+      ...(mappingStats ? { mappingStats } : {})
     };
   });
+}
+
+/**
+ * Props for startDaemonControlServer. `getPendingCodexSessionIds` returns the
+ * set of happy session IDs whose codex tid binding is in flight (mapping
+ * state=pending); omitting it derives codex `tidPending` purely from absence
+ * of `codexThreadId`. M1' `getMappingStats` is optional additive
+ * codex-mapping-health telemetry surfaced at /list root.
+ */
+export interface DaemonControlServerProps {
+  getChildren: () => TrackedSession[];
+  getPendingCodexSessionIds?: () => Set<string>;
+  getMappingStats?: () => Promise<MappingStatsResponseShape>;
+  stopSession: (sessionId: string) => boolean;
+  spawnSession: (options: SpawnSessionOptions) => Promise<SpawnSessionResult>;
+  requestShutdown: () => void;
+  onHappySessionWebhook: (sessionId: string, metadata: Metadata) => void;
 }
 
 export function startDaemonControlServer({
   getChildren,
   getPendingCodexSessionIds,
+  getMappingStats,
   stopSession,
   spawnSession,
   requestShutdown,
   onHappySessionWebhook
-}: {
-  getChildren: () => TrackedSession[];
-  /**
-   * Optional accessor returning the set of happy session IDs whose codex tid
-   * binding is still in flight (codex-mapping.json state === 'pending').
-   * Omitting it leaves `tidPending` always undefined for non-codex rows AND
-   * derives codex `tidPending` purely from absence of `codexThreadId`.
-   */
-  getPendingCodexSessionIds?: () => Set<string>;
-  stopSession: (sessionId: string) => boolean;
-  spawnSession: (options: SpawnSessionOptions) => Promise<SpawnSessionResult>;
-  requestShutdown: () => void;
-  onHappySessionWebhook: (sessionId: string, metadata: Metadata) => void;
-}): Promise<{ port: number; stop: () => Promise<void> }> {
+}: DaemonControlServerProps): Promise<{ port: number; stop: () => Promise<void> }> {
   return new Promise((resolve) => {
     const app = fastify({ logger: false });
     app.setValidatorCompiler(validatorCompiler);
@@ -161,7 +189,7 @@ export function startDaemonControlServer({
       return { status: 'ok' as const };
     });
 
-    registerListEndpoint(typed, getChildren, getPendingCodexSessionIds);
+    registerListEndpoint(typed, getChildren, getPendingCodexSessionIds, getMappingStats);
 
     // Stop specific session
     typed.post('/stop-session', {

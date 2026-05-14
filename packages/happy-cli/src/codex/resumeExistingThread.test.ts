@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 const notifyDaemonSessionStarted = vi.fn();
 vi.mock('@/daemon/controlClient', () => ({
@@ -7,9 +7,19 @@ vi.mock('@/daemon/controlClient', () => ({
 
 import { resumeExistingThread } from './resumeExistingThread';
 
+// M2' — restore process.title after each test. resumeExistingThread.ts calls
+// notifyDaemonOfCodexTid (real helper, mocked controlClient), which now sets
+// process.title. Restoring here prevents leaking state into other test suites.
+let originalProcessTitle: string;
+
 beforeEach(() => {
     notifyDaemonSessionStarted.mockReset();
     notifyDaemonSessionStarted.mockResolvedValue({ status: 'ok' });
+    originalProcessTitle = process.title;
+});
+
+afterEach(() => {
+    process.title = originalProcessTitle;
 });
 
 describe('resumeExistingThread', () => {
@@ -105,6 +115,32 @@ describe('resumeExistingThread', () => {
             mcpServers: {},
         });
         expect(notifyDaemonSessionStarted).not.toHaveBeenCalled();
+    });
+
+    it('M2 AC3: resume path also sets process.title via centralized helper', async () => {
+        const resultTid = '0192abcd-XXXX-YYYY-ZZZZ-RESUMETAILZ';
+        const client = {
+            resumeThread: vi.fn().mockResolvedValue({ threadId: resultTid, model: 'gpt-5.4' }),
+        };
+        const session = {
+            sessionId: 'happy-resume-session',
+            updateMetadata: vi.fn((handler) => handler({ existing: true })),
+            sendSessionEvent: vi.fn(),
+        };
+        await resumeExistingThread({
+            client,
+            session,
+            messageBuffer: { addMessage: vi.fn() },
+            threadId: 'requested-tid',
+            cwd: '/tmp/project',
+            mcpServers: {},
+        });
+        // resultTid.slice(-8) = "SUMETAIL"... actually JS slice(-8) on
+        // "0192abcd-XXXX-YYYY-ZZZZ-RESUMETAILZ" — count from end: "ESUMETAILZ"[-8:]
+        // is the last 8 chars of the full string. Compute deterministically:
+        expect(process.title).toBe(`happy-codex:${resultTid.slice(-8)}`);
+        // Negative: NOT the first 8 chars (which are timestamp-heavy for UUIDv7).
+        expect(process.title).not.toBe(`happy-codex:${resultTid.slice(0, 8)}`);
     });
 
     it('wraps backend resume errors with the thread ID', async () => {

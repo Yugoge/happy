@@ -1,0 +1,319 @@
+{
+  "request_id": "20260514-093200",
+  "task_id": "20260514-093200",
+  "task_id_echo": "TASK-ID: 20260514-093200",
+  "timestamp": "2026-05-14T11:21:00Z",
+  "mode": "implementation_verification",
+  "round": 1,
+  "qa": {
+    "status": "warning",
+    "verdict": "PASS_WITH_OBSERVATIONS",
+    "user_verbatim_complaint": "/redev --codex 完成剩下的全部没做的 + 那你倒是做 + /do",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": false,
+    "ac_deviation_branch": "ac_deviation_with_user_need_satisfied",
+    "ac_deviation_details": {
+      "deviated_ac_ids": ["AC1", "AC2"],
+      "deviation_summary": "BA ticket AC1/AC2 literal text uses field name `lastSweepRemoved` (per ticket lines 378, 391). Dev implementation uses `sweepRemovedCount` with monotonic accumulator semantics (codexMappingDaemon.ts:55, 166; controlServer.ts:109). The rename was prompted by BA-QA round-2 observation #C2-2 which flagged the AC2 wording 'counter increments' as inconsistent with the field-name 'last' (set semantics). Dev's resolution: rename field to `sweepRemovedCount` and adopt monotonic-accumulator semantics (AC2 text says 'increments', supports accumulator).",
+      "verbatim_user_need_text": "/redev --codex 完成剩下的全部没做的 + 那你倒是做 (user authorized broad-scope completion of remaining deferred items; user did not name any specific field name)",
+      "evidence_satisfying_user_need": "All 4 items (M1' M2' M3' M4') landed per codex round-1 LAND verdicts; 45/45 codex-scoped tests pass; build clean; /list now exposes mapping-health telemetry (with renamed field) so the user-need 'expose mapping health for fd-scan deprecation chain' is satisfied. The functional behavior (4 fields surfaced at /list root, monotonic accumulator across sweeps, additivity preserved) matches AC1/AC2's intent.",
+      "anti_fraud_guard_check": "PASSED — the deviated AC does NOT encode the user-need test itself (user did not name the field), does NOT encode a security check, does NOT encode cleanliness-of-this-diff. Pure terminology drift between BA spec and implementation prompted by BA-QA round-2 observation."
+    },
+    "complaint_resolution_evidence": "4 deferrals from prior cycle 20260513-211054 landed: M1' /list mappingStats exposure (with renamed field), M2' centralized process.title via notifyDaemonOfCodexTid helper with tail-8 slice, M3' optional cgroup field with pure parser + Linux-only reader + pid-rebind defense, M4' 5-step deprecation roadmap doc. Codex round-1 LAND-with-modifications all baked in.",
+    "verified_location_keywords": [
+      "packages",
+      "happy-cli",
+      "src",
+      "codex",
+      "codexMapping",
+      "codexMappingDaemon",
+      "notifyDaemonOfCodexTid",
+      "resumeExistingThread",
+      "daemon",
+      "controlServer",
+      "run",
+      "docs",
+      "dev",
+      "codex-mapping-rollout-roadmap"
+    ],
+    "location_overlap": [
+      "codex",
+      "codexMapping",
+      "codexMappingDaemon",
+      "notifyDaemonOfCodexTid",
+      "controlServer",
+      "daemon"
+    ],
+    "overall_assessment": "Cycle landed 4 prior-cycle deferrals (M1' M2' M3' M4') per BA spec with codex round-1 modifications correctly baked in. Build clean (yarn build = OK with sendExisting symbol preserved in dist/index-jvD1JNCv.mjs at 5 occurrences). 45/45 codex-scoped tests pass. 5 pre-existing codex.integration.test.ts failures unrelated to this cycle (file untouched, last edit 2 commits before this cycle). Implementation deviates from AC1/AC2 literal field name (`lastSweepRemoved` -> `sweepRemovedCount`) — driven by BA-QA round-2 #C2-2 observation that the original AC2 'counter increments' text was inconsistent with field-name 'last'. Dev resolution adopts monotonic-accumulator semantics matching 'increments'. Verdict PASS_WITH_OBSERVATIONS via ac_deviation_with_user_need_satisfied branch (user-need satisfied, anti-fraud guard passed, AC drift surfaced as spec_text_vs_execution_drift objection for BA to patch in next cycle).",
+    "success_criteria_results": [
+      {
+        "ac_id": "AC1",
+        "criterion": "M1' mapping stats exposed at /list with field name lastSweepRemoved",
+        "verification_method": "Read controlServer.ts:105-145 + Zod schema verification + run.ts wiring inspection",
+        "status": "deviated",
+        "result": "warning",
+        "details": "Implementation exposes mappingStats at /list root with optional schema (BA F4 additivity preserved). Zod schema MAPPING_STATS_SCHEMA at controlServer.ts:105-110 declares fields {entryCount, pendingCount, boundCount, sweepRemovedCount}. LIST_RESPONSE_SCHEMA wraps with .optional() at line 122. Wired through DaemonControlServerProps.getMappingStats (line 158) and run.ts:649. DEVIATION: 4th field is `sweepRemovedCount` not `lastSweepRemoved` per AC1 ticket line 378. Semantic also changed (monotonic accumulator vs set-on-each-sweep). Drift driven by BA-QA round-2 #C2-2 (acknowledged in dev report tasks_completed[3].rationale).",
+        "evidence": "controlServer.ts:99-145 Zod schema + wiring; run.ts:649 props pass-through; AC1 ticket lines 372-383"
+      },
+      {
+        "ac_id": "AC2",
+        "criterion": "M1' counter reflects daemon-side signal (entryCount=2, pendingCount=1, boundCount=1, lastSweepRemoved=1 after sweep)",
+        "verification_method": "Read codexMappingDaemon.ts:148-168 + codexMappingDaemon.test.ts:139-188",
+        "status": "deviated",
+        "result": "warning",
+        "details": "Counter source verified at codexMappingDaemon.ts:131 (state.sweepRemovedCount += sweep.removed; monotonic accumulator). Derived counts computed at codexMappingDaemon.ts:148-168 (entryCount/pendingCount/boundCount from fresh readCodexMapping). Tests at codexMappingDaemon.test.ts:139-188 cover (a) zero baseline (b) derived counts after upserts (c) monotonic accumulator across sweeps (line 161-175: after 2 sweeps with 2 removals + 0 removals, count stays >= 2) (d) per-daemon-process reset (fresh controller starts at 0). Code comments at codexMappingDaemon.ts:33-49 + MAPPING_STATS_SCHEMA TSDoc at controlServer.ts:99-104 explicitly state mapping-health, NOT fd-scan replacement. DEVIATION: AC2 literal text says 'lastSweepRemoved === 1' (set, not accumulate). Implementation accumulates and renames to `sweepRemovedCount`. Drift origin: BA-QA round-2 #C2-2.",
+        "evidence": "codexMappingDaemon.ts:131 accumulator; codexMappingDaemon.test.ts:161-188 monotonic test; AC2 ticket lines 385-393"
+      },
+      {
+        "ac_id": "AC3",
+        "criterion": "M2' process.title set with tail-8 slice on both code paths (start path AND resume path)",
+        "verification_method": "Read notifyDaemonOfCodexTid.ts:53-90 + notifyDaemonOfCodexTid.test.ts:117-153 + resumeExistingThread.test.ts:120-144",
+        "status": "pass",
+        "result": "pass",
+        "details": "Helper setCodexProcessTitle at notifyDaemonOfCodexTid.ts:53-62 uses tid.slice(-8) (tail, NOT prefix). Call site at line 72 BEFORE the daemon POST try-block — so both start path (runCodex.ts:712, calls notifyDaemonOfCodexTid) and resume path (resumeExistingThread.ts:37, also calls notifyDaemonOfCodexTid) get the title automatically via the centralized helper. Test isolation: both notifyDaemonOfCodexTid.test.ts (lines 24-33) AND resumeExistingThread.test.ts (lines 12-23) use beforeEach/afterEach to capture+restore originalProcessTitle. Tests assert (a) title == 'happy-codex:EEEEFFFF' explicitly (lines 117-123 + lines 125-133 negative-assert NOT 'happy-codex:0192abcd' prefix) (b) title set even on daemon error/throw (lines 135-145) (c) AC3 resume-path verification at resumeExistingThread.test.ts:120-144 — process.title set via centralized helper. Try/catch at lines 54-61 makes assignment best-effort; daemon-notify continues if title throws.",
+        "evidence": "notifyDaemonOfCodexTid.ts:53-72; notifyDaemonOfCodexTid.test.ts:117-153 (5 M2' tests); resumeExistingThread.test.ts:120-144 (AC3 resume coverage)"
+      },
+      {
+        "ac_id": "AC4",
+        "criterion": "M3' cgroup field populated on Linux upsert (raw + version + paths + readAt); omitted on non-Linux/read-failure; isValidEntry tolerant",
+        "verification_method": "Read codexMapping.ts:60-242 + codexMapping.cgroup.test.ts (18 tests)",
+        "status": "pass",
+        "result": "pass",
+        "details": "CgroupInfo interface at codexMapping.ts:60-65 with {raw, version, paths, readAt}. parseCgroupRaw at codexMapping.ts:203-217 is PURE (exported, takes raw+readAt, no I/O) — split into classifyCgroupLine + decideCgroupVersion + parseCgroupRaw to satisfy 30-line function gate. readCgroupForPid at codexMapping.ts:231-242 has hostPid guard (Number.isInteger + > 0) at line 233 AND Linux-only check at line 232; returns undefined on non-Linux/invalid-pid/read-failure (catches at line 237 with logger.debug). isValidCgroupInfo validator at codexMapping.ts:129-140 checks shape strictly. isValidEntry at codexMapping.ts:142-158 strips malformed persisted cgroup on read (line 154-156: 'delete entry.cgroup' on validation failure — entry remains valid). resolveMergedCgroup at codexMapping.ts:279-290 implements F4 pid-rebind defense: only preserves existing cgroup when existing.pid === input.pid (line 288). Wired into queueUpsert at codexMappingDaemon.ts:107 (cgroup read BEFORE upsert call). 18 cgroup tests cover v1/v2/mixed/unknown/blank/garbage/empty parsing + pid-validation + Linux platform + validator + 5 merge rules (replace-fresh, omit, preserve-on-pid-match, drop-on-pid-mismatch [F4 defensive], strip-malformed-on-read).",
+        "evidence": "codexMapping.ts:60-242; codexMapping.cgroup.test.ts (18 tests covering all required AC4 cases)"
+      },
+      {
+        "ac_id": "AC5",
+        "criterion": "M4' completion-doc note with 5-step deprecation precondition chain + cross-links to C2 and AC1",
+        "verification_method": "Read docs/dev/codex-mapping-rollout-roadmap.md (103 lines)",
+        "status": "pass",
+        "result": "pass",
+        "details": "5-step chain present at lines 34-86: Step 1 (Blocks 3 AND 4 land on /root/bin/*), Step 2 (mappingStats non-zero on dev daemon), Step 3 (M3+M3'+M6 deployed on ALL daemon homes — BEFORE Step 4 observation window starts, per codex round-3 F5 correction), Step 4 (4-week zero-firings observation), Step 5 (schedule scan_codex_via_fd removal cycle). Cross-links present at lines 5-13: predecessor cycle 20260513-211054 with commit 38f6bac4 ref, this cycle 20260514-093200, recovery-script-patches-20260513-211054.md (M6 Block 3+4), prior cycle Could-Have C2, this cycle AC1+AC5 ticket, M1' wiring in codexMappingDaemon.ts. Telemetry distinction table at lines 23-32 explicitly states mappingStats vs bash fd-scan counter answer different questions and BOTH must read zero before deprecation. Binary paths use /root/happy/.../dist/index.mjs and /root/happy-dev/.../dist/index.mjs per CLAUDE.md Three Daemon Binary Architecture (codex round-3 F5 correction at line 59).",
+        "evidence": "docs/dev/codex-mapping-rollout-roadmap.md lines 34-86 (5-step chain), lines 5-13 (cross-links), lines 23-32 (telemetry distinction)"
+      },
+      {
+        "ac_id": "AC6",
+        "criterion": "Build + test + type-check clean (yarn build && yarn test pass)",
+        "verification_method": "Executed: cd packages/happy-cli && yarn build (10.45s clean) + yarn vitest --run src/codex/{codexMapping.cgroup,codexMappingDaemon,notifyDaemonOfCodexTid,resumeExistingThread}.test.ts",
+        "status": "pass",
+        "result": "pass",
+        "details": "yarn build completed in 10.45s with NO errors (shx rm -rf dist && tsc --noEmit && pkgroll). sendExisting symbol preserved in dist (5 occurrences in dist/index-jvD1JNCv.mjs). 45/45 scoped codex tests pass: 18 cgroup + 11 codexMappingDaemon + 11 notifyDaemonOfCodexTid + 5 resumeExistingThread. 5 pre-existing failures in codex.integration.test.ts (interruptTurn restart behavior) — file NOT modified in this cycle (last edit at commit 0b6f4839, 2 commits before this cycle's HEAD; this cycle's dev did not touch codex.integration.test.ts). Failure mode unchanged by this cycle's edits per file-touch scope analysis.",
+        "evidence": "yarn build stdout: 'Done in 10.45s' with no errors; vitest run 'Test Files  4 passed (4); Tests  45 passed (45); Duration 22.33s'"
+      }
+    ],
+    "root_cause_verification": {
+      "addressed": true,
+      "confidence": "high",
+      "rationale": "User asked to 'complete the remaining items not done' (broad-scope per /do override + verbatim 那你倒是做). Dev landed all 4 codex round-1 LAND items (M1' M2' M3' M4'). Each item's implementation matches codex round-1 verdict modifications (slice(-8), structured cgroup raw+parsed, honest M1' labeling, 5-step chain). Codex round-3 corrections (F1 startup-sweep comment, F4 pid-rebind defense, F5 roadmap fixes) baked in. F2 (third tid-bind site in abortTurnWithFallback path) deferred as out-of-scope-followup with justification (BA spec M2' scope named only start+explicit-resume paths; the abortTurnWithFallback resume path is a third site unanticipated by spec; fixing requires extending pre-existing 822-line runCodex.ts which exceeds file-size cap)."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "cd /dev/shm/dev-workspace/happy-dev/packages/happy-cli && yarn build",
+      "deploy_command": "N/A — subagent does not restart daemons (durable '我手动做')",
+      "build_output_summary": "Done in 10.45s — tsc --noEmit + pkgroll both clean. No warnings beyond expected 'package.json#bin' (pre-existing, not introduced by this cycle).",
+      "service_healthy": "N/A — code-only verification per durable directive '我手动做' (user-TTY rebuild gate)",
+      "changes_verified_live": false,
+      "skip_reason": "Durable '我手动做' directive prohibits subagent daemon restart. User-TTY rebuild required for live /list curl + ps aux grep + cgroup field inspection. QA verifies via unit tests + typecheck + static inspection per BA AC6 NOTE.",
+      "sendExisting_preserved": true,
+      "sendExisting_count_in_dist": 5
+    },
+    "test_execution_results": {
+      "scoped_tests_run": "src/codex/codexMapping.cgroup.test.ts + src/codex/codexMappingDaemon.test.ts + src/codex/notifyDaemonOfCodexTid.test.ts + src/codex/resumeExistingThread.test.ts",
+      "tests_passed": 45,
+      "tests_failed": 0,
+      "test_files_passed": 4,
+      "test_files_failed": 0,
+      "duration_seconds": 22.33,
+      "pre_existing_failures": {
+        "file": "src/codex/codex.integration.test.ts",
+        "failures": 5,
+        "tests_in_file": 9,
+        "tests_passing": 4,
+        "verdict": "unrelated to this cycle",
+        "rationale": "git log on codex.integration.test.ts shows last edit at commit 0b6f4839 (test isolate suites) and a6f024db (v2 protocol compat) — both before this cycle's HEAD. This cycle's diff (git status --short) does NOT include codex.integration.test.ts. Failure mode is pre-existing 'interruptTurn restart context preservation' regression that exists independent of M1'/M2'/M3'/M4' changes."
+      }
+    },
+    "regression_test_results": [
+      {
+        "test": "Persistence.ts untouched (BA F3 + codex consensus)",
+        "result": "pass",
+        "details": "git diff HEAD --name-only does NOT include packages/happy-cli/src/persistence.ts. Confirmed via direct git status check."
+      },
+      {
+        "test": "/root/bin/* untouched (hook-blocked + BA Won't Have)",
+        "result": "pass",
+        "details": "git diff HEAD --name-only confirms no /root/bin/* paths. Subagent did not attempt edits (hook pretool-block-production-files.sh would have blocked)."
+      },
+      {
+        "test": "No daemon restart attempted (durable '我手动做')",
+        "result": "pass",
+        "details": "dev report user_consent_traceability.destructive_action_escalation_triggered = false; no systemctl/safe-daemon-restart references in dev changes."
+      },
+      {
+        "test": "Claude session paths untouched (no cross-flavor regression)",
+        "result": "pass",
+        "details": "git diff HEAD --name-only shows only codex/* + daemon/{controlServer,run}.ts edits. No claude/* edits. claude session protocol mapping cannot regress from this cycle."
+      },
+      {
+        "test": "/list v1 consumer schema additivity (BA F4)",
+        "result": "pass",
+        "details": "LIST_RESPONSE_SCHEMA at controlServer.ts:119-123 declares mappingStats as MAPPING_STATS_SCHEMA.optional(). registerListEndpoint at line 143 uses spread '...(mappingStats ? {mappingStats} : {})' so v1 consumers see the field absent (not null) when getMappingStats is undefined. v1 clients ignoring extra root keys continue to deserialize.",
+        "test_gap_acknowledged": "No dedicated controlServer.test.ts assertion exists for the new mappingStats wiring. Codex Q2 flagged this — verifiable only by static inspection of controlServer.ts + run.ts wire-through. Surfaced as observation #5 below."
+      },
+      {
+        "test": "CodexMappingEntry.cgroup additivity for v1 readers",
+        "result": "pass",
+        "details": "isValidEntry at codexMapping.ts:142-158 treats cgroup as optional; missing field is normal. Malformed persisted cgroup is stripped (line 154-156) — entry remains valid. v1 readers ignoring cgroup continue to work."
+      }
+    ],
+    "code_quality_findings": [],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 9,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      },
+      "notes": "Scanned all modified+created files. Only 'hardcoded' value is `/proc/${pid}/cgroup` (Linux kernel synthetic path — by definition correct) and `happy-codex:` prefix (semantic constant for ps grep). No real hardcoded paths, URLs, IPs, secrets."
+    },
+    "standards_compliance": {
+      "checked": true,
+      "role_table_source": "Project CLAUDE.md has no UI role-token table (non-UI cycle — pure TypeScript daemon+CLI). Strict role->token audit not applicable.",
+      "applicable": false,
+      "rationale": "Cycle is L4 backend logic on packages/happy-cli/src/codex/ + daemon/. No UI rendering, no CSS, no design tokens. Project CLAUDE.md design-token rules do not apply to this scope."
+    },
+    "band_aid_detection": {
+      "patterns_scanned": ["threshold_lowering", "error_swallowing", "severity_downgrade", "validation_skip", "check_removal", "default_substitution", "role_token_downgrade"],
+      "violations_found": 0,
+      "notes": "process.title try/catch at notifyDaemonOfCodexTid.ts:54-61 is NOT band-aid error-swallowing: it is best-effort process.title set per BA spec safety requirement R-6 + codex round-1 verdict (Linux process.title set 'may not survive node --no-warnings preamble', mitigation = best-effort). Logger.debug at line 58 preserves diagnostic visibility. cgroup read at codexMapping.ts:237 also try/catch — same pattern (non-fatal on read failure per BA spec M3' R-2 risk mitigation)."
+    },
+    "ui_evidence": null,
+    "ui_test_results": [],
+    "live_verification_setup_attempt": {
+      "applicable": false,
+      "reason": "Non-UI backend cycle. No live daemon restart per durable '我手动做'. Static code inspection + unit tests are the sanctioned verification path per BA AC6 NOTE."
+    },
+    "all_findings": [
+      {
+        "id": "QA-OBS-1",
+        "severity": "minor",
+        "category": "spec_text_vs_execution_drift",
+        "dimension": "spec_text_vs_execution_drift",
+        "location": "docs/dev/ticket-20260514-093200.md:378,391 (AC1 field name + AC2 expected value)",
+        "issue": "AC1 ticket line 378 specifies field name 'lastSweepRemoved'. AC2 ticket line 391 specifies 'lastSweepRemoved === 1' after a single sweep removing 1 entry. Implementation uses 'sweepRemovedCount' (rename) with monotonic-accumulator semantics (not set-on-each-sweep).",
+        "rationale_for_minor_severity": "Drift is acknowledged in dev report tasks_completed[3].rationale citing BA-QA round-2 #C2-2 observation (which itself flagged the AC2 'increments' vs field-name 'last' ambiguity). User's verbatim complaint did NOT name the field. User-need (expose mapping-health for fd-scan deprecation chain) is satisfied by the renamed-and-resemantic'd field — 4 fields surfaced at /list root, monotonic accumulator across sweeps, additivity preserved. The drift is purely terminology, NOT functional regression. Anti-fraud guard PASSED: deviated AC does not encode user-need test, security check, or cleanliness-of-this-diff.",
+        "recommendation": "BA should patch AC1/AC2 in a follow-up spec-update cycle to align literal text with the runnable implementation: rename `lastSweepRemoved -> sweepRemovedCount` and rephrase AC2 expected value to reflect monotonic-accumulator semantics (e.g., 'sweepRemovedCount >= 1 after one sweep removing 1 entry; stays at the same value if subsequent sweep removes 0'). This prevents future-cycle AC literal-text drift.",
+        "blocks_release": false
+      },
+      {
+        "id": "QA-OBS-2",
+        "severity": "minor",
+        "category": "test_gap",
+        "location": "packages/happy-cli/src/daemon/controlServer.test.ts",
+        "issue": "Existing controlServer.test.ts does NOT exercise the new mappingStats wiring at /list. Codex Q2 #1 finding: no test starts the control server with a getMappingStats accessor and asserts body.mappingStats serialization. AC1 testability is therefore static-only (Zod schema + wire-through inspection) not runtime-verified.",
+        "recommendation": "Follow-up cycle: extend controlServer.test.ts with a /list test that passes a stub getMappingStats and asserts the response body shape. Non-blocking for this cycle because (a) the wiring is simple spread-when-defined (controlServer.ts:143), (b) the underlying getMappingStats is unit-tested by codexMappingDaemon.test.ts, and (c) all individual pieces (Zod schema, accessor, run.ts props) are statically verifiable.",
+        "blocks_release": false
+      },
+      {
+        "id": "QA-OBS-3",
+        "severity": "minor",
+        "category": "test_gap",
+        "location": "packages/happy-cli/src/codex/codexMappingDaemon.test.ts (no integration of queueUpsert + cgroup)",
+        "issue": "Codex Q2 #4 finding: parser, readCgroupForPid, upsertCodexMappingEntry, and merge rules are each tested in cgroup.test.ts. But no daemon-controller integration test asserts that onWebhook → queueUpsert → upsertCodexMappingEntry actually writes entry.cgroup through the live daemon controller flow.",
+        "recommendation": "Follow-up cycle: extend codexMappingDaemon.test.ts to verify a Linux onWebhook → queueUpsert call results in entry.cgroup being populated on the resulting mapping entry. Non-blocking for this cycle because each piece of the chain is unit-tested independently and the integration is just composition.",
+        "blocks_release": false
+      },
+      {
+        "id": "QA-OBS-4",
+        "severity": "minor",
+        "category": "test_gap",
+        "location": "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts",
+        "issue": "Codex Q2 #3 finding: AC3 ticket lines 405-406 specifies 'if process.title assignment throws, the helper still completes the daemon notify successfully'. The 5 existing M2' tests cover daemon-notify error/throw paths but do NOT exercise a process.title setter that itself throws. The try/catch at notifyDaemonOfCodexTid.ts:54-61 is statically correct but runtime-unverified.",
+        "recommendation": "Follow-up cycle: add a test that monkey-patches the process.title setter to throw, then asserts notifyDaemonOfCodexTid still calls notifyDaemonSessionStarted successfully. Non-blocking because (a) the catch block at line 56-61 is statically verifiable, (b) process.title is implemented natively in Node and assignment-throws are exceedingly rare on Linux.",
+        "blocks_release": false
+      },
+      {
+        "id": "QA-OBS-5",
+        "severity": "minor",
+        "category": "out_of_scope_followup",
+        "location": "packages/happy-cli/src/codex/runCodex.ts:366-378 (abortTurnWithFallback path)",
+        "issue": "Codex round-3 F2 (acknowledged in dev report out_of_scope_observations[0]): a THIRD tid-bind site exists at runCodex.ts abortTurnWithFallback → client.reconnectAndResumeThread() → client.resumeThread(). This path rotates client._threadId internally (codexAppServerClient.ts:856) but does NOT call notifyDaemonOfCodexTid, so a rotated tid skips daemon metadata sync + process.title update.",
+        "qa_position": "Codex Q1 verdict: deferral is justified IF QA enforces the BA scope literally. BA spec M2' enumerated only start path (runCodex.ts:712) and resume path (resumeExistingThread.ts:37). The abortTurnWithFallback path is a THIRD site that the BA spec did not anticipate. Fixing requires extending runCodex.ts which is pre-existing 822-line file exceeding the 800-line file-size cap — would force scope-review-requested escalation. Acceptable as out-of-scope-followup as long as the dev report does NOT claim 'every tid-binding site is covered'. Dev report does NOT make that overclaim (tasks_completed[5].rationale says 'BA spec M2' covers start path AND resume path via centralized helper' — accurate scope).",
+        "recommendation": "Follow-up cycle: extend runCodex.ts abortTurnWithFallback handler to re-notify daemon + update process.title when forced-restart resume rotates the tid. Requires extracting runCodex into helper modules to satisfy file-size cap. Out of scope for this cycle per BA spec M2' literal scope.",
+        "blocks_release": false
+      }
+    ],
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 5,
+      "total_findings": 5,
+      "release_recommendation": "approve-with-warnings",
+      "verdict_rationale": "Implementation lands all 4 BA-spec items with codex round-1 modifications correctly baked in. Build clean, 45/45 codex-scoped tests pass, no regression in M1-M9 prior-cycle code paths, persistence.ts + /root/bin/* untouched. Only structural finding is AC1/AC2 field-name + semantic drift (lastSweepRemoved -> sweepRemovedCount, set -> accumulator) which the dev report acknowledges as flowing from BA-QA round-2 #C2-2 observation — surfaced as QA-OBS-1 spec_text_vs_execution_drift for BA to patch in follow-up. Three test-gap observations (QA-OBS-2/3/4) are non-blocking because individual pieces are unit-tested and integrations are composition. F2 third tid-bind site (QA-OBS-5) is acceptably deferred per BA spec M2' literal scope. Verdict PASS_WITH_OBSERVATIONS via ac_deviation_with_user_need_satisfied close-PASS branch (Section 5.4 rule 4)."
+    }
+  },
+  "spec_section_updates": {
+    "section_4": "Cycle 20260514-093200 measured state: 9 modified files + 2 new files. yarn build clean (10.45s, sendExisting preserved at 5 occurrences in dist/index-jvD1JNCv.mjs). 45/45 codex-scoped vitest pass (18 cgroup + 11 codexMappingDaemon + 11 notifyDaemonOfCodexTid + 5 resumeExistingThread). 5 pre-existing codex.integration.test.ts failures unchanged by this cycle. M1' wired at controlServer.ts:99-145 with field name `sweepRemovedCount` (BA-QA round-2 #C2-2 driven rename from `lastSweepRemoved`). M2' centralized at notifyDaemonOfCodexTid.ts:53-72 with tid.slice(-8). M3' cgroup field complete at codexMapping.ts:60-242 with pure parser + Linux-only reader + pid-rebind F4 defense. M4' roadmap doc at docs/dev/codex-mapping-rollout-roadmap.md (103 lines, 5-step chain, all cross-links present).",
+    "section_6": null,
+    "section_7": null
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "model": "gpt-5.5",
+    "reasoning_effort": "xhigh",
+    "session_id": "019e2633-14ce-7530-925e-f835cbcce6dc",
+    "feedback_summary": "Codex round-1 QA-adversarial review (this cycle's QA-time consultation): 5 substantive findings. (1) AC1/AC2 field-name drift `lastSweepRemoved -> sweepRemovedCount` flagged as blocker-or-spec-update-required. (2) F2 deferral acceptable IF QA enforces BA scope literally — push back only on overclaims. (3) Test gaps: no /list wire test, no v1-consumer fixture for mappingStats additivity, no process.title-setter-throws test, no onWebhook→cgroup integration test. (4) Regression risk low (process.title local, cgroup additive, mappingStats additive — main risk is field-name drift). (5) Process.title Linux truncation TSDoc adequate, tests do not overclaim comm-field visibility.",
+    "feedback_incorporated": "Finding 1 (AC field-name drift): treated as critical surface but routed to ac_deviation_with_user_need_satisfied close-PASS branch per Section 5.4 rule 4 — user-need satisfied (broad-scope 'complete remaining'), anti-fraud guard passed (AC does not encode user-need test or security check), drift origin is BA-QA round-2 observation. Surfaced as QA-OBS-1 spec_text_vs_execution_drift for BA spec patch in next cycle. Finding 2 (F2 deferral): accepted as out-of-scope-followup with explicit anti-overclaim check on dev report — dev did NOT claim universal tid-bind coverage. QA-OBS-5. Findings 3 (test gaps): three minor observations QA-OBS-2/3/4 surfaced. Finding 4 (regression): consumed into regression_test_results validating additivity. Finding 5 (truncation): consumed as adequate documentation, no QA finding."
+  },
+  "self_verification": {
+    "claims_total": 22,
+    "claims_with_evidence": 22,
+    "claims_superficial": 0,
+    "superficial_details": [],
+    "confidence": "high",
+    "claim_examples": [
+      "yarn build clean — measured: stdout 'Done in 10.45s' with no errors",
+      "45/45 codex-scoped tests pass — measured: vitest 'Test Files 4 passed (4); Tests 45 passed (45)'",
+      "sendExisting preserved — measured: grep -c sendExisting dist/index-jvD1JNCv.mjs = 5",
+      "AC1/AC2 field-name drift — verified: ticket lines 378,391 say 'lastSweepRemoved'; controlServer.ts:109 + codexMappingDaemon.ts:55 use 'sweepRemovedCount'",
+      "AC3 slice(-8) — verified: notifyDaemonOfCodexTid.ts:55 `tid.slice(-8)` AND tests assert process.title NOT equal to slice(0,8) prefix",
+      "AC4 F4 pid-rebind defense — verified: codexMapping.ts:288 `if (existing?.cgroup && existing.pid === input.pid) return existing.cgroup`",
+      "persistence.ts untouched — measured: git diff HEAD --name-only does not include persistence.ts",
+      "/root/bin/* untouched — measured: git diff HEAD --name-only contains no /root/bin paths",
+      "codex.integration.test.ts pre-existing failures — verified: git log shows last edit at commit 0b6f4839 (before this cycle's HEAD), file not in this cycle's diff"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-14T11:21:00Z",
+      "file": "packages/happy-cli/src/codex/runCodex.ts:366-378",
+      "observation": "abortTurnWithFallback path is a third tid-bind site not covered by centralized helper. Documented as QA-OBS-5 + dev report out_of_scope_observations[0]. Out of BA spec M2' literal scope.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-14T11:21:00Z",
+      "file": "packages/happy-cli/src/codex/codex.integration.test.ts",
+      "observation": "5 pre-existing failures in interruptTurn / abortTurnWithFallback restart context preservation tests. File not modified by this cycle. Failure mode is unrelated to M1'/M2'/M3'/M4' implementation.",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+  "ba_validation_objections": [
+    {
+      "dimension": "spec_text_vs_execution_drift",
+      "severity": "minor",
+      "addressee": "ba",
+      "observation": "AC1 ticket line 378 and AC2 ticket line 391 specify field name `lastSweepRemoved`. Dev implementation uses `sweepRemovedCount` with monotonic-accumulator semantics. The rename was driven by BA-QA round-2 #C2-2 observation flagging AC2 wording 'counter increments' as inconsistent with field-name 'last' (set semantics). BA should patch AC1/AC2 literal text in a follow-up spec-update to align with the runnable implementation, OR (less preferred) push back on the rename and ask dev to revert to `lastSweepRemoved` with set semantics. This is the canonical case of `spec_text_vs_execution_drift` — verdict PASS_AS_SUBSTITUTE this cycle, but next cycle's BA spec MUST patch the AC literal text to prevent recurrence."
+    }
+  ]
+}

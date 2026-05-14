@@ -646,8 +646,7 @@ export async function startDaemon(): Promise<void> {
     };
 
     const { port: controlPort, stop: stopControlServer } = await startDaemonControlServer({
-      getChildren: getCurrentChildren,
-      getPendingCodexSessionIds: codexMapping.getPendingCodexSessionIds,
+      getChildren: getCurrentChildren, getPendingCodexSessionIds: codexMapping.getPendingCodexSessionIds, getMappingStats: codexMapping.getMappingStats,
       stopSession,
       spawnSession,
       requestShutdown: () => requestShutdown('happy-cli'),

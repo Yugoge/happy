@@ -21,6 +21,7 @@ import type { Metadata } from '@/api/types';
 import { logger } from '@/ui/logger';
 
 import {
+    readCgroupForPid,
     readCodexMapping,
     sweepCodexMapping,
     upsertCodexMappingEntry,
@@ -28,8 +29,35 @@ import {
     codexMappingPath,
 } from './codexMapping';
 
+/**
+ * M1' — daemon-side codex-mapping health telemetry surfaced at `/list` root.
+ *
+ * IMPORTANT: This is MAPPING-HEALTH telemetry derived from the daemon's own
+ * codex-mapping.json + sweep return values. It is NOT a replacement for the
+ * bash-side fd-scan fallback counter from Block 3 (recovery-script-patches-
+ * 20260513-211054.md). Those two counters answer different questions:
+ *   - mappingStats.* answers: "is the daemon's mapping file healthy?"
+ *   - bash fd-scan counter answers: "is the recovery script's mapping-primary
+ *     path firing, or is it falling back to /proc fd-scan?"
+ *
+ * `sweepRemovedCount` is a monotonic per-daemon-process accumulator that
+ * increments each time `sweepCodexMapping` reports a removal. It resets to 0
+ * on daemon restart (durable counter requires state-file mutation — out of
+ * scope per BA Section R-4).
+ *
+ * `entryCount` / `pendingCount` / `boundCount` are derived (point-in-time)
+ * from a fresh read of codex-mapping.json on each `getMappingStats()` call.
+ */
+export interface MappingStats {
+    entryCount: number;
+    pendingCount: number;
+    boundCount: number;
+    sweepRemovedCount: number;
+}
+
 export interface CodexMappingDaemonController {
     getPendingCodexSessionIds(): Set<string>;
+    getMappingStats(): Promise<MappingStats>;
     onWebhook(sessionId: string, metadata: Metadata): void;
     onSessionEnd(sessionId: string): void;
     runStartupSweep(): Promise<void>;
@@ -39,6 +67,7 @@ interface MappingControllerState {
     cache: Set<string>;
     chain: Promise<void>;
     path: string;
+    sweepRemovedCount: number;
 }
 
 function metadataIsCodex(metadata: Metadata): boolean {
@@ -73,8 +102,14 @@ function queueUpsert(state: MappingControllerState, sessionId: string, metadata:
     const pid = metadata.hostPid;
     const tid = metadata.codexThreadId;
     const cwd = metadata.path;
+    // M3' — snapshot /proc/<pid>/cgroup at bind time on Linux. Non-fatal:
+    // returns undefined on non-Linux, invalid pid, or read error.
+    const cgroup = readCgroupForPid(pid);
     enqueue(state, async () => {
-        await upsertCodexMappingEntry({ happySessionId: sessionId, codexThreadId: tid, pid, cwd }, state.path);
+        await upsertCodexMappingEntry(
+            { happySessionId: sessionId, codexThreadId: tid, pid, cwd, cgroup },
+            state.path,
+        );
         await refreshPending(state);
     });
 }
@@ -90,6 +125,10 @@ async function runSweepInline(state: MappingControllerState): Promise<void> {
     try {
         const sweep = await sweepCodexMapping(state.path);
         if (sweep.removed > 0) {
+            // M1' — monotonic per-daemon-process accumulator. Resets on daemon
+            // restart per BA Section R-4 (durable counter would require
+            // state-file mutation, out of scope this cycle).
+            state.sweepRemovedCount += sweep.removed;
             logger.debug(
                 `[CODEX MAPPING] Startup GC removed ${sweep.removed} stale entries (${sweep.remaining} remain)`,
             );
@@ -98,6 +137,34 @@ async function runSweepInline(state: MappingControllerState): Promise<void> {
         logger.debug('[CODEX MAPPING] Startup GC sweep failed (non-fatal):', error);
     }
     await refreshPending(state);
+}
+
+/**
+ * M1' — derive point-in-time mapping-health stats. Reads codex-mapping.json
+ * fresh; `entryCount`/`pendingCount`/`boundCount` reflect on-disk state right
+ * now. `sweepRemovedCount` is the monotonic accumulator from this daemon
+ * process's sweep activity (not durable across restarts).
+ */
+async function computeMappingStats(state: MappingControllerState): Promise<MappingStats> {
+    let entryCount = 0;
+    let pendingCount = 0;
+    let boundCount = 0;
+    try {
+        const mapping = await readCodexMapping(state.path);
+        entryCount = mapping.entries.length;
+        for (const e of mapping.entries) {
+            if (e.state === 'pending') pendingCount++;
+            else if (e.state === 'bound') boundCount++;
+        }
+    } catch (error) {
+        logger.debug('[CODEX MAPPING] Failed to read mapping for stats (non-fatal):', error);
+    }
+    return {
+        entryCount,
+        pendingCount,
+        boundCount,
+        sweepRemovedCount: state.sweepRemovedCount,
+    };
 }
 
 /**
@@ -112,12 +179,20 @@ export function createCodexMappingDaemonController(
         cache: new Set<string>(),
         chain: Promise.resolve(),
         path: pathOverride ?? codexMappingPath(),
+        sweepRemovedCount: 0,
     };
     return {
         getPendingCodexSessionIds: () => state.cache,
+        getMappingStats: () => computeMappingStats(state),
         onWebhook: (sessionId, metadata) => queueUpsert(state, sessionId, metadata),
         onSessionEnd: (sessionId) => queueRemove(state, sessionId),
         runStartupSweep: () => {
+            // Note (codex round-3 F1): runSweepInline starts EXECUTING immediately,
+            // then enqueue() appends a no-op that awaits the same promise. This
+            // means subsequent upsert/remove tasks block on sweep completion, but
+            // the sweep itself is not "inside" the chain. The pattern is sound
+            // for the single startup-call usage; a future periodic-sweep cycle
+            // should re-enter through enqueue() proper to remain race-free.
             const p = runSweepInline(state);
             enqueue(state, () => p);
             return p;
