@@ -25,6 +25,7 @@ import { CodexDisplay } from "@/ui/ink/CodexDisplay";
 import { trimIdent } from "@/utils/trimIdent";
 import { CHANGE_TITLE_INSTRUCTION } from '@/gemini/constants';
 import { notifyDaemonSessionStarted } from "@/daemon/controlClient";
+import { notifyDaemonOfCodexTid } from "@/codex/notifyDaemonOfCodexTid";
 import { registerKillSessionHandler } from "@/claude/registerKillSessionHandler";
 import { stopCaffeinate } from "@/utils/caffeinate";
 import { connectionState } from '@/utils/serverConnectionErrors';
@@ -701,16 +702,16 @@ export async function runCodex(opts: {
                 // Start thread on first turn (thread persists across mode changes)
                 if (!client.hasActiveThread()) {
                     const startedThread = await client.startThread({
-                        model: message.mode.model,
-                        cwd: process.cwd(),
+                        model: message.mode.model, cwd: process.cwd(),
                         approvalPolicy: executionPolicy.approvalPolicy,
-                        sandbox: executionPolicy.sandbox,
-                        mcpServers,
+                        sandbox: executionPolicy.sandbox, mcpServers,
                     });
-                    session.updateMetadata((currentMetadata) => ({
-                        ...currentMetadata,
-                        codexThreadId: startedThread.threadId,
-                    }));
+                    // M1: also re-notify daemon (mirrors claude/session.ts:112-124)
+                    session.updateMetadata((cur) => {
+                        const u = { ...cur, codexThreadId: startedThread.threadId };
+                        notifyDaemonOfCodexTid(session.sessionId, startedThread.threadId, u);
+                        return u;
+                    });
                 }
 
                 const turnPrompt = first

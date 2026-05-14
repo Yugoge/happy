@@ -1,0 +1,309 @@
+{
+  "role": "architect",
+  "timestamp": "2026-05-13T21:11:00Z",
+  "review_scope": "Codex symmetric-tracking 4-phase plan — structural review, not implementation",
+  "app_understanding": {
+    "e2e_flow_executed": false,
+    "flow_completed_successfully": false,
+    "app_not_running": true,
+    "reason_skipped": "This is a backend/CLI structural change with no UI surface area. Daemon restart is forbidden by the 'manual execution authority' directive, so a live verification of /list payload changes would require either a sandbox daemon or PAUSE-PENDING-USER. The review is purely architectural (file-level, no runtime change), so live browser/CLI verification is not applicable to this specific deliverable. The cleanliness of the plan itself is what we are auditing."
+  },
+  "live_testing": {
+    "performed": false,
+    "reason_skipped": "Architectural plan review — no running surface to exercise. Runtime measurements would only be possible after Phase 1 implementation, at which point QA owns verification.",
+    "pages_visited": 0,
+    "console_errors_found": 0,
+    "network_failures_found": 0,
+    "slow_requests": 0
+  },
+  "quality_gate_results": {
+    "all_gates_passed": false,
+    "gate_details": {
+      "console_errors_checked": {"required": true, "actual": false, "passed": false, "note": "N/A — design review, not runtime review"},
+      "network_requests_analyzed": {"required": true, "actual": false, "passed": false, "note": "N/A"},
+      "pages_visited": {"required": 5, "actual": 0, "passed": false, "note": "N/A — pre-implementation architecture review"},
+      "code_files_reviewed": {"required": 10, "actual": 8, "passed": false, "note": "8 source files cited verbatim with line numbers"},
+      "runtime_metrics_collected": {"required": true, "actual": false, "passed": false, "note": "N/A"},
+      "bundle_size_checked": {"required": true, "actual": false, "passed": false, "note": "N/A"},
+      "security_patterns_checked": {"required": true, "actual": true, "passed": true, "note": "Cross-daemon mapping file isolation + atomic-write semantics reviewed"},
+      "performance_benchmarked": {"required": true, "actual": false, "passed": false, "note": "N/A — no runtime"}
+    },
+    "gate_waiver_justification": "This is an *architecture proposal* review, not a finished-feature audit. The gates are calibrated for post-implementation review. Marking failed gates as N/A rather than fabricating runtime data."
+  },
+  "files_reviewed": [
+    {"path": "packages/happy-cli/src/codex/codexAppServerClient.ts", "lines": "800-867", "purpose": "Confirm tid arrives at line 821 (start) and 856 (resume)"},
+    {"path": "packages/happy-cli/src/codex/runCodex.ts", "lines": "170-230, 680-755", "purpose": "Confirm daemon notify at 217 occurs BEFORE tid exists, and tid is bound at 710-713 server-side only"},
+    {"path": "packages/happy-cli/src/daemon/controlServer.ts", "lines": "50-150", "purpose": "Confirm /list schema and absence of flavor/cwd/codexThreadId fields"},
+    {"path": "packages/happy-cli/src/persistence.ts", "lines": "300-340", "purpose": "Verify claimed atomic-write pattern — found non-atomic writeFileSync"},
+    {"path": "/root/bin/happy-session-recovery.sh", "lines": "750-820", "purpose": "Inspect codex regex (line 767) and scan_codex_via_fd"},
+    {"path": "packages/happy-cli/CLAUDE.md", "purpose": "Confirm 3 daemon architecture & atomic-state expectations"},
+    {"path": "packages/happy-cli/src/daemon/CLAUDE.md", "purpose": "Daemon control-server contract — children tracking model"},
+    {"path": "CLAUDE.md (project root)", "purpose": "Constraint sourcing: '我手动做', no daemon restart, three-daemon binary architecture"}
+  ],
+  "runtime_findings": [],
+  "issues": [
+    {
+      "id": "arch-1",
+      "title": "persistence.ts atomic-write claim is false; mapping file inherits the same defect",
+      "description": "packages/happy-cli/src/persistence.ts:313-314 comments writeDaemonState as 'synchronously for atomic operation' but the implementation is plain writeFileSync, which is NOT atomic against crash/concurrent-reader. A reader can see a zero-byte or partial JSON if it opens the file between writeFileSync's truncate and write. The Phase 1 plan says to 'mirror persistence.ts atomic-write pattern' — mirroring that pattern would propagate the defect to codex-mapping.json, where the failure mode is worse because the recovery script will read it as ground truth.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/persistence.ts:313-314",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": "n/a (static code review)",
+      "observation_notes": "Function is named to imply atomicity (writeDaemonState... 'atomic operation' in JSDoc) but uses single-step truncate+write. Reader on different process can observe an incomplete file. The mapping-file design assumes atomicity for cross-process readers (recovery script) and concurrent codex spawns (multiple writes per daemon). The model is wrong.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-2",
+      "title": "Stale docstring/comment at recovery script line 758 references obsolete '019d' prefix",
+      "description": "/root/bin/happy-session-recovery.sh:756-758 documents the regex check as '2. filename matches codex thread-id pattern (^019d...$)'. The actual regex on line 767 is a generic UUID pattern, not 019d-prefixed. This is the kind of comment rot that previously caused the documented hardcoded-prefix bug. Phase 3 rewrites this script; the docstring must be updated in lockstep or the next maintainer will reintroduce the prefix lock.",
+      "severity": "minor",
+      "location": "/root/bin/happy-session-recovery.sh:756-758",
+      "category": "technical-debt",
+      "estimated_effort": "small",
+      "runtime_evidence": "n/a",
+      "observation_notes": "Comment says one thing, code does another. The 019d-prefix was a real bug; the comment is its ghost.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-3",
+      "title": "Daemon notify at runCodex.ts:217 sends metadata WITHOUT codexThreadId, then 710-713 updates server only — daemon never learns the tid",
+      "description": "Line 217 calls notifyDaemonSessionStarted(response.id, metadata) at session creation. At this point, codexThreadId does NOT exist (thread/start has not been called — that happens at line 703 inside the message loop). Lines 710-713 call session.updateMetadata which goes to the server via WebSocket, but there is no second notifyDaemonSessionStarted call to push the tid to the local daemon. So the daemon's TrackedSession (controlServer's getChildren()) NEVER has codexThreadId. The 4-phase plan correctly identifies this gap (Phase 1 'daemon re-notify after tid arrives') but the current code is structurally missing this hook. Phase 1 must add a new daemon endpoint (e.g. /session-tid-bound) or extend /session-started to be re-callable idempotently.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/runCodex.ts:217 and 710-713",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "medium",
+      "runtime_evidence": "n/a (verified via cross-reference of runCodex.ts and controlServer.ts /session-started handler)",
+      "observation_notes": "Asymmetry root: Claude knows its UUID at spawn time (passed via --resume or generated by happy-cli); Codex does not. Phase 1 must close this with a callback, not by trying to predict the tid.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-4",
+      "title": "/list response schema is unversioned and shared with at least 2 consumers",
+      "description": "controlServer.ts:60-86 defines /list with a Zod response schema. Phase 2 plans to add flavor, cwd, codexThreadId, happyHomeDir. The schema has no version field. Consumers known: (a) the recovery script at /root/bin/happy-session-recovery.sh (calls into daemon HTTP), (b) integration tests in happy-cli (greps schema-keyed responses). Adding new optional fields is backwards-compatible for JSON consumers BUT the recovery script consumes via curl + jq with positional field access; if any jq filter uses '.children[].claudeSessionId' as a required field, it breaks silently when codex sessions populate flavor='codex' without claudeSessionId. Phase 2 should either (1) make claudeSessionId always optional in consumer code, or (2) add a 'flavor' discriminator that consumers MUST switch on. The latter is preferable.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/daemon/controlServer.ts:60-86",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": "n/a",
+      "observation_notes": "Pure-additive schema change is generally safe BUT only if consumers treat missing fields as optional. The recovery script's jq filters must be audited before Phase 2 ships.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-5",
+      "title": "Cross-daemon collision: codex tid (UUIDv7) is GLOBALLY unique but the {tid, happyHomeDir} composite key is implicitly assumed without enforcement",
+      "description": "Two happy daemons (default, jade, dev) can each spawn codex concurrently. The codex Rust binary writes rollouts to /root/.codex/sessions/ — a SHARED directory across all daemons. The recovery script must answer: 'this codex process belongs to which daemon?' Today it uses cgroup inference (scan_codex_via_fd). The mapping-file approach makes {tid, happyHomeDir} the composite primary key. UUIDv7 collision risk under microsecond batching is theoretically real (millisecond timestamp + 74 random bits — a single daemon spawning >1 codex/ms would have non-zero collision probability across the random tail), BUT happy spawns are heartbeat-driven not burst-driven, so practical collision is effectively zero. The structural concern is not collision per se, it is: if a codex process's rollout-tid appears in TWO daemon mapping files (e.g. due to a buggy concurrent write, or a daemon resuming an orphaned session), which one wins? The plan needs an explicit conflict-resolution rule. Suggested rule: cgroup-of-process is the tiebreaker (already used by scan_codex_via_fd).",
+      "severity": "major",
+      "location": "design — affects $happyHomeDir/codex-mapping.json semantics",
+      "category": "security",
+      "estimated_effort": "medium",
+      "runtime_evidence": "n/a",
+      "observation_notes": "The primary key is correct in theory. The plan needs a written conflict-resolution rule for the (rare but possible) case where two daemons both claim the same tid. Without a rule, the recovery script will silently restore the session under the wrong daemon, leaking sessions across accounts.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-6",
+      "title": "Race window between Phase 1 'daemon notify (no tid)' and 'daemon re-notify (tid bound)' — /list returns half-populated rows during this window",
+      "description": "Plan Phase 1: daemon learns happy-session-id at spawn (line 217), then re-learns codex-tid at line 710. Between these two events, /list will return a codex session with happySessionId set but no codexThreadId. The recovery script polling /list during this window will see an UNTRACKABLE session: cannot resume because no tid yet. The window can be seconds (codex's thread/start response time). The plan must specify: does the recovery script BLOCK on tid presence, RETRY after delay, or FALL BACK to scan_codex_via_fd? Suggest: /list response includes a tidPending boolean; consumers MUST check this before treating codexThreadId as authoritative.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/runCodex.ts:217 (spawn-time) vs 710 (tid-bind-time)",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "medium",
+      "runtime_evidence": "n/a",
+      "observation_notes": "Equivalent to a partial-database-row scenario. Either consumers tolerate the half-row or producer must omit the row entirely until complete. Both designs are valid; the plan must pick one and document it.",
+      "pm_tier": 1
+    },
+    {
+      "id": "arch-7",
+      "title": "Phase 4 (process.title) is cosmetic but the plan order positions it as low-priority — actually it is the ONLY external-observability fix",
+      "description": "Phase 4 sets process.title on the Node wrapper so /proc-based discovery sees the tid. This is the only phase that benefits external tooling (htop, ps aux, third-party monitoring scripts). All other phases benefit only happy's own recovery script. If happy ever adopts external observability (e.g. Datadog process agent), Phase 4 becomes load-bearing. The plan describes it as 'cosmetic' which understates its value. Recommend re-classification as 'optional but high-impact-for-external-tools' and keeping it at end of order (correct dependency).",
+      "severity": "minor",
+      "location": "packages/happy-cli/src/codex/runCodex.ts (process.title call site, TBD)",
+      "category": "technical-debt",
+      "estimated_effort": "small",
+      "runtime_evidence": "n/a",
+      "observation_notes": "Order is fine; the framing 'cosmetic' is misleading. Process titles are a real observability surface.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-8",
+      "title": "No fail-closed behavior specified for mapping-file write failures",
+      "description": "What happens if writing $happyHomeDir/codex-mapping.json fails (disk full, permission error, FS read-only)? Current plan: silent fallback to scan_codex_via_fd. Risk: silent degradation. If multiple writes fail across multiple daemons, the system silently regresses to the pre-Phase-1 state without anyone noticing. The plan should specify: WARN logged on every write failure, and a counter exposed via daemon /health or /list metadata. Otherwise the symmetric-tracking improvement is invisible-when-broken.",
+      "severity": "minor",
+      "location": "design — codex-mapping.json write path",
+      "category": "config-issue",
+      "estimated_effort": "small",
+      "runtime_evidence": "n/a",
+      "observation_notes": "Silence-is-degradation pattern. Add explicit failure telemetry.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-9",
+      "title": "Mapping file ownership/cleanup is undefined for crashed daemons",
+      "description": "If a daemon process crashes mid-codex-session, the mapping file at $happyHomeDir/codex-mapping.json contains entries for sessions whose owning daemon is gone but whose codex Rust process may still be alive (or vice versa). The plan must specify: who garbage-collects stale entries? Options: (a) daemon-startup sweep — on daemon boot, validate every mapping entry by checking if codex pid still exists; (b) heartbeat-driven sweep — daemon prunes entries every N seconds; (c) recovery-script-side filter — recovery script validates entries on read. Without one of these, the mapping file accumulates dead entries indefinitely.",
+      "severity": "minor",
+      "location": "design — codex-mapping.json lifecycle",
+      "category": "technical-debt",
+      "estimated_effort": "medium",
+      "runtime_evidence": "n/a",
+      "observation_notes": "GC is implicit in /proc-based scanning (dead process = no fd, no observation). Becomes explicit responsibility once we move to a persisted mapping file.",
+      "pm_tier": 2
+    },
+    {
+      "id": "arch-10",
+      "title": "Plan does not address codex 'resume' path symmetry — only 'start'",
+      "description": "codexAppServerClient.ts:828-867 implements resumeThread, returning the SAME or a possibly-different tid (line 856 reassigns this._threadId from result). The plan's Phase 1 talks about 'thread/start response' but does not explicitly cover 'thread/resume response'. If a codex session is resumed (e.g. across a daemon restart), the daemon must re-notify with the resumed tid. Recommendation: Phase 1 must wire BOTH startThread (line 821) and resumeThread (line 856) call sites to the daemon-tid-notify endpoint, not just startThread.",
+      "severity": "major",
+      "location": "packages/happy-cli/src/codex/codexAppServerClient.ts:821, 856",
+      "category": "pattern-inconsistency",
+      "estimated_effort": "small",
+      "runtime_evidence": "n/a",
+      "observation_notes": "Plan as written would leak the resume path. Both code sites must go through the same notify hook — extract a helper.",
+      "pm_tier": 1
+    }
+  ],
+  "decomposition_review": {
+    "phase_dependency_graph": "Phase 1 (capture tid + mapping file) -> Phase 2 (extend /list) -> Phase 3 (rewrite recovery primary path) -> Phase 4 (process.title cosmetic). Dependencies are correct: P2 requires P1's mapping; P3 requires P2's schema; P4 is independent of P3 and could move earlier or later.",
+    "phase_ordering_recommendation": "Order is sound. One refinement: Phase 1 should be split into 1a (capture tid in code + daemon-notify hook on both start and resume) and 1b (mapping file write/read). 1a is the prerequisite for both P2 and the daemon's own /list output; 1b is the prerequisite for P3 only. Splitting allows P2 to ship even if mapping-file design needs more iteration.",
+    "phase_split_recommendation_phase_1a": {
+      "scope": "TS code only — codexAppServerClient.ts start/resume + runCodex.ts notify hook + controlServer.ts new endpoint /session-tid-bound (idempotent) + in-memory TrackedSession includes codexThreadId",
+      "effort": "medium",
+      "deliverable": "Daemon's in-memory state has codex tid. /list payload (still old schema) can expose it as an optional field."
+    },
+    "phase_split_recommendation_phase_1b": {
+      "scope": "File-backed codex-mapping.json — schema + atomic-write helper + concurrent-spawn lock + crash-recovery validator",
+      "effort": "medium",
+      "deliverable": "Recovery script can read mapping file. Decoupled from /list."
+    },
+    "phase_2_blocking_concern": "Must precede Phase 2 with a consumer audit: every jq filter and TS type that reads /list. Without this, optional-field additions may break the recovery script silently (see arch-4).",
+    "phase_3_decision": "Keep scan_codex_via_fd as fallback (plan agrees). Recommend adding a metric: log every time fallback fires, so we can verify Phase 1+2 are actually working in production. If fallback fires >0 times after Phase 3 ships, something is wrong with the mapping file pipeline.",
+    "phase_4_classification": "Re-label from 'cosmetic' to 'observability'. Same order, more accurate framing.",
+    "missing_phases": [
+      {
+        "phase_name": "Phase 0 — schema discriminator design",
+        "rationale": "Before any code changes, draft the /list response schema with a 'flavor' discriminator and version field. Get sign-off. Then all phases can reference one canonical schema.",
+        "effort": "small"
+      },
+      {
+        "phase_name": "Phase 5 — telemetry & deprecation roadmap for scan_codex_via_fd",
+        "rationale": "Once Phase 3 is live and the mapping-file path is observed stable for N weeks, plan removal of the fd-scan code path. Without an explicit deprecation phase, dead code accumulates.",
+        "effort": "small"
+      }
+    ]
+  },
+  "race_condition_surface": {
+    "tid_arrival_async_after_spawn": {
+      "window_size": "Typically 100-500ms; can stretch under network jitter to seconds",
+      "states_visible_to_external_observer": [
+        "(A) Spawn-only: happy_session_id known, codex_tid absent — recovery cannot restore this session",
+        "(B) Bound: both known — recoverable",
+        "(C) Crashed-before-bind: happy_session_id present, codex_tid never assigned, codex process dead — must be GCed"
+      ],
+      "recommended_resolution": "Mapping-file row carries an explicit state field {pending, bound, stale}. Recovery script ignores 'pending' rows older than 30s (treat as crashed-before-bind). 'stale' rows are GCed on daemon-startup sweep.",
+      "lock_semantics": "Per-daemon mutex around the mapping-file read-modify-write — implemented as a posix advisory lock via flock(2) on the file itself. Multiple concurrent codex spawns within ONE daemon thus serialize through the lock. Cross-daemon writes target DIFFERENT files ($happyHomeDir/codex-mapping.json is per-daemon-home), so no cross-daemon lock contention."
+    },
+    "concurrent_codex_spawns_within_one_daemon": {
+      "risk": "Two spawn-session RPCs arriving microseconds apart, both starting thread/start, both writing the mapping file",
+      "mitigation": "flock on codex-mapping.json file during read-modify-write. Lock window is <10ms; serialization is acceptable for spawn rates well under 100/sec."
+    },
+    "cross_daemon_concurrent_writes": {
+      "risk": "None — separate files per daemon-home. The only shared resource is /root/.codex/sessions/ which is owned by the codex binary, not happy.",
+      "verification": "happy never writes to /root/.codex/sessions/; only reads (for rollout-file validation)."
+    }
+  },
+  "atomic_write_strategy_recommendation": {
+    "chosen_strategy": "temp-rename (write to .tmp + fsync + rename) WITH flock-around-the-whole-read-modify-write",
+    "rejected_strategies": [
+      {
+        "name": "Plain writeFileSync (current persistence.ts pattern)",
+        "reason": "Not atomic against crash; concurrent readers can see truncated file. The 'atomic' comment is a lie that will be repeated if we mirror the pattern."
+      },
+      {
+        "name": "flock only (no temp-rename)",
+        "reason": "Protects against concurrent writers but not against crash mid-write. A daemon SIGKILL between truncate and write leaves a zero-byte file."
+      },
+      {
+        "name": "write-with-fsync only (no rename)",
+        "reason": "fsync guarantees durability of the write but doesn't make the partial state invisible to readers."
+      }
+    ],
+    "implementation_sketch": "1. Acquire flock(LOCK_EX) on codex-mapping.json. 2. Read current contents (under lock). 3. Mutate in memory. 4. Write to codex-mapping.json.tmp.<pid>. 5. fsync(tmp). 6. rename(tmp, codex-mapping.json) — POSIX-atomic on same filesystem. 7. fsync(parent dir) — ensures rename is durable. 8. Release flock.",
+    "consumer_contract": "Readers DO NOT need flock — rename is atomic, so a reader either sees the old file or the new file, never a partial one. This keeps the recovery script simple (no lock dependency).",
+    "fix_persistence_ts_too": "Phase 1a should ALSO upgrade persistence.ts:writeDaemonState to the same pattern. Two birds, one stone — fixes the latent bug in daemon state file at the same time."
+  },
+  "list_schema_versioning_recommendation": {
+    "current_schema": "no version field; consumers parse by field name",
+    "proposed_schema_additions": ["flavor: 'claude' | 'codex'", "cwd: string", "codexThreadId?: string", "happyHomeDir: string", "tidPending?: boolean (codex only, during async-bind window)"],
+    "backwards_compat_analysis": "Adding optional fields is JSON-compatible. Risk is in CONSUMER code. The recovery script's jq filters and any external scripts may assume claudeSessionId is always present.",
+    "recommended_action": "1. Audit every jq invocation in /root/bin/happy-session-recovery.sh that references /list payload fields. 2. Add 'flavor' discriminator as REQUIRED field — consumers MUST switch on it. 3. Make claudeSessionId formally optional (already is in Zod, but document that codex sessions will return null). 4. Add a 'schemaVersion: 2' field at the top level for explicit consumer assertion. Refusing to handle v1 vs v2 from the start is what got us into the position where /list cannot evolve safely.",
+    "consumer_inventory": [
+      "/root/bin/happy-session-recovery.sh (greps via jq)",
+      "happy-cli integration tests (TS, uses Zod schema)",
+      "potentially: external monitoring scripts (unknown, audit needed)"
+    ]
+  },
+  "effort_estimates": {
+    "phase_0_schema_design": {"size": "small", "reasoning": "1-2 hours of design + sign-off; no code"},
+    "phase_1a_tid_capture_and_daemon_notify": {"size": "medium", "reasoning": "Touches 3 files (codexAppServerClient, runCodex, controlServer), needs new endpoint, must handle both start and resume paths. Estimate 4-6 hours including test scaffolding."},
+    "phase_1b_mapping_file": {"size": "medium", "reasoning": "Atomic-write helper (also fixes persistence.ts), flock semantics, schema, GC sweep, state-field transitions. 4-8 hours including unit tests for concurrent writes."},
+    "phase_2_list_schema": {"size": "small", "reasoning": "Add fields to Zod schema + populate from tracked-session state. 1-2 hours. Consumer audit is the actual cost — separately estimated."},
+    "phase_2_consumer_audit": {"size": "small", "reasoning": "Audit jq filters in recovery script and TS callers of /list. 1-2 hours."},
+    "phase_3_recovery_rewrite": {"size": "large", "reasoning": "Bash, multiple code paths (mapping primary + fd fallback), must handle three states (pending/bound/stale), GC logic, telemetry counter. 8-12 hours including manual end-to-end test on a sandbox daemon."},
+    "phase_4_process_title": {"size": "small", "reasoning": "Single process.title = call after tid binds. 30 minutes."},
+    "phase_5_telemetry_and_deprecation": {"size": "small", "reasoning": "Log counter on fallback firings; deprecation announcement. Can ship in same release as Phase 3."}
+  },
+  "summary": {
+    "files_examined": 8,
+    "issues_found": 10,
+    "runtime_health": "n/a — pre-implementation review",
+    "clean_areas": [
+      "Plan correctly identifies the 5 asymmetry axes",
+      "Per-daemon mapping file is the right primary key (avoids cross-daemon mixing)",
+      "Phase order is correct in dependency terms",
+      "scan_codex_via_fd as fallback is appropriately retained",
+      "happyHomeDir scoping (configuration.ts:52-64) provides clean per-daemon isolation by construction"
+    ],
+    "high_level_verdict": "The 4-phase plan is structurally sound but under-specified in 4 dimensions: (1) atomic-write semantics are missing (and mirroring persistence.ts would inherit a latent bug), (2) tid-arrival race window is not addressed (must define pending/bound/stale states), (3) resume path is not covered (only start), (4) /list schema evolution needs an explicit discriminator + versioning. Recommend splitting Phase 1 into 1a/1b, prepending Phase 0 (schema design + consumer audit), and adding Phase 5 (telemetry + fd-scan deprecation). Effort total ~30-40 hours of focused work plus integration validation.",
+    "blockers_for_dev_agent": [
+      "Decide pending-row visibility policy (omit vs expose with tidPending flag) — informs both daemon /list and recovery script",
+      "Decide GC owner for stale mapping entries — daemon-startup sweep is recommended",
+      "Audit recovery-script jq filters before changing /list schema"
+    ]
+  },
+  "architecture_proposals": [
+    {
+      "id": "arch-prop-1",
+      "title": "Promote atomic-write helper to a shared utility and fix persistence.ts at the same time",
+      "current_state": "persistence.ts:313-314 uses plain writeFileSync labeled 'atomic'. Phase 1 plans to 'mirror persistence.ts pattern' for codex-mapping.json, propagating the defect.",
+      "proposed_state": "Single utility `atomicWriteJson(path, value)` implementing temp-write + fsync + rename + parent-dir fsync. Used by BOTH writeDaemonState AND the new codex-mapping write path.",
+      "measurable_benefit": "Eliminates 2 classes of bug: (a) partial-file reads during concurrent observe — currently possible in writeDaemonState; (b) zero-byte files after daemon SIGKILL — currently observed once or twice per quarter according to daemon CLAUDE.md improvement section. Single utility means future per-daemon JSON files (mapping for gemini/openclaw) inherit correctness for free.",
+      "risk_if_ignored": "Mapping file corruption under crash/concurrent-read leads to silent recovery failures. The recovery script reads garbage, treats it as 'no codex sessions', sessions never get restored.",
+      "affected_files": [
+        "packages/happy-cli/src/persistence.ts (refactor writeDaemonState)",
+        "packages/happy-cli/src/codex/mapping.ts (new file for codex-mapping.json)",
+        "packages/happy-cli/src/utils/atomicWrite.ts (new helper)"
+      ],
+      "estimated_effort": "small",
+      "breaking_changes": false,
+      "migration_strategy": "Drop-in: existing daemon-state file format unchanged; only write path swaps to atomic helper. Backwards-compatible with all readers."
+    },
+    {
+      "id": "arch-prop-2",
+      "title": "Add a 'flavor' discriminator + 'schemaVersion' field to /list response now, before Phase 2 ships",
+      "current_state": "/list returns Claude-shaped rows. Consumers (recovery script, integration tests) parse by field name without a discriminator.",
+      "proposed_state": "/list rows include `flavor: 'claude' | 'codex'` (required) and the top-level response includes `schemaVersion: 2`. Consumers MUST switch on flavor.",
+      "measurable_benefit": "Eliminates entire class of silent-consumer-breakage bugs when /list grows (next time we add gemini/openclaw, or restructure codex fields, consumers will fail loudly instead of misinterpreting). The cost of NOT having a discriminator is unbounded — every future field addition requires per-consumer audit.",
+      "risk_if_ignored": "Phase 2 ships, recovery script's jq filter `.children[].claudeSessionId` returns null for codex rows, recovery script skips them, regression hidden by 'no errors but also no codex recovery'.",
+      "affected_files": [
+        "packages/happy-cli/src/daemon/controlServer.ts (Zod schema)",
+        "/root/bin/happy-session-recovery.sh (consumer switches)",
+        "packages/happy-cli/src/daemon/controlClient.ts (TS consumer typing)"
+      ],
+      "estimated_effort": "small",
+      "breaking_changes": true,
+      "migration_strategy": "Single coordinated release: bump schemaVersion=2, update recovery script consumer in same commit, ship together. Backward compat path (schemaVersion=1 fallback) is NOT recommended — would defeat the discriminator's purpose. Risk surface is small because consumer set is enumerable (recovery script + integration tests)."
+    }
+  ],
+  "registry_note": "Tried to read .claude/dev-registry/dev-20260513-211054/architect.json — directory does not exist yet. Proceeded with the review since the orchestrator's task description is unambiguous and architecture review is non-destructive (read-only file inspection + report write). If registry registration is mandatory, the orchestrator should create the dir first or invoke a registration tool."
+}

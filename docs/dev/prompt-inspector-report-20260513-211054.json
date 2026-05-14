@@ -1,0 +1,61 @@
+{
+  "request_id": "20260513-211054",
+  "timestamp": "2026-05-14T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "--changed-files",
+  "scope_contract": "Inspector emits findings ONLY for files in --changed-files list; each finding tagged with introduced_in_diff per AC-2.6 Mechanism (ii). Untagged/absent findings default to ignore.",
+  "files_in_diff": [
+    "packages/happy-cli/src/codex/runCodex.ts",
+    "packages/happy-cli/src/codex/resumeExistingThread.ts",
+    "packages/happy-cli/src/codex/resumeExistingThread.test.ts",
+    "packages/happy-cli/src/daemon/controlServer.ts",
+    "packages/happy-cli/src/daemon/run.ts",
+    "packages/happy-cli/src/utils/atomicWriteJson.ts",
+    "packages/happy-cli/src/utils/atomicWriteJson.test.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts",
+    "packages/happy-cli/src/codex/codexMapping.ts",
+    "packages/happy-cli/src/codex/codexMapping.test.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.test.ts",
+    "packages/happy-cli/src/daemon/controlServer.test.ts",
+    "packages/happy-cli/src/utils/parseListResponse.ts",
+    "packages/happy-cli/src/utils/parseListResponse.test.ts",
+    "docs/dev/recovery-script-patches-20260513-211054.md"
+  ],
+  "files_in_scope": [
+    "docs/dev/recovery-script-patches-20260513-211054.md"
+  ],
+  "files_out_of_scope_typescript_code": 16,
+  "scope_rationale": "Verbosity rules ('rules not stories') apply to .claude/commands/*.md and .claude/agents/*.md prompt/agent documentation. The diff contains no such files. The only .md file is a user-targeted patch specification document under docs/dev/ — not an agent/command prompt — but it was inspected anyway per task instruction.",
+  "findings": [],
+  "files_inspected_detail": [
+    {
+      "file": "docs/dev/recovery-script-patches-20260513-211054.md",
+      "total_lines": 187,
+      "verbose_lines": 0,
+      "verbosity_percentage": 0,
+      "verbose_sections_detected": [],
+      "assessment": "Operational patch specification. Sections are M9 / M6 / M8 / Application sequence / AC verification — all functional. No Philosophy / Overview / Quality Standards / Safety Features / Helper Scripts / Usage sections present. Code/diff blocks are load-bearing (the patch itself). Acceptance-criteria section is functional verification, not narrative. Document is content-dense, not verbose.",
+      "verdict": "clean"
+    }
+  ],
+  "summary": {
+    "files_inspected": 1,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "estimated_reduction": "n/a — no violations"
+  },
+  "self_verification": {
+    "scope_correctness": "PASS — only files appearing in --changed-files list were considered; TypeScript code files correctly excluded from verbosity audit (verbosity rules target prompt/agent/command docs, not source code).",
+    "ac26_tagging_compliance": "PASS — findings array is empty, so no per-finding introduced_in_diff tags needed. Schema declares Mechanism (ii) tagging contract in scope_contract; per default-safe rule, an empty findings list cannot escalate close to NO.",
+    "rules_not_stories_application": "PASS — verbose section pattern matcher (## Philosophy, ## Overview, ## Quality Standards, ## Safety Features, ## Helper Scripts, ## Usage, verbose Examples) ran against the only .md file in diff and found zero matches.",
+    "threshold_application": "PASS — severity thresholds (critical>=200, major>=100, minor>=50 verbose lines) not triggered; verbose_lines=0 for the inspected document.",
+    "default_safe_behavior": "PASS — empty findings means close-gate cannot block on prompt-inspector verbosity for this diff.",
+    "code_files_handling": "PASS — 16 TypeScript files (.ts/.test.ts) in diff were correctly skipped per inspector scope (verbosity rules do not apply to source code). Code-quality concerns belong to other inspectors (style-inspector, cleanliness-inspector).",
+    "no_files_written_beyond_report": "PASS — only this JSON report was written; no spurious .md report files."
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "request_id": "20260513-211054",
+  "timestamp": "2026-05-14T00:00:00Z",
+  "inspector": "cleanliness-inspector",
+  "mode": "changed-files",
+  "scope_contract": "Mechanism (ii) — inspector-side tagging. Each finding carries introduced_in_diff:bool. Absent/null/untagged outputs default to non-blocking per close.md AC-2.6 default-safe rule.",
+  "files_audited": [
+    "packages/happy-cli/src/codex/runCodex.ts",
+    "packages/happy-cli/src/codex/resumeExistingThread.ts",
+    "packages/happy-cli/src/codex/resumeExistingThread.test.ts",
+    "packages/happy-cli/src/daemon/controlServer.ts",
+    "packages/happy-cli/src/daemon/run.ts",
+    "packages/happy-cli/src/utils/atomicWriteJson.ts",
+    "packages/happy-cli/src/utils/atomicWriteJson.test.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts",
+    "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts",
+    "packages/happy-cli/src/codex/codexMapping.ts",
+    "packages/happy-cli/src/codex/codexMapping.test.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.ts",
+    "packages/happy-cli/src/codex/codexMappingDaemon.test.ts",
+    "packages/happy-cli/src/daemon/controlServer.test.ts",
+    "packages/happy-cli/src/utils/parseListResponse.ts",
+    "packages/happy-cli/src/utils/parseListResponse.test.ts",
+    "docs/dev/recovery-script-patches-20260513-211054.md"
+  ],
+  "findings": [],
+  "categorized_findings": {
+    "misplaced_docs": [],
+    "naming_violations": [],
+    "archive_candidates": [],
+    "dev_context_files": [],
+    "temp_files": [],
+    "duplicate_scripts": [],
+    "duplicate_tests": [],
+    "non_functional_files": [],
+    "non_functional_folders": [],
+    "orphaned_subagents": [],
+    "unreferenced_scripts": [],
+    "orphaned_tests": [],
+    "historical_docs": [],
+    "docs_categorization": [],
+    "obsolete_functionality": [],
+    "orphan_commands": [],
+    "dead_functions": [],
+    "duplicate_content": []
+  },
+  "summary": {
+    "total_issues": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "estimated_space_saved": "0 MB"
+  },
+  "self_verification": {
+    "scope_compliance": "Audited ONLY the 17 files listed in --changed-files parameter. No full-repo scan performed.",
+    "checks_performed": [
+      {
+        "check": "misplaced_docs",
+        "result": "PASS",
+        "detail": "Only doc in diff is docs/dev/recovery-script-patches-20260513-211054.md which is correctly placed in docs/dev/ per repo convention for dated dev-cycle artifacts."
+      },
+      {
+        "check": "naming_violations",
+        "result": "PASS",
+        "detail": "All TypeScript source/test files follow camelCase + .ts/.test.ts conventions. Doc file follows <topic>-YYYYMMDD-HHMMSS.md pattern matching sibling cycle docs."
+      },
+      {
+        "check": "backup_and_temp_files",
+        "result": "PASS",
+        "detail": "No files matching *.bak, *.backup, *.tmp, *.old, *~, *.swp, .DS_Store patterns among changed files."
+      },
+      {
+        "check": "duplicate_scripts",
+        "result": "PASS",
+        "detail": "No -old / -backup / .bak sibling files exist alongside changed sources. codexMapping.ts vs codexMappingDaemon.ts are distinct modules (in-process vs daemon-HTTP variants), not duplicates."
+      },
+      {
+        "check": "duplicate_tests",
+        "result": "PASS",
+        "detail": "Every test file pairs 1:1 with its module-under-test (parseListResponse.test.ts ↔ parseListResponse.ts, etc.). No test-*, test_temp*, test_old*, scratch_*, experiment_* patterns. No empty placeholder tests."
+      },
+      {
+        "check": "build_artifacts",
+        "result": "PASS",
+        "detail": "No *.pyc, *.class, __pycache__, dist/, build/ artifacts among changed files."
+      },
+      {
+        "check": "orphan_scratch_files",
+        "result": "PASS",
+        "detail": "All changed source files are wired into the import graph: runCodex.ts imports notifyDaemonOfCodexTid/resumeExistingThread/codexMapping; controlServer.ts and run.ts register codex-thread-id RPCs; atomicWriteJson and parseListResponse are utility modules consumed by codex code paths."
+      },
+      {
+        "check": "historical_docs",
+        "result": "PASS",
+        "detail": "recovery-script-patches-20260513-211054.md is a current-cycle artifact (today's TASK_ID), not historical. Referenced source files exist on disk."
+      }
+    ],
+    "introduced_in_diff_tagging": "Not applicable — zero findings. If findings had been emitted, each would carry an explicit introduced_in_diff:bool per AC-2.6 Mechanism (ii).",
+    "verdict": "CLEAN — no cleanliness violations introduced by this diff."
+  }
+}

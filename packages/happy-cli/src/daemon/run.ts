@@ -17,6 +17,7 @@ import { writeDaemonState, DaemonLocallyPersistedState, readDaemonState, acquire
 
 import { cleanupDaemonState, isDaemonRunningCurrentlyInstalledHappyVersion, stopDaemon } from './controlClient';
 import { startDaemonControlServer } from './controlServer';
+import { createCodexMappingDaemonController } from '@/codex/codexMappingDaemon';
 import { findRunawayHappyProcesses, killRunawayHappyProcesses } from './doctor';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -158,35 +159,33 @@ export async function startDaemon(): Promise<void> {
 
     // Setup state - key by PID
     const pidToTrackedSession = new Map<number, TrackedSession>();
-
     // Session spawning awaiter system
     const pidToAwaiter = new Map<number, (session: TrackedSession) => void>();
-
     // Helper functions
     const getCurrentChildren = () => Array.from(pidToTrackedSession.values());
+    // M3+M5+S1: codex tid mapping controller (file at $happyHomeDir/codex-mapping.json)
+    const codexMapping = createCodexMappingDaemonController();
+    codexMapping.runStartupSweep().catch(() => { /* logged inside */ });
 
     // Handle webhook from happy session reporting itself
     const onHappySessionWebhook = (sessionId: string, sessionMetadata: Metadata) => {
       logger.debugLargeJson(`[DAEMON RUN] Session reported`, sessionMetadata);
-
       const pid = sessionMetadata.hostPid;
       if (!pid) {
         logger.debug(`[DAEMON RUN] Session webhook missing hostPid for sessionId: ${sessionId}`);
         return;
       }
-
       logger.debug(`[DAEMON RUN] Session webhook: ${sessionId}, PID: ${pid}, started by: ${sessionMetadata.startedBy || 'unknown'}`);
       logger.debug(`[DAEMON RUN] Current tracked sessions before webhook: ${Array.from(pidToTrackedSession.keys()).join(', ')}`);
-
+      // M3: codex flavor sessions also feed the durable mapping file
+      codexMapping.onWebhook(sessionId, sessionMetadata);
       // Check if we already have this PID (daemon-spawned)
       const existingSession = pidToTrackedSession.get(pid);
-
       if (existingSession) {
         // Update existing session with latest metadata (handles both initial and follow-up webhooks)
         existingSession.happySessionId = sessionId;
         existingSession.happySessionMetadataFromLocalWebhook = sessionMetadata;
         logger.debug(`[DAEMON RUN] Updated session ${sessionId} with metadata (claudeSessionId=${sessionMetadata.claudeSessionId || 'none'})`);
-
         // Resolve any awaiter for this PID (only relevant on first webhook)
         const awaiter = pidToAwaiter.get(pid);
         if (awaiter) {
@@ -623,8 +622,8 @@ export async function startDaemon(): Promise<void> {
             }
           }
 
+          if (session.happySessionId) codexMapping.onSessionEnd(session.happySessionId);
           pidToTrackedSession.delete(pid);
-          logger.debug(`[DAEMON RUN] Removed session ${sessionId} from tracking`);
           return true;
         }
       }
@@ -635,21 +634,20 @@ export async function startDaemon(): Promise<void> {
 
     // Mutable ref for apiMachine (assigned after control server start, used in onChildExited)
     let apiMachineRef: { notifySessionEnd: (sid: string) => void } | null = null;
-
-    // Handle child process exit
     const onChildExited = (pid: number) => {
       const session = pidToTrackedSession.get(pid);
-      if (session?.happySessionId && apiMachineRef) {
-        apiMachineRef.notifySessionEnd(session.happySessionId);
+      if (session?.happySessionId) {
+        if (apiMachineRef) apiMachineRef.notifySessionEnd(session.happySessionId);
+        codexMapping.onSessionEnd(session.happySessionId);
         logger.debug(`[DAEMON RUN] Notified server of session end: ${session.happySessionId}`);
       }
       logger.debug(`[DAEMON RUN] Removing exited process PID ${pid} from tracking`);
       pidToTrackedSession.delete(pid);
     };
 
-    // Start control server
     const { port: controlPort, stop: stopControlServer } = await startDaemonControlServer({
       getChildren: getCurrentChildren,
+      getPendingCodexSessionIds: codexMapping.getPendingCodexSessionIds,
       stopSession,
       spawnSession,
       requestShutdown: () => requestShutdown('happy-cli'),
@@ -719,12 +717,12 @@ export async function startDaemon(): Promise<void> {
       }
 
       // Prune stale sessions
-      for (const [pid, _] of pidToTrackedSession.entries()) {
+      for (const [pid, _session] of pidToTrackedSession.entries()) {
         try {
           // Check if process is still alive (signal 0 doesn't kill, just checks)
           process.kill(pid, 0);
         } catch (error) {
-          // Process is dead, remove from tracking
+          if (_session.happySessionId) codexMapping.onSessionEnd(_session.happySessionId);
           logger.debug(`[DAEMON RUN] Removing stale session with PID ${pid} (process no longer exists)`);
           pidToTrackedSession.delete(pid);
         }
