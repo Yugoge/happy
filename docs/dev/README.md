@@ -5,7 +5,7 @@ Organization and usage documentation for `dev/`.
 <!-- AUTO:readme-stats -->
 
 ## Overview
-- **Total files**: 707
+- **Total files**: 754
 - **Subdirectories**: 8
 - **Naming convention**: kebab
 
@@ -16,6 +16,7 @@ Organization and usage documentation for `dev/`.
 - `architect-codex-recovery-gap-20260428-215017.json` - json config
 - `architect-d5-subagent-lifecycle-merge-20260508-130403.json` - json config
 - `architect-happy-restart-and-daemon-prohibition-20260504-223115.md` - Architect Report — happy-restart.sh per-stack support + permanent daemon-restart prohibition
+- `architect-report-20260513-211054.json` - json config
 - `architect-virtual-repo-testing-20260429-192017.json` - json config
 - `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
 - `ba-investigation-20260425-122518.md` - BA Re-Investigation Artifact — Cycle 2 Round 2
@@ -90,6 +91,10 @@ Organization and usage documentation for `dev/`.
 - `ba-qa-report-20260509-225006.json` - json config
 - `ba-qa-report-20260510-090535.json` - json config
 - `ba-qa-report-20260510-134234.json` - json config
+- `ba-qa-report-20260510-191410.json` - json config
+- `ba-qa-report-20260513-211054.json` - json config
+- `ba-qa-report-20260514-093200.json` - json config
+- `ba-qa-report-20260514-143000.json` - json config
 - `ba-qa-report-c1-20260504-223115.json` - json config
 - `ba-qa-report-c1-redev-20260505-001500.json` - json config
 - `ba-qa-report-c2-20260504-223115.json` - json config
@@ -204,6 +209,10 @@ Organization and usage documentation for `dev/`.
 - `cleanliness-inspector-report-20260510-090535.json` - json config
 - `cleanliness-inspector-report-20260510-115954.json` - json config
 - `cleanliness-inspector-report-20260510-134234.json` - json config
+- `cleanliness-inspector-report-20260510-191410.json` - json config
+- `cleanliness-inspector-report-20260513-211054.json` - json config
+- `cleanliness-inspector-report-20260514-093200.json` - json config
+- `cleanliness-inspector-report-20260514-143000.json` - json config
 - `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 - `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 - `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
@@ -240,8 +249,14 @@ Organization and usage documentation for `dev/`.
 - `close-report-20260510-090535.md` - Close-Debate Report — 20260510-090535
 - `close-report-20260510-115954.md` - Close Debate Report
 - `close-report-20260510-134234.md` - Close-Debate Report — 20260510-134234
+- `close-report-20260510-191410.md` - Close Debate Report
+- `close-report-20260513-211054.md` - Close Report — Codex Symmetric Tracking (Biological-Child Parity)
+- `close-report-20260514-093200.md` - Close Debate Transcript — task-id 20260514-093200
+- `close-report-20260514-143000.json` - json config
+- `close-report-20260514-143000.md` - Close Debate Report
 - `close-report-spec-20260506-203844.md` - Close Debate Report
 - `codex-fork-divergence-research-20260427.md` - No description
+- `codex-mapping-rollout-roadmap.md` - Codex Mapping Rollout Roadmap — fd-scan Deprecation Chain
 - `codex-research-20260425-bgtask-reconnect.md` - No description
 - `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 - `completion-20260425-104643.md` - Development Completion Report — Spec Maturity Remediation
@@ -276,6 +291,10 @@ Organization and usage documentation for `dev/`.
 - `completion-20260509-225006.md` - Completion Report — task-id 20260509-225006
 - `completion-20260510-090535.md` - Completion Report — task-id 20260510-090535
 - `completion-20260510-134234.md` - Completion Report — task-id 20260510-134234
+- `completion-20260510-191410.md` - Development Completion Report — 20260510-191410
+- `completion-20260513-211054.md` - Completion Report — Codex Symmetric Tracking (Biological Child Parity)
+- `completion-20260514-093200.md` - Completion Report — /redev Follow-up (Codex Parity Telemetry + Process.Title + Cgroup)
+- `completion-20260514-143000.md` - Completion Report — Codex Recovery Script Patches (Blocks 2+3+4 Final SOP)
 - `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 - `context-20260323-210000.json` - json config
 - `context-20260403-210447-0.json` - json config
@@ -379,6 +398,9 @@ Organization and usage documentation for `dev/`.
 - `context-20260510-090535.json` - json config
 - `context-20260510-134234.json` - json config
 - `context-20260510-191410.json` - json config
+- `context-20260513-211054.json` - json config
+- `context-20260514-093200.json` - json config
+- `context-20260514-143000.json` - json config
 - `context-c1-20260504-223115.json` - json config
 - `context-c1-redev-20260505-001500.json` - json config
 - `context-c2-20260504-223115.json` - json config
@@ -512,6 +534,11 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260510-090535.json` - json config
 - `dev-report-20260510-115954.json` - json config
 - `dev-report-20260510-134234.json` - json config
+- `dev-report-20260510-191410.json` - json config
+- `dev-report-20260513-211054.json` - json config
+- `dev-report-20260514-093200.json` - json config
+- `dev-report-20260514-143000.json` - json config
+- `dev-report-20260514-195735.json` - json config
 - `dev-report-c1-20260504-223115.json` - json config
 - `dev-report-c1-redev-20260505-001500.json` - json config
 - `dev-report-c3-20260504-223115.json` - json config
@@ -547,6 +574,10 @@ Organization and usage documentation for `dev/`.
 - `prompt-inspector-report-20260510-090535.json` - json config
 - `prompt-inspector-report-20260510-115954.json` - json config
 - `prompt-inspector-report-20260510-134234.json` - json config
+- `prompt-inspector-report-20260510-191410.json` - json config
+- `prompt-inspector-report-20260513-211054.json` - json config
+- `prompt-inspector-report-20260514-093200.json` - json config
+- `prompt-inspector-report-20260514-143000.json` - json config
 - `prompt-inspector-report-spec-20260506-203844.json` - json config
 - `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 - `qa-audit-20260407.json` - json config
@@ -554,6 +585,7 @@ Organization and usage documentation for `dev/`.
 - `qa-build-deploy-20260407.json` - json config
 - `qa-codex-consensus-20260502-162334.txt` - txt file
 - `qa-codex-consensus-20260507-142952.txt` - txt file
+- `qa-codex-consensus-20260515-085807.md` - QA ↔ Codex Adversarial Debate Transcript — 20260515-085807
 - `qa-codex-schema-audit-20260509-115500.json` - json config
 - `qa-hooks-bash-safety.json` - json config
 - `qa-hooks-prod-files.json` - json config
@@ -565,6 +597,7 @@ Organization and usage documentation for `dev/`.
 - `qa-issue3-browser-debug-20260407.json` - json config
 - `qa-output-20260429-192017-codex.txt` - txt file
 - `qa-output-codex-cycle5-20260507-191304.txt` - txt file
+- `qa-output-recovery-script-remediation-20260515-085807.md` - Recovery-Script Remediation SOP — Task 20260515-085807
 - `qa-report-20260403-210447-0.json` - json config
 - `qa-report-20260403-210447-1.json` - json config
 - `qa-report-20260403-210447-10.json` - json config
@@ -667,6 +700,11 @@ Organization and usage documentation for `dev/`.
 - `qa-report-20260509-225006.json` - json config
 - `qa-report-20260510-090535.json` - json config
 - `qa-report-20260510-134234.json` - json config
+- `qa-report-20260510-191410.json` - json config
+- `qa-report-20260513-211054.json` - json config
+- `qa-report-20260514-093200.json` - json config
+- `qa-report-20260514-143000.json` - json config
+- `qa-report-20260515-085807.json` - json config
 - `qa-report-c1-20260504-223115.json` - json config
 - `qa-report-c1-redev-20260505-001500.json` - json config
 - `qa-report-c3-20260504-223115.json` - json config
@@ -674,6 +712,8 @@ Organization and usage documentation for `dev/`.
 - `qa-review-20260407-0830.json` - json config
 - `qa-site-isolation-verification.json` - json config
 - `qa-validation-20260410.json` - json config
+- `recovery-script-patches-20260513-211054.md` - Recovery & Restart Script Patches — Task 20260513-211054
+- `recovery-script-patches-final-20260514-143000.md` - Recovery Script Patches — Final SOP for Blocks 2+3+4
 - `sim-test-and-cleanup-20260425-122518.json` - json config
 - `style-inspector-report-20260504-223115.json` - json config
 - `style-inspector-report-20260507-055611.json` - json config
@@ -693,6 +733,10 @@ Organization and usage documentation for `dev/`.
 - `style-inspector-report-20260510-090535.json` - json config
 - `style-inspector-report-20260510-115954.json` - json config
 - `style-inspector-report-20260510-134234.json` - json config
+- `style-inspector-report-20260510-191410.json` - json config
+- `style-inspector-report-20260513-211054.json` - json config
+- `style-inspector-report-20260514-093200.json` - json config
+- `style-inspector-report-20260514-143000.json` - json config
 - `style-inspector-report-spec-20260506-203844.json` - json config
 - `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
 - `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
@@ -705,6 +749,9 @@ Organization and usage documentation for `dev/`.
 - `ticket-20260508-211214.md` - BA Specification: Cycle 8 — spawn-begin lifecycle entry gate fix (Path A+) + fixture realism
 - `ticket-20260509-115500.md` - BA Specification: Restore DropdownMenu API in SessionActionsNativeMenu.android.tsx (typecheck fix)
 - `ticket-20260510-191410.md` - BA Specification: Add §5.X-inflation prohibition + --codex mode to /spec
+- `ticket-20260513-211054.md` - BA Specification: Codex Symmetric Tracking — First-Class Biological Child Parity with Claude
+- `ticket-20260514-093200.md` - BA Specification: /redev round-1 — land risk-filtered prior-cycle deferrals (M1' M2' M3' M4')
+- `ticket-20260514-143000.md` - BA Specification: Codex-Mapping Recovery — Block 2+3+4 Closure (Subagent Slice)
 - `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
 - `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
 - `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)

@@ -1,7 +1,7 @@
 # codex
 
-*Last updated: 2026-05-03T10:05:51Z*
-**Total entries**: 20
+*Last updated: 2026-05-14T20:15:22Z*
+**Total entries**: 28
 **Convention**: kebab
 
 ## Tree
@@ -15,15 +15,23 @@ codex/
 │   ├── `diffProcessor.ts` - ts file
 │   ├── `permissionHandler.ts` - ts file
 │   ├── `reasoningProcessor.ts` - ts file
-│   └── `sessionProtocolMapper.ts` - ts file
+│   ├── `sessionProtocolMapper.ts` - ts file
+│   └── `subagentLifecycle.ts` - ts file
 ├── `cliArgs.test.ts` - ts file
 ├── `cliArgs.ts` - ts file
 ├── `codex.integration.test.ts` - ts file
 ├── `codexAppServerClient.test.ts` - ts file
 ├── `codexAppServerClient.ts` - ts file
 ├── `codexAppServerTypes.ts` - ts file
+├── `codexMapping.cgroup.test.ts` - ts file
+├── `codexMapping.test.ts` - ts file
+├── `codexMapping.ts` - ts file
+├── `codexMappingDaemon.test.ts` - ts file
+├── `codexMappingDaemon.ts` - ts file
 ├── `executionPolicy.ts` - ts file
 ├── `happyMcpStdioBridge.ts` - ts file
+├── `notifyDaemonOfCodexTid.test.ts` - ts file
+├── `notifyDaemonOfCodexTid.ts` - ts file
 ├── `resumeExistingThread.test.ts` - ts file
 ├── `resumeExistingThread.ts` - ts file
 └── `runCodex.ts` - ts file

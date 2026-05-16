@@ -1,7 +1,7 @@
 # daemon
 
-*Last updated: 2026-04-28T22:25:52Z*
-**Total entries**: 12
+*Last updated: 2026-05-14T20:15:19Z*
+**Total entries**: 13
 **Convention**: kebab
 
 ## Tree
@@ -12,6 +12,7 @@ daemon/
 │   └── `uninstall.ts` - ts file
 ├── `CLAUDE.md` - Happy CLI Daemon: Control Flow and Lifecycle
 ├── `controlClient.ts` - ts file
+├── `controlServer.test.ts` - ts file
 ├── `controlServer.ts` - ts file
 ├── `daemon.integration.test.ts` - ts file
 ├── `doctor.ts` - ts file
