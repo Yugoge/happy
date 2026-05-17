@@ -1,0 +1,40 @@
+{
+  "request_id": "20260510-115954",
+  "task_id": "20260510-115954",
+  "timestamp": "2026-05-10T12:30:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260510-115954.json",
+  "dev": {
+    "status": "ready_for_qa",
+    "files_modified": [
+      "/dev/shm/dev-workspace/dot-claude/commands/push.md",
+      "/dev/shm/dev-workspace/dot-claude/commands/close.md"
+    ],
+    "files_created": [],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Revert 5ffe628 misleading framing in push.md; restore agent-aware contract",
+        "type": "doc-fix",
+        "files_modified": ["/dev/shm/dev-workspace/dot-claude/commands/push.md"]
+      },
+      {
+        "id": 2,
+        "description": "Tighten close.md L340 verdict-line instruction so QA writes parser-compatible bare CLOSE form",
+        "type": "doc-fix",
+        "files_modified": ["/dev/shm/dev-workspace/dot-claude/commands/close.md"]
+      }
+    ],
+    "scripts_created": [],
+    "diff_stats": {
+      "files_changed": 2,
+      "lines_added": 20,
+      "lines_removed": 4
+    },
+    "fix_layer": "L1",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "permissions_to_add": []
+  },
+  "blocking_issues": [],
+  "recommendations": []
+}

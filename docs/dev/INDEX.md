@@ -1,12 +1,13 @@
 # dev
 
-*Last updated: 2026-05-15T09:16:11Z*
-**Total entries**: 1112
+*Last updated: 2026-05-17T07:40:15Z*
+**Total entries**: 1139
 **Convention**: kebab
 
 ## Tree
 ```
 dev/
+├── clean/
 ├── evidence/
 │   ├── 20260428-063343-codex-rendering/
 │   │   ├── live-rerun/
@@ -113,6 +114,9 @@ dev/
 │   ├── 20260510-134234/
 │   │   ├── `qa-cycle10-desktop.png` - png file
 │   │   └── `qa-cycle10-mobile.png` - png file
+│   ├── 20260516-201739/
+│   │   ├── `codex-recovery-pre-desktop.png` - png file
+│   │   └── `pre-recovery-baseline.json` - json config
 │   ├── ba-20260425-201355-5-17/
 │   │   ├── `desktop-1440x900.png` - png file
 │   │   └── `mobile-390x844.png` - png file
@@ -214,6 +218,10 @@ dev/
 │       ├── `triage-report-cycle1.json` - json config
 │       ├── `ui-specialist-report.json` - json config
 │       └── `user-report.json` - json config
+├── patches/
+│   ├── `flavor-field-and-stale-rollout-20260517.py` - Patch: flavor 4th field in raw_sessions + stale rollout fix
+│   ├── `flavor-field-and-stale-rollout-20260517.sh` - Patch: flavor 4th field in raw_sessions + stale rollout fix
+│   └── `write_json_snapshot-20260516-212024.sh` - Patch: write_json_snapshot — add flavor field + correct codex session_file
 ├── postmortems/
 │   └── `b5d447e-checkpoint-regression.md` - Postmortem: b5d447e checkpoint-bridge regression
 ├── qa-artifacts/
@@ -304,7 +312,8 @@ dev/
 │   ├── `spec-20260425-094312.md.bak-redev-fix` - bak-redev-fix file
 │   ├── `spec-20260502-162334.md` - Spec: Codex 4-fix runtime closure — make declared fixes actually visible to user
 │   ├── `spec-20260506-203755.md` - Spec: happy-app rendering & tool-call audit — 17 bugs catalogued + verbatim user feedback + Claude's rendering/tool-call analysis
-│   └── `spec-20260506-203844.md` - Spec: Happy 工具调用与非文本/图形渲染问题超级清单
+│   ├── `spec-20260506-203844.md` - Spec: Happy 工具调用与非文本/图形渲染问题超级清单
+│   └── `spec-20260515-215206.md` - Spec: Continue Codex history replay close blockers
 ├── specs.pre-merge-backup/
 │   ├── spec-20260423-191545/
 │   │   └── views/
@@ -576,6 +585,8 @@ dev/
 ├── `cleanliness-inspector-report-20260513-211054.json` - json config
 ├── `cleanliness-inspector-report-20260514-093200.json` - json config
 ├── `cleanliness-inspector-report-20260514-143000.json` - json config
+├── `cleanliness-inspector-report-20260515-204850.json` - json config
+├── `cleanliness-inspector-report-20260516-212024.json` - json config
 ├── `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 ├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 ├── `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
@@ -617,10 +628,14 @@ dev/
 ├── `close-report-20260514-093200.md` - Close Debate Transcript — task-id 20260514-093200
 ├── `close-report-20260514-143000.json` - json config
 ├── `close-report-20260514-143000.md` - Close Debate Report
+├── `close-report-20260515-204850.md` - Close Debate Report
+├── `close-report-20260516-212024.md` - Close Report — 20260516-212024
+├── `close-report-20260517-noid.md` - Close Report: 20260517-noid
 ├── `close-report-spec-20260506-203844.md` - Close Debate Report
 ├── `codex-fork-divergence-research-20260427.md` - No description
 ├── `codex-mapping-rollout-roadmap.md` - Codex Mapping Rollout Roadmap — fd-scan Deprecation Chain
 ├── `codex-research-20260425-bgtask-reconnect.md` - No description
+├── `codex-systematic-refactor-20260515-085807.md` - Codex Systematic Refactor — happy-session-recovery.sh — 20260515-085807
 ├── `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 ├── `completion-20260425-104643.md` - Development Completion Report — Spec Maturity Remediation
 ├── `completion-20260425-122518.md` - Development Completion Report
@@ -658,6 +673,7 @@ dev/
 ├── `completion-20260513-211054.md` - Completion Report — Codex Symmetric Tracking (Biological Child Parity)
 ├── `completion-20260514-093200.md` - Completion Report — /redev Follow-up (Codex Parity Telemetry + Process.Title + Cgroup)
 ├── `completion-20260514-143000.md` - Completion Report — Codex Recovery Script Patches (Blocks 2+3+4 Final SOP)
+├── `completion-20260516-212024.md` - Development Completion Report — 20260516-212024
 ├── `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 ├── `context-20260323-210000.json` - json config
 ├── `context-20260403-210447-0.json` - json config
@@ -764,6 +780,8 @@ dev/
 ├── `context-20260513-211054.json` - json config
 ├── `context-20260514-093200.json` - json config
 ├── `context-20260514-143000.json` - json config
+├── `context-20260516-201739.json` - json config
+├── `context-20260516-212024.json` - json config
 ├── `context-c1-20260504-223115.json` - json config
 ├── `context-c1-redev-20260505-001500.json` - json config
 ├── `context-c2-20260504-223115.json` - json config
@@ -902,6 +920,8 @@ dev/
 ├── `dev-report-20260514-093200.json` - json config
 ├── `dev-report-20260514-143000.json` - json config
 ├── `dev-report-20260514-195735.json` - json config
+├── `dev-report-20260516-201739.json` - json config
+├── `dev-report-20260516-212024.json` - json config
 ├── `dev-report-c1-20260504-223115.json` - json config
 ├── `dev-report-c1-redev-20260505-001500.json` - json config
 ├── `dev-report-c3-20260504-223115.json` - json config
@@ -941,6 +961,8 @@ dev/
 ├── `prompt-inspector-report-20260513-211054.json` - json config
 ├── `prompt-inspector-report-20260514-093200.json` - json config
 ├── `prompt-inspector-report-20260514-143000.json` - json config
+├── `prompt-inspector-report-20260515-204850.json` - json config
+├── `prompt-inspector-report-20260516-212024.json` - json config
 ├── `prompt-inspector-report-spec-20260506-203844.json` - json config
 ├── `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 ├── `qa-audit-20260407.json` - json config
@@ -1068,6 +1090,7 @@ dev/
 ├── `qa-report-20260514-093200.json` - json config
 ├── `qa-report-20260514-143000.json` - json config
 ├── `qa-report-20260515-085807.json` - json config
+├── `qa-report-20260516-212024.json` - json config
 ├── `qa-report-c1-20260504-223115.json` - json config
 ├── `qa-report-c1-redev-20260505-001500.json` - json config
 ├── `qa-report-c3-20260504-223115.json` - json config
@@ -1100,6 +1123,8 @@ dev/
 ├── `style-inspector-report-20260513-211054.json` - json config
 ├── `style-inspector-report-20260514-093200.json` - json config
 ├── `style-inspector-report-20260514-143000.json` - json config
+├── `style-inspector-report-20260515-204850.json` - json config
+├── `style-inspector-report-20260516-212024.json` - json config
 ├── `style-inspector-report-spec-20260506-203844.json` - json config
 ├── `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
 ├── `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
@@ -1115,6 +1140,8 @@ dev/
 ├── `ticket-20260513-211054.md` - BA Specification: Codex Symmetric Tracking — First-Class Biological Child Parity with Claude
 ├── `ticket-20260514-093200.md` - BA Specification: /redev round-1 — land risk-filtered prior-cycle deferrals (M1' M2' M3' M4')
 ├── `ticket-20260514-143000.md` - BA Specification: Codex-Mapping Recovery — Block 2+3+4 Closure (Subagent Slice)
+├── `ticket-20260516-201739.md` - BA Specification: Codex History Replay Recovery Close Blockers
+├── `ticket-20260516-212024.md` - BA Specification: Phase 2 — write_json_snapshot codex flavor field + Block F verification
 ├── `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
 ├── `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
 ├── `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)

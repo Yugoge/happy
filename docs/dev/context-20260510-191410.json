@@ -1,0 +1,217 @@
+{
+  "request_id": "20260510-191410",
+  "task_id": "20260510-191410",
+  "timestamp": "2026-05-10T19:14:10Z",
+  "requirement": {
+    "original": "好的那就用这样的修改但是你要加上--codex模式（就像dev一样）",
+    "clarified": "Adopt the prior session's proposed §5.X-inflation prohibition edit to commands/spec.md AND add a --codex opt-in mode mirroring the canonical pattern in commands/dev.md L77 — both edits in the single file commands/spec.md.",
+    "what": "Add (1) explicit prose prohibition forbidding the /spec orchestrator from inventing §5.X.A/B/C/D nested sub-section structure under Section 5, and (2) --codex flag parsing + codex_required:true propagation into spec-subagent and QA dispatches.",
+    "why": "commands/spec.md L49 has prose saying 'Section 5 → user's requirement verbatim' but no explicit prohibition; the orchestrator drifts into inventing nested checklists (real example: docs/dev/specs/spec-20260506-203844.md §5.3.A through §5.3.K, 11 invented sub-headings). User wants the same opt-in --codex adversarial-review capability that /dev already has at L77.",
+    "where": [
+      "commands/spec.md frontmatter (lines 1-3)",
+      "commands/spec.md Step 1 Parse $ARGUMENTS (lines 16-22)",
+      "commands/spec.md Step 3 first-write (lines 36-67) and Step 4 multi-turn loop (lines 69-86) — prohibition placement",
+      "commands/spec.md Step 6 sub-step 2 spec-subagent dispatch (lines 116-127)",
+      "commands/spec.md Step 6 sub-step 3 initial QA dispatch (lines 134-161)",
+      "commands/spec.md Step 6 sub-step 3 split-QA retry re-dispatch (lines 180-203)"
+    ],
+    "scope": {
+      "included": [
+        "commands/spec.md prohibition prose (M1)",
+        "commands/spec.md --codex flag parsing in Step 1 (M2)",
+        "commands/spec.md codex_required:true propagation into all three Step 6 dispatch sites (M3)",
+        "commands/spec.md frontmatter argument-hint addition (M4)"
+      ],
+      "excluded": [
+        "agents/spec.md (not the inflation source per git-edge-case-analyst this session)",
+        "any other commands/*.md file",
+        "any new hook / validator / posttool / schema",
+        "retroactive cleanup of existing inflated specs",
+        "nested sub-bullet structure inside this ticket itself (meta-violation guard)",
+        "machine-voice 应/不应 parallel AC bullets inside this ticket (meta-violation guard)"
+      ]
+    },
+    "success_criteria": [
+      "grep -n -- '--codex' commands/spec.md returns ≥4 hits (frontmatter + parse block + 3 dispatch sites)",
+      "grep -n 'codex_required: true' commands/spec.md returns ≥3 hits (initial spec-subagent dispatch, initial QA dispatch, retry re-dispatch)",
+      "grep -n 'argument-hint' commands/spec.md returns exactly 1 hit (frontmatter line, value '[--codex] [<requirement>]')",
+      "grep -nE 'invent.*sub.*section|nested.*checklist|5\\.X\\.[A-Z]' commands/spec.md returns ≥1 hit (prohibition prose)",
+      "/spec --codex with empty requirement still enters clarification ask while preserving codex_required=true",
+      "/spec --codex foo behaves identically to /spec foo plus codex consultation propagated to dispatches"
+    ],
+    "constraints": [
+      "Single-file scope: commands/spec.md only",
+      "No system-level enforcement (no hooks, validators, schemas) — user explicit decline",
+      "No edit to agents/spec.md",
+      "Mirror commands/dev.md L77 wording verbatim with one substitution: 'BA / QA / dev dispatch prompt' → 'spec-subagent / QA dispatch prompt'",
+      "Strip --codex BEFORE empty/non-empty branch in Step 1 so /spec --codex with no requirement works correctly"
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "/root/.claude/commands/spec.md (real path: /dev/shm/dev-workspace/dot-claude/commands/spec.md)"
+    ],
+    "path_dependent_shared_infra": [],
+    "out_of_path_observed_but_not_touched": []
+  },
+  "out_of_scope_observations": [],
+  "root_cause_analysis": {
+    "symptom": "/spec orchestrator invents §5.X.A/B/C…K nested checklist structure under Section 5 instead of preserving the user's verbatim requirement; /spec has no --codex opt-in equivalent to /dev's --codex.",
+    "root_cause": "commands/spec.md L49 prose 'Section 5 → user's requirement verbatim' has no explicit prohibition forbidding deeper invented structure, and Step 4 multi-turn append definition (lines 76-81) is silent on what is forbidden BELOW §5.N. Same drift class as the prior push.md drift fixed in commit 5ffe628 — prose rule with no enforcement leads orchestrator toward 'helpful structuring'. Separately, commands/spec.md has zero --codex handling at any layer (frontmatter, parse, dispatch propagation) because the --codex opt-in was added to /dev (L77) without parallel addition to /spec.",
+    "root_cause_commit": "N/A — this is a missing-prohibition + missing-feature situation, not a regression introduced by a specific commit. The §5.X inflation example in docs/dev/specs/spec-20260506-203844.md was created 2026-05-06 by orchestrator drift, not by a code change.",
+    "why_introduced": "/spec was authored before the §5.X drift pattern was identified; --codex was authored for /dev only because /spec's adversarial-review need was not yet recognized.",
+    "why_problematic": "Inflated §5.X.A/B/C structure converts user's natural-language paragraph into a machine-voice checklist that downstream BA/dev/QA agents treat as authoritative AC text — creating phantom requirements the user never wrote. Missing --codex on /spec means spec-subagent and split-QA never debate against codex even when the user wants that scrutiny.",
+    "timeline": "/spec authored before May 2026; §5.X drift instance created 2026-05-06 in spec-20260506-203844.md; --codex added to /dev some time before this cycle; user requested /spec --codex parity 2026-05-10.",
+    "affected_files": ["~/.claude/commands/spec.md"],
+    "evidence_type": "observed",
+    "observations": [
+      "commands/spec.md L49 prose verified by direct Read (observed)",
+      "commands/spec.md zero --codex hits verified by Grep '--codex' returning empty for that file (observed)",
+      "commands/spec.md zero argument-hint hits verified by Grep (observed)",
+      "docs/dev/specs/spec-20260506-203844.md §5.3.A through §5.3.K verified by awk extraction returning 11 #### sub-headings (observed)",
+      "commands/dev.md L77 canonical --codex pattern verified by direct Read (observed)",
+      "agents/spec.md is NOT the inflation source — confirmed earlier this session by git-edge-case-analyst (observed via prior agent report)"
+    ],
+    "diagnosis_completeness": "complete",
+    "complaint_location_keywords": ["spec.md", "Section 5", "5.X", "--codex", "dev"],
+    "localization_evidence": "Reproduced by reading commands/spec.md directly (full file under 600 lines, single Read), reading commands/dev.md L77 region, and extracting Section 5 from spec-20260506-203844.md via awk. All evidence is from primary sources (the actual files), not from comments or prior reports.",
+    "located_source": "/root/.claude/commands/spec.md L49 (missing prohibition) and L1-3, L16-22, L116-203 (missing --codex handling)",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "bisect_blocked": "Not applicable — this is not a regression. /spec never had a §5.X prohibition; /spec never had --codex. No 'used to work' claim from user."
+    }
+  },
+  "diagnosis_layer": "L1",
+  "requirements_decomposition": [
+    {"id": "R1", "source_phrase": "就用这样的修改", "acceptance_criterion": "AC1 — adopt §5.X prohibition edit"},
+    {"id": "R2", "source_phrase": "你要加上--codex模式（就像dev一样）", "acceptance_criterion": "AC2 + AC3 — add --codex parsing and codex_required:true propagation"}
+  ],
+  "component_chain": [
+    {
+      "file": "/root/.claude/commands/spec.md",
+      "line_range": "1-275",
+      "role": "Single file containing all four required edits (frontmatter, Step 1 parse, prohibition prose, Step 6 three dispatch sites)",
+      "imports_from": "leaf",
+      "evidence": "Read in full this session (275 lines); grep '--codex' returns zero hits; grep 'argument-hint' returns zero hits",
+      "verified_via": "both"
+    },
+    {
+      "file": "/root/.claude/commands/dev.md",
+      "line_range": "77",
+      "role": "Donor reference (read-only) for the --codex parsing block to be mirrored in spec.md",
+      "imports_from": "leaf",
+      "evidence": "Grep 'codex_required' /root/.claude/commands/dev.md returns L77 with full canonical wording",
+      "verified_via": "both"
+    },
+    {
+      "file": "/dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844.md",
+      "line_range": "Section 5 (§5.3.A through §5.3.K)",
+      "role": "Concrete inflation instance — evidence of the symptom (read-only)",
+      "imports_from": "leaf",
+      "evidence": "awk extraction of Section 5 returned 11 #### sub-headings A through K",
+      "verified_via": "both"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "/root/.claude/commands/spec.md",
+      "line": 49,
+      "type": "prose-instruction",
+      "code_snippet": "Section 5 → user's requirement verbatim",
+      "purpose": "Already states verbatim-ness; the new prohibition reinforces this by forbidding the specific inflation pattern (§5.X.A/B/C). The new prohibition does NOT remove or weaken this line.",
+      "removal_authorized": false
+    },
+    {
+      "file": "/root/.claude/commands/spec.md",
+      "line": "76-81",
+      "type": "prose-instruction",
+      "code_snippet": "### 5.N: <brief title extracted from the message>\\n<verbatim requirement text>",
+      "purpose": "Defines the legitimate §5.N accumulation shape. New prohibition adds 'no nested A/B/C below §5.N' but does NOT remove or weaken the existing §5.N definition.",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": null,
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- agent-prompt edit; cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, or (4) screenshot evidence"
+  },
+  "evidence": {
+    "observed": "好的那就用这样的修改但是你要加上--codex模式（就像dev一样）",
+    "measured": {
+      "value": "commands/spec.md L49 = 'Section 5 → user's requirement verbatim' (prose only, no prohibition); zero --codex hits in commands/spec.md; zero argument-hint hits in commands/spec.md; docs/dev/specs/spec-20260506-203844.md §5.3 contains 11 invented #### sub-headings A through K",
+      "location": "/root/.claude/commands/spec.md (lines 49, 1-3, 16-22, 105-225) and /dev/shm/dev-workspace/happy-dev/docs/dev/specs/spec-20260506-203844.md (Section 5)"
+    },
+    "expected": {
+      "value": "commands/spec.md contains explicit §5.X prohibition + Parse --codex block (mirroring dev.md L77) + codex_required:true line in three Step 6 dispatch sites + frontmatter argument-hint",
+      "source": "User's verbatim request (R1 + R2) + commands/dev.md L77 as donor pattern"
+    },
+    "gap": "Four missing additions to commands/spec.md: (1) prohibition prose covering both Step 3 first-write and Step 4 multi-turn append; (2) Parse --codex block in Step 1 placed before empty-vs-non-empty branch; (3) codex_required:true propagation to spec-subagent dispatch + QA dispatch + split-QA retry re-dispatch; (4) frontmatter argument-hint."
+  },
+  "scope_expansion": {
+    "search_pattern": "literal '--codex' and 'argument-hint' and regex '5\\.[0-9]+\\.[A-Z]'",
+    "search_scope": "/root/.claude/commands/spec.md (single-file user-need scope)",
+    "user_reported": ["commands/spec.md"],
+    "additional_found": [],
+    "all_occurrences": [
+      "commands/spec.md L1-3 (frontmatter, no argument-hint)",
+      "commands/spec.md L16-22 (Step 1, no --codex parse)",
+      "commands/spec.md L36-67 (Step 3 first-write, no §5.X prohibition)",
+      "commands/spec.md L69-86 (Step 4 multi-turn, no §5.X prohibition)",
+      "commands/spec.md L116-127 (Step 6 sub-step 2 spec-subagent dispatch, no codex_required line)",
+      "commands/spec.md L134-161 (Step 6 sub-step 3 initial QA dispatch, no codex_required line)",
+      "commands/spec.md L180-203 (Step 6 sub-step 3 split-QA retry re-dispatch, no codex_required line)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "commands/dev.md L77 — canonical --codex parsing block in production use; verified by direct Read this session.",
+    "url_or_location": "/root/.claude/commands/dev.md line 77",
+    "copy_allowed": true,
+    "role_table": {
+      "_source": "no project CLAUDE.md role table required for this edit (.claude config files are not UI-rendering)"
+    }
+  },
+  "prior_attempts": {
+    "triggered": false,
+    "trigger_source": null,
+    "attempts": [],
+    "novelty_check": {
+      "this_attempt_layer": "L1",
+      "differs_from_all_priors": true,
+      "rationale": "First /dev cycle for §5.X-inflation prohibition in /spec. First addition of --codex to /spec. The user's `就用这样的修改` references this session's prior agreed-upon proposal (orchestrator-internal turn), not a prior failed code change."
+    }
+  },
+  "context": {
+    "codebase_state": "main branch, several modified files unrelated to commands/spec.md (cp-state-dev.json, parity-matrix.json, workflow JSON, untracked dev artifacts)",
+    "recent_commits": "a99ccc8c chore(saga) Cycle 9 commit pass 2; 7c21b3b2 feat(happy-app) saga Cycle 9 fixes; efacd714 fix(commands) push.md+close.md (note: prior push.md drift fix is structurally analogous to this cycle's spec.md drift fix)",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {
+      "real_path": "/root/.claude is symlink to /dev/shm/dev-workspace/dot-claude (separate git repo)",
+      "edit_target_paths_equivalent": [
+        "/root/.claude/commands/spec.md",
+        "/dev/shm/dev-workspace/dot-claude/commands/spec.md"
+      ]
+    }
+  },
+  "development_approach": {
+    "strategy": "Four targeted Edit operations on commands/spec.md, each addressing one M-item. (1) Frontmatter add argument-hint line. (2) Step 1 insert Parse --codex block before empty/non-empty branch. (3) Insert prohibition prose either as a new line in Important Rules block (lines 261-275) or as parentheticals at L49 + L81 — implementer choice. (4) Insert literal `codex_required: true` into the prompt body of all three Step 6 dispatch sites (sub-step 2 spec-subagent, sub-step 3 initial QA, sub-step 3 retry re-dispatch).",
+    "files_to_create": [],
+    "files_to_modify": ["/root/.claude/commands/spec.md"],
+    "validation_approach": "QA runs grep validation commands listed in ticket Technical Hints: '--codex' returns ≥4 hits, 'codex_required: true' returns ≥3 hits, 'argument-hint' returns exactly 1 hit, prohibition-prose pattern returns ≥1 hit. Optionally simulate `/spec --codex` and `/spec --codex foo` parse paths by reading the modified file (no live invocation required since /spec is disable-model-invocation:true)."
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": false,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex confirmed 3-AC granularity is right; AC3 must stay separate from AC2 (parsing alone is insufficient — propagation is the user's explicit ask); argument-hint frontmatter is in scope as metadata for the new flag (count under --codex edit, not as a separate feature). Three concrete plan bugs flagged: (1) AC1 must cover BOTH initial Section 5 population (Step 3) AND multi-turn appends (Step 4) — single-placement near L49 leaves Step 4 uncovered; (2) AC3 must cover the spec-subagent re-dispatch inside the split-QA retry loop (Step 6 sub-step 3 retry block at lines 175-205), not only the initial dispatch — otherwise --codex silently drops on QA fail/retry; (3) parse order matters — strip --codex BEFORE the empty/non-empty branch decision in Step 1 so `/spec --codex` (no requirement) correctly enters clarification ask while preserving codex_required=true. Codex also confirmed low meta-violation risk if prohibition stays plain prose without nested example trees, and reaffirmed scope hold (no agents/spec.md edit, no validators).",
+    "feedback_incorporated": "All three concrete bugs incorporated into the spec: (1) M1 wording explicitly requires the prohibition be 'positioned so it visibly governs both Step 3 first-write and Step 4 multi-turn append' and AC1 mirrors this; (2) M3 wording explicitly enumerates 'spec-subagent dispatch (sub-step 2), QA validation dispatch (sub-step 3), AND the split-QA retry re-dispatch path (sub-step 3 retry block at lines 175-205)' and AC3 mirrors this with 'covers all three dispatch sites — initial spec-subagent, initial QA, retry-loop re-spec-subagent'; (3) AC2 explicitly requires the strip happen 'BEFORE the empty/non-empty branch decision (current lines 18-19)' with edge case documented in Edge Cases & Risks. Granularity and frontmatter scoping accepted as drafted."
+  }
+}

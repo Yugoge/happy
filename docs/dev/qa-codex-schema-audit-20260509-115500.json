@@ -1,0 +1,145 @@
+{
+  "request_id": "20260509-115500-codex-audit",
+  "phase": "codex-schema-design-audit",
+  "audit_target": "/var/tmp/codex-outputs/codex-output-schema-2322487-1778403214.txt",
+  "audit_target_lines": "10390-10786",
+  "status": "needs_revision",
+  "citation_accuracy": {
+    "checked": 9,
+    "accurate": 9,
+    "false_or_misleading": [
+      {
+        "citation": "context...json:393-406 cited as 'canonical ACs/files/commands' in section (a) M1 spec→dev",
+        "discovered_by": "codex self-audit + QA cross-check",
+        "claim": "Codex framed lines 393-406 as up-to-date authoritative ACs",
+        "reality": "Lines 393-403 of context-20260509-115500.json carry Iteration-2 wording (AC2 single-file workflow pathspec '.github/workflows/typecheck.yml', AC10 only-3-surfaces dep guard). The ticket-20260509-115500.md sibling is at Iteration-3 and broadened both: AC2/AC7 use whole-directory '.github/workflows/' and AC10 enumerates 12 dep surfaces with ff51184e..HEAD post-commit form. The context JSON acceptance_criteria field was not updated when the ticket md was rewritten for iter-3 — producing internal ticket-vs-context drift codex did not flag.",
+        "severity": "minor (citation framing, not factually false)"
+      }
+    ],
+    "spot_checked_citations_all_passed": [
+      "agents/ba.md:123-139 (dual-output declaration)",
+      "agents/ba.md:1043-1047 (files_to_modify as string array)",
+      "agents/dev.md:74-90 (development_approach.files_to_modify as RICH OBJECTS — confirms M1 BA-vs-dev drift)",
+      "agents/dev.md:459-535 (dev.status enum: completed|blocked|needs_review — confirms M2 ready_for_qa undeclared drift)",
+      "commands/dev.md:315-350 (BA dispatch prompt)",
+      "commands/dev.md:396-404 (coarse sanity-check fields)",
+      "commands/close.md:177-180 (close consumes dev.files_modified)",
+      "commands/close.md:334-349 (legal CLOSE: verdict forms)",
+      "commands/commit.md:15-18, 35-54 (no user plan files; semantic plan derived)",
+      "hooks/commit.sh:462-478 (consumes dev.files_modified, files_created, task path lists, scripts_created[].path)",
+      "hooks/commit.sh:625-645 (writes semantic-plan meta with engine/plan_id/plan_sha256)",
+      "hooks/commit.sh:1117-1121 (reads last non-empty line via classify-line helper)",
+      "hooks/lib/close-verdict.py:17-24 (helper requires line start with CLOSE:)",
+      "hooks/push.sh:210-220 (grant fields: branch/expected_head/remote/nonce/sid/ppid/created_at)",
+      "hooks/pretool-git-privilege-guard.py:592-666 (push grant validation)"
+    ]
+  },
+  "schema_correctness": {
+    "spec_output_M1": "minor_gaps",
+    "spec_output_M1_notes": [
+      "context.requirement.where: real artifact has it as array of strings (verified line 115); schema declares array. PASS.",
+      "context.acceptance_criteria as top-level string array: real artifact line 393 has this. PASS.",
+      "Real context has out_of_scope_observations[] (lines 167-197), iteration_log[] (8-108), scope_boundary{} (153-166), component_chain[] (248-297), prior_attempts{} (338-372), reference_source{} (329-337), pre_existing_guards[] (298), regression_investigation_checklist (299), primary_path/secondary_path (418-419), codex_consult (422-433) — NONE of these are in codex's spec-output schema, even with additionalProperties:true (no per-field type or required-ness recorded). Schema is overly permissive on context. Acceptable since additionalProperties:true preserves them, but no validation pressure on these well-known fields."
+    ],
+    "dev_report_M2": "minor_gaps",
+    "dev_report_M2_notes": [
+      "Required field 'dev.fix_layer' is in real artifact (line 35 'L3') and declared in schema. PASS.",
+      "Required field 'dev.qa_ready' is in real artifact and declared. PASS.",
+      "Real artifact has dev.qa_notes (line 38), dev.byte_identity_verified (line 40), dev.byte_identity_evidence (41-47), dev.blast_radius_verified (48), dev.blast_radius_evidence (49-55), dev.dep_surface_clean_verified (56), dev.dep_surface_evidence (57-64), dev.local_typecheck_status (65), dev.local_typecheck_rationale (66) — NONE listed in schema's properties. Tolerated by additionalProperties:true; no schema-pressure to keep them present.",
+      "dev.status enum in schema correctly includes the observed 'ready_for_qa' value (codex DID add this).",
+      "dev.diff_stats.justification_for_overage and minimum_possible_lines_estimate (per agents/dev.md:511-516) are in real artifact (lines 32-33) but not declared in schema's diff_stats properties."
+    ],
+    "close_report_M3": "pass",
+    "close_report_M3_notes": [
+      "verdict_line regex tested manually against close.md:344-349 7 legal forms — ALL match: 'CLOSE: YES', 'CLOSE: YES — codex disabled by user', 'CLOSE: YES - degraded codex consultation: codex_status=failed_quota', 'CLOSE: YES (FORCED)', 'CLOSE: NO - <reason>', 'CLOSE: NO — <reason>', 'CLOSE: NO'. The known-broken 'Final verdict: CLOSE: YES' form correctly fails the regex.",
+      "workflow_integrity minItems:4 is correct (close.md:337 mandates exactly 4 bullets).",
+      "codex_status enum includes disabled_by_user — matches close.md:330 branch 7."
+    ],
+    "commit_manifest_M4": "minor_gaps",
+    "commit_manifest_M4_notes": [
+      "Real /tmp/claude-commit-manifest-default-20260509-115500.json has the 6 codex-listed top-level keys exactly (version, task_id, repo_root, semantic_files, patches, excluded_dirty). PASS.",
+      "Real version is integer 3 — matches schema const:3. PASS.",
+      "Real semantic_files items have only {path, reason} (no category field) — schema lists category as optional, fine.",
+      "Real patches has 1 entry with only {patch} key — PASS.",
+      "Real excluded_dirty has 30 entries with {path, reason} (no category) — PASS.",
+      "Per codex's own drift_notes: schema models LEGACY v3 manifest, but live publish path uses semantic-plan meta. Schema title should clarify this is the legacy/observed shape, not the live contract. Already documented in drift_notes."
+    ],
+    "verdict_regex_test_results": [
+      {"input": "CLOSE: YES", "match": true, "expected": true, "result": "PASS"},
+      {"input": "CLOSE: YES — codex disabled by user", "match": true, "expected": true, "result": "PASS"},
+      {"input": "CLOSE: YES - degraded codex consultation: codex_status=failed_quota", "match": true, "expected": true, "result": "PASS"},
+      {"input": "CLOSE: YES (FORCED)", "match": true, "expected": true, "result": "PASS"},
+      {"input": "CLOSE: NO - dev report missing", "match": true, "expected": true, "result": "PASS"},
+      {"input": "CLOSE: NO — QA dissent", "match": true, "expected": true, "result": "PASS"},
+      {"input": "CLOSE: NO", "match": true, "expected": true, "result": "PASS"},
+      {"input": "Final verdict: CLOSE: YES", "match": false, "expected": false, "result": "PASS (correctly rejects malformed final-line)"},
+      {"input": "CLOSE: MAYBE", "match": false, "expected": false, "result": "PASS"}
+    ]
+  },
+  "drift_map_verification": {
+    "real_drifts_confirmed": [
+      "M1 BA/context vs dev docs: files_to_modify as strings (BA + context lines 382-383) vs rich objects (agents/dev.md:74-90). VERIFIED.",
+      "M2 dev.status: real artifact uses 'ready_for_qa' (line 7); agents/dev.md:472 declares enum 'completed|blocked|needs_review' — 'ready_for_qa' undeclared. VERIFIED.",
+      "M3 'Final verdict: CLOSE: YES' parses unknown via close-verdict.py:17-24 (text starts with 'Final verdict:' not 'CLOSE:') — close-report-20260509-115500.md:67 has this exact line, line 69 has the working 'CLOSE: YES'. VERIFIED.",
+      "M4 v3 manifest is real but live publish path uses semantic-plan meta + push-grant. VERIFIED via commit.sh:625-645 and push.sh:210-220.",
+      "M2-secondary drift map row: real QA report uses TOP-LEVEL status, secondary commit-path expects qa.status=='pass'. VERIFIED via qa-report-20260509-115500.json (top-level 'status':'approved', no qa.* nesting)."
+    ],
+    "fake_drifts_flagged": []
+  },
+  "missing_drifts": [
+    {
+      "drift": "M1 ticket-vs-context-JSON internal drift",
+      "evidence": "ticket-20260509-115500.md AC2 (line 206-214) is iter-3 broadened ('.github/workflows/' whole dir, ff51184e..HEAD post-commit form, AC10 12-surface enumeration). context-20260509-115500.json acceptance_criteria (line 393-403) is still iter-2 ('.github/workflows/typecheck.yml' single file, HEAD~1 HEAD post-commit form, AC10 only-3-surfaces). The two artifacts in the same M1 envelope contradict each other.",
+      "implication": "M1 schema as drafted does not require ticket.acceptance_criteria and context.acceptance_criteria to agree. A spec contract that admits internal contradiction between its two halves cannot be relied on by /dev consumers.",
+      "severity": "major — codex acknowledged this in self-audit"
+    },
+    {
+      "drift": "QA report top-level status vs declared qa.status nesting",
+      "evidence": "agents/qa.md Output Format declares qa.status nested under 'qa'; commit.sh closure detection at lines 547-556 reads data.get('qa', {}).get('status'). Real qa-report-20260509-115500.json uses TOP-LEVEL 'status' (value 'approved') and no qa.* nesting. The required QA-report fields (verified_against_complaint, passed_user_requirement, ac_alignment) are also top-level. This is a full-blown M2.5 membrane (dev→QA→close) for which codex did not produce a schema.",
+      "implication": "Without a QA-report schema, commit.sh secondary-path (CLOSE-NO with QA-pass override) cannot be machine-validated. Codex flagged this in drift map but did not commit it to a schema deliverable.",
+      "severity": "major — codex self-audit acknowledged"
+    },
+    {
+      "drift": "BA-validation report (ba-qa-report-*.json) has no schema at all",
+      "evidence": "Real ba-qa-report-20260509-115500.json has 40+ top-level fields (status, obj_*, iter*_*, ac_*, codex_consult, objections, etc.) and is part of the BA↔QA validation loop documented in agents/qa.md 'BA-Validation Mode: 5 Dimensions of Objection'. No schema covers this membrane.",
+      "implication": "BA-validation cycle has no contract floor; the 5-dimension objection structure is enforceable only by prose.",
+      "severity": "major"
+    },
+    {
+      "drift": "Inspector reports (style/cleanliness/prompt) have no schema",
+      "evidence": "close-report references docs/dev/style-inspector-report-*.json, cleanliness-inspector-report-*.json, prompt-inspector-report-*.json. close.md:185-187 dispatches 3 inspectors and feeds findings into the close debate.",
+      "implication": "Inspector→close-debate membrane is uncovered.",
+      "severity": "minor"
+    },
+    {
+      "drift": "Dev-report internal fields missing from M2 schema",
+      "evidence": "Real dev report contains qa_notes, byte_identity_verified, byte_identity_evidence, blast_radius_verified, blast_radius_evidence, dep_surface_clean_verified, dep_surface_evidence, local_typecheck_status, local_typecheck_rationale, ac_self_check — all present and load-bearing. Codex's dev-report.schema.json lists ac_self_check but omits the others entirely.",
+      "implication": "Schema does not exert pressure to keep these AC-evidence fields present. Tolerated by additionalProperties:true; not a hard fail.",
+      "severity": "minor"
+    }
+  ],
+  "codex_self_audit": {
+    "invoked": true,
+    "status": "ok",
+    "verdict": "NEEDS_REVISION",
+    "issues_found": [
+      "False-flavored citation: context...json:393-406 framed as 'canonical' but actually carries stale iter-2 ACs (codex-acknowledged)",
+      "Most-incorrect constraint: M4 schema pins version:3 + required patches, modeling the LEGACY artifact rather than the LIVE semantic-plan path; should be split into 'legacy v3' + 'live semantic-plan meta' or labeled clearly as legacy",
+      "Most-clearly-missing field: dev.qa_notes (verified present in real report, absent from M2 schema). My audit also surfaced byte_identity_verified, blast_radius_verified, local_typecheck_status etc. as similarly missing.",
+      "Most-clearly-missing drift: M1 ticket-vs-context internal drift (ticket iter-3 ACs vs context iter-2 ACs). My audit confirmed by reading both artifacts side-by-side.",
+      "Codex also acknowledged underplaying QA / BA-QA secondary schemas — should be dedicated contracts, not just drift-map asides."
+    ],
+    "output_path": "/var/tmp/codex-outputs/codex-output-2675101-1778404053.txt"
+  },
+  "ready_to_save_to_contracts_dir": false,
+  "recommendations": [
+    "Before saving M2 dev-report.schema.json: add to 'properties' the well-known dev.* fields actually used by real reports: qa_notes, byte_identity_verified, byte_identity_evidence, blast_radius_verified, blast_radius_evidence, dep_surface_clean_verified, dep_surface_evidence, local_typecheck_status, local_typecheck_rationale, ac_self_check (already present). Also add diff_stats.justification_for_overage and diff_stats.minimum_possible_lines_estimate per agents/dev.md:511-516.",
+    "Before saving M4 commit-manifest.schema.json: rename title to 'Commit Manifest Contract M4 (LEGACY v3 observed shape)' and add a note that the live publish path consumes semantic-plan meta + push grant instead. Optionally add a sibling 'commit-semantic-plan-meta.schema.json' covering the live engine/plan_id/plan_sha256 shape produced by commit.sh:625-645.",
+    "Before saving M1 spec-output.schema.json: add a cross-field constraint requiring ticket.acceptance_criteria and context.acceptance_criteria to be content-aligned (or at least share AC IDs). The current schema admits the iter-2-vs-iter-3 internal drift observed in this cycle.",
+    "Add a NEW M2.5 schema covering qa-report-*.json with top-level status (matching real artifacts), and require qa.* nested form ONLY for new reports (legacy artifacts use top-level). This deliverable was missing from codex's report.",
+    "Add a NEW schema covering ba-qa-report-*.json (BA-validation membrane) with the 5-dimension objection structure declared in agents/qa.md 'BA-Validation Mode' section.",
+    "Optionally add inspector-report schemas (style/cleanliness/prompt) to cover the inspector→close debate membrane.",
+    "After above revisions, re-run this audit on the revised report; if all gaps closed, status flips to approved and schemas can be saved to ~/.claude/contracts/."
+  ],
+  "summary": "Codex's schema design report is well-grounded — 9/9 spot-checked citations into commit.sh / push.sh / close-verdict.py / agents/dev.md / agents/ba.md / commands/{dev,close,commit}.md verify exactly. The verdict regex correctly admits all 7 close.md legal forms and rejects the known-broken 'Final verdict: CLOSE: YES' form. The 6 drift-map rows are all real (no fakes flagged). However, the report has 5 substantive gaps that block adoption to ~/.claude/contracts/: (1) M1 schema does not require ticket-vs-context AC alignment, masking the iter-3 ticket vs iter-2 context drift visible in this cycle; (2) M2 dev-report schema omits ~10 well-known dev.* fields that real reports populate (qa_notes, byte_identity_verified, blast_radius_verified, local_typecheck_status, etc.); (3) M4 schema models the LEGACY v3 manifest while the live commit path produces semantic-plan meta — mislabeled as authoritative; (4) NO schema exists for qa-report-*.json (real artifacts use TOP-LEVEL status, agents/qa.md mandates qa.status nested — a full membrane gap); (5) NO schema exists for ba-qa-report-*.json (BA-validation membrane). Codex's own self-audit corroborates 4 of 5 gaps. Verdict: needs_revision — fix the 5 gaps, then re-audit before saving to contracts/."
+}

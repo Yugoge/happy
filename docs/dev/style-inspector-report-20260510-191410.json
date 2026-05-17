@@ -1,0 +1,37 @@
+{
+  "request_id": "20260510-191410",
+  "timestamp": "2026-05-11T00:00:00Z",
+  "inspector": "style-inspector",
+  "scope": {
+    "mode": "--changed-files",
+    "files": ["/dev/shm/dev-workspace/dot-claude/commands/spec.md"],
+    "diff_summary": "13 insertions / 1 deletion / 5 hunks; slash-command markdown docstring",
+    "ac_2_6_granularity": "line-level: NEW = (i) line in diff range AND (ii) absent from pre-diff baseline"
+  },
+  "standards_applied": [
+    "english-only",
+    "concise-documentation",
+    "no-inline-code (markdown docstring scope)",
+    "internal-reference-validity",
+    "code-fence-consistency",
+    "heading-hierarchy"
+  ],
+  "standards_skipped_out_of_scope": [
+    "use-source-venv (no python3 invocation in diff)",
+    "integer-step-numbering (Section 5.N nesting is the documented append convention from Step 4, not a violation)",
+    "parameterized-scripts (no script source in diff)",
+    "merge-similar-scripts (no script in diff)",
+    "dangling-references (file paths cited in diff: agents/<role>.md - role-templated, not concrete dangling reference)",
+    "merge-conflicts (no conflict markers in diff)",
+    "hardcoded-values (markdown docstring, not script)"
+  ],
+  "violations": [],
+  "summary": {
+    "standards_checked": 6,
+    "violations_found": 0,
+    "critical": 0,
+    "files_audited": 1,
+    "files_total": 1,
+    "rounds_completed": 1
+  }
+}

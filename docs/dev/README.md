@@ -5,8 +5,8 @@ Organization and usage documentation for `dev/`.
 <!-- AUTO:readme-stats -->
 
 ## Overview
-- **Total files**: 754
-- **Subdirectories**: 8
+- **Total files**: 774
+- **Subdirectories**: 10
 - **Naming convention**: kebab
 
 ## Files
@@ -213,6 +213,8 @@ Organization and usage documentation for `dev/`.
 - `cleanliness-inspector-report-20260513-211054.json` - json config
 - `cleanliness-inspector-report-20260514-093200.json` - json config
 - `cleanliness-inspector-report-20260514-143000.json` - json config
+- `cleanliness-inspector-report-20260515-204850.json` - json config
+- `cleanliness-inspector-report-20260516-212024.json` - json config
 - `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 - `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 - `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
@@ -254,10 +256,14 @@ Organization and usage documentation for `dev/`.
 - `close-report-20260514-093200.md` - Close Debate Transcript — task-id 20260514-093200
 - `close-report-20260514-143000.json` - json config
 - `close-report-20260514-143000.md` - Close Debate Report
+- `close-report-20260515-204850.md` - Close Debate Report
+- `close-report-20260516-212024.md` - Close Report — 20260516-212024
+- `close-report-20260517-noid.md` - Close Report: 20260517-noid
 - `close-report-spec-20260506-203844.md` - Close Debate Report
 - `codex-fork-divergence-research-20260427.md` - No description
 - `codex-mapping-rollout-roadmap.md` - Codex Mapping Rollout Roadmap — fd-scan Deprecation Chain
 - `codex-research-20260425-bgtask-reconnect.md` - No description
+- `codex-systematic-refactor-20260515-085807.md` - Codex Systematic Refactor — happy-session-recovery.sh — 20260515-085807
 - `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 - `completion-20260425-104643.md` - Development Completion Report — Spec Maturity Remediation
 - `completion-20260425-122518.md` - Development Completion Report
@@ -295,6 +301,7 @@ Organization and usage documentation for `dev/`.
 - `completion-20260513-211054.md` - Completion Report — Codex Symmetric Tracking (Biological Child Parity)
 - `completion-20260514-093200.md` - Completion Report — /redev Follow-up (Codex Parity Telemetry + Process.Title + Cgroup)
 - `completion-20260514-143000.md` - Completion Report — Codex Recovery Script Patches (Blocks 2+3+4 Final SOP)
+- `completion-20260516-212024.md` - Development Completion Report — 20260516-212024
 - `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 - `context-20260323-210000.json` - json config
 - `context-20260403-210447-0.json` - json config
@@ -401,6 +408,8 @@ Organization and usage documentation for `dev/`.
 - `context-20260513-211054.json` - json config
 - `context-20260514-093200.json` - json config
 - `context-20260514-143000.json` - json config
+- `context-20260516-201739.json` - json config
+- `context-20260516-212024.json` - json config
 - `context-c1-20260504-223115.json` - json config
 - `context-c1-redev-20260505-001500.json` - json config
 - `context-c2-20260504-223115.json` - json config
@@ -539,6 +548,8 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260514-093200.json` - json config
 - `dev-report-20260514-143000.json` - json config
 - `dev-report-20260514-195735.json` - json config
+- `dev-report-20260516-201739.json` - json config
+- `dev-report-20260516-212024.json` - json config
 - `dev-report-c1-20260504-223115.json` - json config
 - `dev-report-c1-redev-20260505-001500.json` - json config
 - `dev-report-c3-20260504-223115.json` - json config
@@ -578,6 +589,8 @@ Organization and usage documentation for `dev/`.
 - `prompt-inspector-report-20260513-211054.json` - json config
 - `prompt-inspector-report-20260514-093200.json` - json config
 - `prompt-inspector-report-20260514-143000.json` - json config
+- `prompt-inspector-report-20260515-204850.json` - json config
+- `prompt-inspector-report-20260516-212024.json` - json config
 - `prompt-inspector-report-spec-20260506-203844.json` - json config
 - `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 - `qa-audit-20260407.json` - json config
@@ -705,6 +718,7 @@ Organization and usage documentation for `dev/`.
 - `qa-report-20260514-093200.json` - json config
 - `qa-report-20260514-143000.json` - json config
 - `qa-report-20260515-085807.json` - json config
+- `qa-report-20260516-212024.json` - json config
 - `qa-report-c1-20260504-223115.json` - json config
 - `qa-report-c1-redev-20260505-001500.json` - json config
 - `qa-report-c3-20260504-223115.json` - json config
@@ -737,6 +751,8 @@ Organization and usage documentation for `dev/`.
 - `style-inspector-report-20260513-211054.json` - json config
 - `style-inspector-report-20260514-093200.json` - json config
 - `style-inspector-report-20260514-143000.json` - json config
+- `style-inspector-report-20260515-204850.json` - json config
+- `style-inspector-report-20260516-212024.json` - json config
 - `style-inspector-report-spec-20260506-203844.json` - json config
 - `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
 - `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
@@ -752,14 +768,18 @@ Organization and usage documentation for `dev/`.
 - `ticket-20260513-211054.md` - BA Specification: Codex Symmetric Tracking — First-Class Biological Child Parity with Claude
 - `ticket-20260514-093200.md` - BA Specification: /redev round-1 — land risk-filtered prior-cycle deferrals (M1' M2' M3' M4')
 - `ticket-20260514-143000.md` - BA Specification: Codex-Mapping Recovery — Block 2+3+4 Closure (Subagent Slice)
+- `ticket-20260516-201739.md` - BA Specification: Codex History Replay Recovery Close Blockers
+- `ticket-20260516-212024.md` - BA Specification: Phase 2 — write_json_snapshot codex flavor field + Block F verification
 - `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
 - `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
 - `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)
 - `ticket-c3-20260504-223115.md` - BA Specification: C3 — Permanent prohibition on Claude restarting any happy-daemon
 
 ## Subdirectories
+- `clean/`
 - `evidence/`
 - `overnight/`
+- `patches/`
 - `postmortems/`
 - `qa-artifacts/`
 - `qa-partial-20260425-131502/`

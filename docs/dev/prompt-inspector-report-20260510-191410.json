@@ -1,0 +1,22 @@
+{
+  "request_id": "20260510-191410",
+  "timestamp": "2026-05-11T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "tagging_mechanism": "ii-inspector-side-tagging",
+  "scope_contract": "cleanliness-of-this-diff-only; full-repo regression coverage is QA scope, not inspector scope",
+  "scanned_files": [
+    "/dev/shm/dev-workspace/dot-claude/commands/spec.md"
+  ],
+  "findings": [],
+  "summary": {
+    "files_inspected": 1,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "estimated_reduction": "n/a",
+    "analysis_notes": "Diff adds 13 lines of behavioral/functional instructions targeting orchestrator misinference (drift root cause): (1) frontmatter argument-hint at L3 (functional metadata for slash-command UX), (2) --codex flag parsing block at L19 (functional behavioral parse rule + propagation contract), (3) codex_required: true conditional propagation at 3 dispatch sites (L128, L144, L196) (functional dispatch-prompt content rule), (4) §5.X-inflation prohibition at L280 (functional behavioral rule preventing orchestrator from inventing nested sub-section structure). None of the additions match the verbose-section catalog (Philosophy/Overview/Quality Standards/Safety Features/Helper Scripts/Usage). The pre-existing **Philosophy**: label at L15 is an inline bold label, not a ## Philosophy section header, and is NOT introduced in this diff. Verbosity score for diff: 0 verbose_lines / 13 added_lines = 0%. No findings to emit."
+  }
+}

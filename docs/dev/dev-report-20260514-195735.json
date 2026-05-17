@@ -1,0 +1,63 @@
+{
+  "request_id": "20260514-195735",
+  "task_id": "20260514-195735",
+  "timestamp": "2026-05-14T20:28:00Z",
+  "dev_report_path": "docs/dev/dev-report-20260514-195735.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-cli/src/codex/runCodex.ts"
+    ],
+    "files_created": [],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Insert notifyDaemonOfCodexTid call at the abortTurnWithFallback forced-restart reconnect site (third tid-bind site, M3)",
+        "type": "code_edit",
+        "files_modified": ["packages/happy-cli/src/codex/runCodex.ts"],
+        "changes": "Added 7-line block inside `if (abortResult.forcedRestart)` in handleAbort() at runCodex.ts line ~370. When `abortResult.resumedThread === true` and `client.threadId` is non-null, calls `session.updateMetadata` merging codexThreadId into current metadata and invokes `notifyDaemonOfCodexTid(session.sessionId, client.threadId!, u)`. Import for notifyDaemonOfCodexTid was already present at line 28.",
+        "rationale": "The forced-restart path in abortTurnWithFallback (codexAppServerClient.ts:986) calls reconnectAndResumeThread() which internally runs thread/resume and updates this._threadId. The returned `resumedThread: boolean` only indicates success but does not expose the new tid. The public getter `client.threadId` (line 175) exposes it. Mirroring the M1 pattern at runCodex.ts:710-714 ensures the daemon learns the tid regardless of which path bound it."
+      }
+    ],
+    "scripts_created": [],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-cli/src/codex/runCodex.ts",
+        "imported_by": ["packages/happy-cli/src/index.ts"]
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A (deferred item from task 20260513-211054)",
+      "why_issue_occurred": "The forced-restart reconnect path in abortTurnWithFallback acquires a thread ID (via reconnectAndResumeThread -> resumeThread -> this._threadId = result.thread.id) but never reported it to the daemon, leaving the daemon's in-memory TrackedSession and codex-mapping.json stale after a forced restart.",
+      "how_fix_addresses_root": "After abortTurnWithFallback when forcedRestart=true and resumedThread=true, reads client.threadId (the fresh tid post-reconnect) and calls notifyDaemonOfCodexTid, which POSTs to daemon /session-started with enriched metadata containing codexThreadId and sets process.title."
+    },
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 7,
+      "lines_removed": 0,
+      "new_symbols_introduced": [],
+      "minimum_possible_lines_estimate": 5,
+      "justification_for_overage": null
+    },
+    "fix_layer": "L2",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Additive change — 7 lines inside the `if (abortResult.forcedRestart)` guard in handleAbort(). notifyDaemonOfCodexTid import was already present (line 28). Call only fires when abortResult.resumedThread===true AND client.threadId is non-null. Build passes (yarn build, 13s). All 11 notifyDaemonOfCodexTid unit tests pass. All 16 codexAppServerClient unit tests pass. Integration test failures (codex.integration.test.ts, claude.integration.test.ts, daemon.integration.test.ts) are pre-existing and require live infra — unrelated to this change.",
+    "permissions_to_add": [],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "yarn build completed in 13.11s with zero TypeScript errors. notifyDaemonOfCodexTid unit tests 11/11 pass. codexAppServerClient unit tests 16/16 pass. Pre-existing integration failures unrelated to this change."
+    },
+    "codex_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "Consider adding a dedicated unit test for the M3 site in runCodex.ts that mocks abortTurnWithFallback to return {forcedRestart:true, resumedThread:true} and verifies notifyDaemonOfCodexTid is called with the correct threadId."
+  ]
+}

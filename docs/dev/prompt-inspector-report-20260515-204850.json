@@ -1,0 +1,76 @@
+{
+  "request_id": "20260515-204850",
+  "timestamp": "2026-05-15T21:40:30Z",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "scope_contract": {
+    "scanned_only_listed_files": true,
+    "diff_scope_only": true,
+    "blocking_requires_introduced_in_diff_true": true,
+    "default_safe_rule": "Absent, null, unproven, or pre-existing file-level observations are advisory/non-blocking."
+  },
+  "task_id": "20260515-204850",
+  "changed_files": [
+    "packages/happy-cli/src/codex/runCodex.ts",
+    "packages/happy-cli/src/codex/rolloutHistoryReplay.ts",
+    "packages/happy-cli/src/codex/rolloutHistoryReplay.test.ts"
+  ],
+  "files_inspected": [
+    {
+      "file": "packages/happy-cli/src/codex/runCodex.ts",
+      "status": "modified",
+      "total_lines": 823,
+      "diff_added_lines": 7,
+      "diff_deleted_lines": 1,
+      "verbose_section_matches": [],
+      "prompt_quality_notes": "Added import and replay invocation only; no new model prompt, command documentation, or agent documentation text in changed hunks."
+    },
+    {
+      "file": "packages/happy-cli/src/codex/rolloutHistoryReplay.ts",
+      "status": "new_untracked_in_worktree",
+      "total_lines": 483,
+      "diff_added_lines": 483,
+      "diff_deleted_lines": 0,
+      "verbose_section_matches": [],
+      "prompt_quality_notes": "New code contains one concise user-visible service message for history replay failure; no prompt template, command documentation, or agent documentation section."
+    },
+    {
+      "file": "packages/happy-cli/src/codex/rolloutHistoryReplay.test.ts",
+      "status": "new_untracked_in_worktree",
+      "total_lines": 124,
+      "diff_added_lines": 124,
+      "diff_deleted_lines": 0,
+      "verbose_section_matches": [],
+      "prompt_quality_notes": "Fixture strings are short test data only."
+    }
+  ],
+  "findings": [],
+  "non_blocking_observations": [
+    {
+      "file": "packages/happy-cli/src/codex/rolloutHistoryReplay.ts",
+      "line": 380,
+      "introduced_in_diff": true,
+      "blocking": false,
+      "observation": "Short service message: prior Codex history replay failure notice. It is functional, concise, and not a prompt/command/agent-documentation verbosity violation."
+    },
+    {
+      "file": "packages/happy-cli/src/codex/runCodex.ts",
+      "line": 732,
+      "introduced_in_diff": false,
+      "blocking": false,
+      "observation": "Existing CHANGE_TITLE_INSTRUCTION prompt composition is outside this diff's changed hunks and is default-safe advisory under changed-files mode."
+    }
+  ],
+  "summary": {
+    "result": "PASS",
+    "files_inspected": 3,
+    "files_with_violations": 0,
+    "blocking_findings": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "introduced_in_diff_violations": 0,
+    "estimated_reduction": "0 lines; no prompt verbosity cleanup indicated for this diff."
+  }
+}
