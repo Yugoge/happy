@@ -36,6 +36,7 @@ import { resolveCodexExecutionPolicy } from './executionPolicy';
 import { mapCodexMcpMessageToSessionEnvelopes, mapCodexProcessorMessageToSessionEnvelopes } from './utils/sessionProtocolMapper';
 import type { LifecycleState } from './utils/subagentLifecycle';
 import { resumeExistingThread } from './resumeExistingThread';
+import { replayCodexRolloutHistory } from './rolloutHistoryReplay';
 import type { InputItem } from './codexAppServerTypes';
 
 type ReadyEventOptions = {
@@ -657,13 +658,18 @@ export async function runCodex(opts: {
         logger.debug('[codex]: client.connect done');
 
         if (opts.resumeThreadId) {
-            await resumeExistingThread({
+            const resumedThread = await resumeExistingThread({
                 client,
                 session,
                 messageBuffer,
                 threadId: opts.resumeThreadId,
                 cwd: process.cwd(),
                 mcpServers,
+            });
+            await replayCodexRolloutHistory({
+                session,
+                threadId: opts.resumeThreadId,
+                fallbackThreadIds: resumedThread.threadId === opts.resumeThreadId ? [] : [resumedThread.threadId],
             });
             first = false;
         }

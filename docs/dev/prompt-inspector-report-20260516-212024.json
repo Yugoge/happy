@@ -1,0 +1,28 @@
+{
+  "request_id": "20260516-212024",
+  "timestamp": "2026-05-17T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "changed_files": [
+    "docs/dev/ticket-20260516-212024.md",
+    "docs/dev/patches/write_json_snapshot-20260516-212024.sh"
+  ],
+  "findings": [],
+  "summary": {
+    "files_inspected": 2,
+    "files_with_violations": 0,
+    "critical": 0,
+    "major": 0,
+    "minor": 0,
+    "total_verbose_lines": 0,
+    "estimated_reduction": "none required",
+    "scope_note": "Both changed files are docs/dev/ artifacts (BA ticket + patch script), NOT .claude/commands/*.md or .claude/agents/*.md files. Prompt verbosity rules (Philosophy, Overview, Quality Standards, etc.) apply to command/agent documentation only. No command or agent files were changed in this diff. No .claude/commands/ or .claude/agents/ files exist in this project. Zero findings is correct — not a scan failure."
+  },
+  "codex_consult": {
+    "invoked": false,
+    "status": "not_requested",
+    "feedback_summary": null,
+    "findings": [],
+    "feedback_incorporated": null
+  }
+}
