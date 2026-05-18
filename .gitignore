@@ -52,3 +52,9 @@ CLAUDE.local.md
 notes/
 # ralphex progress logs
 progress*.txt
+
+# Transient/local artifacts (not needed in git)
+.playwright-mcp/
+happy-web-debug-*.png
+bun.lock
+package-lock.json

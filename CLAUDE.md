@@ -275,6 +275,20 @@ Key commands: `bash /root/bin/happy-session-recovery.sh save|check|restore|histo
 
 **CRITICAL: To restore a single session, use `recover <uuid>`. NEVER manually edit `session_dirs.txt` — the session-watcher monitors this file and any change triggers a full restore of ALL sessions.**
 
+**⚠️ `recover` 必须显式指定 `--home`**。省略时 `target_home=""`，脚本会遍历全部 4 个 daemon 尝试 spawn（见 `happy-session-recovery.sh:1097`：`[ -n "$target_home" ] && [ "$home" != "$target_home" ] && continue`），可能在错误账户下拉起 session 或造成重复 spawn。对应 `--home` 参数：
+
+| 账户 | `--home` |
+|------|---------|
+| default | `/root/.happy` |
+| jade | `/root/.happy-jade` |
+| dev | `/root/.happy-dev` |
+| qijie | `/root/.happy-qijie` |
+
+示例（恢复 default 账户 session）：
+```bash
+bash /root/bin/happy-session-recovery.sh recover <uuid> /path/to/workdir --home /root/.happy
+```
+
 ### Recovery Files
 
 - `~/.happy/session_dirs.txt` -- UUID:working_dir per line (**READ-ONLY for agents — never edit directly**)
