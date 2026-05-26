@@ -1,0 +1,197 @@
+{
+  "request_id": "20260525-081012",
+  "task_id": "20260525-081012",
+  "timestamp": "2026-05-25T09:15:00Z",
+  "mode": "ba_validation",
+  "iteration": 2,
+  "rank_acknowledged": "Journeyman",
+  "range_acknowledged": "21-40",
+  "recent_events_digest_acknowledged": "140bedbf",
+  "score_injection_action": "Journeyman rank (21-40) with no recent events — applied extra skepticism on resolved-claim evidence. For each of the 4 prior objections, read actual source lines before accepting BA's revision narrative. Applied Codex adversarial review; rejected scope-expansion findings (Issues 1 and 4) while incorporating clarification points (Issues 5 and 7).",
+
+  "qa": {
+    "status": "pass",
+    "scope_note": "PASS is scoped to BA Revision 2 quality validation only. The implementation bugs (F1/F2/F3) still exist in the codebase — this verdict clears the spec for dev execution, it is NOT an implementation close/pass.",
+    "overall_assessment": "BA Revision 2 correctly addresses all 4 prior QA objections. F1 call-order is now accurate (stopDaemon at line 119 fires BEFORE writeDaemonState at line 664; verified against actual code). F2 now explicitly includes BOTH cleanup-order sites (run.ts:763-766 heartbeat handoff AND run.ts:831-835 cleanupAndShutdown). F3 now specifies process.exit(1) in the catch block with FATAL log, zombie-state rationale, and systemd dependency acknowledgment. R5 is now correctly PAUSE-PENDING-USER with explicit prohibition on any interpreter. All 5 BA validation dimensions pass.",
+
+  "range_acknowledged": "21-40",
+  "recent_events_digest_acknowledged": "140bedbf",
+  "score_injection_action": "Journeyman rank (21-40) with no recent events — applied extra skepticism on resolved-claim evidence. For each of the 4 prior objections, read actual source lines before accepting BA's revision narrative. Applied Codex adversarial review; rejected scope-expansion findings (Issues 1 and 4) while incorporating clarification points (Issues 5 and 7).",
+
+  "prior_objection_resolution": [
+    {
+      "objection_id": "OBJ-1",
+      "description": "F1 call-order was wrong — BA stated new daemon writes state BEFORE calling stopDaemon, actual is reversed",
+      "resolution_status": "resolved",
+      "evidence": "BA Revision 2 Finding 1: 'run.ts:119 calls stopDaemon() FIRST. run.ts:664 calls writeDaemonState() LATER.' Verified: run.ts line 119 shows 'await stopDaemon()'; run.ts line 664 shows 'await writeDaemonState(fileState)'. Order is correct.",
+      "code_verified": true,
+      "line_evidence": "run.ts:119 (await stopDaemon()) precedes run.ts:664 (await writeDaemonState(fileState))"
+    },
+    {
+      "objection_id": "OBJ-2",
+      "description": "F2 scope omitted second cleanup-order site at run.ts:763-766 (heartbeat handoff)",
+      "resolution_status": "resolved",
+      "evidence": "BA Revision 2 Finding 2 explicitly lists BOTH sites. R2 acceptance criterion covers both. AC4 covers heartbeat site; AC5 covers cleanupAndShutdown site.",
+      "code_verified": true,
+      "line_evidence": "run.ts:765 cleanupDaemonState before run.ts:766 releaseDaemonLock — wrong order confirmed at heartbeat site. run.ts:833 cleanupDaemonState before run.ts:835 releaseDaemonLock — wrong order confirmed at cleanupAndShutdown site."
+    },
+    {
+      "objection_id": "OBJ-3",
+      "description": "F3 AC6 accepted 'alive but degraded' without specifying behavior or process.exit(1)",
+      "resolution_status": "resolved",
+      "evidence": "BA Revision 2 AC6: 'process.exit(1) is called; FATAL log emitted; process.exit(0) NOT in catch block.' Edge Case 6 documents zombie state. Edge Case 7 correctly qualifies systemd dependency. Technical Hints specify logger.debug with [FATAL] prefix.",
+      "code_verified": true,
+      "line_evidence": "run.ts:778 process.exit(0) OUTSIDE try block — matches F3 bug description. AC6/AC7 correctly specify the fix."
+    },
+    {
+      "objection_id": "OBJ-4",
+      "description": "R5 instructed python3 os.unlink as hook bypass — should be PAUSE-PENDING-USER",
+      "resolution_status": "resolved",
+      "evidence": "BA Revision 2 R5: 'PAUSE-PENDING-USER — no programmatic deletion via any interpreter'. AC8 explicitly prohibits rm, python3, node. Technical Hints: 'do not attempt programmatic deletion'. No python3/rm/unlink instructions found anywhere in revised spec.",
+      "code_verified": true,
+      "line_evidence": "Sentinel file EXISTS at /dev/shm/dev-workspace/happy-dev/.claude/.hook-refactor-allow. Spec correctly requires PAUSE-PENDING-USER with no programmatic path."
+    }
+  ],
+
+  "dimension_verdicts": {
+    "evidence_quality": {
+      "verdict": "pass",
+      "summary": "All line-number claims in BA Revision 2 verified against actual source. run.ts:119 stopDaemon confirmed. run.ts:664 writeDaemonState confirmed. run.ts:763-766 wrong order confirmed. run.ts:831-835 wrong order confirmed. persistence.ts:321-333 lock deletion in clearDaemonState confirmed. run.ts:778 process.exit(0) outside try confirmed. Observations correctly marked 'inferred'. No factual errors in revised narrative."
+    },
+    "scope_alignment": {
+      "verdict": "pass",
+      "summary": "BA Revision 2 includes both F2 sites (heartbeat run.ts:763-766 and cleanupAndShutdown run.ts:831-835) in the finding narrative, R2 requirements decomposition, and AC4/AC5. R5 is correctly PAUSE-PENDING-USER with no hook-bypass instruction. F1 single-snapshot fix addresses both HTTP-stop race and SIGKILL path via Technical Hints specifying inline-fetch approach. Won't Have correctly excludes replacement-daemon health supervision, deploy.sh URL fix, and sentinel programmatic deletion."
+    },
+    "investigation_completeness": {
+      "verdict": "pass",
+      "summary": "BA read source files directly (tier_2_verified). F1 call order traced correctly across lines 119 and 664. F2 identified all affected locations: persistence.ts:321-333, run.ts:763-766, run.ts:831-835. F3 fully documented zombie-state consequence. Edge Case 7 acknowledges systemd dependency without mandating supervisor configuration."
+    },
+    "affected_file_accuracy": {
+      "verdict": "pass",
+      "summary": "All three affected files correctly identified with accurate line numbers. Component chain entries correctly trace the call flow. No mis-identified or missing files. Both F2 sites explicitly named in the spec."
+    },
+    "spec_text_vs_execution_drift": {
+      "verdict": "pass",
+      "summary": "All ACs are GIVEN/WHEN/THEN structural assertions. No executable recipes that could drift. Technical Hints align logger.debug('[DAEMON RUN][FATAL] ...') pattern with existing Logger API — no new API needed."
+    }
+  },
+
+  "success_criteria_results": [
+    {
+      "requirement_id": "R1",
+      "source_phrase": "stopDaemon() reads daemon.state.json and stops whatever PID is listed there, with no generation or expected-PID guard; actual race is split-target: daemonPost re-reads state.json independently for port (line 15) while stopDaemon captures PID at line 198",
+      "criterion": "stopDaemon() captures state at entry (single snapshot); self-kill guard; both HTTP port and SIGKILL PID from same snapshot",
+      "verification_method": "Read controlClient.ts:196-228, controlClient.ts:14-16, BA Revision 2 Finding 1 + AC1/AC2 + Technical Hints",
+      "status": "pass",
+      "result": "pass",
+      "details": "BA Revision 2 R1/AC1/AC2 cover both the self-kill guard AND the single-snapshot constraint. Technical Hints explicitly require inline fetch with targetState.httpPort to eliminate the daemonPost re-read. The split-target race (two independent reads) is correctly identified as the PRIMARY F1 fix target. Self-kill guard is retained as secondary defense.",
+      "evidence": "controlClient.ts:14-15 confirms daemonPost re-reads state.json. run.ts:119 before run.ts:664 confirms new daemon PID not yet in state.json when stopDaemon fires. Technical Hints specify inline-fetch fix."
+    },
+    {
+      "requirement_id": "R2",
+      "source_phrase": "cleanupDaemonState() is called before releaseDaemonLock() at TWO sites: run.ts:763-766 (heartbeat handoff) AND run.ts:831-835 (cleanupAndShutdown); clearDaemonState() also deletes the lock file it does not own",
+      "criterion": "clearDaemonState() deletes only daemonStateFile; releaseDaemonLock() called BEFORE cleanupDaemonState() in BOTH run.ts heartbeat handoff AND cleanupAndShutdown",
+      "verification_method": "Read persistence.ts:321-333, run.ts:763-766, run.ts:831-835; BA Revision 2 Finding 2 + AC3/AC4/AC5",
+      "status": "pass",
+      "result": "pass",
+      "details": "BA Revision 2 explicitly identifies all three sub-problems: (F2a) persistence.ts:321-333 lock deletion, (F2b) run.ts:763-766 wrong order, (F2c) run.ts:831-835 wrong order. AC3 covers persistence.ts fix. AC4 covers heartbeat site. AC5 covers cleanupAndShutdown site. Both sites confirmed in actual code.",
+      "evidence": "persistence.ts:321-333 confirmed lock deletion. run.ts:765 cleanupDaemonState before run.ts:766 releaseDaemonLock. run.ts:833 cleanupDaemonState before run.ts:835 releaseDaemonLock."
+    },
+    {
+      "requirement_id": "R3",
+      "source_phrase": "if spawnHappyCLI() throws during the upgrade handoff, all subsystems are already torn down; process.exit(0) outside the try block executes unconditionally leaving a zombie process",
+      "criterion": "process.exit(0) only inside try block; catch block calls process.exit(1); daemon does NOT continue in degraded state",
+      "verification_method": "Read run.ts:754-779; BA Revision 2 Finding 3 + AC6/AC7 + Edge Cases 6 and 7",
+      "status": "pass",
+      "result": "pass",
+      "details": "BA Revision 2 correctly documents zombie-state consequence. AC6 requires process.exit(1) with FATAL log in catch. AC7 requires process.exit(0) only after successful spawn inside try. Edge Case 7 scopes systemd dependency without mandating supervisor configuration. Technical Hints provide exact log text.",
+      "evidence": "run.ts:757 clearInterval before try. run.ts:763-767 full teardown before try. run.ts:778 process.exit(0) OUTSIDE try — unconditional. This is the F3 bug AC6/AC7 are designed to fix."
+    },
+    {
+      "requirement_id": "R4",
+      "source_phrase": "deploy.sh line ~21: docker build command for web-dev case uses HAPPY_SERVER_URL=https://api.life-ai.app (production URL)",
+      "criterion": "MANUAL USER ACTION: /root/happy/scripts/deploy.sh web-dev case uses https://api-dev.life-ai.app; blocked by pretool-block-production-files.sh",
+      "verification_method": "BA Revision 2 scope review; R4 acceptance criterion text; Won't Have classification",
+      "status": "pass",
+      "result": "pass",
+      "details": "BA correctly classifies R4 as manual user action blocked by production-files hook. Won't Have and AC9 correctly label it. Appropriate scoping.",
+      "evidence": "docs/dev/ticket-20260525-081012.md AC9 and Won't Have section"
+    },
+    {
+      "requirement_id": "R5",
+      "source_phrase": "temporary sentinel file that needs deletion",
+      "criterion": "PAUSE-PENDING-USER: dev subagent must NOT attempt to delete the file via any mechanism; user manually deletes .claude/.hook-refactor-allow",
+      "verification_method": "Read BA Revision 2 R5 requirements, AC8, Won't Have, Technical Hints; check for stale programmatic deletion instructions; verify sentinel existence",
+      "status": "pass",
+      "result": "pass",
+      "details": "BA Revision 2 R5 is correctly PAUSE-PENDING-USER. AC8 specifies dev subagent must output REQUEST and stop. Won't Have: 'no programmatic deletion via any interpreter'. Technical Hints: 'do not attempt programmatic deletion'. No python3, rm, node, or unlink instructions found in revised spec. Sentinel confirmed EXISTS.",
+      "evidence": "Sentinel file check: EXISTS. BA Revision 2 AC8 and Technical Hints verified — no programmatic deletion guidance remains."
+    }
+  ],
+
+  "all_findings": [],
+
+  "failures": [],
+
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-25T09:15:00Z",
+      "file": "packages/happy-cli/src/daemon/run.ts",
+      "line": "769-779",
+      "observation": "Codex raised: spawnHappyCLI is detached; successful spawn() does not guarantee the child daemon starts successfully. A child that exits immediately after detach would leave zero daemons despite process.exit(0). BA classified child-health supervision as Won't Have (scope drift). Accepted risk; future cycle scope.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-25T09:15:00Z",
+      "file": "packages/happy-cli/src/daemon/controlClient.ts",
+      "line": "118-132",
+      "observation": "checkIfDaemonRunningAndCleanupStaleState() calls cleanupDaemonState() at line 130 when PID is not running. After F2a removes lock-file deletion from clearDaemonState(), this path will no longer clean the lock file as a side effect. acquireDaemonLock() already handles stale locks (line 364 unlinkSync on ENOENT check), so the net behavior is unchanged. No action needed.",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+
+  "spec_section_updates": null,
+
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex raised 7 issues. Issues 1 (lock-before-state order race) and 4 (detached spawn child exit) are out_of_scope — they expand scope beyond the user's requirement and are addressed by Won't Have classification or existing cleanup mechanisms. Issue 2 (F2 under-validation) is moot — BA Revision 2 explicitly covers persistence.ts:321-333 and controlClient.ts:187-190; QA verified them directly. Issue 3 (F1 HTTP-stop race) is the same as OBJ-1 fix; BA Revision 2 addresses it via single-snapshot + inline-fetch in Technical Hints. Issue 5 (FATAL log API) is resolved by Technical Hints specifying logger.debug with [FATAL] prefix — no new API needed. Issue 6 (R5 stale instructions) verified — no programmatic deletion instructions remain. Issue 7 (PASS ambiguity) incorporated — scope_note clarifies PASS is for BA validation only.",
+    "feedback_incorporated": "Added scope_note clarifying PASS is for BA validation only, not implementation close. Added out_of_scope_observations for detached-spawn risk and stale-lock behavior change. Verified Issue 6 (R5 grep) — no stale instructions found. Issues 1 and 4 rejected as out_of_scope scope expansions.",
+    "codex_observation_only": [
+      {
+        "issue": "Lock-before-state order race: releasing lock while state.json still advertises old PID could confuse a concurrent starter",
+        "classification": "out_of_scope",
+        "rationale": "This concern applies to the current buggy clearDaemonState that owns the lock. Once F2a is applied (clearDaemonState only deletes state file), the lock lifecycle is exclusively owned by releaseDaemonLock. The revised order is consistent with the new invariant."
+      },
+      {
+        "issue": "Detached spawn: child can exit immediately after parent exits with code 0, leaving no daemon",
+        "classification": "out_of_scope",
+        "rationale": "Explicitly in BA Revision 2 Won't Have: 'Supervision of replacement daemon health after successful spawn'. User did not request post-spawn health verification."
+      }
+    ]
+  },
+
+  "summary": {
+    "critical_issues": 0,
+    "major_issues": 0,
+    "minor_issues": 0,
+    "total_findings": 0,
+    "release_recommendation": "approve",
+    "approval_scope": "BA Revision 2 specification approved for dev execution. All 4 prior QA objections resolved. Implementation bugs F1/F2/F3 still exist in codebase — dev must implement the 5 targeted edits specified in the BA spec."
+  },
+
+  "self_verification": {
+    "claims_total": 10,
+    "claims_with_evidence": 10,
+    "claims_superficial": 0,
+    "superficial_details": [],
+    "confidence": "high",
+    "verification_basis": "All 4 prior objections verified against actual source lines. BA Revision 2 narrative verified against run.ts:119, run.ts:664, run.ts:763-767, run.ts:769-779, run.ts:831-835, persistence.ts:321-333, controlClient.ts:14-16, controlClient.ts:196-228. Codex adversarial review completed with 7 findings classified."
+  }
+},
+
+  "iteration_needed": false,
+  "refined_context": null
+}

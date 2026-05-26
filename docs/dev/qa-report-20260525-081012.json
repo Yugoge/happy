@@ -1,0 +1,513 @@
+{
+  "request_id": "20260525-081012",
+  "task_id": "20260525-081012",
+  "timestamp": "2026-05-25T10:45:00Z",
+  "rank_acknowledged": "Apprentice",
+  "range_acknowledged": "0-20",
+  "recent_events_digest_acknowledged": "a259e68e",
+  "score_injection_action": "Apprentice rank (0-20) with close_fail_qa_pass and user_rating_1 penalty events signals excessive false-pass risk; this run applies stricter TEST_INCOMPLETE enforcement — all pytest sentinel failures are treated as blocking critical findings, no code-inspection substitution accepted as equivalent.",
+  "qa": {
+    "status": "fail",
+    "user_verbatim_complaint": "好的立刻开始修复以上你发现的全部问题，包括happy dev的问题和hook的问题",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": false,
+    "verified_location_keywords": ["packages", "happy-cli", "src", "daemon", "controlclient", "persistence", "run"],
+    "location_overlap": ["packages", "happy-cli", "daemon"],
+    "complaint_resolution_evidence": "All three race condition fixes (F1 single-snapshot, F2 lock-lifecycle cleanup order, F3 exit-code semantics) are implemented correctly in source. However 5 of 8 active manifest tests still contain TEST_INCOMPLETE sentinels that fail under pytest, constituting dev incompleteness per QA agent spec Step 11 Phase 5.",
+    "complaint_element_pointer": {
+      "selector": "packages/happy-cli/src/daemon/{controlClient.ts,run.ts} + src/persistence.ts",
+      "how_located": "dev report files_modified list + BA spec affected files",
+      "found_in_dom": true,
+      "page_url": null
+    },
+    "element_screenshots": {
+      "before_selector": null,
+      "before_path": null,
+      "after_path": null,
+      "same_element_verified": null
+    },
+    "overall_assessment": "All 8 acceptance criteria PASS at source-code inspection level. TypeScript compiles without errors. However 5 of 8 active per-task manifest tests contain pytest.fail('TEST_INCOMPLETE: ...') sentinels and fail under pytest — dev only implemented tests for AC3, AC4, AC5 (F2 worker) and left AC1, AC2, AC6, AC7, AC8 as stubs. Per QA agent spec Step 11 Phase 5 this is a blocking critical finding (primary_cause: dev_implementation). Additionally, AC6 has spec_text_vs_execution_drift between the acceptance-criteria JSON (negative check: process.exit(0) NOT in catch) and the BA spec ticket (positive check: process.exit(1) IS called), which Codex confirmed is a real formulation difference that must be resolved in the BA spec. Verdict: FAIL.",
+    "out_of_scope_observations": [
+      {
+        "ts": "2026-05-25T10:45:00Z",
+        "file": "packages/happy-cli/src/daemon/controlClient.ts",
+        "line": 15,
+        "observation": "daemonPost() still independently re-reads daemon.state.json at line 15, but stopDaemon() no longer calls daemonPost() for the HTTP stop — it uses inline fetch directly. The re-read in daemonPost() is now dead code for this path but the function itself is not removed. Not a correctness issue for the F1 fix scope.",
+        "in_user_path": false,
+        "security_relevant": false
+      }
+    ],
+    "spec_section_updates": {
+      "section_4": null,
+      "section_6": null,
+      "section_7": null
+    },
+    "success_criteria_results": [
+      {
+        "requirement_id": "AC1",
+        "source_phrase": "F1 — Single snapshot; self-kill guard: stopDaemon() detects own PID and returns without killing",
+        "criterion": "stopDaemon() reads state.pid, detects state.pid === process.pid, logs a warning, and returns without killing any process",
+        "verification_method": "Direct source read of packages/happy-cli/src/daemon/controlClient.ts lines 209-212",
+        "status": "pass",
+        "result": "pass",
+        "details": "Self-kill guard present: `if (state.pid === process.pid) { logger.debug('[STOP DAEMON] Refusing to stop self (PID ${state.pid} === process.pid)'); return; }`",
+        "evidence": "controlClient.ts:209-212 — guard returns immediately when state.pid equals process.pid"
+      },
+      {
+        "requirement_id": "AC2",
+        "source_phrase": "F1 — Single snapshot used for both stop operations",
+        "criterion": "daemon.state.json is read exactly once; targetState.httpPort used for HTTP stop; targetState.pid used for SIGKILL fallback",
+        "verification_method": "Direct source read of controlClient.ts stopDaemon() function, tracing all state.json reads",
+        "status": "pass",
+        "result": "pass",
+        "details": "stopDaemon() reads state exactly once at line 200: `const state = await readDaemonState()`. HTTP stop at line 228 uses `state.httpPort` via inline fetch (no daemonPost() call). SIGKILL fallback at line 248 uses `state.pid`. No second readDaemonState() call anywhere in stopDaemon().",
+        "evidence": "controlClient.ts:200 (single read), :228 (inline fetch with state.httpPort), :248 (process.kill with state.pid) — single snapshot confirmed"
+      },
+      {
+        "requirement_id": "AC3",
+        "source_phrase": "F2 — clearDaemonState does not touch lock file",
+        "criterion": "only daemonStateFile is deleted; daemonLockFile is NOT touched by clearDaemonState()",
+        "verification_method": "Direct source read of persistence.ts clearDaemonState() function + code inspection test",
+        "status": "pass",
+        "result": "pass",
+        "details": "clearDaemonState() at lines 322-326 only deletes daemonStateFile. No daemonLockFile reference in function body. JSDoc updated: 'Clean up daemon state file only. Lock file lifecycle is owned exclusively by acquireDaemonLock / releaseDaemonLock.'",
+        "evidence": "persistence.ts:322-326 — function body contains only daemonStateFile deletion; test_AC3 PASSES under pytest"
+      },
+      {
+        "requirement_id": "AC4",
+        "source_phrase": "F2 — Lock released before state cleanup in heartbeat handoff (BA spec AC4)",
+        "criterion": "releaseDaemonLock(daemonLockHandle) called BEFORE cleanupDaemonState() in heartbeat upgrade handoff block (run.ts ~763-766)",
+        "verification_method": "Direct source read of run.ts heartbeat handoff block at lines 763-767",
+        "status": "pass",
+        "result": "pass",
+        "details": "Site 1 (heartbeat handoff): line 765 is releaseDaemonLock, line 766 is cleanupDaemonState — correct order. NOTE: test_AC4 only checks cleanupAndShutdown function (Site 2), not the heartbeat handoff site (Site 1). The heartbeat site was verified only by QA direct inspection, not by the generated test.",
+        "evidence": "run.ts:765 releaseDaemonLock before run.ts:766 cleanupDaemonState (heartbeat site). test_AC4 PASSES but covers Site 2 only."
+      },
+      {
+        "requirement_id": "AC5",
+        "source_phrase": "F2 — Lock released before state cleanup in cleanupAndShutdown (BA spec AC5)",
+        "criterion": "releaseDaemonLock(daemonLockHandle) called BEFORE cleanupDaemonState() in cleanupAndShutdown()",
+        "verification_method": "Direct source read of run.ts cleanupAndShutdown block at lines 831-835 + code inspection test",
+        "status": "pass",
+        "result": "pass",
+        "details": "Site 2 (cleanupAndShutdown): line 833 is releaseDaemonLock, line 834 is cleanupDaemonState — correct order.",
+        "evidence": "run.ts:833 releaseDaemonLock before run.ts:834 cleanupDaemonState (cleanupAndShutdown site). test_AC5 PASSES (NOTE: BA spec AC5 = cleanupAndShutdown; acceptance-criteria JSON AC5 = ENOENT handling — these map to different ACs; releaseDaemonLock ENOENT safety verified at persistence.ts:379-389)."
+      },
+      {
+        "requirement_id": "AC6",
+        "source_phrase": "F3 — process.exit(1) on spawn failure; FATAL log emitted",
+        "criterion": "process.exit(1) is called in catch block; FATAL log emitted; process.exit(0) NOT in catch block",
+        "verification_method": "Direct source read of run.ts try/catch block at lines 769-778",
+        "status": "pass",
+        "result": "pass",
+        "details": "catch block at lines 775-778: `logger.debug('[DAEMON RUN][FATAL] Failed to spawn new daemon — all subsystems already torn down; exiting with code 1', error); process.exit(1);`. No process.exit(0) in catch block.",
+        "evidence": "run.ts:777 process.exit(1) in catch — both BA spec positive check (exit(1) called) and JSON negative check (exit(0) NOT present) satisfied"
+      },
+      {
+        "requirement_id": "AC7",
+        "source_phrase": "F3 — successful spawn exits cleanly with code 0",
+        "criterion": "process.exit(0) called after successful spawnHappyCLI()",
+        "verification_method": "Direct source read of run.ts try block at line 774",
+        "status": "pass",
+        "result": "pass",
+        "details": "try block: `spawnHappyCLI(['daemon', 'start'], { detached: true, stdio: 'ignore' }); process.exit(0);` — exit(0) is inside try block immediately after spawn succeeds.",
+        "evidence": "run.ts:774 process.exit(0) inside try block after successful spawnHappyCLI call"
+      },
+      {
+        "requirement_id": "AC8",
+        "source_phrase": "Sentinel file — PAUSE-PENDING-USER: dev stops and outputs REQUEST for user to manually delete sentinel",
+        "criterion": "dev subagent does NOT attempt deletion; outputs REQUEST to user",
+        "verification_method": "BA spec marks AC8 as PAUSE-PENDING-USER; waived per BA spec instruction",
+        "status": "pass",
+        "result": "pass",
+        "details": "WAIVED per BA spec. Sentinel file /dev/shm/dev-workspace/happy-dev/.claude/.hook-refactor-allow still EXISTS (user has not manually deleted it). Dev correctly output a REQUEST in recommendations rather than attempting deletion. AC8 waived per explicit BA spec designation.",
+        "evidence": "dev-report recommendations: 'User must manually delete sentinel: rm /dev/shm/dev-workspace/happy-dev/.claude/.hook-refactor-allow'"
+      }
+    ],
+    "_success_criteria_rule": "BA spec has 8 ACs (AC1-AC8, including AC9 which is manual user action only). QA verified AC1-AC7 via code inspection; AC8 waived per BA spec PAUSE-PENDING-USER designation; AC9 is explicitly manual user action not verifiable by QA.",
+    "root_cause_verification": {
+      "addressed": true,
+      "confidence": "high",
+      "rationale": "F1: Single-snapshot confirmed — stopDaemon() reads state.json exactly once; HTTP port and SIGKILL PID come from same captured state. F2: Lock lifecycle corrected at both sites — heartbeat handoff (lines 763-766) and cleanupAndShutdown (lines 831-835) both call releaseDaemonLock before cleanupDaemonState; clearDaemonState no longer touches lock file. F3: Exit code semantics corrected — process.exit(0) inside try after successful spawn; process.exit(1) in catch block with FATAL log. All root causes addressed at source level."
+    },
+    "build_verification": {
+      "status": "pass",
+      "build_command": "cd /dev/shm/dev-workspace/happy-dev/packages/happy-cli && yarn tsc --noEmit",
+      "deploy_command": null,
+      "build_output_summary": "TypeScript compiled without errors — 0 errors reported",
+      "service_healthy": null,
+      "changes_verified_live": false,
+      "skip_reason": "This is a daemon/CLI code change (Cycle C). Daemon restart requires PAUSE-PENDING-USER per CLAUDE.md. TypeScript compile check was performed; live daemon testing requires sandbox daemon mode per project constraints. No UI or web service affected."
+    },
+    "script_quality_results": [],
+    "regression_test_results": [
+      {
+        "test": "TypeScript strict mode compile",
+        "result": "pass",
+        "details": "yarn tsc --noEmit in packages/happy-cli — 0 errors"
+      },
+      {
+        "test": "Git diff provenance check",
+        "result": "pass",
+        "details": "Files in git diff --name-only 9833dd1 match dev.files_modified (controlClient.ts, persistence.ts, run.ts). Untracked new files (test_AC*.py) confirmed via ls -la. No under-reported files detected."
+      },
+      {
+        "test": "Baseline dirty snapshot exclusion",
+        "result": "pass",
+        "details": "observed_preexisting in dev report = [run.ts, persistence.ts]; these appear in git diff as expected modifications. No provenance violation."
+      }
+    ],
+    "code_quality_findings": [],
+    "permissions_verification": {
+      "status": "pass",
+      "permissions_count": 0,
+      "validated_permissions": [],
+      "issues": []
+    },
+    "hardcode_scan_results": {
+      "files_scanned": 3,
+      "violations": [],
+      "summary": {
+        "critical": 0,
+        "major": 0,
+        "minor": 0
+      }
+    },
+    "app_understanding_flow": {
+      "executed": false,
+      "core_flow_completed": false,
+      "steps_completed": 0,
+      "baseline_screenshots": [],
+      "errors_found_during_flow": [],
+      "app_not_running": true
+    },
+    "e2e_enforcement": {
+      "required": false,
+      "attempted": false,
+      "script_discovered": false,
+      "script_path": null,
+      "health_check_url": null,
+      "health_check_result": "N/A — no UI surface affected; Cycle C daemon change",
+      "status": "legitimately_skipped",
+      "blocking_reason": "BA spec explicitly marks this as non-UI (applicability=N/A): 'cycle does not produce rendered UI changes, browser interaction, Playwright invocation, screenshot evidence, or any change to user-triggered code paths'. This is a daemon process lifecycle change only (Cycle C per CLAUDE.md). No web service, API endpoint, or user-facing component was modified. E2E Playwright verification has no applicable target. Legitimate skip confirmed."
+    },
+    "e2e_script_results": [],
+    "ui_test_results": [
+      {
+        "scenario": "E2E Playwright verification",
+        "url": null,
+        "status": "skipped",
+        "reason": "No UI surface affected. BA spec marks applicability=N/A for this cycle. Daemon auto-upgrade race condition fix only affects daemon startup/shutdown code paths, not any rendered UI.",
+        "steps_performed": [],
+        "assertions": [],
+        "evidence": null,
+        "dynamic_verification": {
+          "before_screenshot": null,
+          "after_screenshot": null,
+          "user_visible_change_confirmed": null
+        }
+      }
+    ],
+    "generated_tests": [
+      {
+        "path": "tests/generated/20260525-081012/test_AC1_f1-self-kill-guard-abort.py",
+        "type": "unit",
+        "description": "AC1: stopDaemon self-kill guard — detects own PID and aborts",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "fail",
+          "exit_code": 1,
+          "total_checks": 1,
+          "violations_found": 1,
+          "violations": ["TEST_INCOMPLETE: f1-self-kill-guard-abort — stopDaemon self-kill guard: detects own PID and aborts"],
+          "error_message": "pytest.fail sentinel not replaced by dev"
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC2_f1-valid-pid-kill-allowed.py",
+        "type": "unit",
+        "description": "AC2: stopDaemon valid PID — uses captured PID for HTTP stop and SIGKILL fallback",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "fail",
+          "exit_code": 1,
+          "total_checks": 1,
+          "violations_found": 1,
+          "violations": ["TEST_INCOMPLETE: f1-valid-pid-kill-allowed — stopDaemon valid PID: uses captured PID for HTTP stop and SIGKILL fallback"],
+          "error_message": "pytest.fail sentinel not replaced by dev"
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC3_f2-clearDaemonState-no-lock.py",
+        "type": "unit",
+        "description": "AC3: clearDaemonState() does not reference daemonLockFile",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "pass",
+          "exit_code": 0,
+          "total_checks": 1,
+          "violations_found": 0,
+          "violations": [],
+          "error_message": null
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC4_f2-cleanup-order-lock-first.py",
+        "type": "unit",
+        "description": "AC4: releaseDaemonLock appears before cleanupDaemonState in cleanupAndShutdown — NOTE: only checks Site 2 (cleanupAndShutdown), not Site 1 (heartbeat handoff)",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "pass",
+          "exit_code": 0,
+          "total_checks": 1,
+          "violations_found": 0,
+          "violations": [],
+          "error_message": null
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC5_f2-releaseLock-enoent-safe.py",
+        "type": "unit",
+        "description": "AC5 (JSON): releaseDaemonLock has catch block for ENOENT safety",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "pass",
+          "exit_code": 0,
+          "total_checks": 1,
+          "violations_found": 0,
+          "violations": [],
+          "error_message": null
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC6_f3-no-exit-on-spawn-fail.py",
+        "type": "unit",
+        "description": "AC6: spawnHappyCLI catch block does not call process.exit(0)",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "fail",
+          "exit_code": 1,
+          "total_checks": 1,
+          "violations_found": 1,
+          "violations": ["TEST_INCOMPLETE: f3-no-exit-on-spawn-fail — spawnHappyCLI catch block does not call process.exit(0)"],
+          "error_message": "pytest.fail sentinel not replaced by dev"
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC7_f3-exit-on-spawn-success.py",
+        "type": "unit",
+        "description": "AC7: spawnHappyCLI success path calls process.exit(0)",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "fail",
+          "exit_code": 1,
+          "total_checks": 1,
+          "violations_found": 1,
+          "violations": ["TEST_INCOMPLETE: f3-exit-on-spawn-success — spawnHappyCLI success path calls process.exit(0)"],
+          "error_message": "pytest.fail sentinel not replaced by dev"
+        }
+      },
+      {
+        "path": "tests/generated/20260525-081012/test_AC8_sentinel-absent.py",
+        "type": "unit",
+        "description": "AC8: sentinel file .hook-refactor-allow is absent — WAIVED per BA spec (PAUSE-PENDING-USER) but test stub not waived",
+        "request_id": "20260525-081012",
+        "edge_case_id": null,
+        "execution": {
+          "status": "fail",
+          "exit_code": 1,
+          "total_checks": 1,
+          "violations_found": 1,
+          "violations": ["TEST_INCOMPLETE: sentinel-absent — .hook-refactor-allow sentinel file is absent after dev deletion"],
+          "error_message": "pytest.fail sentinel not replaced; AC is waived per BA spec but test file was not waived/removed"
+        }
+      }
+    ],
+    "all_findings": [
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC1_f1-self-kill-guard-abort.py:23",
+        "issue": "TEST_INCOMPLETE sentinel: test_AC1 not implemented by dev. pytest.fail('TEST_INCOMPLETE: f1-self-kill-guard-abort') fires under pytest. Dev report task f1-1 implemented the code fix but did not create a corresponding test file.",
+        "recommendation": "Replace pytest.fail stub with actual code inspection test — read controlClient.ts, assert 'state.pid === process.pid' pattern is present in stopDaemon function body.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC2_f1-valid-pid-kill-allowed.py:23",
+        "issue": "TEST_INCOMPLETE sentinel: test_AC2 not implemented by dev. pytest.fail('TEST_INCOMPLETE: f1-valid-pid-kill-allowed') fires under pytest. Dev report task f1-1 implemented the code fix but did not create a corresponding test file.",
+        "recommendation": "Replace pytest.fail stub with actual code inspection test — read controlClient.ts, assert readDaemonState() called exactly once, and state.pid used for process.kill, and inline fetch uses state.httpPort directly.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC6_f3-no-exit-on-spawn-fail.py:23",
+        "issue": "TEST_INCOMPLETE sentinel: test_AC6 not implemented by dev. pytest.fail('TEST_INCOMPLETE: f3-no-exit-on-spawn-fail') fires under pytest. Dev report task runfix-3 implemented the code fix but did not create a corresponding test file.",
+        "recommendation": "Replace pytest.fail stub with actual code inspection test — read run.ts, find the catch block of spawnHappyCLI try, assert process.exit(1) is present and process.exit(0) is NOT present in catch block.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC7_f3-exit-on-spawn-success.py:23",
+        "issue": "TEST_INCOMPLETE sentinel: test_AC7 not implemented by dev. pytest.fail('TEST_INCOMPLETE: f3-exit-on-spawn-success') fires under pytest. Dev report task runfix-3 implemented the code fix but did not create a corresponding test file.",
+        "recommendation": "Replace pytest.fail stub with actual code inspection test — read run.ts, find try block containing spawnHappyCLI, assert process.exit(0) appears after spawnHappyCLI call within the try block.",
+        "blocks_release": true
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC8_sentinel-absent.py:23",
+        "issue": "TEST_INCOMPLETE sentinel: test_AC8 not waived under pytest despite AC8 being WAIVED per BA spec (PAUSE-PENDING-USER). pytest.fail('TEST_INCOMPLETE: sentinel-absent') fires. The test file was never updated to reflect the AC waiver.",
+        "recommendation": "Either (a) replace test body with an explicit waiver assertion: skip with reason='AC8 waived per BA spec — PAUSE-PENDING-USER; sentinel deletion is a manual user action', or (b) remove test_AC8 from manifest active_tests[] and move to waived_tests[].",
+        "blocks_release": true
+      },
+      {
+        "severity": "major",
+        "location": "docs/dev/acceptance-criteria-20260525-081012.json:AC6",
+        "issue": "spec_text_vs_execution_drift: AC6 in acceptance-criteria JSON says 'process.exit(0) is NOT called' (negative pattern check) and check.negative_pattern='process.exit'. BA spec ticket AC6 says 'process.exit(1) is called (not 0, not omitted); a FATAL log message is emitted'. These are different literal formulations. The JSON negative check would pass even if process.exit(2) were called; the BA spec positive check requires specifically process.exit(1). BA must update AC6 in acceptance-criteria JSON to match the BA spec literal: check.pattern='process.exit(1)' (positive) not negative_pattern='process.exit'.",
+        "recommendation": "BA should update acceptance-criteria-20260525-081012.json AC6 check to use pattern='process.exit(1)' positive check AND assert FATAL log message present, matching the BA spec ticket literal text.",
+        "blocks_release": false
+      },
+      {
+        "severity": "minor",
+        "location": "tests/generated/20260525-081012/test_AC4_f2-cleanup-order-lock-first.py",
+        "issue": "scope_alignment gap: test_AC4 checks only cleanupAndShutdown (Site 2). BA spec AC4 requires checking heartbeat handoff site (Site 1, run.ts ~763-766). The acceptance-criteria JSON AC4 also only specifies cleanupAndShutdown, meaning both the test and the JSON share this scope gap. The heartbeat handoff site was verified by QA direct inspection only, not by generated test. If either spec or test is authoritative, a test covering both sites should exist.",
+        "recommendation": "BA should extend AC4 in acceptance-criteria JSON to cover both sites, and dev should extend test_AC4 to check both run.ts heartbeat handoff block and cleanupAndShutdown. This is a test-coverage gap, not a code defect (code passes at both sites).",
+        "blocks_release": false
+      }
+    ],
+    "failures": [
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC1_f1-self-kill-guard-abort.py:23",
+        "issue": "TEST_INCOMPLETE sentinel in active manifest test for AC1",
+        "recommendation": "Dev must implement code inspection test replacing pytest.fail stub",
+        "primary_cause": "dev_implementation"
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC2_f1-valid-pid-kill-allowed.py:23",
+        "issue": "TEST_INCOMPLETE sentinel in active manifest test for AC2",
+        "recommendation": "Dev must implement code inspection test replacing pytest.fail stub",
+        "primary_cause": "dev_implementation"
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC6_f3-no-exit-on-spawn-fail.py:23",
+        "issue": "TEST_INCOMPLETE sentinel in active manifest test for AC6",
+        "recommendation": "Dev must implement code inspection test replacing pytest.fail stub",
+        "primary_cause": "dev_implementation"
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC7_f3-exit-on-spawn-success.py:23",
+        "issue": "TEST_INCOMPLETE sentinel in active manifest test for AC7",
+        "recommendation": "Dev must implement code inspection test replacing pytest.fail stub",
+        "primary_cause": "dev_implementation"
+      },
+      {
+        "severity": "critical",
+        "location": "tests/generated/20260525-081012/test_AC8_sentinel-absent.py:23",
+        "issue": "TEST_INCOMPLETE sentinel in active manifest test for AC8 — test not waived to match AC waiver",
+        "recommendation": "Dev must either skip/waive test_AC8 to match BA spec AC8 waiver, or remove from manifest active_tests[]",
+        "primary_cause": "dev_implementation"
+      },
+      {
+        "severity": "major",
+        "location": "docs/dev/acceptance-criteria-20260525-081012.json:AC6",
+        "issue": "spec_text_vs_execution_drift: AC6 JSON negative check (process.exit NOT in catch) differs from BA spec positive check (process.exit(1) IS called); BA must update AC6 literal text in JSON",
+        "recommendation": "BA update required: change AC6 check to positive assertion matching BA spec ticket text",
+        "primary_cause": "ba_spec"
+      }
+    ],
+    "manifest_verification": {
+      "manifest_path": "tests/generated/20260525-081012/manifest.json",
+      "global_index_path": "tests/generated/manifest.json",
+      "global_index_kind": "index",
+      "manifest_exists": true,
+      "active_tests_count": 8,
+      "active_tests_importable": true,
+      "pytest_collected_ok": true,
+      "pytest_failures": [
+        "test_AC1_f1-self-kill-guard-abort.py::test_AC1 — FAILED: TEST_INCOMPLETE: f1-self-kill-guard-abort",
+        "test_AC2_f1-valid-pid-kill-allowed.py::test_AC2 — FAILED: TEST_INCOMPLETE: f1-valid-pid-kill-allowed",
+        "test_AC6_f3-no-exit-on-spawn-fail.py::test_AC6 — FAILED: TEST_INCOMPLETE: f3-no-exit-on-spawn-fail",
+        "test_AC7_f3-exit-on-spawn-success.py::test_AC7 — FAILED: TEST_INCOMPLETE: f3-exit-on-spawn-success",
+        "test_AC8_sentinel-absent.py::test_AC8 — FAILED: TEST_INCOMPLETE: sentinel-absent"
+      ],
+      "_pytest_result_summary": "5 failed, 3 passed in 0.05s"
+    },
+    "blast_radius_phase2": {
+      "phase2_map_path": null,
+      "git_diff_files": [
+        "packages/happy-cli/src/daemon/controlClient.ts",
+        "packages/happy-cli/src/daemon/run.ts",
+        "packages/happy-cli/src/persistence.ts"
+      ],
+      "phase1_phase2_delta": [],
+      "dev_declarations_complete": true,
+      "exemption_vetoes": [],
+      "_note": "blast-radius-tool.py not found in scripts/; phase2 map skipped. Git diff confirms dev's files_modified matches actual diff. No delta."
+    },
+    "standards_compliance": {
+      "checked": true,
+      "role_table_source": "CLAUDE.md — no UI role table declared; project is CLI/daemon code",
+      "violations": [],
+      "_note": "No role table in project CLAUDE.md; strict role->token audit not applicable. Code style (4-space indent, named exports, TypeScript strict) verified via tsc --noEmit."
+    },
+    "summary": {
+      "critical_issues": 5,
+      "major_issues": 1,
+      "minor_issues": 1,
+      "total_findings": 7,
+      "release_recommendation": "reject"
+    },
+    "codex_consult": {
+      "invoked": true,
+      "status": "ok",
+      "feedback_summary": "Codex confirmed: (1) FAIL verdict justified — TEST_INCOMPLETE sentinels are blocking per QA spec Step 11 Phase 5 contract; code-level PASS does not override pytest failures in active tests. (2) scope_alignment objection warranted for AC4 — test_AC4 covers only cleanupAndShutdown (Site 2); heartbeat site (Site 1) verified only by QA inspection; both the test and the AC4 JSON spec have this same gap, so objection lands on BA spec as well. (3) spec_text_vs_execution_drift confirmed for AC6 — JSON negative check 'process.exit NOT in catch' vs BA spec positive check 'process.exit(1) IS called' are not equivalent (exit(2) would pass negative, fail positive). All three issues flagged with PROPOSED_FIX.",
+      "feedback_incorporated": "Verdict kept FAIL. scope_alignment objection added as minor finding in all_findings. spec_text_vs_execution_drift for AC6 escalated to major finding in failures[] with primary_cause: ba_spec. AC8 test waiver gap added as 5th critical finding."
+    },
+    "self_verification": {
+      "claims_total": 12,
+      "claims_with_evidence": 12,
+      "claims_superficial": 0,
+      "superficial_details": [],
+      "confidence": "high"
+    }
+  },
+  "iteration_needed": true,
+  "refined_context": {
+    "failed_criteria": [
+      "TEST_INCOMPLETE sentinel in test_AC1 (f1 worker never implemented this test)",
+      "TEST_INCOMPLETE sentinel in test_AC2 (f1 worker never implemented this test)",
+      "TEST_INCOMPLETE sentinel in test_AC6 (runfix worker never implemented this test)",
+      "TEST_INCOMPLETE sentinel in test_AC7 (runfix worker never implemented this test)",
+      "TEST_INCOMPLETE sentinel in test_AC8 (test not waived despite AC8 being waived per BA spec)"
+    ],
+    "critical_issues": [
+      "4 test files have TEST_INCOMPLETE sentinels — dev f1 worker (AC1/AC2) and runfix worker (AC6/AC7) only fixed code, did not implement tests. Only f2 worker (AC3/AC4/AC5) implemented tests.",
+      "test_AC8 still has TEST_INCOMPLETE but AC8 is WAIVED per BA spec — test file must be waived/skipped or removed from manifest active_tests[]"
+    ],
+    "ba_objections": [
+      {
+        "dimension": "spec_text_vs_execution_drift",
+        "location": "docs/dev/acceptance-criteria-20260525-081012.json:AC6",
+        "finding": "AC6 check uses negative_pattern='process.exit' but BA spec says 'process.exit(1) is called'. These are not equivalent. BA must update AC6 check to positive assertion: pattern='process.exit(1)' matching BA spec ticket literal."
+      },
+      {
+        "dimension": "scope_alignment",
+        "location": "docs/dev/acceptance-criteria-20260525-081012.json:AC4 + tests/generated/20260525-081012/test_AC4_f2-cleanup-order-lock-first.py",
+        "finding": "AC4 JSON only describes cleanupAndShutdown site. BA spec AC4 requires checking heartbeat handoff site. test_AC4 only checks cleanupAndShutdown. BA must extend AC4 to cover both sites to match BA spec ticket requirement."
+      }
+    ],
+    "recommended_approach": "Dispatch dev to implement 4 missing tests (AC1, AC2, AC6, AC7) as code inspection tests matching the pattern of the working AC3/AC4/AC5 tests. Also handle AC8 test waiver. Dispatch BA to fix AC6 spec_text_vs_execution_drift and AC4 scope gap. Code changes (controlClient.ts, persistence.ts, run.ts) are COMPLETE and correct — no code re-work needed.",
+    "additional_context": "All source code changes are verified correct via direct inspection. TypeScript compiles clean. The only blocking items are test file incompleteness. Next iteration scope: (1) implement test_AC1 as code inspection reading controlClient.ts and asserting 'state.pid === process.pid' guard; (2) implement test_AC2 as code inspection asserting readDaemonState called once + inline fetch uses state.httpPort + process.kill uses state.pid; (3) implement test_AC6 as code inspection asserting process.exit(1) in catch block of spawnHappyCLI and process.exit(0) not in catch; (4) implement test_AC7 as code inspection asserting process.exit(0) inside try block after spawnHappyCLI; (5) waive test_AC8 or remove from manifest active_tests[]."
+  }
+}

@@ -316,19 +316,12 @@ export async function writeDaemonState(state: DaemonLocallyPersistedState): Prom
 }
 
 /**
- * Clean up daemon state file and lock file
+ * Clean up daemon state file only.
+ * Lock file lifecycle is owned exclusively by acquireDaemonLock / releaseDaemonLock.
  */
 export async function clearDaemonState(): Promise<void> {
   if (existsSync(configuration.daemonStateFile)) {
     await unlink(configuration.daemonStateFile);
-  }
-  // Also clean up lock file if it exists (for stale cleanup)
-  if (existsSync(configuration.daemonLockFile)) {
-    try {
-      await unlink(configuration.daemonLockFile);
-    } catch {
-      // Lock file might be held by running daemon, ignore error
-    }
   }
 }
 

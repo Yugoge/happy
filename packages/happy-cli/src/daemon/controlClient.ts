@@ -195,27 +195,55 @@ export async function cleanupDaemonState(): Promise<void> {
 
 export async function stopDaemon() {
   try {
+    // Single snapshot: read state.json exactly once so HTTP port and SIGKILL PID
+    // always refer to the same daemon generation (F1 split-target race fix).
     const state = await readDaemonState();
     if (!state) {
       logger.debug('No daemon state found');
       return;
     }
 
-    logger.debug(`Stopping daemon with PID ${state.pid}`);
-
-    // Try HTTP graceful stop
-    try {
-      await stopDaemonHttp();
-
-      // Wait for daemon to die
-      await waitForProcessDeath(state.pid, 2000);
-      logger.debug('Daemon stopped gracefully via HTTP');
+    // Self-kill guard: abort if state.json still holds our own PID.
+    // This is a secondary defense — at startup stopDaemon() fires (run.ts:119)
+    // before writeDaemonState() (run.ts:664), so self-kill cannot occur in practice.
+    if (state.pid === process.pid) {
+      logger.debug(`[STOP DAEMON] Refusing to stop self (PID ${state.pid} === process.pid)`);
       return;
-    } catch (error) {
-      logger.debug('HTTP stop failed, will force kill', error);
     }
 
-    // Force kill
+    // Liveness check: verify PID is alive before trying HTTP stop.
+    // Uses the cached state.pid — no second read of state.json.
+    try {
+      process.kill(state.pid, 0);
+    } catch {
+      logger.debug('[STOP DAEMON] Daemon PID not running, state is stale');
+      return;
+    }
+
+    logger.debug(`Stopping daemon with PID ${state.pid}`);
+
+    // Try HTTP graceful stop using the cached port — no second read of state.json.
+    try {
+      const timeout = process.env.HAPPY_DAEMON_HTTP_TIMEOUT ? parseInt(process.env.HAPPY_DAEMON_HTTP_TIMEOUT) : 10_000;
+      const response = await fetch(`http://127.0.0.1:${state.httpPort}/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+        signal: AbortSignal.timeout(timeout)
+      });
+
+      if (response.ok) {
+        // Wait for daemon to die
+        await waitForProcessDeath(state.pid, 2000);
+        logger.debug('Daemon stopped gracefully via HTTP');
+        return;
+      }
+      logger.debug(`HTTP stop returned non-OK status ${response.status}, will force kill`);
+    } catch (error) {
+      logger.debug('Graceful stop did not complete, will force kill', error);
+    }
+
+    // Force kill using the same cached PID from the snapshot.
     try {
       process.kill(state.pid, 'SIGKILL');
       logger.debug('Force killed daemon');

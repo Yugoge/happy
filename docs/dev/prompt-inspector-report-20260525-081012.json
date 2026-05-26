@@ -1,0 +1,202 @@
+{
+  "request_id": "20260525-081012",
+  "timestamp": "2026-05-26T00:00:00Z",
+  "inspector": "prompt-inspector",
+  "mode": "changed-files",
+  "changed_files": [
+    "packages/happy-cli/src/daemon/controlClient.ts",
+    "packages/happy-cli/src/persistence.ts",
+    "packages/happy-cli/src/daemon/run.ts",
+    "tests/generated/20260525-081012/test_AC3_f2-clearDaemonState-no-lock.py",
+    "tests/generated/20260525-081012/test_AC4_f2-cleanup-order-lock-first.py",
+    "tests/generated/20260525-081012/test_AC5_f2-releaseLock-enoent-safe.py"
+  ],
+  "scope_note": "All 6 changed files are .ts and .py source files. None are *.md command/agent documentation under commands/ or agents/. Prompt-inspector detection rules apply exclusively to markdown documentation files. Zero verbosity violations introduced in this diff.",
+  "findings": [
+    {
+      "file": "/root/.claude/commands/clean.md",
+      "severity": "minor",
+      "total_lines": 761,
+      "verbose_lines": 50,
+      "verbosity_percentage": 6.6,
+      "verbose_sections": [
+        {"section": "Philosophy", "lines": 6, "start_line": 13},
+        {"section": "Usage", "lines": 14, "start_line": 748},
+        {"section": "Helper Scripts Used", "lines": 10, "start_line": 738},
+        {"section": "Workflow Overview", "lines": 12, "start_line": 39}
+      ],
+      "codex_reclassified_out": [
+        {"section": "Safety Features", "lines": 23, "start_line": 696, "reason": "Substantive safety behavior: checkpointing, approval, reference detection, archival fallback, incremental execution — procedural rules, not stories"},
+        {"section": "Quality Standards", "lines": 19, "start_line": 719, "reason": "Procedural checklist of agent communication contracts — rules, not narrative"}
+      ],
+      "recommendation": "Apply 'rules not stories' principle: remove Philosophy (6 lines), Usage (14 lines), Helper Scripts Used (10 lines) as redundant with frontmatter/step references. Workflow Overview (12 lines) is a brief routing summary but borderline. Target reduction: ~30 lines (-4%). Reference: convert.md cleanup (commit 2d21631) reduced 113 lines (-22%) by removing similar verbose sections.",
+      "introduced_in_diff": false
+    },
+    {
+      "file": "/root/.claude/commands/dev.md",
+      "severity": "critical",
+      "total_lines": 1505,
+      "verbose_lines": 259,
+      "verbosity_percentage": 17.2,
+      "verbose_sections": [
+        {"section": "Quality Standards Enforcement", "lines": 23, "start_line": 1238},
+        {"section": "Agent Development Use Cases", "lines": 133, "start_line": 1261},
+        {"section": "Example End-to-End Workflow", "lines": 42, "start_line": 1394},
+        {"section": "Success Metrics", "lines": 15, "start_line": 1436},
+        {"section": "JSON Storage Policy", "lines": 19, "start_line": 1208},
+        {"section": "Integration with /clean", "lines": 11, "start_line": 1227}
+      ],
+      "codex_reclassified_out": [],
+      "recommendation": "Apply 'rules not stories' principle: Agent Development Use Cases (133 lines of tutorial-style enumeration), Example End-to-End Workflow (42 lines narrative walkthrough), and Success Metrics (15 lines) are verbose explanatory content that belongs in /dev.md developer docs, not the execution command. JSON Storage Policy and Integration with /clean are reference cross-links better expressed as single-line pointers. Quality Standards Enforcement lists responsibilities already owned by agents/dev.md and agents/qa.md — a pointer suffices. Target reduction: ~250 lines (17% -> ~4%). Reference: convert.md cleanup (commit 2d21631) reduced 113 lines (-22%) by removing similar verbose sections.",
+      "introduced_in_diff": false
+    },
+    {
+      "file": "/root/.claude/commands/dev-command.md",
+      "severity": "critical",
+      "total_lines": 1122,
+      "verbose_lines": 231,
+      "verbosity_percentage": 20.6,
+      "verbose_sections": [
+        {"section": "Quality Standards Enforcement", "lines": 25, "start_line": 936},
+        {"section": "Agent Development Use Cases", "lines": 99, "start_line": 961},
+        {"section": "Example End-to-End Workflow", "lines": 50, "start_line": 1060},
+        {"section": "Success Metrics", "lines": 13, "start_line": 1110},
+        {"section": "JSON Storage Policy", "lines": 19, "start_line": 906},
+        {"section": "Integration with /clean", "lines": 11, "start_line": 925}
+      ],
+      "codex_reclassified_out": [],
+      "recommendation": "Apply 'rules not stories' principle: Agent Development Use Cases (99 lines), Example End-to-End Workflow (50 lines), and Success Metrics (13 lines) duplicate the narrative pattern from dev.md and belong in developer reference docs. JSON Storage Policy and Integration with /clean are single-pointer cross-references rendered verbose. Target reduction: ~220 lines (20% -> ~3%). Reference: convert.md cleanup (commit 2d21631) reduced 113 lines (-22%) by removing similar verbose sections.",
+      "introduced_in_diff": false
+    },
+    {
+      "file": "/root/.claude/commands/dev-overnight.md",
+      "severity": "minor",
+      "total_lines": 1807,
+      "verbose_lines": 56,
+      "verbosity_percentage": 3.1,
+      "verbose_sections": [
+        {"section": "Overview", "lines": 56, "start_line": 56}
+      ],
+      "codex_reclassified_out": [
+        {"section": "Quality Standards Enforcement", "lines": 6, "start_line": 1765, "reason": "6-line procedural responsibility cross-reference — rules, not stories"}
+      ],
+      "recommendation": "Apply 'rules not stories' principle: Overview (56 lines) is an ASCII flowchart diagram that duplicates the step-by-step execution already in the Execution Steps section. While the diagram provides orientation, it is verbose relative to the rule that overview content belongs in frontmatter. Target reduction: 56 lines (3% -> ~0%). Reference: convert.md cleanup (commit 2d21631) reduced 113 lines (-22%).",
+      "introduced_in_diff": false
+    },
+    {
+      "file": "/root/.claude/commands/test.md",
+      "severity": "advisory",
+      "total_lines": 501,
+      "verbose_lines": 6,
+      "verbosity_percentage": 1.2,
+      "verbose_sections": [
+        {"section": "Philosophy", "lines": 6, "start_line": 12}
+      ],
+      "codex_reclassified_out": [
+        {"section": "Workflow Overview", "lines": 11, "start_line": 18, "reason": "Short routing summary listing two subagents — not the general Overview pattern, more analogous to a header in execution steps"}
+      ],
+      "recommendation": "Philosophy (6 lines) is a one-sentence principle padded to a section. Below minor threshold (6 < 50 verbose_lines). Advisory only.",
+      "introduced_in_diff": false
+    },
+    {
+      "file": "/root/.claude/agents/ba.md",
+      "severity": "advisory",
+      "total_lines": 1471,
+      "verbose_lines": 0,
+      "verbosity_percentage": 0.0,
+      "verbose_sections": [],
+      "codex_reclassified_out": [
+        {"section": "Quality Standards", "lines": 25, "start_line": 1420, "reason": "25-line procedural pre-return checklist with checkbox items — enforced quality contract, not story narrative. Reclassified as procedural_rules per codex finding #1"}
+      ],
+      "recommendation": "No verbose violations after codex reclassification. Quality Standards section is a substantive checklist enforcing BA output contracts.",
+      "introduced_in_diff": false
+    },
+    {
+      "file": "/root/.claude/agents/rule-inspector.md",
+      "severity": "advisory",
+      "total_lines": 202,
+      "verbose_lines": 0,
+      "verbosity_percentage": 0.0,
+      "verbose_sections": [],
+      "codex_reclassified_out": [
+        {"section": "Quality Standards", "lines": 10, "start_line": 156, "reason": "5-item behavioral checklist for git history usage — procedural rules, not stories. Reclassified per codex finding #1"}
+      ],
+      "recommendation": "No verbose violations after codex reclassification.",
+      "introduced_in_diff": false
+    }
+  ],
+  "summary": {
+    "changed_files_inspected": 6,
+    "changed_files_in_verbosity_scope": 0,
+    "changed_files_with_new_violations": 0,
+    "full_repo_files_inspected": 36,
+    "files_with_violations": 4,
+    "critical": 2,
+    "major": 0,
+    "minor": 2,
+    "advisory": 3,
+    "total_verbose_lines_full_repo": 596,
+    "new_in_diff_violations": 0,
+    "introduced_in_diff_findings": 0,
+    "estimated_reduction": "~500 lines across 4 files if all recommendations applied",
+    "close_impact": "NONE — zero new-in-diff violations. All findings are pre-existing (introduced_in_diff: false). Non-blocking per AC-2.6(b) default-safe rule.",
+    "threshold_applied": "advisory: verbose_lines < 50; minor: 50 <= verbose_lines < 100 and verbosity_percentage < 15%; major: 100 <= verbose_lines < 200 or 15% <= verbosity_percentage < 30%; critical: verbose_lines >= 200 or verbosity_percentage >= 30%"
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex identified 6 issues: (1) Quality Standards / Quality Standards Enforcement sections are procedural checklists, not verbose fluff — false positives in draft; (2) '## Workflow Overview' is a prefix match of '## Overview' but the detection rule targets exact '## Overview' — over-broad pattern match; (3) clean.md Safety Features contains substantive safety behavior (checkpointing, approval, reference detection) — partial false positive; (4) dev.md undercounted — Agent Development Use Cases (133 lines), Example End-to-End Workflow (42 lines), Success Metrics (15 lines), JSON Storage Policy (19 lines), Integration with /clean (11 lines) are verbose tutorial content not counted in draft's 23-line estimate; (5) dev-command.md similarly undercounted with same pattern; (6) severity threshold wording was internally inconsistent ('minor OR <15%' conflicts with 'below 50 = advisory only'). One observation: changed-files conclusion correct, no .md files missed.",
+    "findings": [
+      {
+        "issue": "Quality Standards / Quality Standards Enforcement sections classified as verbose but are procedural checklists and responsibility contracts",
+        "proposed_fix": "Reclassify as procedural_rules_not_verbose unless they contain narrative padding; do not count toward verbose_lines by header match alone",
+        "classification": "blocker",
+        "disposition": "applied",
+        "rationale": "After reading the actual content: ba.md Quality Standards is a 25-item pre-return checklist; rule-inspector.md Quality Standards is a 5-item behavioral checklist; dev.md/dev-command.md Quality Standards Enforcement is a 3-party responsibility matrix. These are rules, not stories. Removed from verbose_lines for ba.md and rule-inspector.md. Kept dev.md/dev-command.md Quality Standards Enforcement in verbose count (they are cross-references that could be single pointers) but reclassified as lower-concern items within the larger verbose total."
+      },
+      {
+        "issue": "## Workflow Overview treated as ## Overview — over-broad prefix match",
+        "proposed_fix": "Change detection to exact-match '## Overview', or require manual confirmation that '## Workflow Overview' duplicates later executable steps",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Applied: 'Workflow Overview' in test.md reclassified out (11-line subagent routing summary, not narrative fluff). In clean.md the 'Workflow Overview' (12 lines listing 3 subagents + JSON path) is borderline but retained since it partially duplicates the execution steps structure."
+      },
+      {
+        "issue": "clean.md Safety Features is substantive safety behavior, not verbose fluff",
+        "proposed_fix": "Exclude from verbose_lines or count only non-rule phrasing",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Applied: Safety Features (23 lines) reclassified out of clean.md verbose count. The section lists 4 concrete safety mechanisms (git checkpoint, user approval, reference detection, incremental execution) with specific behavioral rules. This is procedural content."
+      },
+      {
+        "issue": "dev.md undercounted — large tutorial sections not in draft's 23-line estimate",
+        "proposed_fix": "Recompute dev.md including Agent Development Use Cases (133 lines), Example End-to-End Workflow (42 lines), Success Metrics (15 lines), JSON Storage Policy (19 lines), Integration with /clean (11 lines); likely critical",
+        "classification": "blocker",
+        "disposition": "applied",
+        "rationale": "Applied: Full recount gives 259 verbose lines (17.2%). Severity upgraded from advisory to critical. All five sections are tutorial/narrative/cross-reference content that does not belong in execution command documentation."
+      },
+      {
+        "issue": "dev-command.md undercounted — same pattern as dev.md",
+        "proposed_fix": "Recompute dev-command.md with Agent Development Use Cases (99 lines), Example End-to-End Workflow (50 lines), Success Metrics (13 lines), JSON Storage Policy (19 lines), Integration with /clean (11 lines); likely critical",
+        "classification": "blocker",
+        "disposition": "applied",
+        "rationale": "Applied: Full recount gives 231 verbose lines (20.6%). Severity upgraded from advisory to critical."
+      },
+      {
+        "issue": "Severity threshold wording internally inconsistent: 'minor >= 50 verbose_lines OR <15%' conflicts with 'Files below 50 verbose_lines are advisory only'",
+        "proposed_fix": "advisory: verbose_lines < 50; minor: 50 <= verbose_lines < 100 and verbosity_percentage < 15%; major: 100 <= verbose_lines < 200 or 15% <= verbosity_percentage < 30%; critical: verbose_lines >= 200 or verbosity_percentage >= 30%",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Applied: Used the corrected threshold definition throughout the report. The 'OR <15%' form was dropped in favor of the corrected AND-based minor threshold."
+      },
+      {
+        "issue": "Changed files are all .ts/.py — introduced_in_diff:false and CLOSE not affected are correct",
+        "proposed_fix": null,
+        "classification": "observation_only",
+        "disposition": "logged",
+        "rationale": "Confirmed: all 6 changed files verified as .ts/.py source files. No .md files missed."
+      }
+    ],
+    "feedback_incorporated": "Reclassified Quality Standards sections in ba.md and rule-inspector.md as procedural_rules_not_verbose (removes from verbose count). Reclassified Workflow Overview in test.md as short routing summary. Reclassified Safety Features in clean.md as substantive safety behavior. Upgraded dev.md from advisory/23 lines to critical/259 lines by counting Agent Development Use Cases, Example End-to-End Workflow, Success Metrics, JSON Storage Policy, Integration with /clean. Upgraded dev-command.md from advisory/25 lines to critical/231 lines with same sections. Applied corrected severity threshold definition throughout."
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "request_id": "20260525-081012",
+  "task_id": "20260525-081012",
+  "timestamp": "2026-05-25T08:10:12Z",
+  "rank_acknowledged": "Skilled Craftsman",
+  "range_acknowledged": "41-60",
+  "recent_events_digest_acknowledged": "140bedbf",
+  "score_injection_action": "Skilled Craftsman rank with no recent events — applied careful evidence-based root-cause tracing on each finding before committing to fix scope; rejected F1b (50ms /stop delay) as scope drift based on Codex adversarial review rather than gold-plating the spec",
+  "requirement": {
+    "original": "Fix all problems found by Codex audit of the daemon auto-upgrade fix, plus remaining hook/deploy issues. Specifically: F1 (HIGH): stopDaemon() generation guard absent; F2 (MEDIUM): cleanupDaemonState() deletes lock before releaseDaemonLock; F3 (MEDIUM): spawnHappyCLI throw leaves zero daemons; deploy.sh web-dev production URL; sentinel deletion.",
+    "clarified": "Fix F1 (single-snapshot read + self-kill guard in stopDaemon — actual race is split-target: two independent reads of state.json), F2a (remove lock deletion from clearDaemonState), F2b (invert cleanup order at run.ts:763-766 heartbeat handoff), F2c (invert cleanup order at run.ts:831-835 cleanupAndShutdown), F3 (process.exit(0) inside try; process.exit(1) in catch for supervisor respawn). Deploy.sh is manual user action (blocked by hook). Sentinel deletion is PAUSE-PENDING-USER.",
+    "what": "Five targeted edits for daemon upgrade handoff races: single-snapshot + self-kill guard (F1), lock lifecycle correction at two sites + clearDaemonState fix (F2a/b/c), exit(1) on spawn failure (F3)",
+    "why": "Prevent split-target race where HTTP stop and SIGKILL target different daemon generations (F1); prevent lock double-unlink race at both heartbeat and cleanupAndShutdown paths (F2); prevent zombie daemon after spawn failure (F3)",
+    "where": [
+      "packages/happy-cli/src/daemon/controlClient.ts",
+      "packages/happy-cli/src/persistence.ts",
+      "packages/happy-cli/src/daemon/run.ts"
+    ],
+    "scope": {
+      "included": [
+        "stopDaemon() single-snapshot read + self-kill guard (F1: both HTTP port and SIGKILL PID from same snapshot)",
+        "clearDaemonState() lock file deletion removal (F2a)",
+        "releaseDaemonLock() called before cleanupDaemonState() at run.ts:763-766 heartbeat handoff (F2b)",
+        "releaseDaemonLock() called before cleanupDaemonState() at run.ts:831-835 cleanupAndShutdown (F2c)",
+        "releaseDaemonLock() ENOENT handling",
+        "process.exit(0) inside try block only; process.exit(1) in catch block for supervisor respawn (F3)"
+      ],
+      "excluded": [
+        "controlServer.ts /stop 50ms delay (F1b — scope drift)",
+        "deploy.sh production URL fix (blocked by hook — manual user action)",
+        "Sentinel file deletion (PAUSE-PENDING-USER — manual user action)",
+        "Daemon lifecycle redesign",
+        "Replacement daemon health supervision after successful spawn"
+      ]
+    },
+    "success_criteria": [
+      "stopDaemon() reads state once and aborts when state.pid === process.pid (single snapshot + self-kill guard)",
+      "clearDaemonState() does not delete the lock file",
+      "releaseDaemonLock() is called before cleanupDaemonState() at BOTH run.ts:763-766 and run.ts:831-835",
+      "process.exit(0) only executes on successful spawnHappyCLI; process.exit(1) executes on spawn failure",
+      "Sentinel file .claude/.hook-refactor-allow is absent (manual user action)"
+    ],
+    "constraints": [
+      "TypeScript strict mode",
+      "No mid-code imports",
+      "Do not modify controlServer.ts (F1b is out of scope)"
+    ]
+  },
+  "scope_boundary": {
+    "in_user_path": [
+      "packages/happy-cli/src/daemon/controlClient.ts",
+      "packages/happy-cli/src/persistence.ts",
+      "packages/happy-cli/src/daemon/run.ts"
+    ],
+    "path_dependent_shared_infra": [],
+    "out_of_path_observed_but_not_touched": [
+      "packages/happy-cli/src/daemon/controlServer.ts (F1b 50ms delay — scope drift)",
+      "/root/happy/scripts/deploy.sh (production tree, hook-blocked)"
+    ]
+  },
+  "out_of_scope_observations": [
+    {
+      "ts": "2026-05-25T08:10:12Z",
+      "task_id": "20260525-081012",
+      "file": "scripts/deploy.sh",
+      "line": "21",
+      "observation": "Production /root/happy/scripts/deploy.sh web-dev case uses api.life-ai.app (production URL) instead of api-dev.life-ai.app; file is blocked by pretool-block-production-files.sh for subagent Write/Edit. Manual user action required.",
+      "in_user_path": false,
+      "security_relevant": false
+    },
+    {
+      "ts": "2026-05-25T08:10:12Z",
+      "task_id": "20260525-081012",
+      "file": "packages/happy-cli/src/daemon/controlServer.ts",
+      "line": "290-299",
+      "observation": "/stop handler uses setTimeout(50ms) before calling requestShutdown; Codex classified this as scope drift from F1/F2/F3; not in scope for this cycle",
+      "in_user_path": false,
+      "security_relevant": false
+    }
+  ],
+  "root_cause_analysis": {
+    "symptom": "Three residual races in daemon auto-upgrade handoff: (F1) stopDaemon() has two independent reads of daemon.state.json — one for PID (line 198) and one for port via daemonPost (line 15) — so HTTP stop can target a different daemon generation than SIGKILL; self-kill via SIGKILL cannot occur at startup because the new daemon writes its own PID at run.ts:664 AFTER calling stopDaemon() at run.ts:119; (F2) cleanupDaemonState() is called before releaseDaemonLock() at TWO sites (run.ts:763-766 heartbeat handoff AND run.ts:831-835 cleanupAndShutdown), AND clearDaemonState() in persistence.ts deletes the lock file it does not own; (F3) all subsystems (apiMachine, controlServer, state, lock, heartbeat) are torn down before spawnHappyCLI is called at run.ts:769; on spawn failure the daemon is a zombie with no control path; process.exit(1) is required in the catch block so the system supervisor can respawn",
+    "root_cause": "F1: daemonPost() re-reads daemon.state.json independently on every call (line 15) to get the HTTP port, while stopDaemon() captures state.pid at line 198 for SIGKILL; if state.json changes between these two reads the HTTP stop and SIGKILL target different daemon generations. The call-order at startup prevents self-kill: stopDaemon() fires at run.ts:119 before writeDaemonState() at run.ts:664, so state.json still holds the old PID when stopDaemon() runs. The self-kill guard (state.pid === process.pid) remains valid as defense against a future race where state.json updates before SIGKILL at line 220. F2: clearDaemonState() owns lock deletion it does not hold (persistence.ts:325-332); cleanup call order is wrong at both heartbeat handoff (run.ts:763-766) and cleanupAndShutdown (run.ts:831-835) — state before lock, should be lock before state. F3: complete teardown runs before spawnHappyCLI (run.ts:763-767); the existing process.exit(0) is outside the try block at line 778 (unconditional); on spawn failure no subsystems remain and the zombie has no control path; correct fix is process.exit(1) in catch block so systemd Restart=on-failure can respawn.",
+    "root_cause_commit": "ed4b15bb8 + 5cc5f6e71 + 81d441222 (this session's prior upgrade fix)",
+    "why_introduced": "The upgrade handoff is a complex multi-step teardown sequence; the race conditions were not fully modeled in the prior fix",
+    "why_problematic": "F1 can cause the new daemon to immediately kill itself during startup. F2 can cause releaseDaemonLock to delete a lock held by a new process. F3 leaves the system with zero daemon processes.",
+    "timeline": "Introduced in current session's daemon upgrade fix",
+    "affected_files": [
+      "packages/happy-cli/src/daemon/controlClient.ts",
+      "packages/happy-cli/src/persistence.ts",
+      "packages/happy-cli/src/daemon/run.ts"
+    ],
+    "evidence_type": "inferred",
+    "observations": [
+      "run.ts:119 (inferred): await stopDaemon() — called FIRST in version-mismatch startup branch",
+      "run.ts:664 (inferred): await writeDaemonState(fileState) — called LATER after control server starts; new daemon has NOT written its PID when stopDaemon() runs at line 119; self-kill via SIGKILL cannot occur at startup",
+      "controlClient.ts:14-16 (inferred): daemonPost() calls readDaemonState() on every invocation, re-reading state.json independently of the state.pid captured at stopDaemon():198 — split-target race: HTTP stop can target different generation than SIGKILL",
+      "controlClient.ts:196-228 (inferred): stopDaemon() captures state.pid at line 198; stopDaemonHttp() at 208 calls daemonPost('/stop') which re-reads state at line 15 for port; if state.json changes between these two reads, HTTP stop targets new daemon while SIGKILL targets old PID",
+      "persistence.ts:321-333 (inferred): clearDaemonState() deletes daemonLockFile at lines 325-332 in addition to the state file — lock lifecycle not owned by this function",
+      "persistence.ts:386-396 (inferred): releaseDaemonLock() also calls unlinkSync on daemonLockFile — two functions both try to delete the same file",
+      "run.ts:757 (inferred): clearInterval(restartOnStaleVersionAndHeartbeat) is called BEFORE the try/catch spawnHappyCLI block",
+      "run.ts:763-766 (inferred): heartbeat handoff — WRONG ORDER: apiMachine.shutdown() [763], stopControlServer() [764], cleanupDaemonState() [765], releaseDaemonLock() [766]; state deleted before lock released",
+      "run.ts:769-779 (inferred): spawnHappyCLI in try block, catch only logs, process.exit(0) is at line 778 OUTSIDE the try block — unconditional exit even on spawn failure leaves zero daemons",
+      "run.ts:831-835 (inferred): cleanupAndShutdown — WRONG ORDER: apiMachine.shutdown() [831], stopControlServer() [832], cleanupDaemonState() [833], stopCaffeinate() [834], releaseDaemonLock() [835]; state deleted before lock released"
+    ],
+    "diagnosis_completeness": "incomplete (inferred only — no runtime observation; process lifecycle race conditions cannot be observed from static analysis alone)",
+    "complaint_location_keywords": ["stopDaemon", "controlClient", "cleanupDaemonState", "releaseDaemonLock", "spawnHappyCLI", "process.exit"],
+    "localization_evidence": "Code read directly from source files; line numbers confirmed from Read tool output",
+    "located_source": "controlClient.ts:196-228, persistence.ts:321-333 and 386-396, run.ts:754-779 and 831-839",
+    "localization_blocked": null,
+    "git_bisect_result": {
+      "triggered": false,
+      "suspect_commit": "ed4b15bb8 feat(codex): F2 third tid-bind + persistence.ts atomic write + CLAUDE.md doc fix",
+      "commit_message": "ed4b15bb8 feat(codex): F2 third tid-bind + persistence.ts atomic write + CLAUDE.md doc fix",
+      "confirmed_by": "user-identification (Codex audit of current session's changes)",
+      "bisect_blocked": "Not a regression from historical baseline — races were introduced within this session's upgrade fix",
+      "reproducibility_verified": false
+    }
+  },
+  "diagnosis_layer": "L4",
+  "requirements_decomposition": [
+    {
+      "id": "R1",
+      "source_phrase": "stopDaemon() in controlClient.ts reads daemon.state.json and stops whatever PID is listed there, with no generation or expected-PID guard; actual race is split-target: daemonPost re-reads state.json independently for port (line 15) while stopDaemon captures PID at line 198",
+      "acceptance_criterion": "stopDaemon() captures state at entry (single snapshot); if state.pid === process.pid, logs warning and returns without sending HTTP stop or SIGKILL; both the HTTP port and the SIGKILL PID come from the same single snapshot read"
+    },
+    {
+      "id": "R2",
+      "source_phrase": "cleanupDaemonState() is called before releaseDaemonLock() at TWO sites: run.ts:763-766 (heartbeat handoff) AND run.ts:831-835 (cleanupAndShutdown); clearDaemonState() in persistence.ts also deletes the lock file it does not own",
+      "acceptance_criterion": "clearDaemonState() deletes only daemonStateFile; daemonLockFile deletion removed from clearDaemonState; releaseDaemonLock called BEFORE cleanupDaemonState at run.ts:763-766 (heartbeat) AND run.ts:831-835 (cleanupAndShutdown); releaseDaemonLock handles ENOENT gracefully"
+    },
+    {
+      "id": "R3",
+      "source_phrase": "if spawnHappyCLI() throws during the upgrade handoff, all subsystems are already torn down (apiMachine, controlServer, state, lock, heartbeat); process.exit(0) outside the try block executes unconditionally leaving a zombie process",
+      "acceptance_criterion": "process.exit(0) is inside the try block only (after successful spawnHappyCLI); catch block calls process.exit(1) so systemd Restart=on-failure can respawn; the daemon does NOT attempt to continue operating in degraded state"
+    },
+    {
+      "id": "R4",
+      "source_phrase": "deploy.sh line ~21: docker build command for web-dev case uses HAPPY_SERVER_URL=https://api.life-ai.app (production URL)",
+      "acceptance_criterion": "MANUAL USER ACTION: /root/happy/scripts/deploy.sh web-dev case uses https://api-dev.life-ai.app; blocked by pretool-block-production-files.sh"
+    },
+    {
+      "id": "R5",
+      "source_phrase": "temporary sentinel file that needs deletion",
+      "acceptance_criterion": "PAUSE-PENDING-USER: sentinel deletion is a user-only manual action; dev subagent must NOT attempt to delete the file via any mechanism; user manually deletes /dev/shm/dev-workspace/happy-dev/.claude/.hook-refactor-allow"
+    }
+  ],
+  "component_chain": [
+    {
+      "file": "packages/happy-cli/src/daemon/run.ts",
+      "line_range": "112-124",
+      "role": "New daemon startup: checks version, calls stopDaemon() at line 119 BEFORE writing its own state at line 664; self-kill via SIGKILL at startup is impossible because state.json still holds old daemon PID when stopDaemon() runs",
+      "imports_from": ["packages/happy-cli/src/daemon/controlClient.ts"],
+      "evidence": "Read tool lines 112-124 (stopDaemon at 119) + lines 640-665 (writeDaemonState at 664): stopDaemon() fires FIRST, writeDaemonState() fires LATER",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/daemon/controlClient.ts",
+      "line_range": "196-228",
+      "role": "stopDaemon(): reads state, HTTP stop, SIGKILL fallback",
+      "imports_from": ["packages/happy-cli/src/persistence.ts"],
+      "evidence": "Read tool lines 196-228: readDaemonState() at 198, stopDaemonHttp() at 208, process.kill at 220",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/daemon/controlClient.ts",
+      "line_range": "14-16",
+      "role": "daemonPost(): re-reads daemon.state.json on every call for port",
+      "imports_from": ["packages/happy-cli/src/persistence.ts"],
+      "evidence": "Read tool lines 14-16: readDaemonState() called inside daemonPost body",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/persistence.ts",
+      "line_range": "321-333",
+      "role": "clearDaemonState(): deletes state file AND lock file",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool lines 321-333: unlinks daemonStateFile and daemonLockFile",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/persistence.ts",
+      "line_range": "386-396",
+      "role": "releaseDaemonLock(): closes handle and unlinks lock file",
+      "imports_from": ["leaf"],
+      "evidence": "Read tool lines 386-396: lockHandle.close() then unlinkSync(daemonLockFile)",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/daemon/run.ts",
+      "line_range": "754-779",
+      "role": "Heartbeat upgrade handoff: teardown (WRONG ORDER: state before lock at lines 763-766) then spawnHappyCLI then unconditional exit(0) at line 778 outside try block",
+      "imports_from": ["packages/happy-cli/src/utils/spawnHappyCLI.ts"],
+      "evidence": "Read tool lines 754-779: clearInterval [757], apiMachine.shutdown [763], stopControlServer [764], cleanupDaemonState [765], releaseDaemonLock [766], stopCaffeinate [767], try { spawnHappyCLI [769] } catch { log [772] }, process.exit(0) [778] OUTSIDE try",
+      "verified_via": "Read"
+    },
+    {
+      "file": "packages/happy-cli/src/daemon/run.ts",
+      "line_range": "831-839",
+      "role": "cleanupAndShutdown(): WRONG ORDER: cleanupDaemonState at 833 before releaseDaemonLock at 835 (second fix site for F2b)",
+      "imports_from": ["packages/happy-cli/src/daemon/controlClient.ts", "packages/happy-cli/src/persistence.ts"],
+      "evidence": "Read tool lines 831-839: apiMachine.shutdown [831], stopControlServer [832], cleanupDaemonState [833], stopCaffeinate [834], releaseDaemonLock [835] — state before lock",
+      "verified_via": "Read"
+    }
+  ],
+  "pre_existing_guards": [
+    {
+      "file": "packages/happy-cli/src/persistence.ts",
+      "line": 326,
+      "type": "if",
+      "code_snippet": "if (existsSync(configuration.daemonLockFile)) { ... await unlink(configuration.daemonLockFile) }",
+      "purpose": "Stale lock cleanup in clearDaemonState — this guard MUST be removed as part of F2 fix; clearDaemonState should not own lock lifecycle",
+      "removal_authorized": true
+    },
+    {
+      "file": "packages/happy-cli/src/persistence.ts",
+      "line": 392,
+      "type": "if",
+      "code_snippet": "if (existsSync(configuration.daemonLockFile)) { unlinkSync(configuration.daemonLockFile); }",
+      "purpose": "Lock file deletion in releaseDaemonLock — this is the CORRECT owner; keep; ensure catch is broad",
+      "removal_authorized": false
+    }
+  ],
+  "regression_investigation_checklist": {
+    "triggered": false,
+    "items": []
+  },
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- hook; cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, (4) screenshot evidence, or (5) any change to user-triggered code paths"
+  },
+  "evidence": {
+    "observed": "Codex audit identified three races in daemon upgrade handoff: wrong-generation kill, lock double-unlink, zero-daemon on spawn failure",
+    "measured": {
+      "value": "run.ts:119 calls stopDaemon() BEFORE run.ts:664 calls writeDaemonState() — new daemon cannot self-kill at startup; controlClient.ts:14 re-reads state independently in daemonPost() creating split-target race; persistence.ts:325-332 deletes lock in clearDaemonState(); run.ts:763-766 wrong order (state before lock); run.ts:778 process.exit(0) OUTSIDE try block (unconditional); run.ts:831-835 wrong order (state before lock)",
+      "location": "packages/happy-cli/src/daemon/run.ts:119,663-766,778,831-835; packages/happy-cli/src/daemon/controlClient.ts:14-16,196-228; packages/happy-cli/src/persistence.ts:321-333"
+    },
+    "expected": {
+      "value": "stopDaemon() single snapshot + bail on self-PID; lock lifecycle owned by releaseDaemonLock only; releaseDaemonLock before cleanupDaemonState at BOTH sites; process.exit(0) inside try only, process.exit(1) in catch",
+      "source": "Codex audit findings + BA line-verified analysis of source code (session 2026-05-25 iter2)"
+    },
+    "gap": "Five targeted edits required: (1) add single-snapshot read + self-kill guard at controlClient.ts:stopDaemon; (2) remove lock deletion from persistence.ts:clearDaemonState; (3) invert order at run.ts:763-766; (4) invert order at run.ts:831-835; (5) move exit(0) inside try + add exit(1) to catch at run.ts:769-779"
+  },
+  "scope_expansion": {
+    "search_pattern": "stopDaemon|clearDaemonState|releaseDaemonLock|process.exit\\(0\\)",
+    "search_scope": "packages/happy-cli/src/",
+    "user_reported": ["run.ts", "controlClient.ts", "controlServer.ts", "persistence.ts"],
+    "additional_found": [],
+    "all_occurrences": [
+      "controlClient.ts:196-228 (stopDaemon function — add single-snapshot read + self-kill guard)",
+      "persistence.ts:321-333 (clearDaemonState function — remove lock file deletion)",
+      "persistence.ts:386-396 (releaseDaemonLock function — add ENOENT tolerance)",
+      "run.ts:763-766 (heartbeat upgrade handoff — WRONG ORDER: cleanupDaemonState before releaseDaemonLock)",
+      "run.ts:769-779 (heartbeat upgrade handoff — process.exit(0) outside try block; add exit(1) to catch)",
+      "run.ts:831-835 (cleanupAndShutdown — WRONG ORDER: cleanupDaemonState before releaseDaemonLock)"
+    ]
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Source code read directly with Read tool in this session",
+    "url_or_location": "packages/happy-cli/src/daemon/controlClient.ts, run.ts, controlServer.ts; packages/happy-cli/src/persistence.ts",
+    "copy_allowed": true
+  },
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "git_log",
+    "attempts": [
+      {
+        "artifact_path": "commits ed4b15bb8 + 5cc5f6e71 + 81d441222",
+        "proposed_solution": "Daemon upgrade handoff via heartbeat bundle-mtime detection; atomic writes; lock release before cleanup",
+        "actual_change": "run.ts heartbeat upgrade path, persistence.ts atomic write for state file",
+        "outcome": "Three residual races remain: F1 (generation guard), F2 (lock TOCTOU at two sites), F3 (unconditional process.exit)",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "docs/dev/ticket-20260525-081012.md (BA iter1)",
+        "proposed_solution": "F1 self-kill guard; F2 lock order inversion in cleanupAndShutdown only; F3 catch logs without exiting; R5 python3 os.unlink sentinel deletion",
+        "actual_change": "Spec only — rejected by QA before dev execution",
+        "outcome": "QA rejected: F1 had wrong call-order (self-kill impossible at startup); F2 missed second site at run.ts:763-766; F3 ambiguous (zombie state not defined); R5 hook-circumvention pattern",
+        "failure_category": "tainted_reference",
+        "target_layer": "L4"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L4",
+      "differs_from_all_priors": true,
+      "rationale": "Prior attempt fixed the detection and state-write mechanics; this attempt fixes the kill-guard and exit sequencing in the handoff edge cases"
+    }
+  },
+  "context": {
+    "codebase_state": "Modified files include run.ts, controlClient.ts, persistence.ts among others",
+    "recent_commits": "9833dd135 chore(docs), 86eb1419c chore(docs), 81d441222 feat(codex) atomic write, 5cc5f6e71 docs codex-recovery, ed4b15bb8 feat(codex) F2 third tid-bind",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {}
+  },
+  "development_approach": {
+    "strategy": "Five targeted edits to three files. No new abstractions. Follow existing error handling patterns (try/catch with logger.debug). F1: read state once into a variable at stopDaemon() entry; add self-kill guard; use single snapshot for both HTTP port and SIGKILL PID. F2a: remove lock deletion from clearDaemonState() in persistence.ts. F2b: invert run.ts:763-766 to call releaseDaemonLock before cleanupDaemonState. F2c: invert run.ts:831-835 to call releaseDaemonLock before cleanupDaemonState. F3: move process.exit(0) inside try block; add process.exit(1) in catch block. Sentinel deletion: PAUSE-PENDING-USER — dev must NOT delete the sentinel; user does it manually.",
+    "files_to_create": [],
+    "files_to_modify": [
+      "packages/happy-cli/src/daemon/controlClient.ts",
+      "packages/happy-cli/src/persistence.ts",
+      "packages/happy-cli/src/daemon/run.ts"
+    ],
+    "validation_approach": "TypeScript compile check; code review of five changed locations; verify releaseDaemonLock before cleanupDaemonState at both sites; verify process.exit(1) in catch block; sentinel PAUSE-PENDING-USER output confirmed in dev report"
+  },
+  "acceptance_criteria_path": "docs/dev/acceptance-criteria-20260525-081012.json",
+  "blast_radius_map_path": ".claude/dev-registry/dev-20260525-081012/blast-radius-map.json",
+  "complexity_tier": "STANDARD",
+  "risk_level": "medium",
+  "_risk_level_doc": "medium: affects daemon process lifecycle; 3 files changed; no security boundary or API schema change; change is surgical",
+  "test_writer_expected": true,
+  "standards_to_enforce": {
+    "no_hardcoded_values": true,
+    "yaml_frontmatter_description_only": true,
+    "integer_step_numbering": true,
+    "meaningful_naming": true,
+    "git_root_cause_reference": true
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Codex iter2 adversarial review (ba-iter2-prompt.txt): confirmed all 4 proposed corrections are accurate and minimal. F1 split-target narrative is precise and accurate. F2 both sites correctly identified. F3 process.exit(1) in catch is the right behavior given full teardown context; systemd Restart=on-failure makes this the minimal safe fix. R5 PAUSE-PENDING-USER is preferred over python3 os.unlink to avoid circumvention-spirit concern. No scope creep introduced.",
+    "findings": [
+      {
+        "issue": "F1 narrative correction: is split-target race (two independent reads) accurate and sufficient? Keeping self-kill guard as secondary defense?",
+        "proposed_fix": "PROPOSED_FIX: F1 correction is accurate. Keep guard as defense against future race where state.json updates before SIGKILL at line 220. Narrative: stopDaemon() at line 119 fires BEFORE writeDaemonState() at line 664; self-kill at startup is impossible. Primary race: daemonPost re-reads state.json at line 15 independently for port while stopDaemon captures PID at line 198.",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Codex confirmed the call-order correction is accurate. Both the split-target race description and the secondary self-kill guard rationale are sound."
+      },
+      {
+        "issue": "F2 both sites: are run.ts:763-766 and run.ts:831-835 both correctly identified?",
+        "proposed_fix": "PROPOSED_FIX: Both sites confirmed. No other occurrence of the same wrong ordering found in the codebase. Fix both.",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Codex confirmed both sites. No additional sites."
+      },
+      {
+        "issue": "F3 process.exit(1) on spawn failure: is this the right behavior?",
+        "proposed_fix": "PROPOSED_FIX: process.exit(1) in catch is correct. All subsystems already torn down; no control path remains. systemd Restart=on-failure will respawn. Alternative (preflight before teardown) is a larger refactor not requested. Minimal safe fix: exit(1) in catch.",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Codex confirmed exit(1) is minimal and correct. The zombie argument (no subsystems + no control path) is decisive."
+      },
+      {
+        "issue": "R5 sentinel deletion: option (a) python3 os.unlink or option (b) PAUSE-PENDING-USER?",
+        "proposed_fix": "PROPOSED_FIX: option (b) PAUSE-PENDING-USER. Even though python3 os.unlink is not technically blocked, using it because rm is blocked is the circumvention pattern the Subagent Hook Discipline prohibits in spirit. PAUSE-PENDING-USER is the correct safe approach.",
+        "classification": "major",
+        "disposition": "applied",
+        "rationale": "Codex confirmed option (b). Spirit of the hook discipline takes precedence over technical unblocked status."
+      }
+    ],
+    "feedback_incorporated": "All 4 objection corrections confirmed by Codex iter2 review: F1 split-target narrative adopted; F2 both sites included; F3 process.exit(1) in catch confirmed; R5 PAUSE-PENDING-USER confirmed."
+  }
+}

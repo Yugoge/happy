@@ -19,7 +19,7 @@ import { cleanupDaemonState, isDaemonRunningCurrentlyInstalledHappyVersion, stop
 import { startDaemonControlServer } from './controlServer';
 import { createCodexMappingDaemonController } from '@/codex/codexMappingDaemon';
 import { findRunawayHappyProcesses, killRunawayHappyProcesses } from './doctor';
-import { readFileSync } from 'fs';
+import { statSync } from 'fs';
 import { join } from 'path';
 import { projectPath } from '@/projectPath';
 import { getTmuxUtilities, isTmuxAvailable, parseTmuxSessionIdentifier, formatTmuxSessionIdentifier } from '@/utils/tmux';
@@ -664,6 +664,18 @@ export async function startDaemon(): Promise<void> {
     await writeDaemonState(fileState);
     logger.debug('[DAEMON RUN] Daemon state written');
 
+    // Snapshot bundle mtime at startup. The heartbeat uses this to detect when
+    // npm install has actually replaced dist/index.mjs, avoiding false triggers
+    // from package.json version bumps that don't rebuild the bundle (#1107).
+    const bundlePath = join(projectPath(), 'dist', 'index.mjs');
+    let initialBundleMtimeMs = 0;
+    try {
+        initialBundleMtimeMs = statSync(bundlePath).mtimeMs;
+    } catch {
+        // dist/index.mjs not present (e.g. dev mode via tsx) — skip upgrade detection.
+        logger.debug(`[DAEMON RUN] Bundle at ${bundlePath} not found; self-restart on upgrade disabled`);
+    }
+
     // Prepare initial daemon state
     const initialDaemonState: DaemonState = {
       status: 'offline',
@@ -727,38 +739,43 @@ export async function startDaemon(): Promise<void> {
         }
       }
 
-      // Check if daemon needs update
-      // If version on disk is different from the one in package.json - we need to restart
-      // BIG if - does this get updated from underneath us on npm upgrade?
-      const projectVersion = JSON.parse(readFileSync(join(projectPath(), 'package.json'), 'utf-8')).version;
-      if (projectVersion !== configuration.currentCliVersion) {
-        // TODO: We probably do not want to keep this in-process self-restart logic long-term.
-        // A native service manager would make startup and upgrades much simpler: the CLI would
-        // ask the OS to start the latest daemon instead of hand-rolling respawn/kill behavior here.
-        logger.debug('[DAEMON RUN] Daemon is outdated, triggering self-restart with latest version, clearing heartbeat interval');
+      // Check if daemon needs update by detecting whether dist/index.mjs was
+      // replaced on disk since the daemon started (npm install rewrites the file).
+      // Skip if we never captured an initial mtime (dev mode).
+      let bundleReplaced = false;
+      if (initialBundleMtimeMs > 0) {
+          try {
+              const currentMtimeMs = statSync(bundlePath).mtimeMs;
+              bundleReplaced = currentMtimeMs !== initialBundleMtimeMs;
+          } catch {
+              // File temporarily missing (e.g. mid-install) — retry on next heartbeat.
+          }
+      }
+      if (bundleReplaced) {
+          logger.debug('[DAEMON RUN] Daemon bundle replaced on disk, handing off to new daemon');
 
-        clearInterval(restartOnStaleVersionAndHeartbeat);
+          clearInterval(restartOnStaleVersionAndHeartbeat);
 
-        // Spawn new daemon through the CLI
-        // We do not need to clean ourselves up - we will be killed by
-        // the CLI start command.
-        // 1. It will first check if daemon is running (yes in this case)
-        // 2. If the version is stale (it will read daemon.state.json file and check startedWithCliVersion) & compare it to its own version
-        // 3. Next it will start a new daemon with the latest version with daemon-sync :D
-        // Done!
-        try {
-          spawnHappyCLI(['daemon', 'start'], {
-            detached: true,
-            stdio: 'ignore'
-          });
-        } catch (error) {
-          logger.debug('[DAEMON RUN] Failed to spawn new daemon, this is quite likely to happen during integration tests as we are cleaning out dist/ directory', error);
-        }
+          // Release ownership BEFORE spawning the new daemon. Otherwise the spawned
+          // `daemon start` reads our still-present daemon.state.json, sees
+          // isDaemonRunningCurrentlyInstalledHappyVersion() === true, and exits —
+          // leaving nothing running once we also exit.
+          apiMachine.shutdown();
+          await stopControlServer();
+          await releaseDaemonLock(daemonLockHandle);
+          await cleanupDaemonState();
+          await stopCaffeinate();
 
-        // So we can just hang forever
-        logger.debug('[DAEMON RUN] Hanging for a bit - waiting for CLI to kill us because we are running outdated version of the code');
-        await new Promise(resolve => setTimeout(resolve, 10_000));
-        process.exit(0);
+          try {
+              spawnHappyCLI(['daemon', 'start'], {
+                  detached: true,
+                  stdio: 'ignore'
+              });
+              process.exit(0);
+          } catch (error) {
+              logger.debug('[DAEMON RUN][FATAL] Failed to spawn new daemon — all subsystems already torn down; exiting with code 1', error);
+              process.exit(1);
+          }
       }
 
       // Before wrecklessly overriting the daemon state file, we should check if we are the ones who own it
@@ -813,9 +830,9 @@ export async function startDaemon(): Promise<void> {
 
       apiMachine.shutdown();
       await stopControlServer();
+      await releaseDaemonLock(daemonLockHandle);
       await cleanupDaemonState();
       await stopCaffeinate();
-      await releaseDaemonLock(daemonLockHandle);
 
       logger.debug('[DAEMON RUN] Cleanup completed, exiting process');
       process.exit(0);

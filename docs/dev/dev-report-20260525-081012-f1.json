@@ -1,0 +1,100 @@
+{
+  "request_id": "20260525-081012",
+  "task_id": "20260525-081012",
+  "timestamp": "2026-05-25T09:00:00Z",
+  "baseline_head_sha": "9833dd1350c08b678209f37f0fe4737b1289edec",
+  "baseline_dirty_snapshot": " M .gitignore\n M docs/dev/INDEX.md\n M docs/dev/README.md\n M packages/happy-app/sources/components/ChatList.tsx\n M packages/happy-app/sources/components/tools/ToolView.tsx\n M packages/happy-app/sources/components/tools/knownTools.tsx\n M packages/happy-app/sources/components/tools/views/CodexBashView.tsx\n M packages/happy-app/sources/components/tools/views/_all.tsx\n M packages/happy-app/sources/sync/reducer/reducer.ts\n M packages/happy-app/sources/utils/codexToolRendering.ts\n M packages/happy-cli/src/daemon/INDEX.md\n M packages/happy-cli/src/daemon/run.ts\n M packages/happy-cli/src/persistence.ts",
+  "dev_report_path": "docs/dev/dev-report-20260525-081012-f1.json",
+  "rank_acknowledged": "Apprentice",
+  "range_acknowledged": "0-20",
+  "recent_events_digest_acknowledged": "6eac9e1e",
+  "score_injection_action": "Apprentice rank with user_rating_1 in recent events — prior work produced poor user satisfaction; applied meticulous evidence-based verification of every claim before implementing (read source file, confirmed line numbers, cross-checked call-order) and incorporated Codex adversarial finding (PID liveness check regression) rather than ignoring it",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "packages/happy-cli/src/daemon/controlClient.ts"
+    ],
+    "files_created": [],
+    "observed_preexisting": [
+      "packages/happy-cli/src/daemon/run.ts",
+      "packages/happy-cli/src/persistence.ts"
+    ],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "F1: single-snapshot + self-kill guard + PID liveness check in stopDaemon()",
+        "type": "code_edit",
+        "files_modified": ["packages/happy-cli/src/daemon/controlClient.ts"],
+        "changes": "stopDaemon() now reads state.json exactly once into 'state'. Added self-kill guard (state.pid === process.pid). Added PID liveness check (process.kill(state.pid, 0)) using cached state — no second read. Replaced stopDaemonHttp() / daemonPost() call with inline fetch to state.httpPort — eliminates the second independent read of state.json that caused the split-target race. SIGKILL fallback uses state.pid from same snapshot. Log message improved: 'Graceful stop did not complete' instead of 'HTTP stop failed' for clarity.",
+        "rationale": "Root cause: daemonPost() re-read state.json independently at line 15 for HTTP port while stopDaemon() captured PID at line 198 — creating a window where HTTP stop and SIGKILL could target different daemon generations. Fix: single snapshot eliminates the window."
+      }
+    ],
+    "scripts_created": [],
+    "git_rationale": {
+      "root_cause_commit": "ed4b15bb8 feat(codex): F2 third tid-bind + persistence.ts atomic write + CLAUDE.md doc fix",
+      "why_issue_occurred": "Prior upgrade-fix introduced two-read pattern: stopDaemon() captured PID at one point, then called stopDaemonHttp() which called daemonPost() which called readDaemonState() again for the port. If state.json changed between reads, HTTP stop targeted a different generation's port than SIGKILL.",
+      "how_fix_addresses_root": "Single call to readDaemonState() at top of stopDaemon(); inline fetch uses state.httpPort directly; no helper function re-reads state; both HTTP port and SIGKILL PID from same snapshot."
+    },
+    "diff_stats": {
+      "files_changed": 1,
+      "lines_added": 36,
+      "lines_removed": 8,
+      "new_symbols_introduced": [],
+      "minimum_possible_lines_estimate": 20,
+      "justification_for_overage": "Inline fetch requires duplicating the fetch call setup (timeout, AbortSignal, headers) that was previously hidden inside daemonPost(). PID liveness check adds 5 lines. Self-kill guard adds 3 lines. Improved comments add ~5 lines. Total exceeds 20 but each line is load-bearing or required for parity with removed daemonPost() functionality."
+    },
+    "fix_layer": "L4",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "AC1 (state.pid === process.pid guard): line 294 of controlClient.ts. AC2 (single snapshot, process.kill uses state.pid): lines 285 + 330. Both AC1 and AC2 checked via code_inspection patterns. TypeScript compiles clean. The task dispatch scoped this dev cycle to controlClient.ts only — F2 (persistence.ts, run.ts) and F3 (run.ts) are in separate dev cycles per task dispatch.",
+    "permissions_to_add": []
+  },
+  "blast_radius": [
+    {
+      "modified": "packages/happy-cli/src/daemon/controlClient.ts",
+      "imported_by": [
+        "packages/happy-cli/src/ui/doctor.ts",
+        "packages/happy-cli/src/openclaw/runOpenClaw.ts",
+        "packages/happy-cli/src/openclaw/openclaw.integration.test.ts",
+        "packages/happy-cli/src/gemini/runGemini.ts",
+        "packages/happy-cli/src/daemon/run.ts",
+        "packages/happy-cli/src/daemon/daemon.integration.test.ts",
+        "packages/happy-cli/src/commands/auth.ts",
+        "packages/happy-cli/src/codex/resumeExistingThread.test.ts",
+        "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.test.ts",
+        "packages/happy-cli/src/codex/runCodex.ts",
+        "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts",
+        "packages/happy-cli/src/claude/runClaude.ts",
+        "packages/happy-cli/src/claude/session.ts",
+        "packages/happy-cli/src/agent/acp/runAcp.ts",
+        "packages/happy-cli/src/agent/acp/runAcp.test.ts",
+        "packages/happy-cli/src/index.ts"
+      ]
+    }
+  ],
+  "blast_radius_declarations": [
+    {
+      "file": "packages/happy-cli/src/daemon/controlClient.ts",
+      "coverage_gap_severity": "medium",
+      "addressed_by": "exemption",
+      "reason": "No blast-radius-map.json was present (file not found). stopDaemon() is called at daemon startup (run.ts:119) and in CLI commands (auth.ts, index.ts). None of these callers inspect the internal fetch behavior — they only observe whether the daemon stops. The PID liveness check (process.kill signal 0) pattern was present in the original daemonPost() and is preserved in the new inline path using the cached state, so callers see identical behavior. TypeScript compiles clean with zero errors."
+    }
+  ],
+  "self_verification": {
+    "build": "pass",
+    "smoke_check": "skipped (no executable criteria — daemon process lifecycle change, not UI; no live daemon to test against per CLAUDE.md Cycle C rules)",
+    "notes": "npx tsc --noEmit produced zero errors. AC1 pattern 'state.pid === process.pid' confirmed present at controlClient.ts line 294. AC2 pattern 'process.kill(state.pid' confirmed present at controlClient.ts line 330. No second call to readDaemonState() within stopDaemon() function body."
+  },
+  "codex_consult": {
+    "invoked": true,
+    "status": "ok",
+    "feedback_summary": "Two findings: (1) PID liveness check removed regression — the old daemonPost() called process.kill(state.pid, 0) before the HTTP request; the inline fetch removed this, risking contacting a reused port if daemon already died. (2) Misleading log message — 'HTTP stop failed' catch could fire when HTTP succeeded but waitForProcessDeath timed out.",
+    "feedback_incorporated": "Both findings applied: (1) added process.kill(state.pid, 0) liveness check after self-kill guard, using the cached state (no second read, single-snapshot guarantee maintained); (2) changed catch log to 'Graceful stop did not complete, will force kill' for accuracy."
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "F2 fix (persistence.ts clearDaemonState lock removal + run.ts cleanup order at both sites) is in the same task scope but was dispatched to a separate dev cycle per task instructions — confirm F2 cycle is also dispatched.",
+    "F3 fix (process.exit(1) in spawn-failure catch) is also in separate scope — confirm F3 cycle is dispatched.",
+    "PAUSE-PENDING-USER: sentinel file .claude/.hook-refactor-allow at /dev/shm/dev-workspace/happy-dev/.claude/.hook-refactor-allow requires manual deletion by the user. Dev subagent must NOT attempt programmatic deletion."
+  ]
+}
