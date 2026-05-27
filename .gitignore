@@ -110,3 +110,7 @@ tests/generated/
 .claude/dev-registry/dev-*/
 # harness-propagated by session-gitignore-propagate.sh
 docs/codex/
+
+# Spec checkpoint state (codex-audit cleanup)
+.claude/specs/*/.cp-checkin.lock
+.claude/specs/*/cp-state-*.json
