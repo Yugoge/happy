@@ -233,15 +233,16 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(listResources, false, true)).toBe(false);
         const mcpRead = makeToolCall('mcp__resources__read', { uri: 'file://fixture.md' }, { resources: [] });
         expect(shouldRenderToolContent(mcpRead, false, true, { flavor: 'codex' } as any)).toBe(false);
-        // Specialized MCP views (image/screenshot) still render content via hasSpecializedView=true.
-        expect(shouldRenderToolContent(mcpRead, true, true, { flavor: 'codex' } as any)).toBe(true);
-        // Other codex source tools (web.*, generic functions.*) still render.
+        // AC2 fix (Cycle 8): minimal=true now suppresses content regardless of hasSpecializedView.
+        // CodexPatch (minimal=true) must not render body to avoid duplicate file-diff icons.
+        expect(shouldRenderToolContent(mcpRead, true, true, { flavor: 'codex' } as any)).toBe(false);
+        // Codex source tools render when minimal=false (original non-minimal behavior preserved).
         const futureTool = makeToolCall('functions.future_tool', { nested: { value: ['x'] } }, { error: 'user rejected MCP tool call' }, 'error');
         expect(shouldRenderToolContent(futureTool, false, false)).toBe(true);
         const webSearch = makeToolCall('web.search_query', { q: 'rendering' }, { results: [] });
-        expect(shouldRenderToolContent(webSearch, false, true)).toBe(true);
+        expect(shouldRenderToolContent(webSearch, false, true)).toBe(false);
         const codexBash = makeToolCall('CodexBash', {});
-        expect(shouldRenderToolContent(codexBash, true, true)).toBe(true);
+        expect(shouldRenderToolContent(codexBash, true, true)).toBe(false);
         const subagentControl = makeToolCall('functions.wait_agent', { name: 'fixture-agent' }, { status: 'completed' });
         expect(shouldRenderToolContent(subagentControl, true, true)).toBe(false);
         // Explicit MCP function tool guards: list_mcp_resource_templates + read_mcp_resource → chip-only.

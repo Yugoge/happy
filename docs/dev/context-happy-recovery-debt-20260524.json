@@ -1,0 +1,324 @@
+{
+  "request_id": "happy-recovery-debt-20260524",
+  "task_id": "happy-recovery-debt-20260524",
+  "timestamp": "2026-05-24T09:00:07Z",
+  "status": "ready",
+  "requirement": {
+    "original": "finish the Happy recovery incident debt cleanup without changing Happy source code unless explicitly approved",
+    "clarified": "Repair confirmed Happy recovery operational debts first; keep happy-session-recovery as an external operations tool; identify confirmed vs unverified debts; do not edit Happy source unless the user approves it.",
+    "what": "External-tool-only recovery debt cleanup specification",
+    "why": "Prior fixes either overreached into Happy source or left operational recovery/reporting risks that can resurrect sessions or misattribute OOM actions.",
+    "where": ["/root/bin/happy-session-recovery.sh", "/root/bin/happy-memory-emergency-guard.sh", "/root/bin/happy-daemon-post-start.sh", "/root/bin/auto-safe-swap-drain.sh", "docs/dev/**"],
+    "scope": {
+      "included": ["external recovery script semantics", "truthful restore reporting", "desired-state/peak/tombstone safety", "OOM forensic evidence", "read-only audits of adjacent automation"],
+      "excluded": ["Happy source-code changes without explicit approval", "daemon/service restarts", "session kills/restores", "production web/API testing", "new speculative architecture"]
+    },
+    "success_criteria": [
+      "Issues are ordered and tagged confirmed vs unverified",
+      "Future dev iterations are single-issue and external-tool-only unless approval is obtained",
+      "Acceptance criteria prevent daemon-owned overclaims, stale resurrection, and incomplete OOM evidence"
+    ],
+    "constraints": ["No operational script/source/systemd/live-service edits in this BA turn", "No reboot/restart/kill/restore", "No Happy source modifications unless explicitly approved"]
+  },
+  "setup": {
+    "applicability": "N/A",
+    "reason": "non-UI -- CLI; cycle does not produce (1) rendered UI changes, (2) browser interaction, (3) Playwright invocation, or (4) screenshot evidence",
+    "viewport": null,
+    "theme": null,
+    "locale": "en",
+    "auth_state": "N/A",
+    "data_state": "host operational state",
+    "browser": "N/A",
+    "url_path": "N/A"
+  },
+  "research_findings": {
+    "searched": false,
+    "reason": "Internal operational debt cleanup with concrete host evidence; external best-practice search would not change the file scope."
+  },
+  "evidence": {
+    "observed": "User requested recovery incident debt cleanup, external operations tool preservation, confirmed/unverified debt split, no Happy source code changes without explicit approval.",
+    "measured": {
+      "value": "Active recovery script external-spawns via systemd-run/direct node and has no tombstone/disaster-mode/daemon-tracked reporting strings; runtime probe found 26 daemon /list rows but many PPID=1 session processes; OOM guard log captures python - PID/PGID/memory but not full job attribution.",
+      "locations": [
+        "/root/bin/happy-session-recovery.sh:1101-1147",
+        "/root/bin/happy-session-recovery.sh:506-509",
+        "/root/bin/happy-session-recovery.sh:708-720",
+        "/root/bin/happy-session-recovery.sh:753-770",
+        "/root/bin/happy-session-recovery.sh:1294-1305",
+        "/root/bin/happy-memory-emergency-guard.sh:263-323",
+        "/root/bin/happy-memory-emergency-guard.sh:365-379",
+        "/var/log/happy-memory-emergency-guard.log:33-36"
+      ]
+    },
+    "expected": {
+      "value": "External-tool-only recovery cleanup with truthful restore accounting, no runtime peak resurrection of manual removals, preserved good guards/env hygiene, attribution-complete OOM evidence, and no whole-daemon memory caps.",
+      "source": "current user prompt 2026-05-24 plus project CLAUDE.md operational boundaries"
+    },
+    "gap": "Recovery can still count externally spawned processes as success without daemon /list proof; stale desired state/peak fallback can resurrect sessions; OOM evidence is not yet exact enough; adjacent automation impacts are not audited."
+  },
+  "reference_source": {
+    "tier": "tier_2_verified",
+    "description": "Current prompt plus read-only inspection of active host scripts, units, logs, git state, and daemon /list observations in this session. Prior docs are tier_3_tainted and used only for prior-attempt reconciliation.",
+    "url_or_location": "docs/dev/ba-happy-recovery-debt-20260524.md",
+    "copy_allowed": false,
+    "role_table": {
+      "_source": "CLAUDE.md read; no UI role-token table relevant to this non-UI task"
+    }
+  },
+  "scope_boundary": {
+    "in_user_path": ["/root/bin/happy-session-recovery.sh", "/root/bin/happy-memory-emergency-guard.sh", "/root/bin/happy-daemon-post-start.sh", "/root/bin/auto-safe-swap-drain.sh", "docs/dev/ba-happy-recovery-debt-20260524.md", "docs/dev/context-happy-recovery-debt-20260524.json"],
+    "path_dependent_shared_infra": ["/etc/systemd/system/happy-session-watcher.service", "/etc/systemd/system/happy-memory-emergency-guard.service", "/etc/systemd/system/happy-memory-emergency-guard.timer", "/etc/systemd/system/daily-trade-scheduler.service", "/etc/systemd/system/auto-safe-swap-drain.service"],
+    "out_of_path_observed_but_not_touched": ["packages/happy-cli/** source-level daemon spawn/tombstone approach from prior reports"]
+  },
+  "files_in_scope": [
+    {"path": "/root/bin/happy-session-recovery.sh", "mode": "future_dev_edit_allowed_external_tool_only", "reason": "primary external recovery tool"},
+    {"path": "/root/bin/happy-memory-emergency-guard.sh", "mode": "future_dev_edit_allowed_external_tool_only", "reason": "OOM target/evidence guard"},
+    {"path": "/root/bin/happy-daemon-post-start.sh", "mode": "audit_first_then_single_issue_external_edit", "reason": "schedules post-start restore"},
+    {"path": "/root/bin/auto-safe-swap-drain.sh", "mode": "audit_first_then_single_issue_external_edit", "reason": "swap-drain feature-impact concern"},
+    {"path": "docs/dev/**", "mode": "write_allowed", "reason": "requested deliverables and future reports"}
+  ],
+  "files_forbidden": [
+    {"path": "packages/happy-cli/**", "reason": "Happy source code; user requires explicit approval before changes"},
+    {"path": "packages/happy-server/**", "reason": "Happy source code; not in external-tool cleanup scope"},
+    {"path": "packages/happy-app/**", "reason": "Happy source code/UI; not in scope"},
+    {"path": "/root/happy/**", "reason": "production source tree/prod boundary"},
+    {"path": "/root/happy-dev/**", "reason": "Happy source tree; only docs/dev deliverables allowed in this BA turn"},
+    {"path": "/etc/systemd/system/*.service", "reason": "audit-only unless explicit approval; no live daemon/service reloads"},
+    {"path": "/etc/systemd/system/*.timer", "reason": "audit-only unless explicit approval; no live timer changes"}
+  ],
+  "issues": [
+    {
+      "id": "I1",
+      "title": "Scope guard against source-code recovery fixes",
+      "status": "confirmed",
+      "evidence_type": "observed",
+      "evidence": ["User binding forbids Happy source-code changes unless approved", "Current git diff for packages/happy-cli target files is empty"],
+      "acceptance": "Dev touches no packages/happy-* files; any source-required proposal returns needs_user_approval."
+    },
+    {
+      "id": "I2",
+      "title": "External restore is counted as success without daemon proof",
+      "status": "confirmed",
+      "evidence_type": "mixed",
+      "evidence": ["/root/bin/happy-session-recovery.sh:1101-1147 systemd-run/direct spawn returns success from child PID", "grep found no /spawn-session, daemon_tracked, external_restored, or mapping verifier in active recovery script", "runtime probe: 26 /list rows but many PPID=1 sessions labeled happy directly"],
+      "expected": "Process spawn, daemon-list verification, and durable restore count are separate states.",
+      "acceptance": "durable_restore_count increments only after /list maps the returned/resumed Claude or Codex id to the expected home/session."
+    },
+    {
+      "id": "I3",
+      "title": "Runtime desired state can resurrect manual removals",
+      "status": "confirmed",
+      "evidence_type": "inferred",
+      "evidence": ["/root/bin/happy-session-recovery.sh:506-509 preserves session_dirs.txt on any count drop", "/root/bin/happy-session-recovery.sh:1294-1305 uses peak JSON when session_dirs is empty without explicit disaster flag"],
+      "expected": "Runtime drops do not auto-restore and stale/peak state is used only under explicit disaster/operator intent plus skip filtering.",
+      "acceptance": "Manual removals are not restored by automatic runtime/watch/post-start behavior."
+    },
+    {
+      "id": "I4",
+      "title": "Good protections must be preserved",
+      "status": "confirmed_satisfied_guard",
+      "evidence_type": "inferred",
+      "evidence": ["restore-in-progress suppression: /root/bin/happy-session-recovery.sh:708-720 and 753-770", "HOME/CODEX_HOME hygiene: /root/bin/happy-session-recovery.sh:1107-1138", "no daemon MemoryMax: /etc/systemd/system/happy-daemon*.service resource policy comments/assignments"],
+      "acceptance": "Future diffs do not remove or weaken these guards."
+    },
+    {
+      "id": "I5",
+      "title": "OOM culprit evidence is not attribution-complete",
+      "status": "confirmed",
+      "evidence_type": "observed",
+      "evidence": ["/var/log/happy-memory-emergency-guard.log:33-36 records action on cmd=python -, PGID/PID, memory/swap totals", "/root/bin/happy-memory-emergency-guard.sh:312 truncates cmd to 240 chars and does not guarantee session/job id attribution"],
+      "expected": "Pre-action evidence includes cwd, parent chain, session/thread id if available, cgroup, top memory totals, and target reason.",
+      "acceptance": "Guard action logs are sufficient to identify exact user/job culprit after the fact."
+    },
+    {
+      "id": "I6",
+      "title": "No daemon-level MemoryMax; prefer per-session/concurrency controls",
+      "status": "confirmed_partially_satisfied",
+      "evidence_type": "inferred",
+      "evidence": ["daemon units omit MemoryMax/MemoryHigh and set MemoryAccounting/TasksMax", "recovery transient units default MemoryHigh/MemoryMax/MemorySwapMax to infinity but allow env overrides: /root/bin/happy-session-recovery.sh:1097-1108", "restore loop spaces spawns by sleep 5: /root/bin/happy-session-recovery.sh:1399"],
+      "expected": "No whole-daemon cap; any limits are per-session/transient or concurrency/pacing controls.",
+      "acceptance": "No daemon unit memory cap is introduced."
+    },
+    {
+      "id": "I7",
+      "title": "daily-trade/swap-drain/post-start feature impact audit",
+      "status": "unverified",
+      "evidence_type": "inferred",
+      "evidence": ["daily-trade unit prompt includes --codex at /etc/systemd/system/daily-trade-scheduler.service:27", "auto-safe-swap-drain timer runs every 5min and script uses no-drop-caches gates", "post-start schedules global restore after 20s at /root/bin/happy-daemon-post-start.sh:47-53"],
+      "expected": "Read-only audit before any change; only concrete regressions are fixed.",
+      "acceptance": "Each component has a feature-impact note with pass/fail evidence."
+    },
+    {
+      "id": "I8",
+      "title": "Six-hour jobs scan artifact not located",
+      "status": "unverified",
+      "evidence_type": "observed",
+      "evidence": ["grep/systemctl timer scan found no literal six-hour/6-hour Happy unit; timers list showed daily-trade, cleanup, memory guard, swap drain, but no named six-hour jobs scan"],
+      "expected": "Verify restored but low-overhead if the artifact exists; do not create speculative timer.",
+      "acceptance": "Locator evidence identifies the artifact or reports localization_blocked for user clarification."
+    },
+    {
+      "id": "I9",
+      "title": "Claude Code consultation unavailable",
+      "status": "confirmed",
+      "evidence_type": "observed",
+      "evidence": ["Real CLI invocation returned: Not logged in · Please run /login"],
+      "expected": "Consultation is real when available; otherwise failure is explicitly recorded and self-review substituted.",
+      "acceptance": "No report claims Claude Code feedback status ok unless actual feedback exists."
+    }
+  ],
+  "evidence_to_gather": [
+    "For recovery spawn: before/after read-only daemon /list rows, process PPID/PGID/cgroup, and resume/thread id mapping; no restore action without user approval.",
+    "For desired-state safety: synthetic temp HOME/session_dirs fixture tests proving count drop, peak fallback, tombstone/skip, and restore-lock behavior without touching live homes.",
+    "For OOM: parse /var/log/happy-process-forensics/latest.json, suspects.jsonl, and guard log to prove exact attribution fields are present before action.",
+    "For daily-trade: journal + unit diff audit only; verify whether --codex changed behavior or only consultation mode.",
+    "For swap drain: timer cadence, skip gates, journal outcome, and whether it contributes to pressure or safely no-ops.",
+    "For post-start: prove one global restore is intentional and cannot overlap with watcher fast-detect.",
+    "For six-hour jobs: locate unit/script/log by grep/systemctl; if absent, report localization_blocked rather than implement."
+  ],
+  "proposed_single_issue_dev_iterations": [
+    {
+      "iteration": 1,
+      "issue_id": "I2",
+      "title": "Recovery restore truthfulness and daemon-list verification",
+      "allowed_files": ["/root/bin/happy-session-recovery.sh", "docs/dev/dev-report-*.json"],
+      "forbidden_files": ["packages/happy-cli/**", "/etc/systemd/system/**"],
+      "validation": "bash -n plus sourced helper tests with fake /list JSON; no live restore/spawn."
+    },
+    {
+      "iteration": 2,
+      "issue_id": "I3",
+      "title": "Desired-state, peak, and manual-removal resurrection safety",
+      "allowed_files": ["/root/bin/happy-session-recovery.sh", "docs/dev/dev-report-*.json"],
+      "forbidden_files": ["packages/happy-cli/**", "/etc/systemd/system/**"],
+      "validation": "temp HOME fixture tests for count drops, empty session_dirs, explicit disaster flag, and skip list."
+    },
+    {
+      "iteration": 3,
+      "issue_id": "I5",
+      "title": "OOM forensic attribution completeness",
+      "allowed_files": ["/root/bin/happy-memory-emergency-guard.sh", "docs/dev/dev-report-*.json"],
+      "forbidden_files": ["/etc/systemd/system/happy-daemon*.service", "packages/happy-cli/**"],
+      "validation": "HAPPY_GUARD_DRY_RUN=1 with redirected logs/state; assert action log includes attribution fields."
+    },
+    {
+      "iteration": 4,
+      "issue_id": "I7",
+      "title": "Read-only feature-impact audit for daily-trade, swap-drain, post-start",
+      "allowed_files": ["docs/dev/audit-*.md", "docs/dev/audit-*.json"],
+      "forbidden_files": ["/root/bin/**", "/etc/systemd/system/**", "packages/**"],
+      "validation": "journalctl/systemctl/grep evidence only; no edits."
+    },
+    {
+      "iteration": 5,
+      "issue_id": "I8",
+      "title": "Locate and verify six-hour jobs scan",
+      "allowed_files": ["docs/dev/audit-six-hour-*.md", "docs/dev/audit-six-hour-*.json"],
+      "forbidden_files": ["/root/bin/**", "/etc/systemd/system/**", "packages/**"],
+      "validation": "If artifact found, document timer cadence and overhead; if absent, return localization_blocked."
+    }
+  ],
+  "prior_attempts": {
+    "triggered": true,
+    "trigger_source": "user_phrasing_and_dedup_hit",
+    "attempts": [
+      {
+        "artifact_path": "docs/dev/ticket-20260523-235421.md / docs/dev/dev-report-20260523-235421.json / docs/dev/qa-report-20260523-235421.json",
+        "proposed_solution": "External recovery/watch/OOM hardening",
+        "actual_change": "Changed recovery script, memory guard, guard service",
+        "outcome": "QA failed daemon-owned restore and tombstone producer objections",
+        "failure_category": "other",
+        "target_layer": "L3"
+      },
+      {
+        "artifact_path": "docs/dev/dev-report-iter2-20260523-235421.json / docs/dev/qa-report-iter2-20260523-235421.json",
+        "proposed_solution": "Daemon /spawn-session source integration and source tombstone producers",
+        "actual_change": "Reported packages/happy-cli source changes plus recovery script changes",
+        "outcome": "QA passed then, but current user binding rejects Happy source changes unless explicitly approved",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      },
+      {
+        "artifact_path": "docs/dev/dev-report-iter3-20260523-235421.json / docs/dev/qa-report-final-20260523-235421.json",
+        "proposed_solution": "Fail-closed live-daemon compatibility proof and mapping verifier",
+        "actual_change": "Reported recovery script changes tied to source-support proof",
+        "outcome": "Current user binding rejects source-dependent architecture and asks to keep recovery external",
+        "failure_category": "wrong_scope",
+        "target_layer": "L4"
+      }
+    ],
+    "novelty_check": {
+      "this_attempt_layer": "L3",
+      "differs_from_all_priors": true,
+      "rationale": "This spec forbids source-level L4 daemon architecture and routes only external operational-script/data semantics with read-only audits."
+    }
+  },
+  "root_cause_analysis": {
+    "symptom": "Recovery incident cleanup is unstable: external restores can look online without durable ownership, stale snapshots can resurrect removals, and OOM evidence/action policy remains incomplete.",
+    "root_cause": "Prior fixes mixed external recovery operations with daemon/source architecture and did not sharply separate process-spawn, daemon-list verification, desired restore state, and forensic attribution.",
+    "root_cause_commit": "N/A - operational-script/live-host debt, not a single repository commit",
+    "why_introduced": "Attempts to quickly restore many sessions and keep them alive after OOM/reboot expanded into peak auto-restore, source-level daemon spawn, and active OOM guard changes.",
+    "why_problematic": "The new binding requires minimal external-tool repair; source edits and daemon-owned architecture are wrong scope unless approved.",
+    "timeline": "Prior artifacts and logs from 2026-05-23 through 2026-05-24",
+    "affected_files": ["/root/bin/happy-session-recovery.sh", "/root/bin/happy-memory-emergency-guard.sh", "/root/bin/happy-daemon-post-start.sh", "/root/bin/auto-safe-swap-drain.sh", "docs/dev/*20260523-235421*"],
+    "evidence_type": "mixed",
+    "observations": [
+      "observed: read-only daemon /list probe found 26 tracked rows and 0 untracked PPID=1 rows, but many PPID=1 rows are labeled happy directly rather than daemon-child-owned",
+      "observed: Claude Code CLI consultation attempt returned Not logged in",
+      "inferred: recovery success path returns child PID existence from /root/bin/happy-session-recovery.sh:1144-1147",
+      "inferred: active script lacks tombstone/disaster-mode strings by grep"
+    ],
+    "diagnosis_completeness": "complete (has observations)",
+    "complaint_location_keywords": ["happy-session-recovery", "external operations tool", "PPID=1", "peak", "restore", "OOM", "Claude Code", "six-hour jobs"],
+    "localization_evidence": "Native read-only inspection of host scripts, systemd units, logs, git status, and daemon /list endpoints; no live mutation performed.",
+    "located_source": "/root/bin/happy-session-recovery.sh:1101-1147; /root/bin/happy-memory-emergency-guard.sh:263-323",
+    "localization_blocked": null
+  },
+  "diagnosis_layer": "L3",
+  "requirements_decomposition": [
+    {"id": "R1", "source_phrase": "finish the Happy recovery incident debt cleanup", "classification": "user-need", "acceptance_criterion": "Ordered confirmed/unverified issue list and dev iterations produced."},
+    {"id": "R2", "source_phrase": "without changing Happy source code unless explicitly approved", "classification": "user-need", "acceptance_criterion": "packages/happy-* are forbidden unless approval is recorded."},
+    {"id": "R3", "source_phrase": "Keep happy-session-recovery as an external operations tool", "classification": "user-need", "acceptance_criterion": "Spec does not require daemon/source ownership architecture."},
+    {"id": "R4", "source_phrase": "Identify confirmed vs unverified debts", "classification": "user-need", "acceptance_criterion": "Each issue has status confirmed/unverified."}
+  ],
+  "component_chain": [
+    {"file": "/root/bin/happy-session-recovery.sh", "line_range": "1101-1147", "role": "external restore spawn path", "imports_from": ["node CLI binary via systemd-run/direct env"], "evidence": "nl -ba read and grep", "verified_via": "Read"},
+    {"file": "/root/bin/happy-session-recovery.sh", "line_range": "506-509,1294-1305", "role": "desired snapshot and peak fallback", "imports_from": ["session_dirs.txt", "session_backup_history JSON"], "evidence": "nl -ba read", "verified_via": "Read"},
+    {"file": "/root/bin/happy-memory-emergency-guard.sh", "line_range": "263-323,365-379", "role": "memory candidate selection and target action", "imports_from": ["/sys/fs/cgroup", "systemctl show", "/proc"], "evidence": "nl -ba read", "verified_via": "Read"}
+  ],
+  "pre_existing_guards": [
+    {"file": "/root/bin/happy-session-recovery.sh", "line": 37, "type": "if", "code_snippet": "is_restore_in_progress()", "purpose": "prevents watcher fast-detect during restore", "removal_authorized": false},
+    {"file": "/root/bin/happy-session-recovery.sh", "line": 1127, "type": "if", "code_snippet": "if [ \"$flavor\" = \"codex\" ]; then ... CODEX_HOME unset", "purpose": "prevents stale Codex home inheritance", "removal_authorized": false},
+    {"file": "/root/bin/happy-memory-emergency-guard.sh", "line": 238, "type": "if", "code_snippet": "should_exclude_pid(pid, mainpids)", "purpose": "excludes daemon/server/system infrastructure from kill candidates", "removal_authorized": false}
+  ],
+  "development_approach": {
+    "strategy": "External-tool-only, one issue per iteration, with static/temp-fixture/dry-run validation and no live session/service mutation unless separately approved.",
+    "files_to_create": ["docs/dev/dev-report-<task>.json", "docs/dev/audit-<task>.md"],
+    "files_to_modify": ["/root/bin/happy-session-recovery.sh", "/root/bin/happy-memory-emergency-guard.sh"],
+    "validation_approach": "bash -n, temp HOME fixtures, fake daemon /list JSON, redirected guard dry-run logs, grep/systemctl/journalctl read-only audits."
+  },
+  "context": {
+    "codebase_state": "git diff for packages/happy-cli target files is empty; repository has untracked docs/dev artifacts from prior cycles",
+    "recent_commits": "git log --grep recovery/restore/OOM found 202605 recovery-related docs and prior recovery commits; no single root-cause commit assigned",
+    "file_contents": {},
+    "dependencies": {},
+    "environment": {"cwd": "/dev/shm/dev-workspace/happy-dev", "date": "2026-05-24"}
+  },
+  "standards_to_enforce": {
+    "no_hardcoded_values": false,
+    "external_tool_only": true,
+    "no_happy_source_edits_without_approval": true,
+    "no_live_restart_kill_restore": true,
+    "one_issue_per_dev_iteration": true,
+    "truthful_claude_code_consult_reporting": true
+  },
+  "claude_code_consult": {
+    "invoked": true,
+    "status": "failed_parse",
+    "feedback_summary": "Real Claude Code CLI consultation attempted with `claude --print --bare --no-session-persistence --tools \"\"`; it exited with: Not logged in · Please run /login.",
+    "feedback_incorporated": "Self-review substituted. Checks applied: scope drift to source edits rejected; destructive rollback avoided; six-hour ambiguity contained to audit; active service/session mutation excluded; prior QA pass not treated as ground truth."
+  },
+  "ambiguities": [
+    {"item": "six-hour jobs scan", "status": "not_blocking_first_pass", "assumption": "Dev performs read-only locator/audit; if no artifact is found, report localization_blocked instead of creating a timer."}
+  ]
+}

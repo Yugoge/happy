@@ -5,11 +5,12 @@ Organization and usage documentation for `dev/`.
 <!-- AUTO:readme-stats -->
 
 ## Overview
-- **Total files**: 774
+- **Total files**: 810
 - **Subdirectories**: 10
 - **Naming convention**: kebab
 
 ## Files
+- `acceptance-criteria-20260525-081012.json` - json config
 - `adr-atomic-symlink-deploy.md` - ADR: Atomic-symlink deploys for happy-cli
 - `agent-failure-audit-20260507.md` - Agent Failure Audit — 2026-05-07
 - `apply-sop-c1-redev-20260505-001500.md` - Apply SOP — C1 Redev (`/root/bin/happy-restart.sh` per-stack refactor)
@@ -18,7 +19,10 @@ Organization and usage documentation for `dev/`.
 - `architect-happy-restart-and-daemon-prohibition-20260504-223115.md` - Architect Report — happy-restart.sh per-stack support + permanent daemon-restart prohibition
 - `architect-report-20260513-211054.json` - json config
 - `architect-virtual-repo-testing-20260429-192017.json` - json config
+- `audit-daily-swap-poststart-20260524.md` - Audit: daily-trade / swap-drain / happy-daemon-post-start
+- `audit-jobs-scan-20260524.md` - Audit: every-6-hours jobs scan restoration and overhead
 - `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
+- `ba-happy-recovery-debt-20260524.md` - BA Specification: Happy Recovery Incident Debt Cleanup
 - `ba-investigation-20260425-122518.md` - BA Re-Investigation Artifact — Cycle 2 Round 2
 - `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
 - `ba-qa-report-20260424-143000-0.json` - json config
@@ -95,6 +99,8 @@ Organization and usage documentation for `dev/`.
 - `ba-qa-report-20260513-211054.json` - json config
 - `ba-qa-report-20260514-093200.json` - json config
 - `ba-qa-report-20260514-143000.json` - json config
+- `ba-qa-report-20260523-235421.json` - json config
+- `ba-qa-report-20260525-081012.json` - json config
 - `ba-qa-report-c1-20260504-223115.json` - json config
 - `ba-qa-report-c1-redev-20260505-001500.json` - json config
 - `ba-qa-report-c2-20260504-223115.json` - json config
@@ -215,6 +221,7 @@ Organization and usage documentation for `dev/`.
 - `cleanliness-inspector-report-20260514-143000.json` - json config
 - `cleanliness-inspector-report-20260515-204850.json` - json config
 - `cleanliness-inspector-report-20260516-212024.json` - json config
+- `cleanliness-inspector-report-20260525-081012.json` - json config
 - `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 - `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 - `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
@@ -259,6 +266,8 @@ Organization and usage documentation for `dev/`.
 - `close-report-20260515-204850.md` - Close Debate Report
 - `close-report-20260516-212024.md` - Close Report — 20260516-212024
 - `close-report-20260517-noid.md` - Close Report: 20260517-noid
+- `close-report-20260525-081012.md` - Close Report — task 20260525-081012
+- `close-report-happy-recovery-hardening-20260523.md` - Close Debate Report (FORCED)
 - `close-report-spec-20260506-203844.md` - Close Debate Report
 - `codex-fork-divergence-research-20260427.md` - No description
 - `codex-mapping-rollout-roadmap.md` - Codex Mapping Rollout Roadmap — fd-scan Deprecation Chain
@@ -410,12 +419,18 @@ Organization and usage documentation for `dev/`.
 - `context-20260514-143000.json` - json config
 - `context-20260516-201739.json` - json config
 - `context-20260516-212024.json` - json config
+- `context-20260523-235421.json` - json config
+- `context-20260525-081012.json` - json config
 - `context-c1-20260504-223115.json` - json config
 - `context-c1-redev-20260505-001500.json` - json config
 - `context-c2-20260504-223115.json` - json config
 - `context-c3-20260504-223115.json` - json config
+- `context-happy-recovery-debt-20260524.json` - json config
+- `context-iter2-20260523-235421.json` - json config
+- `context-iter3-20260523-235421.json` - json config
 - `deploy-report-20260425-201355.json` - json config
 - `dev-instrument-20260425-201355-5-19-7.1.md` - Pipeline 7.1 — Phase-1 Instrumentation Plan + Block Report
+- `dev-orchestrator-notes-20260523-235421.md` - Dev Orchestrator Notes — 20260523-235421
 - `dev-report-20260403-210447-0.json` - json config
 - `dev-report-20260403-210447-1.json` - json config
 - `dev-report-20260403-210447-10.json` - json config
@@ -550,13 +565,23 @@ Organization and usage documentation for `dev/`.
 - `dev-report-20260514-195735.json` - json config
 - `dev-report-20260516-201739.json` - json config
 - `dev-report-20260516-212024.json` - json config
+- `dev-report-20260523-235421.json` - json config
+- `dev-report-20260525-081012-f1.json` - json config
+- `dev-report-20260525-081012-f2.json` - json config
+- `dev-report-20260525-081012-runfix.json` - json config
+- `dev-report-20260525-081012-stubfix.json` - json config
+- `dev-report-20260525-081012.json` - json config
 - `dev-report-c1-20260504-223115.json` - json config
 - `dev-report-c1-redev-20260505-001500.json` - json config
 - `dev-report-c3-20260504-223115.json` - json config
+- `dev-report-iter2-20260523-235421.json` - json config
+- `dev-report-iter3-20260523-235421.json` - json config
+- `dev-report-peak-runtime-fix-20260524.json` - json config
 - `dev-report-tools2-filter-fix.json` - json config
 - `e2e-verification-rendering.json` - json config
 - `e2e-verification-title.json` - json config
 - `e2e-verification-ui.json` - json config
+- `evidence-20260523-235421-happy-recovery-debt.txt` - txt file
 - `hook-block-handoff-20260425-201355.md` - Hook-Block Handoff — DEV_SESSION_ID dev-20260425-201355
 - `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 - `isolation-audit-20260404.md` - Production/Dev Isolation Audit
@@ -591,6 +616,7 @@ Organization and usage documentation for `dev/`.
 - `prompt-inspector-report-20260514-143000.json` - json config
 - `prompt-inspector-report-20260515-204850.json` - json config
 - `prompt-inspector-report-20260516-212024.json` - json config
+- `prompt-inspector-report-20260525-081012.json` - json config
 - `prompt-inspector-report-spec-20260506-203844.json` - json config
 - `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 - `qa-audit-20260407.json` - json config
@@ -719,9 +745,14 @@ Organization and usage documentation for `dev/`.
 - `qa-report-20260514-143000.json` - json config
 - `qa-report-20260515-085807.json` - json config
 - `qa-report-20260516-212024.json` - json config
+- `qa-report-20260523-235421.json` - json config
+- `qa-report-20260525-081012.json` - json config
 - `qa-report-c1-20260504-223115.json` - json config
 - `qa-report-c1-redev-20260505-001500.json` - json config
 - `qa-report-c3-20260504-223115.json` - json config
+- `qa-report-final-20260523-235421.json` - json config
+- `qa-report-iter2-20260523-235421.json` - json config
+- `qa-report-iter2-20260525-081012.json` - json config
 - `qa-report-visual-evidence-20260426.md` - QA Visual Evidence Report — spec-20260424-084848 Cycle 6 (2026-04-26 22:18Z)
 - `qa-review-20260407-0830.json` - json config
 - `qa-site-isolation-verification.json` - json config
@@ -753,7 +784,9 @@ Organization and usage documentation for `dev/`.
 - `style-inspector-report-20260514-143000.json` - json config
 - `style-inspector-report-20260515-204850.json` - json config
 - `style-inspector-report-20260516-212024.json` - json config
+- `style-inspector-report-20260525-081012.json` - json config
 - `style-inspector-report-spec-20260506-203844.json` - json config
+- `test-writer-report-20260525-081012.json` - json config
 - `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
 - `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
 - `ticket-20260507-060647.md` - BA Specification: Happy Tool Rendering Matrix Fix (QA Revision)
@@ -770,10 +803,13 @@ Organization and usage documentation for `dev/`.
 - `ticket-20260514-143000.md` - BA Specification: Codex-Mapping Recovery — Block 2+3+4 Closure (Subagent Slice)
 - `ticket-20260516-201739.md` - BA Specification: Codex History Replay Recovery Close Blockers
 - `ticket-20260516-212024.md` - BA Specification: Phase 2 — write_json_snapshot codex flavor field + Block F verification
+- `ticket-20260523-235421.md` - Ticket — Happy recovery debt cleanup and targeted OOM protection
+- `ticket-20260525-081012.md` - BA Specification: Daemon Auto-Upgrade Race Condition Fixes (F1/F2/F3) + Hook/Deploy Cleanup
 - `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
 - `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
 - `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)
 - `ticket-c3-20260504-223115.md` - BA Specification: C3 — Permanent prohibition on Claude restarting any happy-daemon
+- `user-requirement-dev-20260525-081012.md` - No description
 
 ## Subdirectories
 - `clean/`

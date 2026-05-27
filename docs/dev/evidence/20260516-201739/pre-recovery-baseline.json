@@ -1,0 +1,14 @@
+{
+  "task_id": "20260516-201739",
+  "captured_at": "2026-05-16T20:48:30Z",
+  "url": "https://dev.life-ai.app/session/cmp6s38jy9693qj15wwk46ymv",
+  "title": "Complete Codex replay dev cycle",
+  "cwd": "/dev/shm/dev-workspace/happy-dev",
+  "visible_markers": [
+    "Complete Codex replay dev cycle",
+    "docs/dev/dev-report-20260516-201739.json",
+    "packages/happy-cli/src/codex/runCodex.ts",
+    "docs/dev/ticket-20260516-201739.md"
+  ],
+  "purpose": "Pre-recovery baseline captured before user-run dev daemon restart; post-recovery session must show prior history in a new Happy session."
+}

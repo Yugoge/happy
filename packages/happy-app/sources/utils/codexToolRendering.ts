@@ -44,6 +44,11 @@ const CODEX_SUBAGENT_CONTROL_TOOLS = new Set<string>([
     'functions.wait_agent',
     'functions.resume_agent',
     'functions.close_agent',
+    // Bare names (reducer normalizes functions.* prefix for these four verbs)
+    'spawn_agent',
+    'send_input',
+    'wait_agent',
+    'close_agent',
 ]);
 
 // Cycle 6 — D.5 subagent lifecycle merged card. Synthetic envelope name.
@@ -62,10 +67,22 @@ export function buildLifecycleSuppressionMap(messages: ReadonlyArray<Message>): 
     const map = new Map<string, string>();
     for (const m of messages) {
         if (m.kind !== 'tool-call') continue;
-        if (m.tool.name !== CODEX_LIFECYCLE_TOOL) continue;
-        const sessionSubagent = (m.tool.input as Record<string, unknown> | undefined)?.sessionSubagent;
-        if (typeof sessionSubagent === 'string' && sessionSubagent.length > 0) {
-            map.set(sessionSubagent, m.id);
+        // Primary source: explicit lifecycle envelope emitted by sessionProtocolMapper.
+        if (m.tool.name === CODEX_LIFECYCLE_TOOL) {
+            const sessionSubagent = (m.tool.input as Record<string, unknown> | undefined)?.sessionSubagent;
+            if (typeof sessionSubagent === 'string' && sessionSubagent.length > 0) {
+                map.set(sessionSubagent, m.id);
+            }
+            continue;
+        }
+        // Fallback (A1/A2 resilience): control tool cards with sessionSubagent synthesize a
+        // suppression entry even when the lifecycle envelope was never emitted (replay/history
+        // sessions, or non-spawn verbs whose receiverThreadId was absent at protocol-mapper time).
+        if (CODEX_SUBAGENT_CONTROL_TOOLS.has(m.tool.name)) {
+            const sessionSubagent = (m.tool.input as Record<string, unknown> | undefined)?.sessionSubagent;
+            if (typeof sessionSubagent === 'string' && sessionSubagent.length > 0 && !map.has(sessionSubagent)) {
+                map.set(sessionSubagent, m.id);
+            }
         }
     }
     return map;
@@ -98,6 +115,10 @@ export function isCodexSourceTool(tool: ToolCall, metadata?: Metadata | null): b
 export function shouldRenderToolContent(
     tool: ToolCall, hasSpecializedView: boolean, minimal: boolean, metadata?: Metadata | null,
 ): boolean {
+    // AC2 fix: minimal=true means header-only — suppress body regardless of specialized view.
+    // CodexPatch has minimal=true AND a specialized view; without this guard its body renders
+    // Octicons name="file-diff" inline, duplicating CodexDiff's file-diff icon.
+    if (minimal) { return false; }
     if (CODEX_SUBAGENT_CONTROL_TOOLS.has(tool.name)) return false;
     if (!hasSpecializedView && isMcpInlineChipOnlyTool(tool.name)) return false;
     return hasSpecializedView || isCodexSourceTool(tool, metadata);

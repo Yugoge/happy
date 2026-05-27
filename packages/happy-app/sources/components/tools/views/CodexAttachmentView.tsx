@@ -50,9 +50,7 @@ const attachmentStyles = StyleSheet.create((theme) => ({
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 10,
-        padding: 12,
-        borderRadius: 8,
-        backgroundColor: theme.colors.surfaceHighest,
+        paddingVertical: 4,
         marginBottom: 8,
     },
     icon: {

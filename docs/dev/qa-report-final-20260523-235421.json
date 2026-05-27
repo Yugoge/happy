@@ -1,0 +1,219 @@
+{
+  "request_id": "20260523-235421",
+  "task_id": "20260523-235421",
+  "timestamp": "2026-05-24T08:16:10Z",
+  "qa": {
+    "status": "pass",
+    "scope": "Final QA of happy-dev incident-repair fix set, including iteration-3 fail-closed live-daemon compatibility protection. Verification used static inspection and non-destructive checks only.",
+    "user_verbatim_complaint": "Fix Happy recovery/session tracking debt and targeted OOM protection, excluding coarse whole-daemon memory limits; add live-daemon compatibility protection so recovery cannot call an old daemon /spawn-session that ignores resumeSessionId.",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": true,
+    "overall_assessment": "PASS. Recovery now restores only through daemon /spawn-session, keeps external_restored=0, respects tombstones, prevents stable low-count snapshot pollution, and fails closed before spawning when the live daemon cannot prove resume-aware /spawn-session support. OOM guard targets session cgroups/process groups and no whole-daemon memory cap or Codex removal was found.",
+    "constraints_observed": {
+      "no_reboot": true,
+      "no_stop_restart_reload_kill": true,
+      "no_live_restore": true,
+      "no_archive_sessions": true,
+      "no_source_changes_by_qa": true,
+      "report_written": "docs/dev/qa-report-final-20260523-235421.json",
+      "verification_only_commands": [
+        "cat/nl/grep/git diff/static inspection",
+        "bash -n /root/bin/happy-session-recovery.sh",
+        "bash -n /root/bin/happy-memory-emergency-guard.sh",
+        "systemd-analyze verify /etc/systemd/system/happy-memory-emergency-guard.service",
+        "yarn --cwd packages/happy-cli typecheck",
+        "safe sourced helper checks for daemon preflight and fake /list mapping"
+      ]
+    },
+    "files_inspected": [
+      {
+        "path": "/root/bin/happy-session-recovery.sh",
+        "sha256": "707ab1f00aaac9d0e6c0b576e8339270bb424e050c9934da8a16a485ebf2f2f8"
+      },
+      {
+        "path": "/root/bin/happy-memory-emergency-guard.sh",
+        "sha256": "b35078a74865783a57f05a2f392bafabf44e2fd577b178d27e8d0488fa3cdc51"
+      },
+      {
+        "path": "/etc/systemd/system/happy-memory-emergency-guard.service",
+        "sha256": "1abc1349a69602d53a967fc463a8b74be21018afc355ec56c9b67fe933ec0121"
+      },
+      {
+        "path": "packages/happy-cli/src/daemon/controlServer.ts",
+        "sha256": "45c18052ca7a01b5ebda314b594d91ac957e3d00c4b81dae59375807454b08db"
+      },
+      {
+        "path": "packages/happy-cli/src/daemon/controlClient.ts",
+        "sha256": "dbcef5916f79bb8a8492067f17a13d8b3efb3673a3d92ca32760ee7861341e0d"
+      },
+      {
+        "path": "packages/happy-cli/src/daemon/run.ts",
+        "sha256": "82bb8bb99ed54682e5730db97b078f2aa59200baab4473de7a15a78e875e159a"
+      },
+      {
+        "path": "packages/happy-cli/src/claude/runClaude.ts",
+        "sha256": "0978b6b5f605c5393ae59d99b95abb6dbd47e4a99a6a1e782884006a6254acda"
+      },
+      {
+        "path": "packages/happy-cli/src/codex/runCodex.ts",
+        "sha256": "2405c6491c8278675b8407b5a5a63687286668ee78af3ac63825509efb2c6f02"
+      }
+    ],
+    "acceptance_results": [
+      {
+        "id": "AC-1",
+        "criterion": "Recovery restores only through daemon-owned spawn; external restore count remains zero and no external systemd/direct spawner remains for restore success.",
+        "status": "pass",
+        "evidence": [
+          "/root/bin/happy-session-recovery.sh:1528-1530 calls daemon_spawn_session() for restore success.",
+          "/root/bin/happy-session-recovery.sh:1217-1220 posts only to daemon http://127.0.0.1:$port/spawn-session.",
+          "/root/bin/happy-session-recovery.sh:1243-1256 requires daemon /list verification before returning success.",
+          "/root/bin/happy-session-recovery.sh:1539 logs external_restored=0.",
+          "grep for systemd-run, --recover-session, legacy external restore claims, and external_restored=[1-9] returned no matches in active recovery/daemon files."
+        ]
+      },
+      {
+        "id": "AC-2",
+        "criterion": "Manual stop/archive intent is durably tombstoned so manually killed/archived sessions do not come back automatically.",
+        "status": "pass",
+        "evidence": [
+          "packages/happy-cli/src/daemon/controlClient.ts:62-91 writes deduplicated session_recovery_tombstones.tsv entries atomically via temp file + rename.",
+          "packages/happy-cli/src/daemon/run.ts:608-621 tombstones resumeSessionId, Claude id, Codex thread id, and Happy session id before manual stop termination.",
+          "packages/happy-cli/src/claude/runClaude.ts:449-455 tombstones resume/current/Happy ids before manual archive metadata update.",
+          "packages/happy-cli/src/codex/runCodex.ts:418-422 tombstones resume thread/current thread/Happy ids before manual archive metadata update.",
+          "/root/bin/happy-session-recovery.sh:817-835 defines tombstone lookup/filter, and :1424-1435 plus :1464-1468 skip tombstoned sessions during restore."
+        ]
+      },
+      {
+        "id": "AC-3",
+        "criterion": "Low-count snapshot pollution is prevented: stable low counts do not replace peak restore state as disaster truth.",
+        "status": "pass",
+        "evidence": [
+          "/root/bin/happy-session-recovery.sh:497-527 preserves existing session_dirs.txt on runtime count drops and writes JSON snapshot only; comment says peak JSON is disaster-only.",
+          "/root/bin/happy-session-recovery.sh:729-738 aborts fast-detect when the lower count stabilizes instead of restoring.",
+          "/root/bin/happy-session-recovery.sh:1403-1421 uses peak snapshots only when session_dirs.txt is empty and HAPPY_RECOVERY_DISASTER_MODE=1."
+        ]
+      },
+      {
+        "id": "AC-4",
+        "criterion": "Live old-daemon compatibility gap is closed: fail closed before spawning unless resume-aware /spawn-session support is proven, and post-spawn success maps to requested Claude/Codex resume id.",
+        "status": "pass",
+        "evidence": [
+          "/root/bin/happy-session-recovery.sh:1060-1121 proves the running daemon JS entry/import graph contains spawn-session+resumeSessionId and resumeSessionId+--resume, and fails if proof files are newer than daemon start.",
+          "/root/bin/happy-session-recovery.sh:1198-1204 runs the proof and returns before payload creation/curl POST when proof fails.",
+          "Safe live dev-daemon helper check returned exit=1 with: 'resume-aware files are newer than daemon process start; compatible CLI restart required' \u2014 no /spawn-session POST was executed.",
+          "/root/bin/happy-session-recovery.sh:1125-1160 requires the returned Happy session row to expose matching Claude resume metadata or Codex thread/resume metadata for non-empty resume ids.",
+          "Fake /list helper tests: Claude claudeSessionId match => pass; Codex codexThreadId match => pass; Happy-session-only row => fail; missing returned Happy id => fail; Codex metadata.resumeSessionId match => pass."
+        ]
+      },
+      {
+        "id": "AC-5",
+        "criterion": "OOM handling targets only session processes/cgroups, not happy server/daemon/Postgres/web and not whole-daemon MemoryMax limits.",
+        "status": "pass",
+        "evidence": [
+          "/root/bin/happy-memory-emergency-guard.sh:179-180 defines daemon/watcher/guard units as never-target units.",
+          "/root/bin/happy-memory-emergency-guard.sh:245-250 excludes daemon starts, recovery/post-start, systemctl/journalctl, sshd, postgres, cloudflared, docker/containerd, and happy-server commands.",
+          "/root/bin/happy-memory-emergency-guard.sh:263-287 targets only happy-session-*.service/scope cgroups with stop-unit.",
+          "/root/bin/happy-memory-emergency-guard.sh:289-323 targets only selected daemon child pid/process-group when safe_session_pgid excludes daemon main process groups.",
+          "/root/bin/happy-memory-emergency-guard.sh:365-379 actions are stop selected session unit, kill selected pgrp, or kill selected pid only.",
+          "grep found no MemoryMax=, MemoryHigh=, or MemorySwapMax= in happy-memory-emergency-guard.service or happy-daemon*.service."
+        ]
+      },
+      {
+        "id": "AC-6",
+        "criterion": "No Codex feature removal and no coarse happy daemon memory cap changes.",
+        "status": "pass",
+        "evidence": [
+          "packages/happy-cli/src/daemon/run.ts:443-444 still supports agentCommand='codex'.",
+          "packages/happy-cli/src/codex/runCodex.ts:134 still exports runCodex; :661-673 still resumes existing Codex threads; :726-727 still binds codexThreadId.",
+          "/root/bin/happy-session-recovery.sh:1476-1487 still classifies and validates Codex thread restore, and :1150-1151 includes Codex mapping fields in post-spawn verification.",
+          "No MemoryMax/MemoryHigh/MemorySwapMax lines were found in changed unit/daemon service files."
+        ]
+      },
+      {
+        "id": "AC-7",
+        "criterion": "No live reboot/stop/restart/reload/kill/restore is required or performed by QA.",
+        "status": "pass",
+        "evidence": [
+          "QA did not run reboot, systemctl stop/start/restart/reload/daemon-reload, kill, recovery restore/restart/recover, or archive flows.",
+          "All checks were read-only/static or compiler/syntax checks; the only live daemon interaction was reading /root/.happy-dev daemon state and running a preflight helper that returned before any spawn POST."
+        ]
+      }
+    ],
+    "static_checks": [
+      {
+        "command": "bash -n /root/bin/happy-session-recovery.sh",
+        "result": "pass",
+        "evidence": "exit 0"
+      },
+      {
+        "command": "bash -n /root/bin/happy-memory-emergency-guard.sh",
+        "result": "pass",
+        "evidence": "exit 0"
+      },
+      {
+        "command": "systemd-analyze verify /etc/systemd/system/happy-memory-emergency-guard.service",
+        "result": "pass",
+        "evidence": "exit 0"
+      },
+      {
+        "command": "yarn --cwd packages/happy-cli typecheck",
+        "result": "pass",
+        "evidence": "tsc --noEmit completed successfully in 3.86s"
+      },
+      {
+        "command": "daemon_resume_spawn_support_proof against /root/.happy-dev pid from daemon.state.json",
+        "result": "pass",
+        "evidence": "Expected fail-closed exit=1: resume-aware files are newer than daemon process start; compatible CLI restart required"
+      },
+      {
+        "command": "verify_daemon_child_resume_mapping fake /list cases",
+        "result": "pass",
+        "evidence": "Claude/Codex matching metadata passed; Happy-only and missing rows failed"
+      },
+      {
+        "command": "grep legacy restore spawners and memory caps",
+        "result": "pass",
+        "evidence": "No systemd-run/--recover-session/external restore success strings; no MemoryMax/MemoryHigh/MemorySwapMax"
+      }
+    ],
+    "build_verification": {
+      "status": "skipped",
+      "skip_reason": "User explicitly prohibited live stop/restart/reload and restore; this cycle changes operational scripts plus CLI source. QA ran TypeScript noEmit and safe syntax/static checks instead of deploying or restarting daemons.",
+      "service_healthy": null,
+      "changes_verified_live": false
+    },
+    "ui_test_results": [],
+    "all_findings": [],
+    "blockers": [],
+    "deployment_prerequisites_before_live_use": [
+      "Build/install the compatible happy-cli artifact for every daemon home that should support recovery. The recovery script is already installed, but current live daemon processes may predate resume-aware /spawn-session support.",
+      "Restart affected daemons only through the sanctioned safe-daemon-restart SOP (for dev: /root/bin/safe-daemon-restart.sh dev --reason '<reason>'; production/default/jade/qijie require explicit operator approval and the matching sanctioned SOP). Do not use raw systemctl or kill.",
+      "Run systemd daemon-reload (operator-authorized, not done by QA) before relying on the changed happy-memory-emergency-guard.service OOMScoreAdjust/Nice/IO settings.",
+      "After authorized restart/reload, re-run only non-destructive proof checks first: bash -n scripts, systemd-analyze verify, daemon_resume_spawn_support_proof for each daemon pid, and a /list schema/mapping check. Only then consider an operator-approved restore.",
+      "Do not run recovery restore against live sessions until the preflight proof passes for the relevant daemon; current behavior correctly fails closed when proof cannot be established."
+    ],
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 0,
+      "total_findings": 0,
+      "release_recommendation": "approve-implementation-with-deployment-prerequisites"
+    },
+    "claude_code_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    },
+    "self_verification": {
+      "claims_total": 10,
+      "claims_with_evidence": 10,
+      "claims_superficial": 0,
+      "confidence": "high"
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null
+}

@@ -17,6 +17,7 @@ import { CodexPatchView, CodexPatchViewFull } from './CodexPatchView';
 import { CodexDiffView, CodexDiffViewFull } from './CodexDiffView';
 import { CodexSubagentView } from './CodexSubagentView';
 import { CodexSubagentLifecycleView } from './CodexSubagentLifecycleView';
+import { AgentFullView } from './AgentFullView';
 import { CodexParallelView } from './CodexParallelView';
 import { CodexPlanView } from './CodexPlanView';
 import { CodexAttachmentView } from './CodexAttachmentView';
@@ -60,6 +61,11 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     'functions.wait_agent': CodexSubagentView,
     'functions.resume_agent': CodexSubagentView,
     'functions.close_agent': CodexSubagentView,
+    // Non-prefixed lifecycle verbs — reducer synthetic grouping path (CONSTRAINT-2)
+    spawn_agent: TaskView,
+    send_input: CodexSubagentView,
+    wait_agent: CodexSubagentView,
+    close_agent: CodexSubagentView,
     // Cycle 6 — D.5 subagent lifecycle merged card (synthetic envelope).
     'functions.subagent_lifecycle': CodexSubagentLifecycleView,
     // §5.15 Phase D — Codex parallel tool dispatch (DORMANT until protocol emits events)
@@ -80,6 +86,13 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     'image_gen.imagegen': CodexAttachmentView,
     'multi_tool_use.parallel': CodexParallelView,
     MultiEdit: MultiEditViewFull,
+    // CONSTRAINT-2: reducer synthetic grouping — spawn_agent (no prefix) → AgentFullView
+    spawn_agent: AgentFullView,
+    // Also register functions.spawn_agent for the protocol-level verb
+    'functions.spawn_agent': AgentFullView,
+    // Lifecycle envelope is the primary visible card when protocol emits it —
+    // must also get AgentFullView so sidebar renders TaskViewFull for it.
+    'functions.subagent_lifecycle': AgentFullView,
 };
 
 // Helper function to get the appropriate view component for a tool
@@ -109,6 +122,7 @@ export { ExitPlanToolView } from './ExitPlanToolView';
 export { MultiEditView } from './MultiEditView';
 export { TaskView } from './TaskView';
 export { TaskViewFull } from './TaskViewFull';
+export { AgentFullView } from './AgentFullView';
 export { AskUserQuestionView } from './AskUserQuestionView';
 export { GeminiEditView } from './GeminiEditView';
 export { GeminiExecuteView } from './GeminiExecuteView';

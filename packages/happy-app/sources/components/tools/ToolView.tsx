@@ -172,7 +172,7 @@ function buildIcon(tool: ToolCall, knownTool: any, fallback: React.ReactNode, te
     if (tool.name === 'CodexBash' && Array.isArray(tool.input?.parsed_cmd) && tool.input.parsed_cmd.length > 0) {
         const cmd = tool.input.parsed_cmd[0];
         if (cmd.type === 'read') return <Octicons name="eye" size={18} color={textColor} />;
-        if (cmd.type === 'write') return <Octicons name="file-diff" size={18} color={textColor} />;
+        if (cmd.type === 'write') return <Octicons name="terminal" size={18} color={textColor} />;
         return <Octicons name="terminal" size={18} color={textColor} />;
     }
     if (knownTool && typeof knownTool.icon === 'function') {

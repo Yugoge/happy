@@ -50,13 +50,13 @@ export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata })
         );
     }
 
-    // Write branch — file-diff icon + writingFile label, horizontally scrollable
+    // Write branch — terminal icon + writingFile label, horizontally scrollable
     if (operationType === 'write' && fileName) {
         const resolvedPath = resolvePath(fileName, metadata);
         return (
             <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.container}>
                 <View style={styles.iconRow}>
-                    <Octicons name="file-diff" size={18} color={theme.colors.textSecondary} />
+                    <Octicons name="terminal" size={18} color={theme.colors.textSecondary} />
                     <Text style={styles.operationText}>{t('tools.desc.writingFile', { file: resolvedPath })}</Text>
                 </View>
             </ScrollView>

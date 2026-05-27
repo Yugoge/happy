@@ -19,6 +19,7 @@ const ICON_EXIT = (size: number = 24, color: string = '#000') => <Ionicons name=
 const ICON_TODO = (size: number = 24, color: string = '#000') => <Ionicons name="bulb-outline" size={size} color={color} />;
 const ICON_REASONING = (size: number = 24, color: string = '#000') => <Octicons name="light-bulb" size={size} color={color} />;
 const ICON_QUESTION = (size: number = 24, color: string = '#000') => <Ionicons name="help-circle-outline" size={size} color={color} />;
+const ICON_APPLY = (size: number = 24, color: string = '#000') => <Ionicons name="checkmark-circle-outline" size={size} color={color} />;
 const ICON_CLOCK = (size: number = 24, color: string = '#000') => <Ionicons name="timer-outline" size={size} color={color} />;
 const ICON_LINK = (size: number = 24, color: string = '#000') => <Ionicons name="link-outline" size={size} color={color} />;
 const ICON_WEATHER = (size: number = 24, color: string = '#000') => <Ionicons name="partly-sunny-outline" size={size} color={color} />;
@@ -726,7 +727,7 @@ export const knownTools = {
     },
     'CodexPatch': {
         title: t('tools.names.applyChanges'),
-        icon: ICON_EDIT,
+        icon: ICON_APPLY,
         minimal: true,
         hideDefaultError: true,
         input: z.object({
@@ -1541,6 +1542,59 @@ export const knownTools = {
             const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
             return [summary.path, summary.dimensions, summary.size].filter(Boolean).join(' · ') || summary.label;
         }
+    },
+    // Codex subagent lifecycle verbs (without functions. prefix — reducer synthetic grouping).
+    // These entries mirror functions.spawn_agent/send_input/wait_agent/close_agent but
+    // handle the case where the reducer groups them under a synthetic 'spawn_agent' card.
+    'spawn_agent': {
+        title: 'Spawn Agent',
+        icon: ICON_TASK,
+        isMutable: true,
+        minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
+            const messages = opts.messages || [];
+            return !messages.some((message) => message.kind === 'tool-call' || message.kind === 'agent-text');
+        },
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            prompt: z.string().optional(),
+            sessionSubagent: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Spawn: ${name}`;
+        }
+    },
+    'send_input': {
+        title: 'Send Input',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            input: z.string().optional()
+        }).partial().passthrough()
+    },
+    'wait_agent': {
+        title: 'Wait for Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough()
+    },
+    'close_agent': {
+        title: 'Close Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough()
     },
     // Internal Claude Code tool for loading deferred tools - no user-visible output
     'ToolSearch': {

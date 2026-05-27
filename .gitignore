@@ -104,3 +104,9 @@ docs/competition/opencode/traces/
 docs/dev/evidence/**/qa-*-trace.zip
 docs/dev/evidence/**/*.zip
 docs/dev/qa-artifacts/**/*.zip
+# harness-propagated by session-gitignore-propagate.sh
+tests/generated/
+# harness-propagated by session-gitignore-propagate.sh
+.claude/dev-registry/dev-*/
+# harness-propagated by session-gitignore-propagate.sh
+docs/codex/

@@ -1,0 +1,22 @@
+{
+  "request_id": "20260523-235421",
+  "task_id": "20260523-235421",
+  "iteration": 3,
+  "requirement": "Add live-daemon compatibility protection so recovery cannot call an old daemon /spawn-session that ignores resumeSessionId and accidentally creates new sessions instead of resuming.",
+  "evidence": {
+    "prod_dist_spawn_session_schema": "/root/happy/packages/happy-cli/dist/index-WGnVoqay.mjs /spawn-session body accepts directory and sessionId only, while source fix adds resumeSessionId.",
+    "risk": "Current /root/bin/happy-session-recovery.sh posts resumeSessionId; an old live daemon may strip/ignore the field and start a new session, then /list verification by Happy session id could falsely pass."
+  },
+  "constraints": [
+    "Do not reboot, stop, restart, reload, or kill live services/sessions.",
+    "Do not remove Codex.",
+    "Do not impose whole-daemon MemoryMax.",
+    "Make unsupported live daemon fail closed before spawning."
+  ],
+  "acceptance_criteria": [
+    "Recovery preflights live daemon support for resumeSessionId before POSTing /spawn-session.",
+    "If support cannot be proven, recovery does not spawn and logs a clear failure requiring CLI build/restart via sanctioned SOP.",
+    "After daemon spawn, /list verification must prove returned row maps to requested resume id where available, not just any Happy session id.",
+    "QA can verify statically and with safe checks only."
+  ]
+}

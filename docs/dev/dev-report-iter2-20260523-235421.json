@@ -1,0 +1,160 @@
+{
+  "request_id": "20260523-235421",
+  "task_id": "20260523-235421",
+  "timestamp": "2026-05-24T00:24:01Z",
+  "dev_report_path": "docs/dev/dev-report-iter2-20260523-235421.json",
+  "dev": {
+    "status": "completed",
+    "files_modified": [
+      "/root/bin/happy-session-recovery.sh",
+      "packages/happy-cli/src/daemon/controlClient.ts",
+      "packages/happy-cli/src/daemon/controlServer.ts",
+      "packages/happy-cli/src/daemon/run.ts",
+      "packages/happy-cli/src/claude/runClaude.ts",
+      "packages/happy-cli/src/codex/runCodex.ts"
+    ],
+    "files_created": [],
+    "tasks_completed": [
+      {
+        "id": 1,
+        "description": "Changed recovery restore from external process spawning to daemon-owned /spawn-session with /list verification before counting as restored.",
+        "type": "runtime-script",
+        "files_modified": [
+          "/root/bin/happy-session-recovery.sh",
+          "packages/happy-cli/src/daemon/controlServer.ts",
+          "packages/happy-cli/src/daemon/controlClient.ts"
+        ],
+        "changes": "Recovery now posts directory/agent/resumeSessionId to the running daemon control server, verifies the returned Happy session appears in daemon /list, increments daemon_tracked_restored only after that proof, and reports failed rather than externally restored when daemon ownership cannot be proven.",
+        "rationale": "QA OBJ-1 identified external systemd/direct spawn plus daemon_tracked_restored=0 as the remaining root blocker. The daemon now owns recovery spawn/adoption through its existing tracking map instead of recovery overclaiming an external process."
+      },
+      {
+        "id": 2,
+        "description": "Wired durable recovery tombstone creation into manual stop and archive paths.",
+        "type": "lifecycle-integration",
+        "files_modified": [
+          "packages/happy-cli/src/daemon/controlClient.ts",
+          "packages/happy-cli/src/daemon/run.ts",
+          "packages/happy-cli/src/claude/runClaude.ts",
+          "packages/happy-cli/src/codex/runCodex.ts"
+        ],
+        "changes": "Added recordSessionRecoveryTombstone() using the same per-home TSV file recovery already respects; daemon stop-session records resume/Claude/Codex/Happy IDs before termination; Claude and Codex manual archive cleanup record resume/current/Happy IDs before lifecycleState=archived.",
+        "rationale": "QA OBJ-2 identified tombstone consumers without normal producers. Manual user intent is now durably recorded at the stop/archive action point."
+      },
+      {
+        "id": 3,
+        "description": "Performed safe static and targeted package verification only.",
+        "type": "verification",
+        "files_modified": [],
+        "changes": "Ran bash syntax, TypeScript type-check, control server unit test, and static greps. No reboot, service stop/restart, daemon HTTP stop, kill, or live session manipulation was performed.",
+        "rationale": "Matches user constraints and QA acceptance that this can be verified without killing live sessions."
+      }
+    ],
+    "scripts_created": [],
+    "permissions_to_add": [],
+    "blast_radius": [
+      {
+        "modified": "packages/happy-cli/src/daemon/controlClient.ts",
+        "imported_by": [
+          "packages/happy-cli/src/agent/acp/runAcp.ts",
+          "packages/happy-cli/src/claude/runClaude.ts",
+          "packages/happy-cli/src/claude/session.ts",
+          "packages/happy-cli/src/codex/notifyDaemonOfCodexTid.ts",
+          "packages/happy-cli/src/codex/runCodex.ts",
+          "packages/happy-cli/src/commands/auth.ts",
+          "packages/happy-cli/src/daemon/daemon.integration.test.ts",
+          "packages/happy-cli/src/daemon/run.ts",
+          "packages/happy-cli/src/gemini/runGemini.ts",
+          "packages/happy-cli/src/index.ts",
+          "packages/happy-cli/src/openclaw/openclaw.integration.test.ts",
+          "packages/happy-cli/src/openclaw/runOpenClaw.ts",
+          "packages/happy-cli/src/ui/doctor.ts"
+        ],
+        "impact": "high"
+      },
+      {
+        "modified": "packages/happy-cli/src/daemon/controlServer.ts",
+        "imported_by": [
+          "packages/happy-cli/src/daemon/controlServer.test.ts",
+          "packages/happy-cli/src/daemon/run.ts"
+        ],
+        "impact": "low"
+      },
+      {
+        "modified": "packages/happy-cli/src/daemon/run.ts",
+        "imported_by": [
+          "packages/happy-cli/src/agent/acp/runAcp.ts",
+          "packages/happy-cli/src/claude/runClaude.ts",
+          "packages/happy-cli/src/codex/runCodex.ts",
+          "packages/happy-cli/src/gemini/runGemini.ts",
+          "packages/happy-cli/src/index.ts",
+          "packages/happy-cli/src/openclaw/runOpenClaw.ts"
+        ],
+        "impact": "high"
+      },
+      {
+        "modified": "packages/happy-cli/src/claude/runClaude.ts",
+        "imported_by": [
+          "packages/happy-cli/src/claude/claudeRemote.ts",
+          "packages/happy-cli/src/claude/loop.ts",
+          "packages/happy-cli/src/claude/session.ts",
+          "packages/happy-cli/src/index.ts"
+        ],
+        "impact": "medium"
+      },
+      {
+        "modified": "packages/happy-cli/src/codex/runCodex.ts",
+        "imported_by": [
+          "packages/happy-cli/src/codex/__tests__/emitReadyIfIdle.test.ts",
+          "packages/happy-cli/src/index.ts"
+        ],
+        "impact": "low"
+      },
+      {
+        "modified": "/root/bin/happy-session-recovery.sh",
+        "imported_by": [],
+        "impact": "operational host script"
+      }
+    ],
+    "git_rationale": {
+      "root_cause_commit": "N/A - iteration 2 resolves QA blocking objections from docs/dev/qa-report-20260523-235421.json",
+      "why_issue_occurred": "Iteration 1 added truthful reporting and tombstone storage, but recovery still launched sessions outside daemon ownership and normal stop/archive paths did not create tombstones.",
+      "how_fix_addresses_root": "Recovery now uses the daemon control spawn path and verifies daemon /list membership before success; manual stop/archive paths write the durable tombstone file recovery already filters."
+    },
+    "diff_stats": {
+      "files_changed": 5,
+      "lines_added": 131,
+      "lines_removed": 15,
+      "new_symbols_introduced": [
+        "recordSessionRecoveryTombstone"
+      ],
+      "minimum_possible_lines_estimate": 45,
+      "justification_for_overage": "The fix crosses a host recovery script plus daemon control API and three manual lifecycle entry points. Git diff stats are from git diff --stat HEAD and exclude /root/bin/happy-session-recovery.sh because it is outside the repository. Some controlClient/run.ts changes were already present before this iteration and were preserved."
+    },
+    "fix_layer": "L3",
+    "scope_review_requested": false,
+    "qa_ready": true,
+    "qa_notes": "Static locations: /root/bin/happy-session-recovery.sh:1066-1158 posts to daemon /spawn-session and verifies /list; :1427-1438 counts daemon_tracked_restored and leaves external_restored=0; packages/happy-cli/src/daemon/controlServer.ts:217-246 accepts resumeSessionId; packages/happy-cli/src/daemon/run.ts:608-621 tombstones before stop; runClaude.ts:452-454 and runCodex.ts:421 tombstone before archive. No live services/sessions were stopped, restarted, rebooted, or killed.",
+    "implementation_notes": [
+      "Context JSON did not include diagnosis_layer or reference_source.role_table; role-token and layer equality checks are therefore not applicable. fix_layer=L3 reflects daemon/recovery lifecycle integration.",
+      "TDD was skipped because the blockers are operational daemon/recovery behavior that acceptance explicitly permits QA to verify statically without restarting or killing sessions. Targeted existing controlServer unit coverage was run after implementation.",
+      "controlClient.ts and run.ts already had uncommitted changes before this iteration; edits were applied surgically around them and no existing fixes were reverted.",
+      "High-impact files: controlClient.ts and run.ts have more than five importers; QA should focus on daemon control commands, spawned session lifecycle, and manual stop/archive flows."
+    ],
+    "self_verification": {
+      "build": "pass",
+      "smoke_check": "pass",
+      "notes": "Passed: bash -n /root/bin/happy-session-recovery.sh; yarn --cwd packages/happy-cli tsc --noEmit; yarn --cwd packages/happy-cli vitest run src/daemon/controlServer.test.ts (8 tests). Static grep found /spawn-session + resumeSessionId + tombstone producers, and no systemd-run/external/non-daemon restore path strings in the recovery script."
+    },
+    "claude_code_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    }
+  },
+  "blocking_issues": [],
+  "recommendations": [
+    "When ready to exercise this live, build/deploy the CLI and restart only through the sanctioned user-controlled daemon restart SOP; this dev pass intentionally did not restart services.",
+    "QA can verify without live impact by inspecting the cited lines and, if desired, using redirected HOME/HAPPY_RECOVERY_TOMBSTONE_FILE temp paths for tombstone helper behavior."
+  ]
+}

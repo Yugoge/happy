@@ -1,0 +1,134 @@
+{
+  "request_id": "20260523-235421",
+  "task_id": "20260523-235421",
+  "timestamp": "2026-05-24T00:30:21Z",
+  "qa": {
+    "status": "pass",
+    "scope": "Iteration 2 verification of prior blocking objections only",
+    "user_verbatim_complaint": "Address QA blocking objections only: make recovery daemon-owned or adopted/tracked, and wire manual stop/archive workflows to durable tombstones.",
+    "verified_against_complaint": true,
+    "passed_user_requirement": true,
+    "ac_alignment": true,
+    "overall_assessment": "PASS for iteration 2 scope. Static inspection and safe checks show recovery now uses the daemon /spawn-session path, verifies daemon /list membership before incrementing daemon_tracked_restored, and records failed restores rather than counting untracked external state. Manual stop-session plus Claude/Codex kill/archive paths now synchronously write per-home tombstone TSV entries that the recovery script filters before restore.",
+    "constraints_observed": {
+      "no_reboot": true,
+      "no_service_stop_restart_kill": true,
+      "no_live_session_manipulation": true,
+      "no_production_access": true,
+      "source_files_modified_by_qa": false,
+      "report_written": "docs/dev/qa-report-iter2-20260523-235421.json",
+      "notes": "QA used static inspection, bash syntax check, TypeScript noEmit typecheck, and a focused controlServer test. The focused vitest command's setup printed a package build step, but it did not stop/restart/kill services and git status after execution showed no new tracked source changes beyond the dev diffs and this report."
+    },
+    "prior_blocking_objection_results": [
+      {
+        "id": "OBJ-1",
+        "prior_issue": "Recovery still uses external systemd-run/direct spawn and reports daemon_tracked_restored=0; daemon-owned spawn/adoption remains unresolved.",
+        "status": "resolved",
+        "verification_method": "Static inspection of /root/bin/happy-session-recovery.sh restore flow and daemon control server spawn path, plus grep for removed external-spawn strings.",
+        "evidence": [
+          "/root/bin/happy-session-recovery.sh:1094-1107 builds JSON with resumeSessionId and POSTs to http://127.0.0.1:$port/spawn-session instead of systemd-run/direct node spawn.",
+          "/root/bin/happy-session-recovery.sh:1124-1128 returns failure when daemon spawn response is non-200, success=false, or has no sessionId.",
+          "/root/bin/happy-session-recovery.sh:1130-1153 POSTs /list and refuses to count the restore unless children[].happySessionId contains the returned session.",
+          "/root/bin/happy-session-recovery.sh:1427-1438 increments daemon_tracked_restored only on daemon_spawn_session success and leaves external_restored=0.",
+          "packages/happy-cli/src/daemon/controlServer.ts:215-246 accepts resumeSessionId on /spawn-session and forwards it into spawnSession.",
+          "packages/happy-cli/src/daemon/run.ts:465-479 passes resumeSessionId to the daemon-owned child as --resume, and spawnTrackedHappyProcess registers the child in pidToTrackedSession at run.ts:527-535 before waiting for the webhook.",
+          "grep found no systemd-run, Externally spawned, non-daemon-tracked, external_restored=[1-9], or --recover-session legacy restore strings in /root/bin/happy-session-recovery.sh or packages/happy-cli/src/daemon/run.ts."
+        ],
+        "remaining_objection": null
+      },
+      {
+        "id": "OBJ-2",
+        "prior_issue": "Tombstone support exists, but manual stop/archive workflows are not wired to create tombstones, so user intent is not durably recorded by normal actions.",
+        "status": "resolved",
+        "verification_method": "Static inspection of tombstone writer and the manual stop/archive lifecycle entry points, plus grep for tombstone producers.",
+        "evidence": [
+          "packages/happy-cli/src/daemon/controlClient.ts:62-91 defines recordSessionRecoveryTombstone(), deduplicates IDs, writes <id>\t<timestamp>\t<reason> to configuration.happyHomeDir/session_recovery_tombstones.tsv (or HAPPY_RECOVERY_TOMBSTONE_FILE), and atomically renames the temp file.",
+          "packages/happy-cli/src/daemon/run.ts:600-621 records resumeSessionId, claudeSessionId, codexThreadId, and happySessionId with reason manual-stop before sending SIGTERM/deleting tracking.",
+          "packages/happy-cli/src/claude/runClaude.ts:445-455 records resumeSessionId, current Claude sessionId, and Happy sessionId with reason manual-archive before lifecycleState=archived.",
+          "packages/happy-cli/src/codex/runCodex.ts:413-424 records resumeThreadId, current Codex threadId, and Happy sessionId with reason manual-archive before lifecycleState=archived.",
+          "packages/happy-app/sources/hooks/useSessionQuickActions.ts:172-180 and packages/happy-app/sources/sync/ops.ts:490-497 show app archive flows call the session killSession RPC, which is handled by the Claude/Codex cleanup paths above.",
+          "/root/bin/happy-session-recovery.sh:821-835 and 1323-1334 filter tombstoned saved sessions before restore, with an additional per-session guard at 1363-1366."
+        ],
+        "remaining_objection": null
+      }
+    ],
+    "acceptance_results": [
+      {
+        "id": "AC-1",
+        "criterion": "Recovery has a daemon-owned spawn/adoption path that makes restored sessions part of daemon tracking, or reports unresolved external state as not restored.",
+        "status": "pass",
+        "verification_method": "Static control-flow inspection and legacy-string grep.",
+        "evidence": "Recovery posts to daemon /spawn-session, verifies /list contains the returned happySessionId, increments daemon_tracked_restored only after that proof, and grep found no legacy external restore path strings."
+      },
+      {
+        "id": "AC-2",
+        "criterion": "Manual stop/archive paths create durable tombstones that recovery respects.",
+        "status": "pass",
+        "verification_method": "Static inspection of manual stop, Claude archive, Codex archive, app archive RPC path, and recovery tombstone filter.",
+        "evidence": "Manual stop and archive paths call recordSessionRecoveryTombstone() before termination/archive state changes; recovery filters tombstones before attempting daemon-owned restore."
+      },
+      {
+        "id": "AC-3",
+        "criterion": "QA static verification can prove the two blocking objections are resolved without rebooting or killing live sessions.",
+        "status": "pass",
+        "verification_method": "Static inspection, bash -n, TypeScript noEmit typecheck, focused controlServer unit test, and safe greps only.",
+        "evidence": "No reboot, service stop/restart, daemon HTTP stop, kill, or live session operation was performed. Safe checks passed."
+      }
+    ],
+    "static_checks": [
+      {
+        "command": "bash -n /root/bin/happy-session-recovery.sh",
+        "result": "pass",
+        "evidence": "Exited 0; output: bash -n recovery: PASS"
+      },
+      {
+        "command": "yarn --cwd packages/happy-cli typecheck",
+        "result": "pass",
+        "evidence": "tsc --noEmit completed successfully in 4.04s."
+      },
+      {
+        "command": "yarn --cwd packages/happy-cli vitest run src/daemon/controlServer.test.ts",
+        "result": "pass",
+        "evidence": "8/8 tests passed. Note: test setup printed '$ shx rm -rf dist && tsc --noEmit && pkgroll'; no services/sessions were touched."
+      },
+      {
+        "command": "grep -nE 'systemd-run|Externally spawned|non-daemon-tracked|external_restored=[1-9]|--recover-session' /root/bin/happy-session-recovery.sh packages/happy-cli/src/daemon/run.ts",
+        "result": "pass",
+        "evidence": "No matches."
+      },
+      {
+        "command": "grep -RIn 'recordSessionRecoveryTombstone|session_recovery_tombstones.tsv|HAPPY_RECOVERY_TOMBSTONE_FILE' investigated files",
+        "result": "pass",
+        "evidence": "Found tombstone helper in controlClient.ts and producers in run.ts, runClaude.ts, and runCodex.ts, using the same filename/env override as recovery."
+      }
+    ],
+    "build_verification": {
+      "status": "skipped",
+      "skip_reason": "User constrained QA to static inspection and safe tests only; no build/deploy/restart of live services was permitted. TypeScript noEmit and focused unit checks were run instead."
+    },
+    "ui_test_results": [],
+    "remaining_objections": [],
+    "all_findings": [],
+    "summary": {
+      "critical_issues": 0,
+      "major_issues": 0,
+      "minor_issues": 0,
+      "total_findings": 0,
+      "release_recommendation": "approve"
+    },
+    "claude_code_consult": {
+      "invoked": false,
+      "status": "not_requested",
+      "feedback_summary": null,
+      "feedback_incorporated": null
+    },
+    "self_verification": {
+      "claims_total": 9,
+      "claims_with_evidence": 9,
+      "claims_superficial": 0,
+      "confidence": "high"
+    }
+  },
+  "iteration_needed": false,
+  "refined_context": null
+}

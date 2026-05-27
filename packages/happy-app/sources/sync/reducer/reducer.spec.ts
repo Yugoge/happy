@@ -3098,7 +3098,7 @@ describe('reducer', () => {
             expect(result.messages).toHaveLength(1);
             expect(result.messages[0].kind).toBe('tool-call');
             if (result.messages[0].kind === 'tool-call') {
-                expect(result.messages[0].tool.name).toBe('functions.spawn_agent');
+                expect(result.messages[0].tool.name).toBe('spawn_agent'); // normalized by reducer (functions. prefix stripped for lifecycle verbs)
                 expect(result.messages[0].tool.state).toBe('completed');
                 expect(result.messages[0].tool.result).toBe('Final child answer');
                 expect(result.messages[0].children).toHaveLength(1);

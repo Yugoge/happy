@@ -813,8 +813,15 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                         // Check if there's a stored permission for this tool
                         const permission = state.permissions.get(c.id);
 
+                        // Normalize Codex subagent lifecycle verb names: strip 'functions.' prefix
+                        // so toolViewRegistry finds 'spawn_agent' → TaskView and
+                        // toolFullViewRegistry finds 'spawn_agent' → AgentFullView (CONSTRAINT-2).
+                        // resume_agent intentionally excluded: no bare-name registry entry exists.
+                        const LIFECYCLE_VERBS = new Set(['functions.spawn_agent', 'functions.send_input', 'functions.wait_agent', 'functions.close_agent']);
+                        const normalizedName = LIFECYCLE_VERBS.has(c.name) ? c.name.replace(/^functions\./, '') : c.name;
+
                         let toolCall: ToolCall = {
-                            name: c.name,
+                            name: normalizedName,
                             state: 'running' as const,
                             input: permission ? mergeToolInputs(permission.arguments, c.input) : c.input,
                             createdAt: permission ? permission.createdAt : msg.createdAt,  // Use permission timestamp if available

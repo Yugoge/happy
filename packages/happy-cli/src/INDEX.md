@@ -1,7 +1,7 @@
 # src
 
-*Last updated: 2026-05-14T20:15:11Z*
-**Total entries**: 283
+*Last updated: 2026-05-25T09:14:42Z*
+**Total entries**: 285
 **Convention**: kebab
 
 ## Tree
@@ -134,6 +134,8 @@ src/
 │   ├── `notifyDaemonOfCodexTid.ts` - ts file
 │   ├── `resumeExistingThread.test.ts` - ts file
 │   ├── `resumeExistingThread.ts` - ts file
+│   ├── `rolloutHistoryReplay.test.ts` - ts file
+│   ├── `rolloutHistoryReplay.ts` - ts file
 │   └── `runCodex.ts` - ts file
 ├── commands/
 │   ├── connect/

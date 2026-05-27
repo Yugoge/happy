@@ -110,7 +110,7 @@ export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata 
                     const kindLabel = getPatchKindLabel(change) ?? 'edit';
                     return (
                         <View key={file} style={styles.summaryRow}>
-                            <Octicons name="file-diff" size={16} color={theme.colors.textSecondary} />
+                            <Octicons name="file" size={16} color={theme.colors.textSecondary} />
                             <Text style={styles.summaryFile} numberOfLines={1} ellipsizeMode="middle">
                                 {filePath}
                             </Text>
