@@ -8,7 +8,8 @@ import { MessageView } from './MessageView';
 import { Metadata, Session } from '@/sync/storageTypes';
 import { ChatFooter } from './ChatFooter';
 import { Message, ToolCall } from '@/sync/typesMessage';
-import { LifecycleSuppressionContext, buildLifecycleSuppressionMap } from '@/utils/codexToolRendering';
+import { LifecycleSuppressionContext, CODEX_LIFECYCLE_TOOL, SYNTHETIC_LIFECYCLE_ID_PREFIX, buildLifecycleSuppressionMap } from '@/utils/codexToolRendering';
+import type { ToolCallMessage } from '@/sync/typesMessage';
 import { useFocusEffect } from 'expo-router';
 
 export const ChatList = React.memo((props: {
@@ -61,6 +62,44 @@ const ChatListInternal = React.memo((props: {
         [props.messages],
     );
 
+    // Cycle 5 (task 20260527-082212): for A2 replay sessions that have no real
+    // functions.subagent_lifecycle envelope, the suppression map was seeded with
+    // a synthetic ID ("lifecycle:<ssn>"). Build a synthetic ToolCallMessage for
+    // each such entry so the merged lifecycle card actually renders.
+    const syntheticLifecycleMessages = React.useMemo((): ToolCallMessage[] => {
+        const now = Date.now();
+        const result: ToolCallMessage[] = [];
+        for (const [sessionSubagent, lifecycleId] of lifecycleSuppressionMap) {
+            if (!lifecycleId.startsWith(SYNTHETIC_LIFECYCLE_ID_PREFIX)) continue;
+            result.push({
+                kind: 'tool-call',
+                id: lifecycleId,
+                localId: null,
+                createdAt: now,
+                tool: {
+                    name: CODEX_LIFECYCLE_TOOL,
+                    state: 'completed',
+                    input: { sessionSubagent, prompt: '', lifecycle_state: 'completed' },
+                    createdAt: now,
+                    startedAt: null,
+                    completedAt: null,
+                    description: null,
+                },
+                children: [],
+            });
+        }
+        return result;
+    }, [lifecycleSuppressionMap]);
+
+    // Combine synthetic lifecycle messages (prepended) with real messages.
+    // Do NOT mutate props.messages (ReadonlyArray).
+    const flatListData = React.useMemo(
+        () => syntheticLifecycleMessages.length > 0
+            ? ([...syntheticLifecycleMessages, ...props.messages] as Message[])
+            : props.messages,
+        [syntheticLifecycleMessages, props.messages],
+    );
+
     // Save scroll offset on scroll events
     const handleScroll = useCallback((event: any) => {
         const offset = event.nativeEvent.contentOffset.y;
@@ -83,7 +122,7 @@ const ChatListInternal = React.memo((props: {
         <LifecycleSuppressionContext.Provider value={lifecycleSuppressionMap}>
             <FlatList
                 ref={flatListRef}
-                data={props.messages}
+                data={flatListData}
                 inverted={true}
                 keyExtractor={keyExtractor}
                 maintainVisibleContentPosition={{

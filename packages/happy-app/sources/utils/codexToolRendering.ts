@@ -54,6 +54,11 @@ const CODEX_SUBAGENT_CONTROL_TOOLS = new Set<string>([
 // Cycle 6 — D.5 subagent lifecycle merged card. Synthetic envelope name.
 export const CODEX_LIFECYCLE_TOOL = 'functions.subagent_lifecycle';
 
+// Cycle 5 (task 20260527-082212): prefix for synthetic lifecycle message IDs
+// injected by ChatList for A2 replay sessions that have no real lifecycle envelope.
+// Matches lifecycleCallId() convention from subagentLifecycle.ts ("lifecycle:<ssn>").
+export const SYNTHETIC_LIFECYCLE_ID_PREFIX = 'lifecycle:';
+
 // Map<sessionSubagent, messageId> derived once per messages[] reference change
 // in ChatList; consumed by MessageView to suppress underlying spawn/wait/close
 // cards when a lifecycle envelope exists for the same sessionSubagent.
@@ -81,7 +86,7 @@ export function buildLifecycleSuppressionMap(messages: ReadonlyArray<Message>): 
         if (CODEX_SUBAGENT_CONTROL_TOOLS.has(m.tool.name)) {
             const sessionSubagent = (m.tool.input as Record<string, unknown> | undefined)?.sessionSubagent;
             if (typeof sessionSubagent === 'string' && sessionSubagent.length > 0 && !map.has(sessionSubagent)) {
-                map.set(sessionSubagent, m.id);
+                map.set(sessionSubagent, SYNTHETIC_LIFECYCLE_ID_PREFIX + sessionSubagent);
             }
         }
     }
