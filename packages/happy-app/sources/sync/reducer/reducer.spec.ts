@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { NormalizedMessage } from '../typesRaw';
+import { NormalizedMessage, normalizeRawMessage } from '../typesRaw';
 import { createReducer } from './reducer';
 import { reducer } from './reducer';
 import { AgentState } from '../storageTypes';
+import { createId, isCuid } from '@paralleldrive/cuid2';
 
 describe('reducer', () => {
     // it('should process golden cases', () => {
@@ -3103,6 +3104,96 @@ describe('reducer', () => {
                 expect(result.messages[0].tool.result).toBe('Final child answer');
                 expect(result.messages[0].children).toHaveLength(1);
                 expect(result.messages[0].children[0].kind).toBe('agent-text');
+            }
+        });
+    });
+
+    describe('AC-C6-3: functions.subagent_lifecycle session envelope handling', () => {
+        it('normalizeRawMessage + reducer produces ToolCallMessage with allocateId-generated id and correct tool fields', () => {
+            // Build a minimal session-role RawRecord for a functions.subagent_lifecycle tool-call-start.
+            // The preprocessor in typesRaw.ts wraps the direct-envelope shape into { type:'session', data: ... }.
+            // envelope.id is a CUID2 (as produced by createId() inside createEnvelope in happy-wire).
+            // envelope.ev.call is 'lifecycle:<ssn>' per lifecycleCallId() in subagentLifecycle.ts.
+            const testSessionSubagent = createId(); // real CUID2 — matches production sessionSubagent values
+            expect(isCuid(testSessionSubagent)).toBe(true);
+
+            const envelopeId = createId(); // simulates createEnvelope/createId output — no 'lifecycle:' prefix
+            const lifecycleEvCall = `lifecycle:${testSessionSubagent}`;
+
+            const rawRecord = {
+                role: 'session',
+                content: {
+                    id: envelopeId,
+                    time: 5000,
+                    role: 'agent',
+                    turn: 'turn-1',
+                    ev: {
+                        t: 'tool-call-start',
+                        call: lifecycleEvCall,
+                        name: 'functions.subagent_lifecycle',
+                        title: 'Subagent',
+                        description: 'subagent prompt',
+                        args: {
+                            sessionSubagent: testSessionSubagent,
+                            prompt: 'subagent prompt',
+                            agentNickname: null,
+                            lifecycle_state: 'started',
+                        },
+                    },
+                },
+            } as any;
+
+            // Assert normalizeRawMessage produces the expected intermediate NormalizedMessage
+            const normalized = normalizeRawMessage('db-lifecycle-1', null, 5000, rawRecord);
+            expect(normalized).not.toBeNull();
+            expect(normalized!.role).toBe('agent');
+            expect(normalized!.id).toBe(envelopeId);
+            expect(normalized!.createdAt).toBe(5000);
+            if (normalized!.role === 'agent') {
+                const c = normalized!.content[0];
+                expect(c.type).toBe('tool-call');
+                if (c.type === 'tool-call') {
+                    expect(c.id).toBe(lifecycleEvCall);
+                    expect(c.name).toBe('functions.subagent_lifecycle');
+                    expect((c.input as any).sessionSubagent).toBe(testSessionSubagent);
+                }
+            }
+
+            // Run through the reducer and assert the ToolCallMessage
+            const state = createReducer();
+            const result = reducer(state, [normalized!]);
+
+            expect(result.messages).toHaveLength(1);
+            const msg = result.messages[0];
+            expect(msg.kind).toBe('tool-call');
+            if (msg.kind === 'tool-call') {
+                // id must NOT start with 'lifecycle:' — it comes from allocateId() inside the reducer (Phase 2)
+                expect(msg.id).toBeDefined();
+                expect(msg.id.startsWith('lifecycle:')).toBe(false);
+                // id must be distinct from both the envelope id and the ev.call value
+                expect(msg.id).not.toBe(envelopeId);
+                expect(msg.id).not.toBe(lifecycleEvCall);
+                // state.toolIdToMessageId maps the ev.call (lifecycle:<ssn>) to this message id
+                expect(state.toolIdToMessageId.get(lifecycleEvCall)).toBe(msg.id);
+
+                // tool.name is preserved as-is (functions.subagent_lifecycle is not in LIFECYCLE_VERBS)
+                expect(msg.tool.name).toBe('functions.subagent_lifecycle');
+
+                // tool.input.sessionSubagent is the exact value from the envelope args
+                expect(msg.tool.input).toBeDefined();
+                expect(msg.tool.input.sessionSubagent).toBe(testSessionSubagent);
+
+                // ToolCallMessage state and timestamps
+                expect(msg.createdAt).toBe(5000);
+                expect(msg.tool.state).toBe('running');
+                expect(msg.tool.createdAt).toBe(5000);
+                expect(msg.tool.startedAt).toBe(5000);
+                expect(msg.tool.completedAt).toBeNull();
+                expect(msg.tool.description).toBe('subagent prompt');
+                expect(msg.tool.result).toBeUndefined();
+
+                // children is empty (no sidechain messages associated yet — scoped M3)
+                expect(msg.children).toHaveLength(0);
             }
         });
     });

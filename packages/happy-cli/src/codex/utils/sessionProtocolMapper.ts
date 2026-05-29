@@ -616,6 +616,18 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         } else if (receiverThreadId) {
             sessionSubagent = ensureReceiverSessionSubagent(receiverThreadId, providerSubagentToSessionSubagent);
             providerSubagentToSessionSubagent.set(callSubagentKey(call), sessionSubagent);
+        } else if (verb === 'send_input' || verb === 'wait_agent' || verb === 'close_agent' || verb === 'resume_agent') {
+            // M1 fallback (Cycle 6 AC-C6-1): when receiverThreadId is absent for known control verbs,
+            // resolve sessionSubagent from the single active lifecycle if exactly one exists.
+            // Gated to known control verbs only to avoid misattributing future/unknown collab verbs.
+            const activeLifecycles = [...subagentLifecycles.entries()]
+                .filter(([, lc]) => lc.state !== 'completed' && lc.state !== 'errored');
+            if (activeLifecycles.length === 1) {
+                sessionSubagent = activeLifecycles[0][0];
+                // Register for collab_agent_call_end matching via callSubagentKey.
+                providerSubagentToSessionSubagent.set(callSubagentKey(call), sessionSubagent);
+            }
+            // If activeLifecycles.length > 1: leave sessionSubagent undefined (no wrong attribution).
         }
         if (sessionSubagent && subagent) providerSubagentToSessionSubagent.set(ownerSubagentKey(sessionSubagent), subagent);
         const visibleCall = verb === 'spawn_agent' && sessionSubagent ? sessionSubagent : call;

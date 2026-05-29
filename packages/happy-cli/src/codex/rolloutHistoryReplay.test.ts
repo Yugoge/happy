@@ -122,6 +122,80 @@ describe('replayCodexRolloutHistory', () => {
         });
     });
 
+    // AC-C6-3 (rollout replay path): verify that a spawnAgent function_call in a real
+    // rollout .jsonl file produces a functions.subagent_lifecycle tool-call-start envelope.
+    // This exercises rolloutHistoryReplay.ts COLLAB_REPLAY_TOOL_MAP routing → collab_agent_call_begin
+    // → emitLifecycleStart. Tests both camelCase (app-server protocol) and snake_case (CLI rollout).
+    it('AC-C6-3: spawnAgent function_call in rollout file emits functions.subagent_lifecycle envelope (camelCase)', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = 'ac-c6-3-camel-thread';
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-29T00-00-00', [
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-c6-3' } },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call',
+                    name: 'spawnAgent',
+                    call_id: 'spawn-c6-3',
+                    arguments: JSON.stringify({ prompt: 'do some work', model: null, receiverThreadIds: [], agentsStates: {} }),
+                },
+            },
+        ]);
+        const session = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        // Must include a functions.subagent_lifecycle tool-call-start
+        const lifecycleEnv = envelopes.find(
+            (e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle'
+        );
+        expect(lifecycleEnv).toBeDefined();
+        // call ID starts with 'lifecycle:'
+        expect((lifecycleEnv as any).ev.call.startsWith('lifecycle:')).toBe(true);
+        // args.sessionSubagent is populated
+        expect(typeof (lifecycleEnv as any).ev.args.sessionSubagent).toBe('string');
+        expect((lifecycleEnv as any).ev.args.lifecycle_state).toBe('started');
+    });
+
+    it('AC-C6-3: spawn_agent function_call in rollout file emits functions.subagent_lifecycle envelope (snake_case)', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = 'ac-c6-3-snake-thread';
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-29T00-00-00', [
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-c6-3-snake' } },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call',
+                    name: 'spawn_agent',
+                    call_id: 'spawn-c6-3-snake',
+                    arguments: JSON.stringify({ prompt: 'snake case test', receiverThreadIds: [], agentsStates: {} }),
+                },
+            },
+        ]);
+        const session = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const lifecycleEnv = envelopes.find(
+            (e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle'
+        );
+        expect(lifecycleEnv).toBeDefined();
+        expect((lifecycleEnv as any).ev.call.startsWith('lifecycle:')).toBe(true);
+        expect(typeof (lifecycleEnv as any).ev.args.sessionSubagent).toBe('string');
+    });
+
     it('replays a fallback thread when the requested thread has no rollout file', async () => {
         const codexHome = await createCodexHome();
         await writeRollout(codexHome, 'fallback-thread', 'rollout-2026-05-15T00-00-00', [

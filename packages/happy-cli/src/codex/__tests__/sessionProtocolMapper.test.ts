@@ -848,4 +848,106 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         }
         expect(closeEnd.subagentLifecycles.get(ssn)?.state).toBe('completed');
     });
+
+    // Cycle 6 AC-C6-1 (S1): non-spawn verb with no receiverThreadId resolves sessionSubagent
+    // from the single active lifecycle in the map (M1 fallback path).
+    it('S1 (AC-C6-1): send_input with no receiverThreadId carries sessionSubagent via single-active-lifecycle fallback', () => {
+        // spawn_agent begin → creates one active lifecycle (state: 'started')
+        const begin = spawnState('spawn-s1', 'child-S1', 'single active lifecycle test');
+        const lifecycleStart = begin.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle');
+        const ssn = (lifecycleStart!.ev as any).args.sessionSubagent as string;
+        expect(begin.subagentLifecycles.get(ssn)?.state).toBe('started');
+
+        // send_input with NO receiverThreadId — M1 fallback must resolve sessionSubagent
+        const sendInput = step({
+            type: 'collab_agent_call_begin',
+            call_id: 'send-input-1',
+            tool: 'sendInput',
+            prompt: 'continue',
+            receiverThreadIds: [],  // absent / empty
+        }, begin);
+
+        const sendStartEv = sendInput.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.send_input');
+        expect(sendStartEv).toBeDefined();
+        if (sendStartEv && sendStartEv.ev.t === 'tool-call-start') {
+            // AC-C6-1: sessionSubagent must be present in args
+            expect(sendStartEv.ev.args.sessionSubagent).toBe(ssn);
+        }
+        // AC-C6-1: providerSubagentToSessionSubagent must register for call-end matching
+        expect(sendInput.providerSubagentToSessionSubagent.get('call:send-input-1')).toBe(ssn);
+    });
+
+    // Cycle 6 AC-C6-1b (S3): when two or more active lifecycles exist and receiverThreadId is absent,
+    // sessionSubagent stays undefined — no wrong attribution to either lifecycle.
+    it('S3 (AC-C6-1b): parallel subagents guard — sessionSubagent undefined when 2+ active and no receiverThreadId', () => {
+        // Spawn two active subagents
+        const beginA = spawnState('spawn-s3a', 'child-S3A', 'parallel task A');
+        const beginB = spawnState('spawn-s3b', 'child-S3B', 'parallel task B', beginA);
+        expect(beginB.subagentLifecycles.size).toBe(2);
+
+        // Non-spawn verb with NO receiverThreadId — guard must leave sessionSubagent undefined
+        const sendInput = step({
+            type: 'collab_agent_call_begin',
+            call_id: 'send-input-parallel',
+            tool: 'sendInput',
+            prompt: 'ambiguous',
+            receiverThreadIds: [],  // absent — cannot disambiguate
+        }, beginB);
+
+        const sendStartEv = sendInput.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.send_input');
+        expect(sendStartEv).toBeDefined();
+        if (sendStartEv && sendStartEv.ev.t === 'tool-call-start') {
+            // AC-C6-1b: sessionSubagent must NOT be set (no wrong attribution)
+            expect(sendStartEv.ev.args.sessionSubagent).toBeUndefined();
+        }
+        // AC-C6-1b: no state pollution in providerSubagentToSessionSubagent
+        expect(sendInput.providerSubagentToSessionSubagent.get('call:send-input-parallel')).toBeUndefined();
+    });
+
+    // AC-C6-3: rollout-replay (A2) path emits a real lifecycle envelope for spawnAgent.
+    // rolloutHistoryReplay.ts routes collab lifecycle verbs through collab_agent_call_begin so
+    // the mapper's spawn_agent handler fires emitLifecycleStart. This test verifies the resulting
+    // envelope has the correct shape: name === 'functions.subagent_lifecycle', call starts with
+    // 'lifecycle:', args.sessionSubagent populated.
+    it('AC-C6-3: collab_agent_call_begin (spawn_agent) via replay path emits functions.subagent_lifecycle envelope', () => {
+        // Simulate what rolloutHistoryReplay.ts mapFunctionCall() now produces for a spawnAgent record.
+        const spawnBegin = mapCodexMcpMessageToSessionEnvelopes(
+            {
+                type: 'collab_agent_call_begin',
+                call_id: 'replay-spawn-1',
+                tool: 'spawnAgent',
+                prompt: 'do some work',
+                receiverThreadIds: [],
+                agentsStates: {},
+            },
+            { currentTurnId: 'turn-replay' }
+        );
+
+        // AC-C6-3 assertion 1: a lifecycle envelope must be emitted (name === LIFECYCLE_ENVELOPE_NAME).
+        const lifecycleEnv = spawnBegin.envelopes.find(
+            (e) => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle'
+        );
+        expect(lifecycleEnv).toBeDefined();
+        if (!lifecycleEnv || lifecycleEnv.ev.t !== 'tool-call-start') throw new Error('Expected lifecycle tool-call-start');
+
+        // AC-C6-3 assertion 2: call ID must NOT start with 'lifecycle:' at the envelope level —
+        // wait, the convention is call === `lifecycle:${ssn}`. QA clarifies: the reducer normalizes
+        // `lifecycle:<ssn>` to a navigable ID (NOT starting with 'lifecycle:'). The CLI-side assertion
+        // verifiable here is: (a) call STARTS WITH 'lifecycle:' (mapper convention), (b) args.sessionSubagent
+        // is the bare ssn (the part after 'lifecycle:'), (c) sessionSubagent IS a cuid2 (navigable).
+        const lcCall = lifecycleEnv.ev.call;
+        expect(lcCall.startsWith('lifecycle:')).toBe(true);
+        const ssn = lifecycleEnv.ev.args.sessionSubagent as string;
+        expect(ssn).toBeTruthy();
+        expect(lcCall).toBe(`lifecycle:${ssn}`);
+        // ssn must be a valid cuid2 (the reducer strips 'lifecycle:' prefix to produce a navigable ID).
+        expect(isCuid(ssn)).toBe(true);
+
+        // AC-C6-3 assertion 3: args.sessionSubagent populated, lifecycle_state is 'started'.
+        expect(lifecycleEnv.ev.args.lifecycle_state).toBe('started');
+
+        // AC-C6-3 assertion 4: subagentLifecycles map has the entry (mapper state is set).
+        expect(spawnBegin.subagentLifecycles.get(ssn)?.state).toBe('started');
+        expect(spawnBegin.subagentLifecycles.get(ssn)?.prompt).toBe('do some work');
+    });
 });

@@ -158,6 +158,24 @@ function mcpPartsFromName(name: string): { server: string; tool: string } | null
     return { server: match[1], tool: match[2] };
 }
 
+// A2 replay path (AC-C6-2): maps all known collab lifecycle verb spellings to the canonical
+// COLLAB_VERB_MAP key used by sessionProtocolMapper.ts. Covers camelCase (live app-server
+// protocol) and snake_case (Codex CLI rollout file variants). Value is the canonical tool
+// name passed as `tool` in the synthesized collab_agent_call_begin/end message so the
+// mapper's COLLAB_VERB_MAP lookup produces the correct verb (e.g. 'spawnAgent' → 'spawn_agent').
+const COLLAB_REPLAY_TOOL_MAP = new Map<string, string>([
+    ['spawnAgent', 'spawnAgent'],
+    ['spawn_agent', 'spawnAgent'],
+    ['sendInput', 'sendInput'],
+    ['send_input', 'sendInput'],
+    ['wait', 'wait'],
+    ['wait_agent', 'wait'],
+    ['closeAgent', 'closeAgent'],
+    ['close_agent', 'closeAgent'],
+    ['resumeAgent', 'resumeAgent'],
+    ['resume_agent', 'resumeAgent'],
+]);
+
 function createReplayState(): ReplayState {
     return {
         mapper: {
@@ -229,6 +247,24 @@ function mapFunctionCall(payload: Record<string, unknown>, state: ReplayState): 
         }, state);
     }
 
+    // A2 replay path (AC-C6-2): collab lifecycle control verbs arrive from rollout files as
+    // function_call payloads. Route them through collab_agent_call_begin so the mapper's
+    // collab_agent_call_begin handler fires emitLifecycleStart for spawn_agent and resolves
+    // sessionSubagent for the other control verbs. COLLAB_REPLAY_TOOL_MAP covers both
+    // camelCase (live Codex app-server protocol keys) and snake_case (Codex CLI rollout variants).
+    if (COLLAB_REPLAY_TOOL_MAP.has(name)) {
+        return mapWithState({
+            type: 'collab_agent_call_begin',
+            call_id: callId,
+            tool: COLLAB_REPLAY_TOOL_MAP.get(name) ?? name,
+            prompt: typeof args.prompt === 'string' ? args.prompt : null,
+            model: typeof args.model === 'string' ? args.model : null,
+            agentNickname: typeof args.agentNickname === 'string' ? args.agentNickname : null,
+            receiverThreadIds: Array.isArray(args.receiverThreadIds) ? args.receiverThreadIds : [],
+            agentsStates: isRecord(args.agentsStates) ? args.agentsStates : {},
+        }, state);
+    }
+
     return mapWithState({
         type: 'dynamic_tool_call_begin',
         call_id: callId,
@@ -277,6 +313,22 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
             output,
             result: payload.output,
             status: 'completed',
+        }, state);
+    }
+
+    // A2 replay path (AC-C6-2): route collab lifecycle control verb ends through collab_agent_call_end
+    // so the mapper's handler fires emitLifecycleEnd for close_agent. The output field from rollout
+    // files is parsed JSON; extract agentsStates and receiverThreadIds if present.
+    if (COLLAB_REPLAY_TOOL_MAP.has(name)) {
+        const outputParsed = (() => { try { return JSON.parse(output); } catch { return {}; } })();
+        const parsedRecord = isRecord(outputParsed) ? outputParsed : {};
+        return mapWithState({
+            type: 'collab_agent_call_end',
+            call_id: callId,
+            tool: COLLAB_REPLAY_TOOL_MAP.get(name) ?? name,
+            status: typeof parsedRecord.status === 'string' ? parsedRecord.status : 'completed',
+            receiverThreadIds: Array.isArray(parsedRecord.receiverThreadIds) ? parsedRecord.receiverThreadIds : [],
+            agentsStates: isRecord(parsedRecord.agentsStates) ? parsedRecord.agentsStates : {},
         }, state);
     }
 
