@@ -1,9 +1,0 @@
-{
-  "omissions": [
-    {
-      "view": "ui-specialist.md",
-      "agent": "ui-specialist",
-      "reason": "guide_version_not_declared"
-    }
-  ]
-}

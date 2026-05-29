@@ -114,3 +114,6 @@ docs/codex/
 # Spec checkpoint state (codex-audit cleanup)
 .claude/specs/*/.cp-checkin.lock
 .claude/specs/*/cp-state-*.json
+
+# dev workflow artifacts — never tracked (global policy)
+docs/dev/
