@@ -58,3 +58,6 @@ progress*.txt
 happy-web-debug-*.png
 bun.lock
 package-lock.json
+
+# dev workflow artifacts — never tracked (global policy)
+docs/dev/
