@@ -117,3 +117,18 @@ docs/codex/
 
 # dev workflow artifacts — never tracked (global policy)
 docs/dev/
+
+# Scratch / QA evidence / agent harness (no-track policy)
+screenshots/
+.tool-render-demo/
+.codex-harness/
+docs/e2e/*.png
+docs/e2e/**/*.png
+/*.bak-*
+/_test_notebook.ipynb
+/_tool_test.txt
+/tmp-test-edit.ts
+/po-current-snapshot.md
+/po-reset*.md
+/qa-*.md
+/ui-specialist-*.md
