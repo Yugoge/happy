@@ -2,7 +2,9 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { replayCodexRolloutHistory } from './rolloutHistoryReplay';
+import { replayCodexRolloutHistory, childEnvelopePassesInvariants } from './rolloutHistoryReplay';
+import { createEnvelope } from '@slopus/happy-wire';
+import { createId } from '@paralleldrive/cuid2';
 
 const tempDirs: string[] = [];
 
@@ -335,6 +337,306 @@ describe('replayCodexRolloutHistory', () => {
         // AC-C7-10: lifecycle-END uses the CLOSE record's time, not the spawn record's.
         expect((lifecycleEnd as any).time).toBe(Date.parse(closeTs));
         expect((lifecycleEnd as any).time).not.toBe(Date.parse(spawnTs));
+    });
+
+    // ====================================================================================
+    // Cycle 8 (spec-20260520-051938): nested subagent internal-tool merge + degradation tolerance.
+    // Fixtures mirror the real corpus shapes (/root/.codex/sessions/2026/05/16/): parent spawn
+    // function_call_output binds {agent_id, nickname}; sibling child rollout-<ts>-<agent_id>.jsonl
+    // with session_meta thread_spawn + exec_command begin/end records.
+    // ====================================================================================
+
+    // Helper: a parent rollout that spawns subagent `agentId` (with prompt) within turn `turnId`.
+    function parentSpawnRecords(turnId: string, spawnCallId: string, agentId: string, nickname: string, prompt: string): unknown[] {
+        return [
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: turnId } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: spawnCallId, arguments: JSON.stringify({ message: prompt }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: spawnCallId, output: JSON.stringify({ agent_id: agentId, nickname }) } },
+        ];
+    }
+
+    // Helper: a child rollout file mirroring corpus shape — session_meta + task_started + N exec_command
+    // begin/end pairs + task_complete. callIds[] are the child's distinct provider call_ids.
+    function childRecords(agentId: string, parentThreadId: string, callIds: string[]): unknown[] {
+        const recs: unknown[] = [
+            { type: 'session_meta', payload: { id: agentId, source: { subagent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1 } } } } },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: `child-turn-${agentId}` } },
+        ];
+        for (const cid of callIds) {
+            recs.push({ type: 'response_item', payload: { type: 'function_call', name: 'exec_command', call_id: cid, arguments: JSON.stringify({ cmd: `echo ${cid}` }) } });
+            recs.push({ type: 'response_item', payload: { type: 'function_call_output', call_id: cid, output: `out-${cid}` } });
+        }
+        recs.push({ type: 'event_msg', payload: { type: 'task_complete', turn_id: `child-turn-${agentId}` } });
+        return recs;
+    }
+
+    // AC-C8-1: child internal tools merge as lifecycle children (subagent===ssn, ev.call===call_id, no sessionSubagent).
+    it('AC-C8-1: child exec_command tools merge as sidechain children of the lifecycle card', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = '019e31bd-6275-7cf1-a525-3616befac9ec';
+        const agentId = '019e31bf-f5d6-7112-9c56-c575c6ede31a';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-1', 'call_spawnA', agentId, 'Architect', 'inspect auth'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-1' } },
+        ]);
+        await writeRollout(codexHome, agentId, 'rollout-2026-05-16T17-05-24', childRecords(agentId, parentThread, ['call_x1', 'call_x2']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+
+        const lifecycle = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        expect(lifecycle).toBeDefined();
+        const ssn = (lifecycle as any).ev.args.sessionSubagent;
+        // Child exec_command begin envelopes present, attached to ssn, with provider call_ids.
+        const childStarts = envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'CodexBash' && e.subagent === ssn);
+        expect(childStarts.map((e: any) => e.ev.call).sort()).toEqual(['call_x1', 'call_x2']);
+        for (const cs of childStarts) {
+            expect((cs as any).ev.call).not.toBe(ssn);                       // INV-1
+            expect((cs as any).ev.args.sessionSubagent).toBeUndefined();     // INV-2
+        }
+        const childEnds = envelopes.filter((e: any) => e.ev.t === 'tool-call-end' && e.subagent === ssn && ['call_x1', 'call_x2'].includes(e.ev.call));
+        expect(childEnds).toHaveLength(2);
+    });
+
+    // AC-C8-2: binding captured at spawn-time survives a parent task_complete that clears the map.
+    it('AC-C8-2: child tools attach to correct ssn even after a parent task_complete clears state', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-2-parent';
+        const agentId = 'c8-2-agentA';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-2', 'call_spawnA', agentId, 'Architect', 'work'),
+            // task_complete AFTER spawn output, clears providerSubagentToSessionSubagent.
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-2' } },
+            // A second turn so end-of-file state no longer holds the binding.
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-c8-2b' } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-2b' } },
+        ]);
+        await writeRollout(codexHome, agentId, 'rollout-2026-05-16T17-05-24', childRecords(agentId, parentThread, ['call_y1']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const lifecycle = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        const ssn = (lifecycle as any).ev.args.sessionSubagent;
+        const childStart = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.call === 'call_y1');
+        expect(childStart).toBeDefined();
+        expect((childStart as any).subagent).toBe(ssn);
+    });
+
+    // AC-C8-3: child turn boundaries suppressed — no extra turn-start/turn-end from child, no premature flush.
+    it('AC-C8-3: child session_meta/task_started/task_complete produce no stray parent turn envelopes', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-3-parent';
+        const agentId = 'c8-3-agentA';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-3', 'call_spawnA', agentId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-3' } },
+        ]);
+        await writeRollout(codexHome, agentId, 'rollout-2026-05-16T17-05-24', childRecords(agentId, parentThread, ['call_z1']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        // Exactly ONE turn-start and ONE turn-end (from the parent), none synthesized from the child.
+        expect(envelopes.filter((e: any) => e.ev.t === 'turn-start')).toHaveLength(1);
+        expect(envelopes.filter((e: any) => e.ev.t === 'turn-end')).toHaveLength(1);
+        // The parent lifecycle closed via the parent task_complete as 'completed' (not prematurely errored by child).
+        const lifecycle = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        const lcCall = (lifecycle as any).ev.call;
+        const lcEnd = envelopes.find((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === lcCall);
+        expect((lcEnd as any).ev.result.lifecycle_state).toBe('completed');
+    });
+
+    // AC-C8-4: truncated-open lifecycle flushed at end-of-replay with non-success marker (mode d / M4).
+    it('AC-C8-4: truncated rollout (no close/task_complete) flushes the lifecycle as replay_truncated', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-4-parent';
+        const agentId = 'c8-4-agentA';
+        // Truncated AFTER spawn — no close_agent, no task_complete/turn_aborted.
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35',
+            parentSpawnRecords('turn-c8-4', 'call_spawnA', agentId, 'Architect', 'work'));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const lifecycle = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        expect(lifecycle).toBeDefined();    // card still rendered
+        const lcCall = (lifecycle as any).ev.call;
+        const lcEnd = envelopes.find((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === lcCall);
+        expect(lcEnd).toBeDefined();        // card closed, not stuck open
+        expect((lcEnd as any).ev.result.status).toBe('replay_truncated');
+        expect((lcEnd as any).ev.result.lifecycle_state).toBe('errored');
+    });
+
+    // AC-C8-7: missing OR malformed child file tolerated — lifecycle + parent envelopes preserved (S2).
+    it('AC-C8-7: missing child file omits internal tools but preserves the lifecycle card', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-7-parent';
+        const agentId = 'c8-7-missing-agent';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-7', 'call_spawnA', agentId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-7' } },
+        ]);
+        // NO child file written for agentId.
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        expect(envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle')).toBeDefined();
+        // Zero child CodexBash envelopes.
+        expect(envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'CodexBash')).toHaveLength(0);
+    });
+
+    it('AC-C8-7: malformed child JSON lines omit internal tools, no exception escapes', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-7b-parent';
+        const agentId = 'c8-7b-agent';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-7b', 'call_spawnA', agentId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-7b' } },
+        ]);
+        // Child file with malformed JSON lines (raw write, not via writeRollout's JSON.stringify).
+        const dir = join(codexHome, 'sessions', '2026', '05', '16');
+        await mkdir(dir, { recursive: true });
+        await writeFile(join(dir, `rollout-2026-05-16T17-05-24-${agentId}.jsonl`), '{ this is not valid json\n}}}\nnot json at all\n');
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        expect(envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle')).toBeDefined();
+        expect(envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'CodexBash')).toHaveLength(0);
+    });
+
+    // AC-C8-8 (INV-3 ordering on the replay path): lifecycle-start precedes all of its child tool envelopes.
+    it('AC-C8-8: lifecycle-start precedes all merged child tool envelopes for that ssn (INV-3)', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-8-parent';
+        const agentId = 'c8-8-agent';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-8', 'call_spawnA', agentId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-8' } },
+        ]);
+        await writeRollout(codexHome, agentId, 'rollout-2026-05-16T17-05-24', childRecords(agentId, parentThread, ['call_o1', 'call_o2']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const lifecycle = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        const ssn = (lifecycle as any).ev.args.sessionSubagent;
+        const lifecycleIdx = envelopes.indexOf(lifecycle as any);
+        const childIdxs = envelopes
+            .map((e: any, i: number) => ({ e, i }))
+            .filter(({ e }) => e.ev.t === 'tool-call-start' && e.subagent === ssn && e.ev.name === 'CodexBash')
+            .map(({ i }) => i);
+        expect(childIdxs.length).toBeGreaterThan(0);
+        for (const ci of childIdxs) {
+            expect(ci).toBeGreaterThan(lifecycleIdx);    // INV-3
+        }
+    });
+
+    // AC-C8-10: a child rollout containing a real grandchild spawn does not recurse / crash (S1).
+    it('AC-C8-10: child containing a spawn_agent grandchild does not recurse infinitely', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'c8-10-parent';
+        const agentId = 'c8-10-agent';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-c8-10', 'call_spawnA', agentId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-10' } },
+        ]);
+        // Child has its own exec_command AND a real grandchild spawn_agent function_call.
+        const childRecs: unknown[] = [
+            { type: 'session_meta', payload: { id: agentId, source: { subagent: { thread_spawn: { parent_thread_id: parentThread, depth: 1 } } } } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'exec_command', call_id: 'call_gc1', arguments: JSON.stringify({ cmd: 'echo hi' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_gc1', output: 'hi' } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call_grandspawn', arguments: JSON.stringify({ message: 'grandchild' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_grandspawn', output: JSON.stringify({ agent_id: 'c8-10-grandchild', nickname: 'Grand' }) } },
+        ];
+        await writeRollout(codexHome, agentId, 'rollout-2026-05-16T17-05-24', childRecs);
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        // The child's own exec_command merged; the grandchild spawn produced no merged child tool envelope.
+        const ssnLifecycle = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        const ssn = (ssnLifecycle as any).ev.args.sessionSubagent;
+        expect(envelopes.filter((e: any) => e.ev.call === 'call_gc1' && e.subagent === ssn)).not.toHaveLength(0);
+        // No envelope carries the grandchild spawn call_id as a merged child tool-start (grandchild omitted).
+        expect(envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.call === 'call_grandspawn' && e.ev.name === 'CodexBash')).toHaveLength(0);
+    });
+
+    // AC-C8-11 (RC-2): N>=2 subagents each merge to their OWN lifecycle card with no cross-attribution.
+    it('AC-C8-11: 3 subagents each merge to their own lifecycle card with no cross-attribution', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = '019e31bd-6275-7cf1-a525-3616befac9ec';
+        const a1 = '019e31bf-f5d6-7112-9c56-c575c6ede31a';
+        const a2 = '019e31bf-f64b-7e30-83ed-d729438688c3';
+        const a3 = '019e31bf-f6bb-7501-9ef9-8be22b357d64';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-c8-11' } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call_s1', arguments: JSON.stringify({ message: 'architect work' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_s1', output: JSON.stringify({ agent_id: a1, nickname: 'Architect' }) } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call_s2', arguments: JSON.stringify({ message: 'po work' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_s2', output: JSON.stringify({ agent_id: a2, nickname: 'ProductOwner' }) } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call_s3', arguments: JSON.stringify({ message: 'user work' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_s3', output: JSON.stringify({ agent_id: a3, nickname: 'User' }) } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-c8-11' } },
+        ]);
+        await writeRollout(codexHome, a1, 'rollout-2026-05-16T17-05-24', childRecords(a1, parentThread, ['call_a1_x', 'call_a1_y']));
+        await writeRollout(codexHome, a2, 'rollout-2026-05-16T17-05-24', childRecords(a2, parentThread, ['call_a2_x']));
+        await writeRollout(codexHome, a3, 'rollout-2026-05-16T17-05-24', childRecords(a3, parentThread, ['call_a3_x', 'call_a3_y', 'call_a3_z']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+
+        // 3 distinct lifecycle cards -> 3 distinct ssn values.
+        const lifecycles = envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        const ssns = lifecycles.map((e: any) => e.ev.args.sessionSubagent);
+        expect(new Set(ssns).size).toBe(3);
+
+        // Map each child's call_ids to the ssn they attach to; assert correct, non-cross-attributed grouping.
+        const callIdToSsn = new Map<string, string>();
+        for (const e of envelopes as any[]) {
+            if (e.ev.t === 'tool-call-start' && e.ev.name === 'CodexBash') {
+                callIdToSsn.set(e.ev.call, e.subagent);
+            }
+        }
+        // a1's two calls share one ssn; a2's one call a different ssn; a3's three calls a third ssn.
+        const ssnA1 = callIdToSsn.get('call_a1_x');
+        expect(callIdToSsn.get('call_a1_y')).toBe(ssnA1);
+        const ssnA2 = callIdToSsn.get('call_a2_x');
+        const ssnA3 = callIdToSsn.get('call_a3_x');
+        expect(callIdToSsn.get('call_a3_y')).toBe(ssnA3);
+        expect(callIdToSsn.get('call_a3_z')).toBe(ssnA3);
+        // No cross-attribution: the three groups' ssn are mutually distinct, and each is a real lifecycle ssn.
+        expect(new Set([ssnA1, ssnA2, ssnA3]).size).toBe(3);
+        for (const s of [ssnA1, ssnA2, ssnA3]) expect(ssns).toContain(s);
+        // a1's call_ids never appear under a2's or a3's ssn.
+        expect(ssnA1).not.toBe(ssnA2);
+        expect(ssnA1).not.toBe(ssnA3);
+        expect(ssnA2).not.toBe(ssnA3);
+    });
+
+    // AC-C8-8 (M6 negative postcondition): a child tool-call-start that would VIOLATE INV-1 (call===ssn)
+    // or INV-2 (args.sessionSubagent present) is rejected by the postcondition guard (would be dropped).
+    it('AC-C8-8: M6 postcondition guard rejects INV-1/INV-2-violating child envelopes', () => {
+        const ssn = createId(); // sessionSubagent must be a valid cuid2 (wire schema constraint).
+        // Valid child: call !== ssn, no sessionSubagent in args.
+        const ok = createEnvelope('agent', { t: 'tool-call-start', call: 'call_ok', name: 'CodexBash', title: 't', description: 'd', args: { cmd: 'x' } }, { subagent: ssn });
+        expect(childEnvelopePassesInvariants(ok, ssn)).toBe(true);
+        // INV-1 violation: ev.call === ssn.
+        const inv1 = createEnvelope('agent', { t: 'tool-call-start', call: ssn, name: 'CodexBash', title: 't', description: 'd', args: { cmd: 'x' } }, { subagent: ssn });
+        expect(childEnvelopePassesInvariants(inv1, ssn)).toBe(false);
+        // INV-2 violation: args carries sessionSubagent.
+        const inv2 = createEnvelope('agent', { t: 'tool-call-start', call: 'call_bad', name: 'CodexBash', title: 't', description: 'd', args: { cmd: 'x', sessionSubagent: ssn } }, { subagent: ssn });
+        expect(childEnvelopePassesInvariants(inv2, ssn)).toBe(false);
     });
 
     it('replays a fallback thread when the requested thread has no rollout file', async () => {

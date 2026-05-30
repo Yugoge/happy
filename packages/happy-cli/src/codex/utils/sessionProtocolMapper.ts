@@ -26,6 +26,12 @@ export type CodexTurnState = {
     // correct chronological position. The live (A1) mapper path never sets this, so createEnvelope keeps
     // its Date.now() default. Only ever a finite number (NaN-guarded by the replay caller).
     recordTime?: number;
+    // Cycle 8 (M5): per-turn Set of collab control-verb BEGIN `call_id`s that were actually emitted
+    // (a tool-call-start envelope was pushed). A collab control-verb END whose call_id is NOT in this
+    // Set is a TRUE orphan (no matching begin) and its top-level tool-call-end envelope is suppressed
+    // (the scattered-card symptom). Cleared on every parent turn boundary (task_started/complete/abort)
+    // so the discriminator is turn-scoped. An END whose begin WAS emitted is never suppressed (A2-safe).
+    emittedCollabBeginCallIds?: Set<string>;
 };
 
 type CodexMapperResult = {
@@ -35,6 +41,7 @@ type CodexMapperResult = {
     providerSubagentToSessionSubagent: Map<string, string>;
     subagentLifecycles: Map<string, LifecycleState>;
     envelopes: SessionEnvelope[];
+    emittedCollabBeginCallIds?: Set<string>;
 };
 
 type LegacyToolLikeMessage = {
@@ -113,6 +120,13 @@ function getActiveSubagents(state: CodexTurnState): Set<string> {
 
 function getProviderSubagentToSessionSubagent(state: CodexTurnState): Map<string, string> {
     return state.providerSubagentToSessionSubagent ?? new Map<string, string>();
+}
+
+// Cycle 8 (M5): lazily materialize the per-turn emitted-collab-begin Set so the orphan-end
+// discriminator ("no matching begin emitted for this call_id") has a backing store. Returns the
+// existing Set when present so begins recorded earlier in the turn survive into the end handler.
+function getEmittedCollabBeginCallIds(state: CodexTurnState): Set<string> {
+    return state.emittedCollabBeginCallIds ?? new Set<string>();
 }
 
 function maybeEmitSubagentStart(
@@ -440,6 +454,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     const activeSubagents = getActiveSubagents(state);
     const providerSubagentToSessionSubagent = getProviderSubagentToSessionSubagent(state);
     const subagentLifecycles = getSubagentLifecycles(state);
+    const emittedCollabBeginCallIds = getEmittedCollabBeginCallIds(state);
 
     if (type === 'task_started') {
         const turnId = pickWrapperTurnId(message) ?? createId();
@@ -448,12 +463,16 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         activeSubagents.clear();
         providerSubagentToSessionSubagent.clear();
         subagentLifecycles.clear();
-        return { currentTurnId: turnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes: [turnStart] };
+        // Cycle 8 (M5): clear the emitted-begin Set on the parent turn boundary so orphan-end
+        // suppression is scoped to the current turn (a stale begin from a prior turn must not
+        // greenwash an end in this turn).
+        emittedCollabBeginCallIds.clear();
+        return { currentTurnId: turnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes: [turnStart] };
     }
 
     if (type === 'task_complete' || type === 'turn_aborted') {
         if (!state.currentTurnId) {
-            return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes: [] };
+            return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes: [] };
         }
         // Cycle 7 (M2.a): lifecycle-END / turn-end for a close/abort record inherit THIS record's time.
         const lifecycleOpts = { turn: state.currentTurnId, ...(typeof state.recordTime === 'number' && Number.isFinite(state.recordTime) ? { time: state.recordTime } : {}) } satisfies CreateEnvelopeOptions;
@@ -462,8 +481,10 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         flushOpenLifecycles(turnStatus === 'completed' ? 'completed' : 'errored', turnStatus, lifecycleOpts, subagentLifecycles, lifecycleEnvelopes);
         providerSubagentToSessionSubagent.clear();
         subagentLifecycles.clear();
+        // Cycle 8 (M5): the parent turn ended — drop the emitted-begin Set so the next turn starts clean.
+        emittedCollabBeginCallIds.clear();
         return {
-            currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles,
+            currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds,
             envelopes: [
                 ...lifecycleEnvelopes,
                 ...emitSubagentStops(lifecycleOpts, startedSubagents, activeSubagents),
@@ -666,7 +687,10 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             ? { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: message.receiverThreadIds ?? [], agentsStates: message.agentsStates ?? {} }
             : { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: message.receiverThreadIds ?? [], agentsStates: message.agentsStates ?? {}, ...(sessionSubagent ? { sessionSubagent } : {}) };
         envelopes.push(createEnvelope('agent', { t: 'tool-call-start', call, name, title, description, args }, childOpts));
-        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes };
+        // Cycle 8 (M5): record that a control-verb BEGIN tool-call-start was emitted for this call_id so
+        // the matching END is recognised as legitimate (not a true orphan) and is never suppressed.
+        emittedCollabBeginCallIds.add(call);
+        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes };
     }
 
     if (type === 'collab_agent_call_end') {
@@ -691,7 +715,17 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // under the same sidechain parent. END carries no args, so M1.b (omit sessionSubagent) is automatic.
         const isChildEnd = ssn !== undefined && subagentLifecycles.has(ssn);
         const childEndOpts = isChildEnd ? { ...opts, subagent: ssn } : opts;
-        envelopes.push(toolEndEnvelope(call, message, childEndOpts));
+        // Cycle 8 (M5, RC-3 discriminator): a TRUE orphan END is one that (a) cannot link to a lifecycle
+        // (isChildEnd false), AND (b) had NO matching BEGIN emitted for this call_id this turn, AND (c) is
+        // not the spawn_agent retro-start case (spawn always synthesizes an ssn above, so it never reaches
+        // here unlinked). Such an END would render as a scattered top-level tool-call-end card — suppress
+        // it. The discriminator keys on "no emitted BEGIN", NOT merely "ssn undefined": an end whose begin
+        // WAS emitted (in the Set) or whose ssn resolves (isChildEnd) is a legitimate end and is emitted
+        // normally — this protects the A2 control-verb-children behavior from over-suppression.
+        const isTrueOrphanEnd = !isChildEnd && verb !== 'spawn_agent' && !emittedCollabBeginCallIds.has(call);
+        if (!isTrueOrphanEnd) {
+            envelopes.push(toolEndEnvelope(call, message, childEndOpts));
+        }
         // Cycle 7 §5.3.D.5: real path event.agentsStates[id].message; wait buffers, close emits.
         const entry = ssn ? subagentLifecycles.get(ssn) : undefined;
         const fromAS = (verb === 'wait_agent' || verb === 'close_agent') ? readAgentsStatesMessage(message) : undefined;
@@ -703,7 +737,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             const terminal = (status === 'completed') ? 'completed' : 'errored';
             emitLifecycleEnd(ssn, terminal, { status, ...(finalSummary !== undefined && finalSummary !== null ? { final_summary: finalSummary } : {}), lifecycle_state: terminal }, opts, subagentLifecycles, envelopes);
         }
-        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes };
+        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes };
     }
 
     if (type === 'dynamic_tool_call_begin') {

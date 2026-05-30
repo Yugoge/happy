@@ -992,4 +992,57 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         expect(spawnBegin.subagentLifecycles.get(ssn)?.state).toBe('started');
         expect(spawnBegin.subagentLifecycles.get(ssn)?.prompt).toBe('do some work');
     });
+
+    // ================================================================================
+    // Cycle 8 (M5/M6) — orphan-end suppression + invariant postcondition, mapper-level.
+    // ================================================================================
+
+    function stepC8(message: any, prior: any) { return mapCodexMcpMessageToSessionEnvelopes(message, prior); }
+
+    // AC-C8-5 (M5, RC-3): a TRUE orphan control-verb END (no matching BEGIN emitted this turn, ssn
+    // unresolvable) is suppressed — no scattered top-level tool-call-end card.
+    it('AC-C8-5: orphan close_agent END with no emitted BEGIN is suppressed (no scattered card)', () => {
+        const started = stepC8({ type: 'task_started', turn_id: 'turn-c8-5' }, { currentTurnId: null, emittedCollabBeginCallIds: new Set<string>() });
+        // A close_agent END arrives with NO prior begin and no resolvable receiver thread (true orphan).
+        const orphanEnd = stepC8({ type: 'collab_agent_call_end', call_id: 'orphan-close-1', tool: 'closeAgent', status: 'completed', receiverThreadIds: [] }, started);
+        // No tool-call-end envelope emitted (the orphan card is suppressed).
+        expect(orphanEnd.envelopes.filter(e => e.ev.t === 'tool-call-end')).toHaveLength(0);
+    });
+
+    // AC-C8-5 anti-over-suppression: a control-verb END whose BEGIN WAS emitted and whose ssn resolves
+    // is NOT suppressed (protects the A2 control-verb-children behavior).
+    it('AC-C8-5: a legitimate END (begin emitted + ssn resolves) is NOT suppressed', () => {
+        const started = stepC8({ type: 'task_started', turn_id: 'turn-c8-5b' }, { currentTurnId: null, emittedCollabBeginCallIds: new Set<string>() });
+        // Spawn so a lifecycle exists; bind a receiver thread.
+        const spawnBegin = stepC8({ type: 'collab_agent_call_begin', call_id: 'spawn-c8-5b', tool: 'spawnAgent', prompt: 'work', receiverThreadIds: [], agentsStates: {} }, started);
+        const spawnEnd = stepC8({ type: 'collab_agent_call_end', call_id: 'spawn-c8-5b', tool: 'spawnAgent', status: 'completed', receiverThreadIds: ['child-5b'], agentsStates: { 'child-5b': { status: 'running', message: null } } }, spawnBegin);
+        // A wait BEGIN is emitted, then its END — the END must NOT be suppressed.
+        const waitBegin = stepC8({ type: 'collab_agent_call_begin', call_id: 'wait-c8-5b', tool: 'wait', receiverThreadIds: ['child-5b'] }, spawnEnd);
+        const waitEnd = stepC8({ type: 'collab_agent_call_end', call_id: 'wait-c8-5b', tool: 'wait', status: 'completed', receiverThreadIds: ['child-5b'] }, waitBegin);
+        // The wait END tool-call-end IS emitted (begin was emitted for wait-c8-5b).
+        expect(waitEnd.envelopes.filter(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === 'wait-c8-5b')).toHaveLength(1);
+    });
+
+    // AC-C8-6 (mode b): out-of-order control-verb records before their lifecycle do not throw.
+    it('AC-C8-6: control-verb end before any lifecycle does not crash (mode b)', () => {
+        const started = stepC8({ type: 'task_started', turn_id: 'turn-c8-6' }, { currentTurnId: null, emittedCollabBeginCallIds: new Set<string>() });
+        // A wait END arrives before any spawn/lifecycle. Must not throw; emits no scattered card.
+        expect(() => stepC8({ type: 'collab_agent_call_end', call_id: 'ooo-wait', tool: 'wait', status: 'completed', receiverThreadIds: [] }, started)).not.toThrow();
+        const res = stepC8({ type: 'collab_agent_call_end', call_id: 'ooo-wait', tool: 'wait', status: 'completed', receiverThreadIds: [] }, started);
+        expect(res.envelopes.filter(e => e.ev.t === 'tool-call-end')).toHaveLength(0);
+    });
+
+    // AC-C8-8 (M6 postcondition / INV-1+INV-2): a control-verb child START with subagent===ssn carries
+    // ev.call === provider call_id (never ssn) and args WITHOUT sessionSubagent.
+    it('AC-C8-8: control-verb child start preserves INV-1 (call !== ssn) and INV-2 (no sessionSubagent in args)', () => {
+        const started = stepC8({ type: 'task_started', turn_id: 'turn-c8-8' }, { currentTurnId: null, emittedCollabBeginCallIds: new Set<string>() });
+        const spawnBegin = stepC8({ type: 'collab_agent_call_begin', call_id: 'spawn-c8-8', tool: 'spawnAgent', prompt: 'work', receiverThreadIds: [], agentsStates: {} }, started);
+        const ssn = (spawnBegin.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle')!.ev as any).args.sessionSubagent as string;
+        // The spawn control-verb child start (functions.spawn_agent) attaches to ssn.
+        const child = spawnBegin.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.spawn_agent');
+        expect(child).toBeDefined();
+        expect((child as any).subagent).toBe(ssn);
+        expect((child as any).ev.call).not.toBe(ssn);                 // INV-1
+        expect((child as any).ev.args.sessionSubagent).toBeUndefined(); // INV-2
+    });
 });
