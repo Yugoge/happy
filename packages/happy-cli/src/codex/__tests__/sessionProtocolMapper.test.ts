@@ -81,24 +81,35 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
             { currentTurnId: 'turn-1' }
         );
 
-        // Cycle 6: collab_agent_call_begin (spawnAgent) emits TWO envelopes —
-        // the original spawn_agent tool-call-start AND a synthetic
-        // functions.subagent_lifecycle tool-call-start keyed by sessionSubagent.
+        // Cycle 7 (M1/M1.a/M1.c): collab_agent_call_begin (spawnAgent) emits TWO envelopes,
+        // lifecycle FIRST (ordering invariant M1.c — ssn registered before the child links to it),
+        // then the spawn_agent tool-call-start emitted as a recursion-safe sidechain CHILD:
+        //   - envelopes[0] = functions.subagent_lifecycle (top-level, args.sessionSubagent = ssn)
+        //   - envelopes[1] = functions.spawn_agent CHILD (subagent = ssn; ev.call = provider call_id,
+        //                    NOT ssn (M1.a); args has NO sessionSubagent (M1.b))
         expect(started.envelopes).toHaveLength(2);
-        const startEvent = started.envelopes[0].ev;
-        expect(startEvent.t).toBe('tool-call-start');
-        if (startEvent.t !== 'tool-call-start') throw new Error('Expected tool-call-start');
-        expect(isCuid(startEvent.call)).toBe(true);
-        expect(startEvent.args.sessionSubagent).toBe(startEvent.call);
-        expect(started.envelopes[0].subagent).toBeUndefined();
-        expect(started.envelopes[0].turn).toBe('wrapper-turn');
-        const lifecycleEvent = started.envelopes[1].ev;
+        const lifecycleEvent = started.envelopes[0].ev;
         expect(lifecycleEvent.t).toBe('tool-call-start');
         if (lifecycleEvent.t !== 'tool-call-start') throw new Error('Expected lifecycle tool-call-start');
         expect(lifecycleEvent.name).toBe('functions.subagent_lifecycle');
-        expect(lifecycleEvent.call).toBe(`lifecycle:${startEvent.call}`);
-        expect(lifecycleEvent.args.sessionSubagent).toBe(startEvent.call);
+        const ssn = lifecycleEvent.args.sessionSubagent as string;
+        expect(isCuid(ssn)).toBe(true);
+        expect(lifecycleEvent.call).toBe(`lifecycle:${ssn}`);
         expect(lifecycleEvent.args.lifecycle_state).toBe('started');
+        expect(started.envelopes[0].subagent).toBeUndefined(); // lifecycle stays TOP-LEVEL
+        expect(started.envelopes[0].turn).toBe('wrapper-turn');
+
+        const startEvent = started.envelopes[1].ev;
+        expect(startEvent.t).toBe('tool-call-start');
+        if (startEvent.t !== 'tool-call-start') throw new Error('Expected tool-call-start');
+        expect(startEvent.name).toBe('functions.spawn_agent');
+        // M1.a: child ev.call is the provider call_id, NOT ssn.
+        expect(startEvent.call).toBe('collab-1');
+        expect(startEvent.call).not.toBe(ssn);
+        // M1.b: child args must NOT include sessionSubagent.
+        expect(startEvent.args.sessionSubagent).toBeUndefined();
+        // M1: child is a sidechain of the lifecycle (subagent = ssn).
+        expect(started.envelopes[1].subagent).toBe(ssn);
 
         const child = mapCodexMcpMessageToSessionEnvelopes(
             {
@@ -124,7 +135,9 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
             'stop',
             'tool-call-end',
         ]);
-        expect(child.envelopes[1].subagent).toBe(startEvent.call);
+        // Cycle 7 (M1): child transcript items route to the lifecycle's ssn (child-thread bound to ssn
+        // at spawn-begin), not to the spawn card's provider call_id.
+        expect(child.envelopes[1].subagent).toBe(ssn);
         expect(child.envelopes[1].turn).toBe('child-turn');
         expect(child.envelopes.some((envelope) => envelope.ev.t === 'turn-end')).toBe(false);
 
@@ -138,11 +151,14 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
                 subagentLifecycles: child.subagentLifecycles,
             }
         );
+        // Cycle 7 (M1): spawn-end is now the recursion-safe CHILD end (call = provider call_id 'collab-1',
+        // subagent = ssn), NOT a top-level end keyed by ssn.
         expect(endAfterFinal.envelopes).toHaveLength(1);
         expect(endAfterFinal.envelopes[0].ev).toMatchObject({
             t: 'tool-call-end',
-            call: startEvent.call,
+            call: 'collab-1',
         });
+        expect(endAfterFinal.envelopes[0].subagent).toBe(ssn);
 
         const root = mapCodexMcpMessageToSessionEnvelopes(
             { type: 'agent_message', message: 'root text', threadId: 'root-thread', turnId: 'root-turn' },
@@ -267,8 +283,11 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
             },
             { currentTurnId: 'turn-1' }
         );
-        const startEvent = begin.envelopes[0].ev;
+        // Cycle 7 (M1): envelopes[0] is now the lifecycle; the spawn card is the CHILD at envelopes[1]
+        // (call = provider call_id 'spawn-1').
+        const startEvent = begin.envelopes[1].ev;
         if (startEvent.t !== 'tool-call-start') throw new Error('Expected spawn start');
+        expect(startEvent.call).toBe('spawn-1');
 
         const endBeforeFinal = mapCodexMcpMessageToSessionEnvelopes(
             {
@@ -287,6 +306,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
                 subagentLifecycles: begin.subagentLifecycles,
             }
         );
+        // Cycle 7 (M1): spawn-end is the recursion-safe CHILD end (call = 'spawn-1', subagent = ssn).
         expect(endBeforeFinal.envelopes).toHaveLength(1);
         expect(endBeforeFinal.envelopes[0].ev).toMatchObject({
             t: 'tool-call-end',
@@ -307,10 +327,10 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
                 providerSubagentToSessionSubagent: endBeforeFinal.providerSubagentToSessionSubagent,
             }
         );
+        // The final_answer parent-result end is keyed by ssn (the owner-thread result card), unchanged.
         const parentResult = finalAfterEnd.envelopes.find((envelope) => envelope.ev.t === 'tool-call-end');
-        expect(parentResult?.ev).toEqual({
+        expect(parentResult?.ev).toMatchObject({
             t: 'tool-call-end',
-            call: startEvent.call,
             output: 'final answer text',
         });
     });
@@ -328,8 +348,10 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
             },
             { currentTurnId: 'turn-1' }
         );
-        const spawnStart = state.envelopes[0].ev;
+        // Cycle 7 (M1): envelopes[0] is the lifecycle; the spawn card child is envelopes[1] (call 'spawn-1').
+        const spawnStart = state.envelopes[1].ev;
         if (spawnStart.t !== 'tool-call-start') throw new Error('Expected spawn start');
+        expect(spawnStart.call).toBe('spawn-1');
         // Cycle 8: spawn-end binds receiverThreadId per event_mapping.rs:104-114 (Some branch).
         // The original spawn-end at the bottom of this test is re-emitted with same call_id;
         // mapper's binding logic is idempotent on the existing call_id->ssn entry.
@@ -415,7 +437,11 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
                 { type: 'collab_agent_call_begin', call_id: `spawn-${fixture.expectedName}`, tool: 'spawnAgent', prompt: 'inspect', receiverThreadIds: [], agentsStates: {} },
                 { currentTurnId: 'turn-1' }
             );
-            const spawnEvent = begin.envelopes[0].ev;
+            // Cycle 7 (M1): envelopes[0] is the lifecycle; spawn card child is envelopes[1].
+            const lifecycleStart = begin.envelopes[0].ev;
+            if (lifecycleStart.t !== 'tool-call-start') throw new Error('Expected lifecycle start');
+            const ssn = lifecycleStart.args.sessionSubagent as string;
+            const spawnEvent = begin.envelopes[1].ev;
             if (spawnEvent.t !== 'tool-call-start') throw new Error('Expected spawn start');
             const ended = mapCodexMcpMessageToSessionEnvelopes(
                 { type: 'collab_agent_call_end', call_id: `spawn-${fixture.expectedName}`, tool: 'spawnAgent', status: 'completed', receiverThreadIds: ['child-thread'], agentsStates: { 'child-thread': { status: 'running', message: null } } },
@@ -426,8 +452,10 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
                 { currentTurnId: ended.currentTurnId, startedSubagents: ended.startedSubagents, activeSubagents: ended.activeSubagents, providerSubagentToSessionSubagent: ended.providerSubagentToSessionSubagent }
             );
 
+            // Cycle 7 (M1): child transcript items route to the lifecycle's ssn (child-thread bound to
+            // ssn at spawn-end), not to the spawn card's provider call_id.
             const toolStart = routed.envelopes.find((envelope) => envelope.ev.t === 'tool-call-start');
-            expect(toolStart?.subagent).toBe(spawnEvent.call);
+            expect(toolStart?.subagent).toBe(ssn);
             expect(toolStart?.turn).toBe('child-turn');
             if (toolStart?.ev.t === 'tool-call-start') {
                 expect(toolStart.ev.name).toBe(fixture.expectedName);
@@ -631,10 +659,19 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         return begin;
     }
     function step(message: any, prior: any) { return mapCodexMcpMessageToSessionEnvelopes(message, prior); }
+    // Cycle 7 (M1): the lifecycle envelope is the only one carrying args.sessionSubagent — the spawn
+    // card is now a recursion-safe CHILD whose args omit sessionSubagent (M1.b). Extract ssn from the
+    // lifecycle tool-call-start (found by name), not by envelope index.
+    function lifecycleEnvOf(result: any) {
+        return result.envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+    }
+    function ssnOf(result: any): string {
+        return (lifecycleEnvOf(result)!.ev as any).args.sessionSubagent as string;
+    }
 
     it('case a: spawn-wait-close — wait buffers final_summary via real agentsStates path; close emits terminal inheriting buffered summary', () => {
         const begin = spawnState('spawn-1', 'child-A', 'inspect alpha');
-        const lifecycle0 = begin.envelopes[1].ev;
+        const lifecycle0 = lifecycleEnvOf(begin)!.ev;
         if (lifecycle0.t !== 'tool-call-start') throw new Error('Expected lifecycle start');
         expect(lifecycle0.name).toBe('functions.subagent_lifecycle');
         const sessionSubagent = lifecycle0.args.sessionSubagent as string;
@@ -671,7 +708,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
     // carries agentsStates directly, mapper reads it as fallback to buffered.
     it('case a-2 (AC4): close-only path with agentsStates on close inherits via fallback', () => {
         const begin = spawnState('spawn-1b', 'child-A2', 'inspect alpha-2');
-        const sessionSubagent = (begin.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionSubagent = ssnOf(begin);
         const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-1b', tool: 'closeAgent', receiverThreadIds: ['child-A2'] }, begin);
         const closeEnd = step({
             type: 'collab_agent_call_end', call_id: 'close-1b', tool: 'closeAgent', status: 'completed',
@@ -689,7 +726,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
     // (mirrors Codex first_agent_state precedent at multi_agents.rs:537-550).
     it('case a-3 (S1): multi-receiver-thread wait picks the first thread\'s agentsStates message', () => {
         const begin = spawnState('spawn-1c', 'child-X', 'inspect multi');
-        const sessionSubagent = (begin.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionSubagent = ssnOf(begin);
         const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-1c', tool: 'wait', receiverThreadIds: ['child-X', 'child-Y'] }, begin);
         const waitEnd = step({
             type: 'collab_agent_call_end', call_id: 'wait-1c', tool: 'wait', status: 'completed',
@@ -705,7 +742,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
     // Cycle 7 §5.3.D.5 AC5: empty/missing agentsStates — terminal still emits without final_summary.
     it('case a-4: missing agentsStates — terminal emits without final_summary (graceful degradation)', () => {
         const begin = spawnState('spawn-1d', 'child-A4', 'no agentsStates');
-        const sessionSubagent = (begin.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionSubagent = ssnOf(begin);
         const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-1d', tool: 'closeAgent', receiverThreadIds: ['child-A4'] }, begin);
         const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-1d', tool: 'closeAgent', status: 'completed', receiverThreadIds: ['child-A4'] }, closeBegin);
         const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${sessionSubagent}`);
@@ -719,7 +756,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
     // Cycle 7 §5.3.D.5: errored status from agentsStates — terminal goes to errored state.
     it('case a-5: errored status — terminal goes to errored, summary still inherits', () => {
         const begin = spawnState('spawn-1e', 'child-A5', 'will fail');
-        const sessionSubagent = (begin.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionSubagent = ssnOf(begin);
         const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-1e', tool: 'wait', receiverThreadIds: ['child-A5'] }, begin);
         const waitEnd = step({
             type: 'collab_agent_call_end', call_id: 'wait-1e', tool: 'wait', status: 'completed',
@@ -737,7 +774,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
 
     it('case b: spawn-no-wait-close emits lifecycle started then completed (skipping running/ready)', () => {
         const begin = spawnState('spawn-2', 'child-B', 'quick task');
-        const sessionSubagent = (begin.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionSubagent = ssnOf(begin);
         const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-2', tool: 'closeAgent', receiverThreadIds: ['child-B'] }, begin);
         const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-2', tool: 'closeAgent', status: 'completed' }, closeBegin);
         const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${sessionSubagent}`);
@@ -749,7 +786,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
 
     it('case c: spawn followed by turn_aborted emits lifecycle terminal errored with status cancelled', () => {
         const begin = spawnState('spawn-3', 'child-C', 'will be aborted');
-        const sessionSubagent = (begin.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionSubagent = ssnOf(begin);
         const aborted = step({ type: 'turn_aborted' }, begin);
         const lifecycleEnd = aborted.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${sessionSubagent}`);
         expect(lifecycleEnd).toBeDefined();
@@ -763,7 +800,7 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
 
     it('case d: two parallel subagents emit two disjoint lifecycle envelopes', () => {
         const beginA = spawnState('spawn-A', 'child-X', 'task A');
-        const sessionA = (beginA.envelopes[1].ev as any).args.sessionSubagent as string;
+        const sessionA = ssnOf(beginA);
         const beginB = spawnState('spawn-B', 'child-Y', 'task B', beginA);
         // beginB.envelopes contains B's spawn + B's lifecycle. Only B is in this step's envelopes.
         const lifecycleB = beginB.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle');
@@ -870,10 +907,15 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         const sendStartEv = sendInput.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.send_input');
         expect(sendStartEv).toBeDefined();
         if (sendStartEv && sendStartEv.ev.t === 'tool-call-start') {
-            // AC-C6-1: sessionSubagent must be present in args
-            expect(sendStartEv.ev.args.sessionSubagent).toBe(ssn);
+            // Cycle 7 (M1/M1.a/M1.b): the single-active fallback STILL resolves ssn, but send_input is now
+            // a recursion-safe sidechain CHILD of the lifecycle: subagent = ssn, ev.call = provider call_id
+            // ('send-input-1', NOT ssn), and args MUST NOT carry sessionSubagent.
+            expect(sendStartEv.subagent).toBe(ssn);
+            expect(sendStartEv.ev.call).toBe('send-input-1');
+            expect(sendStartEv.ev.call).not.toBe(ssn);
+            expect(sendStartEv.ev.args.sessionSubagent).toBeUndefined();
         }
-        // AC-C6-1: providerSubagentToSessionSubagent must register for call-end matching
+        // AC-C6-1: providerSubagentToSessionSubagent must register for call-end matching (state-level resolution unchanged)
         expect(sendInput.providerSubagentToSessionSubagent.get('call:send-input-1')).toBe(ssn);
     });
 

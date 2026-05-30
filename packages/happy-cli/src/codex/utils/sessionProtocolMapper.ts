@@ -20,6 +20,12 @@ export type CodexTurnState = {
     activeSubagents?: Set<string>;
     providerSubagentToSessionSubagent?: Map<string, string>;
     subagentLifecycles?: Map<string, LifecycleState>;
+    // Cycle 7 (M2/M2.a): historical epoch-ms parsed from the replay rollout record's top-level
+    // `timestamp`. When set (A2 replay path only), EVERY createEnvelope call for that record inherits
+    // it via buildEnvelopeOptions so the merged lifecycle card and all same-record envelopes sit at the
+    // correct chronological position. The live (A1) mapper path never sets this, so createEnvelope keeps
+    // its Date.now() default. Only ever a finite number (NaN-guarded by the replay caller).
+    recordTime?: number;
 };
 
 type CodexMapperResult = {
@@ -167,11 +173,15 @@ function buildEnvelopeOptions(
     currentTurnId: string | null,
     subagent?: string,
     message?: Record<string, unknown>,
+    recordTime?: number,
 ): CreateEnvelopeOptions {
     const turn = pickWrapperTurnId(message) ?? currentTurnId;
     return {
         ...(turn ? { turn } : {}),
         ...(subagent ? { subagent } : {}),
+        // Cycle 7 (M2.a): thread the per-record historical time into opts so createEnvelope uses it
+        // instead of Date.now(). Only set when finite — the replay caller guards against NaN.
+        ...(typeof recordTime === 'number' && Number.isFinite(recordTime) ? { time: recordTime } : {}),
     };
 }
 
@@ -433,7 +443,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
 
     if (type === 'task_started') {
         const turnId = pickWrapperTurnId(message) ?? createId();
-        const turnStart = createEnvelope('agent', { t: 'turn-start' }, { turn: turnId });
+        const turnStart = createEnvelope('agent', { t: 'turn-start' }, { turn: turnId, ...(typeof state.recordTime === 'number' && Number.isFinite(state.recordTime) ? { time: state.recordTime } : {}) });
         startedSubagents.clear();
         activeSubagents.clear();
         providerSubagentToSessionSubagent.clear();
@@ -445,7 +455,8 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         if (!state.currentTurnId) {
             return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes: [] };
         }
-        const lifecycleOpts = { turn: state.currentTurnId } satisfies CreateEnvelopeOptions;
+        // Cycle 7 (M2.a): lifecycle-END / turn-end for a close/abort record inherit THIS record's time.
+        const lifecycleOpts = { turn: state.currentTurnId, ...(typeof state.recordTime === 'number' && Number.isFinite(state.recordTime) ? { time: state.recordTime } : {}) } satisfies CreateEnvelopeOptions;
         const turnStatus = pickTurnEndStatus(message, type);
         const lifecycleEnvelopes: SessionEnvelope[] = [];
         flushOpenLifecycles(turnStatus === 'completed' ? 'completed' : 'errored', turnStatus, lifecycleOpts, subagentLifecycles, lifecycleEnvelopes);
@@ -466,7 +477,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     }
 
     const subagent = resolveSessionSubagent(message, providerSubagentToSessionSubagent);
-    const opts = buildEnvelopeOptions(state.currentTurnId, subagent, message);
+    const opts = buildEnvelopeOptions(state.currentTurnId, subagent, message, state.recordTime);
 
     if (type === 'agent_message') {
         if (typeof message.message !== 'string') {
@@ -486,6 +497,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
                 state.currentTurnId,
                 providerSubagentToSessionSubagent.get(ownerSubagentKey(subagent)),
                 message,
+                state.recordTime,
             )));
         }
         return {
@@ -630,15 +642,30 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             // If activeLifecycles.length > 1: leave sessionSubagent undefined (no wrong attribution).
         }
         if (sessionSubagent && subagent) providerSubagentToSessionSubagent.set(ownerSubagentKey(sessionSubagent), subagent);
-        const visibleCall = verb === 'spawn_agent' && sessionSubagent ? sessionSubagent : call;
         const prompt = typeof message.prompt === 'string' ? message.prompt : '';
         const description = prompt.length > 0 ? (prompt.length > 80 ? `${prompt.slice(0, 77)}...` : prompt) : `${verb || 'subagent'} call`;
         const title = verb ? `Subagent: ${verb}` : 'Subagent call';
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        const args = { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: message.receiverThreadIds ?? [], agentsStates: message.agentsStates ?? {}, ...(sessionSubagent ? { sessionSubagent } : {}) };
-        envelopes.push(createEnvelope('agent', { t: 'tool-call-start', call: visibleCall, name, title, description, args }, opts));
+        // Cycle 7 (M1): emit the lifecycle-start envelope FIRST (before the control-verb child) so the
+        // reducer/tracer registers `ssn` as a parent-id before the child links to it (INV-3 / M1.c —
+        // `ssn` is a cuid2, not orphan-buffered, so ordering is load-bearing). For spawn_agent this
+        // registers ssn; for later control verbs the lifecycle already exists from the spawn.
         if (verb === 'spawn_agent' && sessionSubagent) emitLifecycleStart(sessionSubagent, call, prompt, typeof message.agentNickname === 'string' ? message.agentNickname : null, opts, subagentLifecycles, envelopes);
+        // Cycle 7 (M1/M1.a/M1.b): emit the control verb as a recursion-safe sidechain CHILD of the
+        // lifecycle card when a lifecycle exists for ssn. The child carries:
+        //   - opts.subagent = ssn         -> normalizes to a sidechain child (parentUUID = ssn)
+        //   - ev.call = provider call_id  -> NEVER ssn (M1.a — else getToolCallParentIds self-registers
+        //                                    content.id = ssn and the child self-parents -> recursion)
+        //   - args WITHOUT sessionSubagent (M1.b — else getToolCallParentIds self-registers via the
+        //                                    sessionSubagent parent-id -> recursion)
+        // When no lifecycle exists (sessionSubagent undefined), fall back to the prior top-level shape.
+        const isChild = sessionSubagent !== undefined && subagentLifecycles.has(sessionSubagent);
+        const childOpts = isChild ? { ...opts, subagent: sessionSubagent } : opts;
+        const args = isChild
+            ? { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: message.receiverThreadIds ?? [], agentsStates: message.agentsStates ?? {} }
+            : { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: message.receiverThreadIds ?? [], agentsStates: message.agentsStates ?? {}, ...(sessionSubagent ? { sessionSubagent } : {}) };
+        envelopes.push(createEnvelope('agent', { t: 'tool-call-start', call, name, title, description, args }, childOpts));
         return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes };
     }
 
@@ -654,10 +681,17 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             providerSubagentToSessionSubagent.set(callSubagentKey(call), ssn);
             if (endRcv) providerSubagentToSessionSubagent.set(endRcv, ssn);
         }
-        const visibleCall = verb === 'spawn_agent' && ssn ? ssn : call, envelopes: SessionEnvelope[] = [];
+        const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        // Cycle 7 (M1.c): retro-emit lifecycle-start BEFORE the control-verb child end so `ssn` is
+        // registered as a parent-id before the child links to it (idempotent — subagentLifecycle.ts:59).
         if (verb === 'spawn_agent' && ssn && !subagentLifecycles.has(ssn)) emitLifecycleStart(ssn, call, typeof message.prompt === 'string' ? message.prompt : '', typeof message.agentNickname === 'string' ? message.agentNickname : null, opts, subagentLifecycles, envelopes);
-        envelopes.push(toolEndEnvelope(visibleCall, message, opts));
+        // Cycle 7 (M1/M1.a/M1.b): emit the control-verb tool-call-END as a recursion-safe sidechain CHILD
+        // (matching the begin: call = provider call_id (never ssn), opts.subagent = ssn) so begin/end pair
+        // under the same sidechain parent. END carries no args, so M1.b (omit sessionSubagent) is automatic.
+        const isChildEnd = ssn !== undefined && subagentLifecycles.has(ssn);
+        const childEndOpts = isChildEnd ? { ...opts, subagent: ssn } : opts;
+        envelopes.push(toolEndEnvelope(call, message, childEndOpts));
         // Cycle 7 §5.3.D.5: real path event.agentsStates[id].message; wait buffers, close emits.
         const entry = ssn ? subagentLifecycles.get(ssn) : undefined;
         const fromAS = (verb === 'wait_agent' || verb === 'close_agent') ? readAgentsStatesMessage(message) : undefined;

@@ -196,6 +196,147 @@ describe('replayCodexRolloutHistory', () => {
         expect(typeof (lifecycleEnv as any).ev.args.sessionSubagent).toBe('string');
     });
 
+    // Cycle 7 (S3 / AC-C7-3): a rollout record with a known top-level `timestamp` produces envelopes
+    // whose `time === Date.parse(timestamp)` (NOT Date.now()).
+    it('AC-C7-3: threads record.timestamp into the lifecycle + same-record envelopes (time === Date.parse)', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = 'ac-c7-3-thread';
+        const spawnTs = '2026-05-16T17:02:39.301Z';
+        const spawnMs = Date.parse(spawnTs);
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-16T17-02-35', [
+            { type: 'event_msg', timestamp: '2026-05-16T17:02:35.000Z', payload: { type: 'task_started', turn_id: 'turn-c7-3' } },
+            {
+                type: 'response_item',
+                timestamp: spawnTs,
+                payload: {
+                    type: 'function_call',
+                    name: 'spawn_agent',
+                    call_id: 'spawn-c7-3',
+                    // M2.c: real rollout uses `message`, not `prompt`.
+                    arguments: JSON.stringify({ agent_type: 'architect', message: 'inspect auth', reasoning_effort: 'medium' }),
+                },
+            },
+        ]);
+        const session = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+
+        const lifecycleEnv = envelopes.find(
+            (e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle'
+        );
+        expect(lifecycleEnv).toBeDefined();
+        // AC-C7-3: lifecycle-START carries the spawn record's historical time.
+        expect((lifecycleEnv as any).time).toBe(spawnMs);
+        // M2.c: the lifecycle description must use `message` (not empty).
+        expect((lifecycleEnv as any).ev.description).toBe('inspect auth');
+
+        // The spawn child (same record) carries the same historical time.
+        const spawnChild = envelopes.find(
+            (e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.spawn_agent'
+        );
+        expect(spawnChild).toBeDefined();
+        expect((spawnChild as any).time).toBe(spawnMs);
+        // The turn-start (separate record) carries ITS record's time.
+        const turnStart = envelopes.find((e: any) => e.ev.t === 'turn-start');
+        expect((turnStart as any).time).toBe(Date.parse('2026-05-16T17:02:35.000Z'));
+    });
+
+    // Cycle 7 (S3 / AC-C7-4): missing/garbage timestamp falls back to a finite numeric time (no NaN).
+    it('AC-C7-4: missing or garbage timestamp yields a finite numeric time (no NaN, Date.now() fallback)', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = 'ac-c7-4-thread';
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-16T17-03-00', [
+            // No timestamp key at all.
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-c7-4' } },
+            // Garbage, unparseable timestamp.
+            {
+                type: 'response_item',
+                timestamp: 'not-a-date',
+                payload: {
+                    type: 'function_call',
+                    name: 'spawn_agent',
+                    call_id: 'spawn-c7-4',
+                    arguments: JSON.stringify({ message: 'garbage ts test' }),
+                },
+            },
+        ]);
+        const session = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        expect(envelopes.length).toBeGreaterThan(0);
+        for (const env of envelopes) {
+            expect(Number.isFinite((env as any).time)).toBe(true);
+            expect(Number.isNaN((env as any).time)).toBe(false);
+        }
+    });
+
+    // Cycle 7 (S3 / AC-C7-10): lifecycle-END uses the close record's time, not the spawn record's;
+    // each record's envelopes carry that record's time.
+    it('AC-C7-10: lifecycle-END carries the close record time; per-record envelopes carry their own time', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = 'ac-c7-10-thread';
+        const spawnTs = '2026-05-16T17:02:39.000Z';
+        const closeTs = '2026-05-16T17:05:00.000Z';
+        const agentId = '019e31bf-f5d6-7112-9c56-c575c6ede31a';
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-16T17-02-35', [
+            { type: 'event_msg', timestamp: '2026-05-16T17:02:35.000Z', payload: { type: 'task_started', turn_id: 'turn-c7-10' } },
+            {
+                type: 'response_item', timestamp: spawnTs,
+                payload: { type: 'function_call', name: 'spawn_agent', call_id: 'spawn-c7-10', arguments: JSON.stringify({ message: 'do work' }) },
+            },
+            {
+                // M2.c: spawn output binds agent_id -> ssn.
+                type: 'response_item', timestamp: spawnTs,
+                payload: { type: 'function_call_output', call_id: 'spawn-c7-10', output: JSON.stringify({ agent_id: agentId, nickname: 'Architect' }) },
+            },
+            {
+                // M2.c: close_agent uses `target` (singular).
+                type: 'response_item', timestamp: closeTs,
+                payload: { type: 'function_call', name: 'close_agent', call_id: 'close-c7-10', arguments: JSON.stringify({ target: agentId }) },
+            },
+            {
+                type: 'response_item', timestamp: closeTs,
+                payload: { type: 'function_call_output', call_id: 'close-c7-10', output: JSON.stringify({ status: 'completed' }) },
+            },
+        ]);
+        const session = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+
+        const lifecycleStart = envelopes.find(
+            (e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle'
+        );
+        expect(lifecycleStart).toBeDefined();
+        expect((lifecycleStart as any).time).toBe(Date.parse(spawnTs));
+        const lifecycleCall = (lifecycleStart as any).ev.call;
+
+        const lifecycleEnd = envelopes.find(
+            (e: any) => e.ev.t === 'tool-call-end' && e.ev.call === lifecycleCall
+        );
+        expect(lifecycleEnd).toBeDefined();
+        // AC-C7-10: lifecycle-END uses the CLOSE record's time, not the spawn record's.
+        expect((lifecycleEnd as any).time).toBe(Date.parse(closeTs));
+        expect((lifecycleEnd as any).time).not.toBe(Date.parse(spawnTs));
+    });
+
     it('replays a fallback thread when the requested thread has no rollout file', async () => {
         const codexHome = await createCodexHome();
         await writeRollout(codexHome, 'fallback-thread', 'rollout-2026-05-15T00-00-00', [

@@ -17,7 +17,7 @@ interface SidebarContentProps {
     sessionId: string;
 }
 
-const AGENT_TOOLS = new Set(['Task', 'Agent', 'functions.spawn_agent']);
+const AGENT_TOOLS = new Set(['Task', 'Agent', 'functions.spawn_agent', 'functions.subagent_lifecycle']);
 const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'CodexPatch', 'CodexDiff', 'edit']);
 const BASH_TOOLS = new Set(['Bash', 'CodexBash', 'execute', 'shell']);
 const TODO_TOOLS = new Set(['TodoWrite']);

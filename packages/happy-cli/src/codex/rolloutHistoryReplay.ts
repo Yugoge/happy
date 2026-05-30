@@ -136,6 +136,22 @@ function commandFromArguments(args: Record<string, unknown>): unknown {
     return args;
 }
 
+// Cycle 7 (M2.c): normalize the per-verb receiver-thread arg shapes observed in real Codex rollouts.
+// spawn_agent: receiverThreadIds populated at end (from agent_id); wait_agent: `targets`[] (array);
+// close_agent: `target` (singular string). Returns a string[] the mapper's collab handlers consume.
+function collabReceiverThreadIds(args: Record<string, unknown>): string[] {
+    if (Array.isArray(args.receiverThreadIds)) {
+        return args.receiverThreadIds.filter((v): v is string => typeof v === 'string' && v.length > 0);
+    }
+    if (Array.isArray(args.targets)) {
+        return args.targets.filter((v): v is string => typeof v === 'string' && v.length > 0);
+    }
+    if (typeof args.target === 'string' && args.target.length > 0) {
+        return [args.target];
+    }
+    return [];
+}
+
 function outputText(value: unknown): string {
     if (typeof value === 'string') {
         return value;
@@ -197,13 +213,33 @@ function mapWithState(message: Record<string, unknown>, state: ReplayState): Ses
         activeSubagents: mapped.activeSubagents,
         providerSubagentToSessionSubagent: mapped.providerSubagentToSessionSubagent,
         subagentLifecycles: mapped.subagentLifecycles,
+        // Cycle 7 (M2.a): the mapper result intentionally omits recordTime; preserve the per-record
+        // value across the rebuild so every mapWithState call for the SAME record inherits it.
+        recordTime: state.mapper.recordTime,
     };
     return mapped.envelopes;
 }
 
+// Cycle 7 (M2): parse the rollout record's top-level ISO-8601 `timestamp` to epoch-ms. Returns
+// undefined for a missing/garbage timestamp so the mapper falls back to createEnvelope's Date.now()
+// default (M2 guard — never emit NaN: createEnvelope's zod schema accepts NaN but it corrupts ordering).
+function parseRecordTime(record: Record<string, unknown>): number | undefined {
+    const ts = record.timestamp;
+    if (typeof ts !== 'string') return undefined;
+    const parsed = Date.parse(ts);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function userTextEnvelope(text: string, state: ReplayState): SessionEnvelope {
     const turn = state.mapper.currentTurnId;
-    return createEnvelope('user', { t: 'text', text }, turn ? { turn } : undefined);
+    // Cycle 7 (M2.a): user-text replay envelopes inherit the per-record historical time.
+    const recordTime = state.mapper.recordTime;
+    const hasTime = typeof recordTime === 'number' && Number.isFinite(recordTime);
+    const opts = {
+        ...(turn ? { turn } : {}),
+        ...(hasTime ? { time: recordTime } : {}),
+    };
+    return createEnvelope('user', { t: 'text', text }, Object.keys(opts).length > 0 ? opts : undefined);
 }
 
 function mapFunctionCall(payload: Record<string, unknown>, state: ReplayState): SessionEnvelope[] {
@@ -257,10 +293,17 @@ function mapFunctionCall(payload: Record<string, unknown>, state: ReplayState): 
             type: 'collab_agent_call_begin',
             call_id: callId,
             tool: COLLAB_REPLAY_TOOL_MAP.get(name) ?? name,
-            prompt: typeof args.prompt === 'string' ? args.prompt : null,
+            // Cycle 7 (M2.c): real Codex rollout spawn_agent args use `message`, not `prompt`
+            // (confirmed against /root/.codex/sessions/2026/05/16/rollout-…-019e31bd-….jsonl). Read both
+            // so the A2 lifecycle card description is not empty.
+            prompt: typeof args.prompt === 'string' ? args.prompt : (typeof args.message === 'string' ? args.message : null),
             model: typeof args.model === 'string' ? args.model : null,
             agentNickname: typeof args.agentNickname === 'string' ? args.agentNickname : null,
-            receiverThreadIds: Array.isArray(args.receiverThreadIds) ? args.receiverThreadIds : [],
+            // Cycle 7 (M2.c): real wait_agent uses `targets`[]; close_agent uses `target` (singular).
+            // Synthesize receiverThreadIds from receiverThreadIds ?? targets ?? [target] so parallel A2
+            // subagents attach to the correct lifecycle (the begin/end handlers resolve ssn from the
+            // first receiver thread id; single-subagent still works via the single-active fallback).
+            receiverThreadIds: collabReceiverThreadIds(args),
             agentsStates: isRecord(args.agentsStates) ? args.agentsStates : {},
         }, state);
     }
@@ -322,12 +365,21 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
     if (COLLAB_REPLAY_TOOL_MAP.has(name)) {
         const outputParsed = (() => { try { return JSON.parse(output); } catch { return {}; } })();
         const parsedRecord = isRecord(outputParsed) ? outputParsed : {};
+        // Cycle 7 (M2.c): real spawn_agent function_call_output binds the child via `agent_id`
+        // (confirmed: {"agent_id":"019e31bf-…","nickname":"Architect"}). Map agent_id -> receiverThreadId
+        // so the mapper's spawn-end handler binds it to ssn (ensureReceiverSessionSubagent). Fall back to
+        // receiverThreadIds ?? targets ?? [target] for the other shapes.
+        const endReceiverIds = Array.isArray(parsedRecord.receiverThreadIds)
+            ? parsedRecord.receiverThreadIds.filter((v): v is string => typeof v === 'string' && v.length > 0)
+            : (typeof parsedRecord.agent_id === 'string' && parsedRecord.agent_id.length > 0
+                ? [parsedRecord.agent_id]
+                : collabReceiverThreadIds(parsedRecord));
         return mapWithState({
             type: 'collab_agent_call_end',
             call_id: callId,
             tool: COLLAB_REPLAY_TOOL_MAP.get(name) ?? name,
             status: typeof parsedRecord.status === 'string' ? parsedRecord.status : 'completed',
-            receiverThreadIds: Array.isArray(parsedRecord.receiverThreadIds) ? parsedRecord.receiverThreadIds : [],
+            receiverThreadIds: endReceiverIds,
             agentsStates: isRecord(parsedRecord.agentsStates) ? parsedRecord.agentsStates : {},
         }, state);
     }
@@ -386,6 +438,12 @@ function mapRolloutRecord(record: Record<string, unknown>, state: ReplayState): 
     if (!payload) {
         return [];
     }
+
+    // Cycle 7 (M2/M2.a): thread THIS record's historical time into the mapper so every envelope
+    // produced from this record (turn-start, spawn child, lifecycle-start, control starts/ends,
+    // lifecycle-end, user text, turn-end) inherits it via createEnvelope's opts.time. The lifecycle-END
+    // for a close/abort record correctly uses the close record's own time. A finite value or undefined.
+    state.mapper.recordTime = parseRecordTime(record);
 
     if (record.type === 'event_msg') {
         return mapEventMsg(payload, state);

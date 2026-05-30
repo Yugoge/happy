@@ -3197,4 +3197,116 @@ describe('reducer', () => {
             }
         });
     });
+
+    // Cycle 7 (S1 / AC-C7-1, AC-C7-2): children-aggregation integration test.
+    // Feeds a lifecycle envelope (top-level, args.sessionSubagent=ssn, emitted FIRST) plus the four
+    // control-verb child envelopes (subagent=ssn, ev.call=provider call_id ≠ ssn, NO sessionSubagent
+    // in args) and one subagent-internal tool envelope (CodexBash, subagent=ssn) through
+    // normalizeRawMessage + reducer. Asserts exactly ONE top-level functions.subagent_lifecycle
+    // ToolCallMessage whose children contain all four control verbs + the internal tool, with NO
+    // RangeError (recursion). This locks the 3 load-bearing invariants (M1.a call≠ssn, M1.b no
+    // sessionSubagent in child args, M1.c lifecycle ordered first) at the reducer level.
+    describe('AC-C7-1/AC-C7-2: subagent lifecycle children aggregation (recursion-safe)', () => {
+        function sessionRaw(envelope: any) {
+            return { role: 'session', content: envelope } as any;
+        }
+        function lifecycleStartEnv(ssn: string, time: number) {
+            return {
+                id: createId(), time, role: 'agent', turn: 'turn-1',
+                ev: {
+                    t: 'tool-call-start', call: `lifecycle:${ssn}`, name: 'functions.subagent_lifecycle',
+                    title: 'Subagent', description: 'parent prompt',
+                    args: { sessionSubagent: ssn, prompt: 'parent prompt', agentNickname: null, lifecycle_state: 'started' },
+                },
+            };
+        }
+        // A recursion-safe control-verb CHILD: subagent=ssn (sidechain), ev.call=provider call_id (≠ ssn),
+        // args WITHOUT sessionSubagent (M1.a + M1.b).
+        function controlChildStartEnv(ssn: string, verb: string, providerCall: string, time: number) {
+            return {
+                id: createId(), time, role: 'agent', turn: 'turn-1', subagent: ssn,
+                ev: {
+                    t: 'tool-call-start', call: providerCall, name: `functions.${verb}`,
+                    title: `Subagent: ${verb}`, description: `${verb} call`,
+                    args: { tool: verb, prompt: null, model: null, receiverThreadIds: [], agentsStates: {} },
+                },
+            };
+        }
+        function internalToolStartEnv(ssn: string, providerCall: string, time: number) {
+            return {
+                id: createId(), time, role: 'agent', turn: 'turn-1', subagent: ssn,
+                ev: {
+                    t: 'tool-call-start', call: providerCall, name: 'CodexBash',
+                    title: 'Run `pwd`', description: 'pwd', args: { command: 'pwd' },
+                },
+            };
+        }
+
+        it('aggregates the 4 control verbs + internal tool as lifecycle children with no stack overflow', () => {
+            const ssn = createId();
+            expect(isCuid(ssn)).toBe(true);
+
+            // M1.c: lifecycle FIRST, then the children (provider call_ids, all ≠ ssn).
+            const envelopes = [
+                lifecycleStartEnv(ssn, 1000),
+                controlChildStartEnv(ssn, 'spawn_agent', 'call-spawn', 1001),
+                controlChildStartEnv(ssn, 'send_input', 'call-send', 1002),
+                controlChildStartEnv(ssn, 'wait_agent', 'call-wait', 1003),
+                controlChildStartEnv(ssn, 'close_agent', 'call-close', 1004),
+                internalToolStartEnv(ssn, 'call-bash', 1005),
+            ];
+            const normalized = envelopes
+                .map((env, i) => normalizeRawMessage(`db-c7-${i}`, null, env.time, sessionRaw(env)))
+                .filter((m): m is NormalizedMessage => m !== null);
+
+            const state = createReducer();
+            // The reducer must complete WITHOUT a RangeError (Maximum call stack size exceeded).
+            const result = reducer(state, normalized);
+
+            // Exactly ONE top-level tool-call message, and it is the lifecycle card.
+            const toolCalls = result.messages.filter((m) => m.kind === 'tool-call');
+            expect(toolCalls).toHaveLength(1);
+            const lifecycle = toolCalls[0];
+            if (lifecycle.kind !== 'tool-call') throw new Error('expected tool-call');
+            expect(lifecycle.tool.name).toBe('functions.subagent_lifecycle');
+
+            // children contains all four control verbs + the internal tool.
+            const childNames = lifecycle.children
+                .filter((c) => c.kind === 'tool-call')
+                .map((c) => (c.kind === 'tool-call' ? c.tool.name : ''));
+            expect(childNames).toContain('functions.spawn_agent');
+            expect(childNames).toContain('functions.send_input');
+            expect(childNames).toContain('functions.wait_agent');
+            expect(childNames).toContain('functions.close_agent');
+            expect(childNames).toContain('CodexBash');
+            expect(childNames).toHaveLength(5);
+        });
+
+        it('INV-1 (M1.a): a control-verb child whose ev.call === ssn causes self-referential recursion (proves call≠ssn is load-bearing)', () => {
+            const ssn = createId();
+            // Poison shape: child ev.call === ssn — getToolCallParentIds self-registers content.id=ssn.
+            const envelopes = [
+                lifecycleStartEnv(ssn, 1000),
+                controlChildStartEnv(ssn, 'spawn_agent', ssn, 1001), // ev.call === ssn (FORBIDDEN by M1.a)
+            ];
+            const normalized = envelopes
+                .map((env, i) => normalizeRawMessage(`db-c7-inv1-${i}`, null, env.time, sessionRaw(env)))
+                .filter((m): m is NormalizedMessage => m !== null);
+            const state = createReducer();
+            // The recursion-safe shape (call≠ssn) is what the mapper now emits; this poison shape throws.
+            expect(() => reducer(state, normalized)).toThrow();
+        });
+
+        it('INV-2 (M1.b): a control-verb child carrying args.sessionSubagent === ssn causes recursion (proves omitting it is load-bearing)', () => {
+            const ssn = createId();
+            const poisonChild = controlChildStartEnv(ssn, 'spawn_agent', 'call-spawn', 1001);
+            (poisonChild.ev.args as any).sessionSubagent = ssn; // FORBIDDEN by M1.b
+            const envelopes = [lifecycleStartEnv(ssn, 1000), poisonChild];
+            const normalized = envelopes
+                .map((env, i) => normalizeRawMessage(`db-c7-inv2-${i}`, null, env.time, sessionRaw(env)))
+                .filter((m): m is NormalizedMessage => m !== null);
+            const state = createReducer();
+            expect(() => reducer(state, normalized)).toThrow();
+        });
+    });
 });

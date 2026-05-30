@@ -1,6 +1,6 @@
 # codex
 
-*Last updated: 2026-05-14T20:15:22Z*
+*Last updated: 2026-05-30T00:00:00Z*
 **Total entries**: 28
 **Convention**: kebab
 
@@ -34,6 +34,8 @@ codex/
 ├── `notifyDaemonOfCodexTid.ts` - ts file
 ├── `resumeExistingThread.test.ts` - ts file
 ├── `resumeExistingThread.ts` - ts file
+├── `rolloutHistoryReplay.test.ts` - ts file
+├── `rolloutHistoryReplay.ts` - ts file
 └── `runCodex.ts` - ts file
 ```
 
