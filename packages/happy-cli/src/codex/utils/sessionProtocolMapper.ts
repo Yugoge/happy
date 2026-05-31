@@ -32,6 +32,16 @@ export type CodexTurnState = {
     // (the scattered-card symptom). Cleared on every parent turn boundary (task_started/complete/abort)
     // so the discriminator is turn-scoped. An END whose begin WAS emitted is never suppressed (A2-safe).
     emittedCollabBeginCallIds?: Set<string>;
+    // Cycle 9 (A2-M1): for a MULTI-target wait_agent, persist the BEGIN call's full receiverThreadIds
+    // list keyed by the provider call_id, so the END handler can enumerate EXACTLY those targets (NOT
+    // the output status{} map, which is partial in 242/245 real cases). Cleared on every parent turn
+    // boundary alongside emittedCollabBeginCallIds.
+    waitTargetsByCallId?: Map<string, string[]>;
+    // Cycle 9 (NO-regression fix): gates replay-only rendering branches (currently the multi-target
+    // wait_agent BEGIN fan-out at the collab_agent_call_begin handler). Set ONLY by the replay caller
+    // (rolloutHistoryReplay.ts); the live/A1 caller (runCodex.ts) never sets it, so the live path stays
+    // byte-equal to baseline — multi-target waits collapse to a single begin/end via firstReceiverThreadId.
+    replay?: boolean;
 };
 
 type CodexMapperResult = {
@@ -42,6 +52,7 @@ type CodexMapperResult = {
     subagentLifecycles: Map<string, LifecycleState>;
     envelopes: SessionEnvelope[];
     emittedCollabBeginCallIds?: Set<string>;
+    waitTargetsByCallId?: Map<string, string[]>;
 };
 
 type LegacyToolLikeMessage = {
@@ -127,6 +138,43 @@ function getProviderSubagentToSessionSubagent(state: CodexTurnState): Map<string
 // existing Set when present so begins recorded earlier in the turn survive into the end handler.
 function getEmittedCollabBeginCallIds(state: CodexTurnState): Set<string> {
     return state.emittedCollabBeginCallIds ?? new Set<string>();
+}
+
+// Cycle 9 (A2-M1): lazily materialize the per-turn map of multi-target wait BEGIN target lists.
+function getWaitTargetsByCallId(state: CodexTurnState): Map<string, string[]> {
+    return state.waitTargetsByCallId ?? new Map<string, string[]>();
+}
+
+// Cycle 9 (A2-M1): all receiver thread ids from a collab message (NOT just the first), filtered to
+// non-empty strings. Used for multi-target wait per-target enumeration.
+function allReceiverThreadIds(message: Record<string, unknown>): string[] {
+    const receiverThreadIds = message.receiverThreadIds;
+    if (!Array.isArray(receiverThreadIds)) return [];
+    return receiverThreadIds.filter((v): v is string => typeof v === 'string' && v.length > 0);
+}
+
+// Cycle 9 (A2-M1): a stable per-target synthetic call id `${call}#${index}:${receiverThreadId}` so the
+// N per-target begin/end pairs of one multi-target wait do not collide on the shared provider call_id.
+function perTargetCallId(call: string, index: number, receiverThreadId: string): string {
+    return `${call}#${index}:${receiverThreadId}`;
+}
+
+// Cycle 9 (A2-M2): extract a single target's OWN status from a wait_agent END message. Precedence:
+// agentsStates[id] (live) → output status[id] (rollout). Returns the matched status record or undefined
+// when the target is absent from BOTH (the dominant 242/245 partial-status case — the caller then emits
+// an explicit `unreported` marker rather than borrowing another target's status).
+function perTargetStatus(message: Record<string, unknown>, targetId: string): Record<string, unknown> | undefined {
+    const agentsStates = message.agentsStates;
+    if (isRecord(agentsStates)) {
+        const entry = agentsStates[targetId];
+        if (isRecord(entry)) return entry;
+    }
+    const status = message.status;
+    if (isRecord(status)) {
+        const entry = status[targetId];
+        if (isRecord(entry)) return entry;
+    }
+    return undefined;
 }
 
 function maybeEmitSubagentStart(
@@ -455,6 +503,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     const providerSubagentToSessionSubagent = getProviderSubagentToSessionSubagent(state);
     const subagentLifecycles = getSubagentLifecycles(state);
     const emittedCollabBeginCallIds = getEmittedCollabBeginCallIds(state);
+    const waitTargetsByCallId = getWaitTargetsByCallId(state);
 
     if (type === 'task_started') {
         const turnId = pickWrapperTurnId(message) ?? createId();
@@ -467,12 +516,13 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // suppression is scoped to the current turn (a stale begin from a prior turn must not
         // greenwash an end in this turn).
         emittedCollabBeginCallIds.clear();
-        return { currentTurnId: turnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes: [turnStart] };
+        waitTargetsByCallId.clear();
+        return { currentTurnId: turnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes: [turnStart] };
     }
 
     if (type === 'task_complete' || type === 'turn_aborted') {
         if (!state.currentTurnId) {
-            return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes: [] };
+            return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes: [] };
         }
         // Cycle 7 (M2.a): lifecycle-END / turn-end for a close/abort record inherit THIS record's time.
         const lifecycleOpts = { turn: state.currentTurnId, ...(typeof state.recordTime === 'number' && Number.isFinite(state.recordTime) ? { time: state.recordTime } : {}) } satisfies CreateEnvelopeOptions;
@@ -483,8 +533,9 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         subagentLifecycles.clear();
         // Cycle 8 (M5): the parent turn ended — drop the emitted-begin Set so the next turn starts clean.
         emittedCollabBeginCallIds.clear();
+        waitTargetsByCallId.clear();
         return {
-            currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds,
+            currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId,
             envelopes: [
                 ...lifecycleEnvelopes,
                 ...emitSubagentStops(lifecycleOpts, startedSubagents, activeSubagents),
@@ -640,6 +691,38 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const tool = typeof message.tool === 'string' ? message.tool : '';
         const verb = COLLAB_VERB_MAP[tool] ?? tool;
         const name = `functions.${verb}`;
+
+        // Cycle 9 (A2-M1): a MULTI-target wait_agent (BEGIN receiverThreadIds length >= 2) renders ONE
+        // per-target tool-call-start per begin target — NOT a single collapsed parent (firstReceiverThreadId).
+        // The full begin target list is persisted by call_id so the END handler enumerates EXACTLY these
+        // targets (the output status{} map is partial in 242/245 real cases). Each target resolves its own
+        // ssn and gets a stable synthetic call id; every synthetic id is added to emittedCollabBeginCallIds.
+        // NO-regression gate: the per-target fan-out is REPLAY-ONLY. The live caller (runCodex.ts) never
+        // sets state.replay, so live multi-target waits fall through to the single-target path below
+        // (firstReceiverThreadId), staying byte-equal to baseline. mapCodexMcpMessageToSessionEnvelopes is
+        // shared by replay AND live; without this gate the live path emitted N per-target starts whose
+        // matching ends never fired -> N-1 dangling starts on ~30% of multi-target waits.
+        const waitTargets = verb === 'wait_agent' ? allReceiverThreadIds(message) : [];
+        if (verb === 'wait_agent' && waitTargets.length >= 2 && state.replay === true) {
+            waitTargetsByCallId.set(call, waitTargets);
+            const envelopes: SessionEnvelope[] = [];
+            maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+            waitTargets.forEach((tid, index) => {
+                const ssn = ensureReceiverSessionSubagent(tid, providerSubagentToSessionSubagent);
+                if (subagent) providerSubagentToSessionSubagent.set(ownerSubagentKey(ssn), subagent);
+                const syntheticCall = perTargetCallId(call, index, tid);
+                providerSubagentToSessionSubagent.set(callSubagentKey(syntheticCall), ssn);
+                const isChild = subagentLifecycles.has(ssn);
+                const childOpts = isChild ? { ...opts, subagent: ssn } : opts;
+                const args = isChild
+                    ? { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: [tid], agentsStates: message.agentsStates ?? {} }
+                    : { tool, prompt: message.prompt ?? null, model: message.model ?? null, senderThreadId: message.senderThreadId ?? null, receiverThreadIds: [tid], agentsStates: message.agentsStates ?? {}, ...(ssn ? { sessionSubagent: ssn } : {}) };
+                envelopes.push(createEnvelope('agent', { t: 'tool-call-start', call: syntheticCall, name, title: `Subagent: ${verb}`, description: `wait_agent target ${tid}`, args }, childOpts));
+                emittedCollabBeginCallIds.add(syntheticCall);
+            });
+            return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes };
+        }
+
         const receiverThreadId = firstReceiverThreadId(message);
         let sessionSubagent: string | undefined;
         if (verb === 'spawn_agent') {
@@ -690,12 +773,47 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // Cycle 8 (M5): record that a control-verb BEGIN tool-call-start was emitted for this call_id so
         // the matching END is recognised as legitimate (not a true orphan) and is never suppressed.
         emittedCollabBeginCallIds.add(call);
-        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes };
+        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes };
     }
 
     if (type === 'collab_agent_call_end') {
         const call = pickCallId(message);
         const tool = typeof message.tool === 'string' ? message.tool : '', verb = COLLAB_VERB_MAP[tool] ?? tool;
+
+        // Cycle 9 (A2-M1/M2): a MULTI-target wait_agent END reuses the PERSISTED begin target list
+        // (keyed by call_id) — NOT the output status{} map (partial in 242/245 cases). Emit one end per
+        // begin target with that target's OWN status (agentsStates[id] → status[id]); targets absent from
+        // BOTH get an explicit `unreported` terminal marker (NEVER a borrowed status). Synthetic per-target
+        // call ids match the begin so the reducer pairs them; each was already in emittedCollabBeginCallIds.
+        const persistedWaitTargets = verb === 'wait_agent' ? waitTargetsByCallId.get(call) : undefined;
+        if (persistedWaitTargets && persistedWaitTargets.length >= 2) {
+            const envelopes: SessionEnvelope[] = [];
+            maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+            persistedWaitTargets.forEach((tid, index) => {
+                const targetSsn = providerSubagentToSessionSubagent.get(callSubagentKey(perTargetCallId(call, index, tid)))
+                    ?? providerSubagentToSessionSubagent.get(tid);
+                const syntheticCall = perTargetCallId(call, index, tid);
+                const isChildEnd = targetSsn !== undefined && subagentLifecycles.has(targetSsn);
+                const childEndOpts = isChildEnd ? { ...opts, subagent: targetSsn } : opts;
+                const own = perTargetStatus(message, tid);
+                const endMessage: Record<string, unknown> = own !== undefined
+                    ? { type: 'collab_agent_call_end', call_id: syntheticCall, tool, receiverThreadIds: [tid], agentsStates: { [tid]: own }, status: own }
+                    // A2-M2: absent from both agentsStates[id] AND status[id] -> explicit unreported marker.
+                    : { type: 'collab_agent_call_end', call_id: syntheticCall, tool, receiverThreadIds: [tid], status: 'unreported', lifecycle_state: 'unreported' };
+                envelopes.push(toolEndEnvelope(syntheticCall, endMessage, childEndOpts));
+                // Codex finding #3 / Cycle-7 parity: buffer THIS target's final-summary message on its
+                // lifecycle entry (when present) so a later close_agent terminal inherits it — the
+                // single-target wait path does the same via readAgentsStatesMessage / bufferedFinalSummary.
+                const entry = targetSsn ? subagentLifecycles.get(targetSsn) : undefined;
+                if (entry && isRecord(own)) {
+                    const msg = own.message;
+                    if (typeof msg === 'string' || msg === null) entry.bufferedFinalSummary = msg;
+                }
+            });
+            waitTargetsByCallId.delete(call);
+            return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes };
+        }
+
         let ssn = providerSubagentToSessionSubagent.get(callSubagentKey(call));
         // Cycle 8 (Path A+): spawn-end binds receiverThreadId per event_mapping.rs:104-114; retro-emit
         // lifecycle-start when no prior begin (idempotent — subagentLifecycle.ts:59).
@@ -737,7 +855,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             const terminal = (status === 'completed') ? 'completed' : 'errored';
             emitLifecycleEnd(ssn, terminal, { status, ...(finalSummary !== undefined && finalSummary !== null ? { final_summary: finalSummary } : {}), lifecycle_state: terminal }, opts, subagentLifecycles, envelopes);
         }
-        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, envelopes };
+        return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes };
     }
 
     if (type === 'dynamic_tool_call_begin') {

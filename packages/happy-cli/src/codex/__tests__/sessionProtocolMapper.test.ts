@@ -653,12 +653,16 @@ describe('mapCodexProcessorMessageToSessionEnvelopes', () => {
 // Cycle 8 (Path A+) shape (event_mapping.rs:75-86 + :104-114): spawnState fires real
 // spawn-begin (empty rcv) AND spawn-end (populated rcv) to bind receiverThreadId.
 describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge', () => {
+    // Cycle 9 (NO-regression): these collab/multi-target specs exercise the REPLAY rendering path, so the
+    // threaded state must carry replay:true (the live caller leaves it unset — see liveStep below). The
+    // CodexMapperResult omits `replay`, so step() must re-inject it across each hop, exactly mirroring the
+    // real replay caller (rolloutHistoryReplay.ts), which re-sets replay:true on every mapper rebuild.
     function spawnState(callId: string, threadId: string, prompt: string, prior?: any) {
-        const begin = mapCodexMcpMessageToSessionEnvelopes({ type: 'collab_agent_call_begin', call_id: callId, tool: 'spawnAgent', prompt, receiverThreadIds: [], agentsStates: {} }, prior ?? { currentTurnId: 'turn-1' });
-        mapCodexMcpMessageToSessionEnvelopes({ type: 'collab_agent_call_end', call_id: callId, tool: 'spawnAgent', status: 'completed', receiverThreadIds: [threadId], agentsStates: { [threadId]: { status: 'running', message: null } } }, begin);
-        return begin;
+        const begin = mapCodexMcpMessageToSessionEnvelopes({ type: 'collab_agent_call_begin', call_id: callId, tool: 'spawnAgent', prompt, receiverThreadIds: [], agentsStates: {} }, prior ?? { currentTurnId: 'turn-1', replay: true });
+        mapCodexMcpMessageToSessionEnvelopes({ type: 'collab_agent_call_end', call_id: callId, tool: 'spawnAgent', status: 'completed', receiverThreadIds: [threadId], agentsStates: { [threadId]: { status: 'running', message: null } } }, { ...begin, replay: true });
+        return { ...begin, replay: true };
     }
-    function step(message: any, prior: any) { return mapCodexMcpMessageToSessionEnvelopes(message, prior); }
+    function step(message: any, prior: any) { return { ...mapCodexMcpMessageToSessionEnvelopes(message, prior), replay: prior?.replay }; }
     // Cycle 7 (M1): the lifecycle envelope is the only one carrying args.sessionSubagent — the spawn
     // card is now a recursion-safe CHILD whose args omit sessionSubagent (M1.b). Extract ssn from the
     // lifecycle tool-call-start (found by name), not by envelope index.
@@ -722,21 +726,160 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         }
     });
 
-    // Cycle 7 §5.3.D.5 S1: multi-receiver-thread case — first thread's message wins
-    // (mirrors Codex first_agent_state precedent at multi_agents.rs:537-550).
-    it('case a-3 (S1): multi-receiver-thread wait picks the first thread\'s agentsStates message', () => {
+    // Cycle 9 (A2-M1/M2 — overturns the Cycle-7 S1 first-wins collapse): a multi-target wait renders
+    // EACH awaited target distinctly (one tool-call-start/end pair per begin target with a stable
+    // synthetic call id `${call}#${index}:${tid}`), NOT a single collapsed parent picking the first
+    // thread's message. Both targets carry their OWN extracted status (AC-A2-3).
+    it('case a-3 (A2): multi-target wait renders each target distinctly with its own status (no first-wins collapse)', () => {
         const begin = spawnState('spawn-1c', 'child-X', 'inspect multi');
-        const sessionSubagent = ssnOf(begin);
         const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-1c', tool: 'wait', receiverThreadIds: ['child-X', 'child-Y'] }, begin);
+        // Two distinct per-target begin envelopes with stable synthetic call ids.
+        const beginStarts = waitBegin.envelopes.filter(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.wait_agent');
+        expect(beginStarts.map(e => (e.ev as any).call).sort()).toEqual(['wait-1c#0:child-X', 'wait-1c#1:child-Y']);
         const waitEnd = step({
             type: 'collab_agent_call_end', call_id: 'wait-1c', tool: 'wait', status: 'completed',
             receiverThreadIds: ['child-X', 'child-Y'],
             agentsStates: {
-                'child-X': { status: 'completed', message: 'first wins' },
-                'child-Y': { status: 'completed', message: 'second loses' },
+                'child-X': { status: 'completed', message: 'x done' },
+                'child-Y': { status: 'errored', message: 'y failed' },
             },
         }, waitBegin);
-        expect(waitEnd.subagentLifecycles.get(sessionSubagent)?.bufferedFinalSummary).toBe('first wins');
+        // Two distinct per-target end envelopes — neither dropped, neither borrowing the other's status.
+        const endCalls = waitEnd.envelopes.filter(e => e.ev.t === 'tool-call-end').map(e => (e.ev as any).call).sort();
+        expect(endCalls).toEqual(['wait-1c#0:child-X', 'wait-1c#1:child-Y']);
+        const endX = waitEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === 'wait-1c#0:child-X');
+        const endY = waitEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === 'wait-1c#1:child-Y');
+        expect(JSON.stringify((endX!.ev as any).output ?? (endX!.ev as any).result)).toContain('x done');
+        expect(JSON.stringify((endY!.ev as any).output ?? (endY!.ev as any).result)).toContain('y failed');
+        // Per-target rendering does NOT collapse into a single buffered first-target summary.
+        return;
+    });
+
+    // AC-A2-1: per-target enumeration is driven by the BEGIN target array, NOT the output status{} map.
+    // 3 begin targets -> 3 per-target begin/end pairs, even if the output status{} map has FEWER keys.
+    it('AC-A2-1: 3-target wait renders exactly 3 per-target pairs from the begin array (not the status map)', () => {
+        const begin = spawnState('spawn-a2-1', 'tgt-1', 'multi');
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-a2-1', tool: 'wait', receiverThreadIds: ['tgt-1', 'tgt-2', 'tgt-3'] }, begin);
+        const beginStarts = waitBegin.envelopes.filter(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.wait_agent');
+        // Exactly 3 begins (== begin-arg count), every synthetic id registered.
+        expect(beginStarts.map(e => (e.ev as any).call)).toEqual(['wait-a2-1#0:tgt-1', 'wait-a2-1#1:tgt-2', 'wait-a2-1#2:tgt-3']);
+        // Output status{} map carries only ONE key — the rendered-target count must still equal begin-arg count (3).
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-a2-1', tool: 'wait',
+            receiverThreadIds: ['tgt-1', 'tgt-2', 'tgt-3'],
+            status: { 'tgt-1': { completed: true } },
+        }, waitBegin);
+        const endCalls = waitEnd.envelopes.filter(e => e.ev.t === 'tool-call-end').map(e => (e.ev as any).call);
+        expect(endCalls).toEqual(['wait-a2-1#0:tgt-1', 'wait-a2-1#1:tgt-2', 'wait-a2-1#2:tgt-3']);
+        expect(endCalls).toHaveLength(3);
+    });
+
+    // AC-A2-2: partial-status (dominant 242/245 shape) — 3 begin targets, output status for ONLY 1.
+    // ALL 3 render; the 2 absent-status targets get an explicit `unreported` marker, NEVER a borrowed status.
+    it('AC-A2-2: partial-status 3-target wait — all 3 render; absent targets get unreported, not a borrowed status', () => {
+        const begin = spawnState('spawn-a2-2', 'p-1', 'partial');
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-a2-2', tool: 'wait', receiverThreadIds: ['p-1', 'p-2', 'p-3'] }, begin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-a2-2', tool: 'wait',
+            receiverThreadIds: ['p-1', 'p-2', 'p-3'],
+            // Only p-1 reported (the wait returned when one target resolved).
+            status: { 'p-1': { completed: true, message: 'p1 finished' } },
+        }, waitBegin);
+        const ends = waitEnd.envelopes.filter(e => e.ev.t === 'tool-call-end');
+        expect(ends.map(e => (e.ev as any).call)).toEqual(['wait-a2-2#0:p-1', 'wait-a2-2#1:p-2', 'wait-a2-2#2:p-3']);
+        const end1 = JSON.stringify((ends[0].ev as any).output ?? (ends[0].ev as any).result ?? {});
+        const end2 = JSON.stringify((ends[1].ev as any).output ?? (ends[1].ev as any).result ?? {});
+        const end3 = JSON.stringify((ends[2].ev as any).output ?? (ends[2].ev as any).result ?? {});
+        // Reported target carries its own status.
+        expect(end1).toContain('p1 finished');
+        // Absent targets carry an explicit unreported marker — and NOT the reported target's status.
+        expect(end2).toContain('unreported');
+        expect(end3).toContain('unreported');
+        expect(end2).not.toContain('p1 finished');
+        expect(end3).not.toContain('p1 finished');
+    });
+
+    // AC-A2-4 (no regression): a SINGLE-target wait keeps the prior first-wins buffered-summary behavior
+    // (the multi-target per-target path only triggers for length >= 2).
+    it('AC-A2-4: single-target wait is unchanged (buffers final_summary, no synthetic per-target ids)', () => {
+        const begin = spawnState('spawn-a2-4', 'solo', 'single');
+        const sessionSubagent = ssnOf(begin);
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-a2-4', tool: 'wait', receiverThreadIds: ['solo'] }, begin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-a2-4', tool: 'wait', status: 'completed',
+            receiverThreadIds: ['solo'],
+            agentsStates: { 'solo': { status: 'completed', message: 'solo summary' } },
+        }, waitBegin);
+        // No synthetic per-target ids for a single target.
+        expect(waitEnd.envelopes.filter(e => (e.ev as any).call?.includes('#'))).toHaveLength(0);
+        // Prior buffered-summary behavior intact.
+        expect(waitEnd.subagentLifecycles.get(sessionSubagent)?.bufferedFinalSummary).toBe('solo summary');
+    });
+
+    // Cycle 9 (NO-regression): the per-target multi-target fan-out is REPLAY-ONLY. On the LIVE path
+    // (runCodex.ts — state.replay UNSET) mapCodexMcpMessageToSessionEnvelopes is shared, but a multi-target
+    // wait_agent MUST collapse to baseline single begin/end (firstReceiverThreadId), NOT emit N per-target
+    // synthetic starts whose matching ends never fire (the N-1 dangling-starts regression). This test feeds
+    // a 2-target wait begin+end with replay UNSET and asserts: NO synthetic per-target ids, exactly one
+    // collapsed begin, and every emitted tool-call-start has a matching tool-call-end (no dangling starts).
+    it('AC-NOREG: LIVE multi-target wait (replay unset) collapses to baseline single begin/end — no per-target synthetic starts, no dangling starts', () => {
+        // Live caller never sets replay; build a live spawn lifecycle so the wait resolves a real ssn.
+        const liveBegin = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'live-spawn', tool: 'spawnAgent', prompt: 'p', receiverThreadIds: [], agentsStates: {} },
+            { currentTurnId: 'turn-live' }
+        );
+        const liveSpawned = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_end', call_id: 'live-spawn', tool: 'spawnAgent', status: 'completed', receiverThreadIds: ['L-1'], agentsStates: { 'L-1': { status: 'running', message: null } } },
+            liveBegin
+        );
+        // Multi-target wait BEGIN on the live path (replay still unset throughout).
+        const waitBegin = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'live-wait', tool: 'wait', receiverThreadIds: ['L-1', 'L-2'] },
+            liveSpawned
+        );
+        const waitEnd = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_end', call_id: 'live-wait', tool: 'wait', status: 'completed', receiverThreadIds: ['L-1', 'L-2'], agentsStates: { 'L-1': { status: 'completed', message: 'done' } } },
+            waitBegin
+        );
+        const all = [...waitBegin.envelopes, ...waitEnd.envelopes];
+        // No synthetic per-target call ids on the live path (those are the replay-only fan-out).
+        expect(all.filter(e => (e.ev as any).call?.includes('#'))).toHaveLength(0);
+        // Exactly ONE collapsed wait_agent begin (baseline firstReceiverThreadId collapse).
+        const waitStarts = waitBegin.envelopes.filter(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.wait_agent');
+        expect(waitStarts).toHaveLength(1);
+        // Every emitted tool-call-start has a matching tool-call-end — zero dangling starts.
+        const startCalls = all.filter(e => e.ev.t === 'tool-call-start').map(e => (e.ev as any).call);
+        const endCalls = new Set(all.filter(e => e.ev.t === 'tool-call-end').map(e => (e.ev as any).call));
+        const dangling = startCalls.filter(c => !endCalls.has(c));
+        expect(dangling).toEqual([]);
+    });
+
+    // Codex finding #3 (Cycle-7 parity): a multi-target wait still buffers each target's final-summary
+    // message on its lifecycle entry, so a later close_agent terminal inherits it even when the close
+    // itself carries no agentsStates.
+    it('AC-A2 (parity): multi-target wait buffers per-target summary; later close inherits it', () => {
+        // Two separate spawns -> two distinct lifecycle ssn.
+        const beginA = spawnState('spawn-pa', 'ta', 'a');
+        const ssnA = ssnOf(beginA);
+        const beginB = spawnState('spawn-pb', 'tb', 'b', beginA);
+        const ssnB = ssnOf(beginB);
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-pp', tool: 'wait', receiverThreadIds: ['ta', 'tb'] }, beginB);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-pp', tool: 'wait',
+            receiverThreadIds: ['ta', 'tb'],
+            status: { 'ta': { completed: true, message: 'A summary' }, 'tb': { completed: true, message: 'B summary' } },
+        }, waitBegin);
+        // Each target's summary buffered on its OWN lifecycle entry.
+        expect(waitEnd.subagentLifecycles.get(ssnA)?.bufferedFinalSummary).toBe('A summary');
+        expect(waitEnd.subagentLifecycles.get(ssnB)?.bufferedFinalSummary).toBe('B summary');
+        // close_agent on target A (no agentsStates) inherits the buffered summary.
+        const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-pa', tool: 'closeAgent', receiverThreadIds: ['ta'] }, waitEnd);
+        const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-pa', tool: 'closeAgent', status: 'completed', receiverThreadIds: ['ta'] }, closeBegin);
+        const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssnA}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            expect((lifecycleEnd.ev.result as any).final_summary).toBe('A summary');
+        }
     });
 
     // Cycle 7 §5.3.D.5 AC5: empty/missing agentsStates — terminal still emits without final_summary.

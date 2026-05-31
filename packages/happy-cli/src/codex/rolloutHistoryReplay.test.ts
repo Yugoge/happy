@@ -639,6 +639,210 @@ describe('replayCodexRolloutHistory', () => {
         expect(childEnvelopePassesInvariants(inv2, ssn)).toBe(false);
     });
 
+    // ====================================================================================
+    // Cycle 9 (A1): depth-2 grandchild internal-tool merge. Fixtures mirror real corpus depth-2
+    // chains (e.g. depth-1 019d9570-181c → grandchild 019d9570-5b97). A child rollout that itself
+    // contains a spawn_agent binding a grandchild whose sibling file carries exec_command must merge
+    // those grandchild tools under the SAME depth-1 child ssn (no separate grandchild lifecycle card).
+    // ====================================================================================
+
+    // Helper: a child rollout that spawns ONE grandchild (binding grandAgentId) AND has its own
+    // exec_command. The grandchild spawn output binds {agent_id: grandAgentId}.
+    function childWithGrandchildSpawn(agentId: string, parentThreadId: string, ownCallIds: string[], grandSpawnCallId: string, grandAgentId: string): unknown[] {
+        const recs: unknown[] = [
+            { type: 'session_meta', payload: { id: agentId, source: { subagent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1 } } } } },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: `child-turn-${agentId}` } },
+        ];
+        for (const cid of ownCallIds) {
+            recs.push({ type: 'response_item', payload: { type: 'function_call', name: 'exec_command', call_id: cid, arguments: JSON.stringify({ cmd: `echo ${cid}` }) } });
+            recs.push({ type: 'response_item', payload: { type: 'function_call_output', call_id: cid, output: `out-${cid}` } });
+        }
+        recs.push({ type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: grandSpawnCallId, arguments: JSON.stringify({ message: 'grandchild work' }) } });
+        recs.push({ type: 'response_item', payload: { type: 'function_call_output', call_id: grandSpawnCallId, output: JSON.stringify({ agent_id: grandAgentId, nickname: 'Grand' }) } });
+        recs.push({ type: 'event_msg', payload: { type: 'task_complete', turn_id: `child-turn-${agentId}` } });
+        return recs;
+    }
+
+    // AC-A1-1 + AC-A1-4: depth-2 grandchild exec_command tools merge under the depth-1 child's ssn,
+    // with INV-1/INV-2 preserved and no separate grandchild lifecycle card.
+    it('AC-A1-1/4: depth-2 grandchild exec_command merges under the child ssn (no separate grandchild card)', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = '019d9570-0000-7cf1-a525-3616befac9ec';
+        const childId = '019d9570-181c-7112-9c56-c575c6ede31a';
+        const grandId = '019d9570-5b97-7e30-83ed-d729438688c3';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-a1-1', 'call_spawnChild', childId, 'Architect', 'inspect auth'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-a1-1' } },
+        ]);
+        await writeRollout(codexHome, childId, 'rollout-2026-05-16T17-05-24', childWithGrandchildSpawn(childId, parentThread, ['call_child_a'], 'call_grandspawn', grandId));
+        await writeRollout(codexHome, grandId, 'rollout-2026-05-16T17-06-00', childRecords(grandId, childId, ['call_gc_1', 'call_gc_2']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+
+        // Exactly ONE lifecycle card (the depth-1 child) — no separate grandchild card.
+        const lifecycles = envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        expect(lifecycles).toHaveLength(1);
+        const ssn = (lifecycles[0] as any).ev.args.sessionSubagent;
+
+        // The depth-1 child's own exec_command merged under ssn.
+        const childStart = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.call === 'call_child_a' && e.subagent === ssn);
+        expect(childStart).toBeDefined();
+
+        // The depth-2 grandchild's exec_command tools ALSO merge under the SAME child ssn (AC-A1-1).
+        // Codex finding #1: depth-2 emitted call ids are namespaced `gc:<grandId>:<rawCallId>` so sibling
+        // grandchildren with colliding raw call ids do not de-dupe each other out.
+        const gcExpected = [`gc:${grandId}:call_gc_1`, `gc:${grandId}:call_gc_2`];
+        const gcStarts = envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'CodexBash' && e.subagent === ssn && gcExpected.includes(e.ev.call));
+        expect(gcStarts.map((e: any) => e.ev.call).sort()).toEqual(gcExpected);
+        for (const gc of gcStarts) {
+            expect((gc as any).ev.call).not.toBe(ssn);                    // INV-1
+            expect((gc as any).ev.args.sessionSubagent).toBeUndefined();  // INV-2
+            expect((gc as any).subagent).toBe(ssn);                       // attached to child ssn, not root
+        }
+        const gcEnds = envelopes.filter((e: any) => e.ev.t === 'tool-call-end' && e.subagent === ssn && gcExpected.includes(e.ev.call));
+        expect(gcEnds).toHaveLength(2);
+    });
+
+    // AC-A1-2: TWO grandchildren G1, G2 (depth 2) under one child — BOTH merge (depth>2 boundary, not
+    // depth>=2), neither starved by the other consuming a shared budget (branch-local visited set).
+    it('AC-A1-2: two sibling grandchildren both merge under the child ssn (no shared-budget starvation)', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'a1-2-parent';
+        const childId = 'a1-2-child';
+        const g1 = 'a1-2-grand1';
+        const g2 = 'a1-2-grand2';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-a1-2', 'call_spawnChild', childId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-a1-2' } },
+        ]);
+        // Child spawns TWO grandchildren.
+        const childRecs: unknown[] = [
+            { type: 'session_meta', payload: { id: childId, source: { subagent: { thread_spawn: { parent_thread_id: parentThread, depth: 1 } } } } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call_gs1', arguments: JSON.stringify({ message: 'g1' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_gs1', output: JSON.stringify({ agent_id: g1, nickname: 'G1' }) } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call_gs2', arguments: JSON.stringify({ message: 'g2' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call_gs2', output: JSON.stringify({ agent_id: g2, nickname: 'G2' }) } },
+        ];
+        await writeRollout(codexHome, childId, 'rollout-2026-05-16T17-05-24', childRecs);
+        await writeRollout(codexHome, g1, 'rollout-2026-05-16T17-06-00', childRecords(g1, childId, ['call_g1_x']));
+        await writeRollout(codexHome, g2, 'rollout-2026-05-16T17-06-30', childRecords(g2, childId, ['call_g2_x']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const ssn = (envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle') as any).ev.args.sessionSubagent;
+        // BOTH grandchildren's tools merged — neither sibling starved (namespaced call ids).
+        expect(envelopes.find((e: any) => e.ev.call === `gc:${g1}:call_g1_x` && e.subagent === ssn)).toBeDefined();
+        expect(envelopes.find((e: any) => e.ev.call === `gc:${g2}:call_g2_x` && e.subagent === ssn)).toBeDefined();
+    });
+
+    // AC-A1-2 (Codex finding #1): two sibling grandchildren that reuse the SAME raw internal call_id
+    // must BOTH render — the namespaced emitted id prevents the (subagent+call) dedupe from dropping one.
+    it('AC-A1-2: sibling grandchildren sharing a raw call_id both render (namespaced, no dedupe collision)', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'a1-2c-parent';
+        const childId = 'a1-2c-child';
+        const g1 = 'a1-2c-grand1';
+        const g2 = 'a1-2c-grand2';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-a1-2c', 'call_spawnChild', childId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-a1-2c' } },
+        ]);
+        const childRecs: unknown[] = [
+            { type: 'session_meta', payload: { id: childId, source: { subagent: { thread_spawn: { parent_thread_id: parentThread, depth: 1 } } } } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'gs1', arguments: JSON.stringify({ message: 'g1' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'gs1', output: JSON.stringify({ agent_id: g1, nickname: 'G1' }) } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'gs2', arguments: JSON.stringify({ message: 'g2' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'gs2', output: JSON.stringify({ agent_id: g2, nickname: 'G2' }) } },
+        ];
+        await writeRollout(codexHome, childId, 'rollout-2026-05-16T17-05-24', childRecs);
+        // BOTH grandchildren reuse the same raw internal call_id 'call_1' (Codex per-thread numbering).
+        await writeRollout(codexHome, g1, 'rollout-2026-05-16T17-06-00', childRecords(g1, childId, ['call_1']));
+        await writeRollout(codexHome, g2, 'rollout-2026-05-16T17-06-30', childRecords(g2, childId, ['call_1']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const ssn = (envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle') as any).ev.args.sessionSubagent;
+        // Both render under distinct namespaced ids despite the shared raw call_id.
+        expect(envelopes.find((e: any) => e.ev.call === `gc:${g1}:call_1` && e.subagent === ssn)).toBeDefined();
+        expect(envelopes.find((e: any) => e.ev.call === `gc:${g2}:call_1` && e.subagent === ssn)).toBeDefined();
+    });
+
+    // AC-A1-3: a great-grandchild (depth 3) is gracefully OMITTED — no recursion to depth 3, no crash.
+    it('AC-A1-3: depth-3 great-grandchild tools are omitted, no crash', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'a1-3-parent';
+        const childId = 'a1-3-child';
+        const grandId = 'a1-3-grand';
+        const greatId = 'a1-3-great';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            ...parentSpawnRecords('turn-a1-3', 'call_spawnChild', childId, 'Architect', 'work'),
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-a1-3' } },
+        ]);
+        // child (depth1) spawns grand (depth2); grand spawns great (depth3) AND has own exec.
+        await writeRollout(codexHome, childId, 'rollout-2026-05-16T17-05-24', childWithGrandchildSpawn(childId, parentThread, ['call_child_a'], 'call_gs', grandId));
+        await writeRollout(codexHome, grandId, 'rollout-2026-05-16T17-06-00', childWithGrandchildSpawn(grandId, childId, ['call_grand_a'], 'call_ggs', greatId));
+        await writeRollout(codexHome, greatId, 'rollout-2026-05-16T17-07-00', childRecords(greatId, grandId, ['call_great_x']));
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const ssn = (envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle') as any).ev.args.sessionSubagent;
+        // depth-1 child own exec (raw id) + depth-2 grandchild own exec (namespaced) MERGE.
+        expect(envelopes.find((e: any) => e.ev.call === 'call_child_a' && e.subagent === ssn)).toBeDefined();
+        expect(envelopes.find((e: any) => e.ev.call === `gc:${grandId}:call_grand_a` && e.subagent === ssn)).toBeDefined();
+        // depth-3 great-grandchild exec is OMITTED (raw or namespaced — neither appears).
+        expect(envelopes.filter((e: any) => typeof e.ev.call === 'string' && e.ev.call.includes('call_great_x'))).toHaveLength(0);
+    });
+
+    // ====================================================================================
+    // Cycle 9 (A2): multi-target wait_agent per-target rendering via the REPLAY path. Mirrors the real
+    // corpus shape: wait_agent function_call args carry `targets`[] (length 2-3); its function_call_output
+    // carries a per-target `status{}` map that is PARTIAL (242/245 real cases have status for a subset).
+    // ====================================================================================
+    it('AC-A2-2 (replay): multi-target wait with partial output status renders all begin targets; absent ones unreported', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = 'a2-replay-parent';
+        const t1 = 'a2-tgt-1';
+        const t2 = 'a2-tgt-2';
+        const t3 = 'a2-tgt-3';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-16T17-02-35', [
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-a2' } },
+            // Spawn three children so each target resolves to its own lifecycle ssn.
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'sp1', arguments: JSON.stringify({ message: 'c1' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'sp1', output: JSON.stringify({ agent_id: t1, nickname: 'C1' }) } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'sp2', arguments: JSON.stringify({ message: 'c2' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'sp2', output: JSON.stringify({ agent_id: t2, nickname: 'C2' }) } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'sp3', arguments: JSON.stringify({ message: 'c3' }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'sp3', output: JSON.stringify({ agent_id: t3, nickname: 'C3' }) } },
+            // Multi-target wait: targets[] of length 3; output status{} carries ONLY t1 (partial).
+            { type: 'response_item', payload: { type: 'function_call', name: 'wait_agent', call_id: 'wait-multi', arguments: JSON.stringify({ targets: [t1, t2, t3] }) } },
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'wait-multi', output: JSON.stringify({ status: { [t1]: { completed: true, message: 't1 done' } } }) } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-a2' } },
+        ]);
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+
+        // Three per-target wait begins with stable synthetic call ids.
+        const waitBegins = envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.wait_agent');
+        expect(waitBegins.map((e: any) => e.ev.call).sort()).toEqual(['wait-multi#0:a2-tgt-1', 'wait-multi#1:a2-tgt-2', 'wait-multi#2:a2-tgt-3']);
+        // Three per-target wait ends — all begin targets render even though status{} only covered t1.
+        const waitEndCalls = envelopes.filter((e: any) => e.ev.t === 'tool-call-end' && typeof e.ev.call === 'string' && e.ev.call.startsWith('wait-multi#')).map((e: any) => e.ev.call).sort();
+        expect(waitEndCalls).toEqual(['wait-multi#0:a2-tgt-1', 'wait-multi#1:a2-tgt-2', 'wait-multi#2:a2-tgt-3']);
+        const endT2 = envelopes.find((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === 'wait-multi#1:a2-tgt-2');
+        expect(JSON.stringify((endT2 as any).ev.output ?? (endT2 as any).ev.result ?? {})).toContain('unreported');
+    });
+
     it('replays a fallback thread when the requested thread has no rollout file', async () => {
         const codexHome = await createCodexHome();
         await writeRollout(codexHome, 'fallback-thread', 'rollout-2026-05-15T00-00-00', [

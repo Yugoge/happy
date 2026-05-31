@@ -23,10 +23,16 @@ type ChildSpawnBinding = {
     recordTime?: number;
 };
 
-// Cycle 8 (S1): bound the child-merge depth so a child rollout that itself contains a real spawn_agent
-// (grandchild) cannot trigger runaway recursion. Direct children are depth 1; grandchildren (depth >= 2)
-// are not merged this cycle (graceful omission). The corpus sampled parent has 0 real grandchildren.
-const MAX_CHILD_MERGE_DEPTH = 1;
+// Cycle 9 (A1-M2): bound the child-merge depth via an EXPLICIT numeric `depth` parameter threaded
+// through mergeChildRollout. Depth semantics: root = 0, child = 1, grandchild = 2, great-grandchild = 3.
+// The depth-2 grandchild is MERGED (inside the cap); only depth >= 3 (great-grandchild) is gracefully
+// omitted. The boundary guard is `if (depth > MAX_CHILD_MERGE_DEPTH) return` so a depth-2 grandchild
+// (depth === 2) still merges and only depth 3+ is skipped — NOT `depth >= 2` (which would reproduce the
+// Cycle-8 depth-1-only gap by skipping the grandchild itself). visitedThreadIds is used ONLY for cycle
+// prevention and is branch-local (new Set(visited) per recursive branch) so sibling grandchildren do
+// not starve each other's budget; the gate MUST NOT key off visitedThreadIds.size (Codex #2).
+// Corpus: 76 depth-2 grandchild threads carry exec_command (full-corpus scan, Cycle 9).
+const MAX_CHILD_MERGE_DEPTH = 2;
 
 type ReplaySession = {
     sendSessionProtocolMessage: (envelope: SessionEnvelope) => void;
@@ -217,6 +223,11 @@ const COLLAB_REPLAY_TOOL_MAP = new Map<string, string>([
 function createReplayState(): ReplayState {
     return {
         mapper: {
+            // Cycle 9 (NO-regression fix): mark this CodexTurnState as the replay path so replay-only
+            // rendering branches activate (multi-target wait_agent BEGIN fan-out). Set ONCE here; preserved
+            // across every mapWithState rebuild below so it persists for the whole replay record loop. The
+            // live caller (runCodex.ts) never sets this, keeping live byte-equal to baseline.
+            replay: true,
             currentTurnId: null,
             startedSubagents: new Set<string>(),
             activeSubagents: new Set<string>(),
@@ -226,6 +237,9 @@ function createReplayState(): ReplayState {
             // persists across mapWithState calls on the REPLAY path (the live A1 caller leaves this unset,
             // keeping M5 inert there — replay-only, AC-C8-9).
             emittedCollabBeginCallIds: new Set<string>(),
+            // Cycle 9 (A2-M1): seed the multi-target wait BEGIN target map on the REPLAY path so the
+            // per-target END enumeration finds the persisted begin list (replay-only; live A1 leaves unset).
+            waitTargetsByCallId: new Map<string, string[]>(),
         },
         toolNamesByCallId: new Map<string, string>(),
         childSpawnBindings: new Map<string, ChildSpawnBinding>(),
@@ -235,6 +249,9 @@ function createReplayState(): ReplayState {
 function mapWithState(message: Record<string, unknown>, state: ReplayState): SessionEnvelope[] {
     const mapped = mapCodexMcpMessageToSessionEnvelopes(message, state.mapper);
     state.mapper = {
+        // Cycle 9 (NO-regression fix): the mapper result omits `replay`; preserve it across the rebuild so
+        // the replay-only fan-out stays gated ON for the entire replay loop.
+        replay: true,
         currentTurnId: mapped.currentTurnId,
         startedSubagents: mapped.startedSubagents,
         activeSubagents: mapped.activeSubagents,
@@ -246,6 +263,9 @@ function mapWithState(message: Record<string, unknown>, state: ReplayState): Ses
         // Cycle 8 (M5): preserve the emitted-collab-begin Set across the rebuild so a control-verb BEGIN
         // recorded earlier in the turn is still seen when its END arrives in a later mapWithState call.
         emittedCollabBeginCallIds: mapped.emittedCollabBeginCallIds ?? state.mapper.emittedCollabBeginCallIds,
+        // Cycle 9 (A2-M1): preserve the multi-target wait BEGIN target list (keyed by call_id) across the
+        // rebuild so the per-target END enumeration reuses the begin list (it arrives in a later call).
+        waitTargetsByCallId: mapped.waitTargetsByCallId ?? state.mapper.waitTargetsByCallId,
     };
     return mapped.envelopes;
 }
@@ -410,7 +430,12 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
             type: 'collab_agent_call_end',
             call_id: callId,
             tool: COLLAB_REPLAY_TOOL_MAP.get(name) ?? name,
-            status: typeof parsedRecord.status === 'string' ? parsedRecord.status : 'completed',
+            // Cycle 9 (A2-M2): real wait_agent output uses `status` as a per-target MAP ({id: {completed|
+            // errored|not_found}}), not a scalar. Forward the object map verbatim so the mapper's per-target
+            // status extraction reads status[id]; fall back to the scalar string for the non-map shapes.
+            status: isRecord(parsedRecord.status)
+                ? parsedRecord.status
+                : (typeof parsedRecord.status === 'string' ? parsedRecord.status : 'completed'),
             receiverThreadIds: endReceiverIds,
             agentsStates: isRecord(parsedRecord.agentsStates) ? parsedRecord.agentsStates : {},
         }, state);
@@ -564,12 +589,18 @@ function buildChildEndToolEnvelope(
     return createEnvelope('agent', { t: 'tool-call-end', call, ...body }, { ...opts, subagent: sessionSubagent });
 }
 
-// Cycle 8 (M1/M3/M6/S1/S2): merge ONE child rollout's internal tool calls (exec_command, apply_patch,
-// mcp_*, dynamic tools) as sidechain children of the lifecycle card for `binding.sessionSubagent`.
+// Cycle 8/9 (M1/M3/M6/S1/S2 + A1-M1/M2/M3/M4): merge ONE child rollout's internal tool calls
+// (exec_command, apply_patch, mcp_*, dynamic tools) as sidechain children of the lifecycle card for
+// `binding.sessionSubagent`. Recurses into the child's OWN spawn_agent grandchildren up to depth 2.
 // - M3: only renderable tool begin/end records are mapped; child session_meta/task_started/
 //   task_complete/turn_aborted are SKIPPED so they never feed the parent mapper or emit stray turns.
-// - S1: a child `spawn_agent` function_call is NOT recursed into (depth-1 only); grandchild internal
-//   tools are gracefully omitted.
+// - A1-M2 (depth): `depth` is an explicit numeric (root=0/child=1/grandchild=2). The function returns
+//   early when `depth > MAX_CHILD_MERGE_DEPTH` (i.e. depth 3+) so the depth-2 grandchild still merges
+//   and only the great-grandchild is gracefully omitted. The gate is the integer `depth`, NOT
+//   visitedThreadIds.size (Codex #2).
+// - A1-M3 (grandchild discovery): a child `spawn_agent` function_call + its function_call_output binding
+//   grandchild agent_id is captured; the grandchild rollout is recursively merged under the SAME child
+//   ssn (no separate grandchild lifecycle card — A1-M1/Codex #4). Non-spawn control verbs stay skipped.
 // - S2: a missing/unreadable/malformed child file yields zero child envelopes; no throw escapes.
 // - M6: every emitted child tool-call-start is postcondition-checked: ev.call !== ssn AND args carry no
 //   sessionSubagent. A violating envelope is dropped (defends against merge-code regressions).
@@ -577,13 +608,18 @@ async function mergeChildRollout(
     binding: ChildSpawnBinding,
     home: string,
     visitedThreadIds: Set<string>,
+    depth: number,
 ): Promise<SessionEnvelope[]> {
-    if (visitedThreadIds.size >= MAX_CHILD_MERGE_DEPTH) {
+    // A1-M2 boundary: merge through depth-2 INCLUSIVE; defer only depth >= 3 (great-grandchild). The
+    // depth-2 grandchild (depth === 2 === MAX_CHILD_MERGE_DEPTH) is INSIDE the cap and still merges.
+    if (depth > MAX_CHILD_MERGE_DEPTH) {
         return [];
     }
     if (visitedThreadIds.has(binding.agentId)) {
-        return [];
+        return []; // cycle prevention only — NOT a depth gate.
     }
+    // A1-M2: branch-local visited set per recursive branch so sibling grandchildren do not consume each
+    // other's budget; a per-branch copy is taken before each recursive descent below.
     visitedThreadIds.add(binding.agentId);
 
     let files: string[];
@@ -601,8 +637,20 @@ async function mergeChildRollout(
         ...(binding.parentTurnId ? { turn: binding.parentTurnId } : {}),
         ...(typeof binding.recordTime === 'number' && Number.isFinite(binding.recordTime) ? { time: binding.recordTime } : {}),
     };
+    // A1 (Codex finding #1): depth-2 grandchild tools attach under the SAME depth-1 child ssn. Codex
+    // numbers internal call_ids per-thread, so two sibling grandchildren can reuse the same raw call_id;
+    // the replay dedupe key is (subagent + call), so without namespacing the second grandchild's tool
+    // would collide and be dropped. Namespace the EMITTED call id by the grandchild's own thread id at
+    // depth >= 2 (depth-1 child ids are left raw — they are already unique per child ssn). Begin AND end
+    // share the same namespaced id so the pair stays matched.
+    const emittedCallId = (rawCallId: string): string => depth >= 2 ? `gc:${binding.agentId}:${rawCallId}` : rawCallId;
     const toolNamesByCallId = new Map<string, string>();
     const childEnvelopes: SessionEnvelope[] = [];
+    // A1-M3: grandchild spawn bindings discovered in THIS child's replay (callId -> spawn-call metadata),
+    // resolved at the spawn's function_call_output into agent_id and recursively merged after this file
+    // loop completes (so the grandchild tools attach under THIS child's ssn).
+    const grandchildSpawnCallIds = new Set<string>();
+    const grandchildBindings: ChildSpawnBinding[] = [];
 
     for (const file of files) {
         let content: string;
@@ -635,12 +683,17 @@ async function mergeChildRollout(
                     : (typeof payload.callId === 'string' ? payload.callId : undefined);
                 if (!callId) continue;
                 const toolName = normalizeToolName(payload.name);
-                // S1: a real grandchild spawn is not merged; omit its internal tools (depth-1 only).
+                // A1-M3: a spawn_agent collab verb is NOT a renderable internal tool (no child envelope),
+                // but it DOES bind a grandchild — record its callId so the matching output resolves the
+                // grandchild agent_id. Non-spawn control verbs remain skipped (no regression — AC-A1-4).
                 if (COLLAB_REPLAY_TOOL_MAP.has(toolName)) {
+                    if (COLLAB_REPLAY_TOOL_MAP.get(toolName) === 'spawnAgent') {
+                        grandchildSpawnCallIds.add(callId);
+                    }
                     continue;
                 }
                 toolNamesByCallId.set(callId, toolName);
-                const envelope = buildChildBeginEnvelope(toolName, callId, payload, ssn, recordOpts);
+                const envelope = buildChildBeginEnvelope(toolName, emittedCallId(callId), payload, ssn, recordOpts);
                 // M6 postcondition guard: drop any begin that would violate INV-1 (call === ssn) or
                 // INV-2 (args.sessionSubagent present). The producer above never injects these, but the
                 // guard defends against a future merge-code regression.
@@ -654,10 +707,25 @@ async function mergeChildRollout(
                 const callId = typeof payload.call_id === 'string' ? payload.call_id
                     : (typeof payload.callId === 'string' ? payload.callId : undefined);
                 if (!callId) continue;
+                // A1-M3: a function_call_output for a recorded grandchild spawn binds the grandchild
+                // agent_id; capture a binding under THIS child's ssn for the recursive merge below.
+                if (grandchildSpawnCallIds.has(callId)) {
+                    const grandAgentId = parseSpawnOutputAgentId(payload.output);
+                    if (grandAgentId) {
+                        grandchildBindings.push({
+                            agentId: grandAgentId,
+                            sessionSubagent: ssn,
+                            parentTurnId: binding.parentTurnId,
+                            recordTime: typeof childRecordTime === 'number' && Number.isFinite(childRecordTime) ? childRecordTime : binding.recordTime,
+                        });
+                    }
+                    continue;
+                }
                 const toolName = toolNamesByCallId.get(callId);
                 // Only emit an end for a tool whose begin we merged (skips collab/grandchild ends).
                 if (!toolName) continue;
-                const envelope = buildChildEndEnvelope(toolName, callId, payload, ssn, recordOpts);
+                // Codex finding #1: end uses the SAME namespaced emitted id as its begin (depth>=2).
+                const envelope = buildChildEndEnvelope(toolName, emittedCallId(callId), payload, ssn, recordOpts);
                 if (envelope) {
                     childEnvelopes.push(envelope);
                 }
@@ -666,7 +734,35 @@ async function mergeChildRollout(
         }
     }
 
+    // A1-M1/M3: recursively merge each discovered grandchild under THIS child's ssn. A branch-local
+    // visited-set copy per grandchild keeps siblings independent (AC-A1-2 — no shared-budget starvation);
+    // the depth+1 increment caps the recursion at depth 2 (great-grandchildren are omitted via the
+    // `depth > MAX_CHILD_MERGE_DEPTH` guard at the top of the recursive call).
+    for (const grandBinding of grandchildBindings) {
+        const branchVisited = new Set(visitedThreadIds);
+        const grandEnvelopes = await mergeChildRollout(grandBinding, home, branchVisited, depth + 1);
+        if (grandEnvelopes.length > 0) {
+            childEnvelopes.push(...grandEnvelopes);
+        }
+    }
+
     return childEnvelopes;
+}
+
+// A1-M3: parse a spawn_agent function_call_output and extract the bound child/grandchild agent_id.
+// Real Codex output is `{"agent_id":"019…","nickname":"Architect"}` (confirmed against the corpus);
+// returns the agent_id string or null when absent/malformed.
+function parseSpawnOutputAgentId(output: unknown): string | null {
+    const text = outputText(output);
+    if (text.length === 0) return null;
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(text);
+    } catch {
+        return null;
+    }
+    if (!isRecord(parsed)) return null;
+    return typeof parsed.agent_id === 'string' && parsed.agent_id.length > 0 ? parsed.agent_id : null;
 }
 
 // Cycle 8 (M1/M6): synthesize a child tool-call-START envelope from a child rollout function_call.
@@ -826,13 +922,16 @@ async function replayFiles(opts: {
     const openLifecycles: Map<string, LifecycleState> = state.mapper.subagentLifecycles ?? new Map();
     flushOpenLifecycles('errored', 'replay_truncated', flushOpts, openLifecycles, parentEnvelopes);
 
-    // Cycle 8 (M1/M3/M6/S1/S2 — item 1): merge each spawned subagent's nested child rollout's internal
-    // tool calls as sidechain children of its OWN lifecycle card. visitedThreadIds bounds recursion (S1);
-    // a per-binding fresh merge keeps siblings independent (AC-C8-11 — no cross-attribution).
+    // Cycle 8/9 (M1/M3/M6/S2 + A1): merge each spawned subagent's nested child rollout's internal
+    // tool calls (and, A1, its depth-2 grandchildren) as sidechain children of its OWN lifecycle card.
+    // The explicit `depth` param bounds recursion at depth 2 (great-grandchildren omitted); a per-binding
+    // fresh visited set keeps siblings independent (AC-C8-11 / AC-A1-2 — no cross-attribution, no starve).
     const childEnvelopesBySsn = new Map<string, SessionEnvelope[]>();
     for (const binding of state.childSpawnBindings.values()) {
         const visited = new Set<string>();
-        const merged = await mergeChildRollout(binding, opts.home, visited);
+        // A1-M2: the initial call is for a depth-1 CHILD binding (root=0, child=1); the recursion
+        // increments depth so a depth-2 grandchild merges and depth-3 is omitted.
+        const merged = await mergeChildRollout(binding, opts.home, visited, 1);
         if (merged.length > 0) {
             const existing = childEnvelopesBySsn.get(binding.sessionSubagent) ?? [];
             existing.push(...merged);
