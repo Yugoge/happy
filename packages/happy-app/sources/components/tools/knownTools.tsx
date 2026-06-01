@@ -1,6 +1,8 @@
 import { Metadata } from '@/sync/storageTypes';
 import { ToolCall, Message } from '@/sync/typesMessage';
 import { resolvePath } from '@/utils/pathUtils';
+import { stringifyToolCommand } from '@/utils/toolCommand';
+import { extractAttachmentSummary, extractPlanItems, summarizePlanItems } from '@/utils/codexToolRendering';
 import * as z from 'zod';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import React from 'react';
@@ -17,62 +19,62 @@ const ICON_EXIT = (size: number = 24, color: string = '#000') => <Ionicons name=
 const ICON_TODO = (size: number = 24, color: string = '#000') => <Ionicons name="bulb-outline" size={size} color={color} />;
 const ICON_REASONING = (size: number = 24, color: string = '#000') => <Octicons name="light-bulb" size={size} color={color} />;
 const ICON_QUESTION = (size: number = 24, color: string = '#000') => <Ionicons name="help-circle-outline" size={size} color={color} />;
+const ICON_APPLY = (size: number = 24, color: string = '#000') => <Ionicons name="checkmark-circle-outline" size={size} color={color} />;
+const ICON_CLOCK = (size: number = 24, color: string = '#000') => <Ionicons name="timer-outline" size={size} color={color} />;
+const ICON_LINK = (size: number = 24, color: string = '#000') => <Ionicons name="link-outline" size={size} color={color} />;
+const ICON_WEATHER = (size: number = 24, color: string = '#000') => <Ionicons name="partly-sunny-outline" size={size} color={color} />;
+const ICON_HAND = (size: number = 24, color: string = '#000') => <Ionicons name="hand-left-outline" size={size} color={color} />;
+const ICON_IMAGE = (size: number = 24, color: string = '#000') => <Ionicons name="image-outline" size={size} color={color} />;
+const ICON_FINANCE = (size: number = 24, color: string = '#000') => <Ionicons name="trending-up-outline" size={size} color={color} />;
+const ICON_SPORTS = (size: number = 24, color: string = '#000') => <Ionicons name="football-outline" size={size} color={color} />;
+const ICON_SCAN = (size: number = 24, color: string = '#000') => <Ionicons name="scan-outline" size={size} color={color} />;
+
+function getPatchFiles(input: any): string[] {
+    if (input?.changes && typeof input.changes === 'object' && !Array.isArray(input.changes)) {
+        return Object.keys(input.changes);
+    }
+    if (input?.fileChanges && typeof input.fileChanges === 'object' && !Array.isArray(input.fileChanges)) {
+        return Object.keys(input.fileChanges);
+    }
+    return [];
+}
+
+function codexToolStateStatus(opts: { metadata: Metadata | null, tool: ToolCall }): string | null {
+    if (opts.tool.state === 'completed') return 'completed';
+    if (opts.tool.state === 'error') {
+        return typeof opts.tool.result?.status === 'string' ? opts.tool.result.status : 'error';
+    }
+    return null;
+}
+
+const taskLikeTool = {
+    title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+        if (opts.tool.input && opts.tool.input.description && typeof opts.tool.input.description === 'string') {
+            return opts.tool.input.description;
+        }
+        return t('tools.names.task');
+    },
+    icon: ICON_TASK,
+    isMutable: true,
+    minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
+        const messages = opts.messages || [];
+        for (let m of messages) {
+            if (m.kind === 'tool-call'
+                && (m.tool.state === 'running' || m.tool.state === 'completed' || m.tool.state === 'error')) {
+                return false;
+            }
+        }
+        return true;
+    },
+    input: z.object({
+        prompt: z.string().describe('The task for the agent to perform'),
+        subagent_type: z.string().optional().describe('The type of specialized agent to use')
+    }).partial().passthrough()
+};
 
 export const knownTools = {
-    'Task': {
-        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Check for description field at runtime
-            if (opts.tool.input && opts.tool.input.description && typeof opts.tool.input.description === 'string') {
-                return opts.tool.input.description;
-            }
-            return t('tools.names.task');
-        },
-        icon: ICON_TASK,
-        isMutable: true,
-        minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
-            // Check if there would be any filtered tasks
-            const messages = opts.messages || [];
-            for (let m of messages) {
-                if (m.kind === 'tool-call' && 
-                    (m.tool.state === 'running' || m.tool.state === 'completed' || m.tool.state === 'error')) {
-                    return false; // Has active sub-tasks, show expanded
-                }
-            }
-            return true; // No active sub-tasks, render as minimal
-        },
-        input: z.object({
-            prompt: z.string().describe('The task for the agent to perform'),
-            subagent_type: z.string().optional().describe('The type of specialized agent to use')
-        }).partial().passthrough()
-    },
-    'Agent': {
-        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            if (opts.tool.input && opts.tool.input.description && typeof opts.tool.input.description === 'string') {
-                return opts.tool.input.description;
-            }
-            const subType = opts.tool.input?.subagent_type;
-            if (typeof subType === 'string' && subType.length > 0) {
-                return subType;
-            }
-            return t('tools.names.agent');
-        },
-        icon: ICON_TASK,
-        isMutable: true,
-        minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
-            const messages = opts.messages || [];
-            for (let m of messages) {
-                if (m.kind === 'tool-call' &&
-                    (m.tool.state === 'running' || m.tool.state === 'completed' || m.tool.state === 'error')) {
-                    return false;
-                }
-            }
-            return true;
-        },
-        input: z.object({
-            prompt: z.string().describe('The task for the agent to perform'),
-            subagent_type: z.string().optional().describe('The type of specialized agent to use')
-        }).partial().passthrough()
-    },
+    'Task': taskLikeTool,
+    'Agent': taskLikeTool,
     'Bash': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             if (opts.tool.description) {
@@ -106,12 +108,7 @@ export const knownTools = {
             }
             return t('tools.names.terminal');
         },
-        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            if (typeof opts.tool.input.command === 'string') {
-                return opts.tool.input.command;
-            }
-            return null;
-        }
+        extractSubtitle: () => null
     },
     'Glob': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
@@ -467,24 +464,46 @@ export const knownTools = {
     },
     'CodexBash': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Check if this is a single read command
-            if (opts.tool.input?.parsed_cmd && 
-                Array.isArray(opts.tool.input.parsed_cmd) && 
-                opts.tool.input.parsed_cmd.length === 1 && 
-                opts.tool.input.parsed_cmd[0].type === 'read' &&
-                opts.tool.input.parsed_cmd[0].name) {
-                // Display the file name being read
-                const path = resolvePath(opts.tool.input.parsed_cmd[0].name, opts.metadata);
-                return path;
+            const parsedCmd = opts.tool.input?.parsed_cmd;
+            if (Array.isArray(parsedCmd) && parsedCmd.length === 1) {
+                const cmd = parsedCmd[0];
+                // Read branch: show the file path being read
+                if (cmd.type === 'read' && cmd.name) {
+                    return resolvePath(cmd.name, opts.metadata);
+                }
+                // Bash/unknown branch: show the command string as description (AC4)
+                if ((cmd.type === 'bash' || cmd.type === 'unknown' || !cmd.type) && cmd.cmd) {
+                    const desc = cmd.cmd;
+                    return desc.length > 60 ? desc.substring(0, 60) + '…' : desc;
+                }
+            }
+            // Fallback only when parsedCmd is absent/empty: show the raw command (AC4)
+            if (!Array.isArray(parsedCmd) || parsedCmd.length === 0) {
+                const rawCmd = opts.tool.input?.command;
+                if (typeof rawCmd === 'string' && rawCmd) {
+                    return rawCmd.length > 60 ? rawCmd.substring(0, 60) + '…' : rawCmd;
+                }
             }
             return t('tools.names.terminal');
         },
         icon: ICON_TERMINAL,
-        minimal: true,
+        minimal: (opts: { tool: ToolCall }) => {
+            // Return false for bash/unknown commands so the flat inline body renders (B03/M6).
+            const parsedCmd = opts.tool.input?.parsed_cmd;
+            if (Array.isArray(parsedCmd) && parsedCmd.length > 0) {
+                const type = parsedCmd[0].type;
+                if (type === 'bash' || type === 'unknown' || !type) return false;
+                // Read/write are compact — their view returns early with iconRow anyway
+                return true;
+            }
+            // No parsed_cmd: if raw command exists, render inline (it's a bash call)
+            if (opts.tool.input?.command) return false;
+            return true;
+        },
         hideDefaultError: true,
         isMutable: true,
         input: z.object({
-            command: z.array(z.string()).describe('The command array to execute'),
+            command: z.union([z.string(), z.array(z.string())]).describe('The command to execute'),
             cwd: z.string().optional().describe('Current working directory'),
             parsed_cmd: z.array(z.object({
                 type: z.string().describe('Type of parsed command (read, write, bash, etc.)'),
@@ -504,22 +523,6 @@ export const knownTools = {
                     const cmd = parsedCmd.cmd;
                     return cmd.length > 50 ? cmd.substring(0, 50) + '...' : cmd;
                 }
-            }
-            // Show the actual command being executed for other cases
-            if (opts.tool.input?.parsed_cmd && Array.isArray(opts.tool.input.parsed_cmd) && opts.tool.input.parsed_cmd.length > 0) {
-                const parsedCmd = opts.tool.input.parsed_cmd[0];
-                if (parsedCmd.cmd) {
-                    return parsedCmd.cmd;
-                }
-            }
-            if (opts.tool.input?.command && Array.isArray(opts.tool.input.command)) {
-                let cmdArray = opts.tool.input.command;
-                // Remove shell wrapper prefix if present (bash/zsh with -lc flag)
-                if (cmdArray.length >= 3 && (cmdArray[0] === 'bash' || cmdArray[0] === '/bin/bash' || cmdArray[0] === 'zsh' || cmdArray[0] === '/bin/zsh') && cmdArray[1] === '-lc') {
-                    // The actual command is in the third element
-                    return cmdArray[2];
-                }
-                return cmdArray.join(' ');
             }
             return null;
         },
@@ -546,13 +549,13 @@ export const knownTools = {
     },
     'CodexReasoning': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Use the title from input if provided
             if (opts.tool.input?.title && typeof opts.tool.input.title === 'string') {
                 return opts.tool.input.title;
             }
             return t('tools.names.reasoning');
         },
         icon: ICON_REASONING,
+        hidden: true,
         minimal: true,
         input: z.object({
             title: z.string().describe('The title of the reasoning')
@@ -570,13 +573,13 @@ export const knownTools = {
     },
     'GeminiReasoning': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Use the title from input if provided
             if (opts.tool.input?.title && typeof opts.tool.input.title === 'string') {
                 return opts.tool.input.title;
             }
             return t('tools.names.reasoning');
         },
         icon: ICON_REASONING,
+        hidden: true,
         minimal: true,
         input: z.object({
             title: z.string().describe('The title of the reasoning')
@@ -594,13 +597,13 @@ export const knownTools = {
     },
     'think': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Use the title from input if provided
             if (opts.tool.input?.title && typeof opts.tool.input.title === 'string') {
                 return opts.tool.input.title;
             }
             return t('tools.names.reasoning');
         },
         icon: ICON_REASONING,
+        hidden: true,
         minimal: true,
         input: z.object({
             title: z.string().optional().describe('The title of the thinking'),
@@ -622,6 +625,20 @@ export const knownTools = {
     'change_title': {
         title: 'Change Title',
         icon: ICON_EDIT,
+        hidden: true,
+        minimal: true,
+        noStatus: true,
+        input: z.object({
+            title: z.string().optional().describe('New session title')
+        }).partial().passthrough(),
+        result: z.object({}).partial().passthrough()
+    },
+    // Claude wire name alias for happy MCP change_title (Codex/Gemini wire name 'change_title' above).
+    // §5.15 Phase B: hidden alias prevents raw fallback card in Claude sessions.
+    'mcp__happy__change_title': {
+        title: 'Change Title',
+        icon: ICON_EDIT,
+        hidden: true,
         minimal: true,
         noStatus: true,
         input: z.object({
@@ -731,13 +748,28 @@ export const knownTools = {
         }
     },
     'CodexPatch': {
-        title: t('tools.names.applyChanges'),
+        title: (opts: { tool: ToolCall; metadata: Metadata | null }) => {
+            const files = getPatchFiles(opts.tool.input);
+            if (files.length === 1) {
+                const path = resolvePath(files[0], opts.metadata);
+                return path.split('/').pop() || path;
+            }
+            if (files.length > 1) {
+                return t('tools.desc.modifyingFiles', { count: files.length });
+            }
+            return t('tools.names.applyChanges');
+        },
         icon: ICON_EDIT,
-        minimal: true,
+        minimal: false,
         hideDefaultError: true,
         input: z.object({
             auto_approved: z.boolean().optional().describe('Whether changes were auto-approved'),
             changes: z.record(z.string(), z.object({
+                diff: z.string().optional(),
+                kind: z.object({
+                    type: z.string().optional(),
+                    move_path: z.string().nullable().optional()
+                }).optional(),
                 add: z.object({
                     content: z.string()
                 }).optional(),
@@ -750,36 +782,22 @@ export const knownTools = {
                 }).optional()
             }).passthrough()).describe('File changes to apply')
         }).partial().passthrough(),
-        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Show the first file being modified
-            if (opts.tool.input?.changes && typeof opts.tool.input.changes === 'object') {
-                const files = Object.keys(opts.tool.input.changes);
-                if (files.length > 0) {
-                    const path = resolvePath(files[0], opts.metadata);
-                    const fileName = path.split('/').pop() || path;
-                    if (files.length > 1) {
-                        return t('tools.desc.modifyingMultipleFiles', { 
-                            file: fileName, 
-                            count: files.length - 1 
-                        });
-                    }
-                    return fileName;
-                }
-            }
+        // C.2 (cycle 4): outer ToolView subtitle suppressed because CodexPatchViewFull's
+        // inner fileHeader (CodexPatchView.tsx:150-157) already renders the full path +
+        // kindLabel. Returning null avoids duplicating the file identity in the header.
+        extractSubtitle: (_opts: { metadata: Metadata | null, tool: ToolCall }) => {
             return null;
         },
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             // Show the number of files being modified
-            if (opts.tool.input?.changes && typeof opts.tool.input.changes === 'object') {
-                const files = Object.keys(opts.tool.input.changes);
-                const fileCount = files.length;
-                if (fileCount === 1) {
-                    const path = resolvePath(files[0], opts.metadata);
-                    const fileName = path.split('/').pop() || path;
-                    return t('tools.desc.modifyingFile', { file: fileName });
-                } else if (fileCount > 1) {
-                    return t('tools.desc.modifyingFiles', { count: fileCount });
-                }
+            const files = getPatchFiles(opts.tool.input);
+            const fileCount = files.length;
+            if (fileCount === 1) {
+                const path = resolvePath(files[0], opts.metadata);
+                const fileName = path.split('/').pop() || path;
+                return t('tools.desc.modifyingFile', { file: fileName });
+            } else if (fileCount > 1) {
+                return t('tools.desc.modifyingFiles', { count: fileCount });
             }
             return t('tools.names.applyChanges');
         }
@@ -791,19 +809,11 @@ export const knownTools = {
         hideDefaultError: true,
         isMutable: true,
         input: z.object({
-            command: z.array(z.string()).describe('The command array to execute'),
+            command: z.union([z.string(), z.array(z.string())]).describe('The command to execute'),
             cwd: z.string().optional().describe('Current working directory')
         }).partial().passthrough(),
         extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            if (opts.tool.input?.command && Array.isArray(opts.tool.input.command)) {
-                let cmdArray = opts.tool.input.command;
-                // Remove shell wrapper prefix if present (bash/zsh with -lc flag)
-                if (cmdArray.length >= 3 && (cmdArray[0] === 'bash' || cmdArray[0] === '/bin/bash' || cmdArray[0] === 'zsh' || cmdArray[0] === '/bin/zsh') && cmdArray[1] === '-lc') {
-                    return cmdArray[2];
-                }
-                return cmdArray.join(' ');
-            }
-            return null;
+            return stringifyToolCommand(opts.tool.input?.command);
         }
     },
     'GeminiPatch': {
@@ -964,20 +974,658 @@ export const knownTools = {
             return null;
         }
     },
-    'Skill': {
-        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            const skill = opts.tool.input?.skill;
-            if (typeof skill === 'string' && skill.length > 0) {
-                return '/' + skill;
-            }
-            return t('tools.names.task');
-        },
-        icon: ICON_TERMINAL,
+    'CronList': {
+        title: t('tools.names.cronList'),
+        icon: ICON_CLOCK,
         minimal: true,
+        input: z.object({}).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const keys = Object.keys(input);
+            if (keys.length === 0) {
+                return null;
+            }
+            const summary = JSON.stringify(input);
+            return summary.length > 40 ? summary.substring(0, 40) + '...' : summary;
+        }
+    },
+    'web.search_query': {
+        title: t('tools.names.webSearchQuery'),
+        icon: ICON_SEARCH,
+        minimal: true,
+        input: z.object({ query: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const q = opts.tool.input?.query;
+            if (typeof q === 'string' && q.length > 0) {
+                return t('tools.desc.webSearching', { query: q.length > 60 ? q.substring(0, 60) + '...' : q });
+            }
+            return t('tools.names.webSearchQuery');
+        }
+    },
+    'web.open': {
+        title: t('tools.names.webOpen'),
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({ url: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const url = opts.tool.input?.url;
+            if (typeof url === 'string' && url.length > 0) {
+                return t('tools.desc.webOpening', { url: url.length > 80 ? url.substring(0, 80) + '...' : url });
+            }
+            return t('tools.names.webOpen');
+        }
+    },
+    'web.find': {
+        title: t('tools.names.webFind'),
+        icon: ICON_SEARCH,
+        minimal: true,
+        input: z.object({ pattern: z.string().optional(), url: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const pattern = opts.tool.input?.pattern;
+            const url = opts.tool.input?.url;
+            if (typeof pattern === 'string' && pattern.length > 0) {
+                const p = pattern.length > 40 ? pattern.substring(0, 40) + '...' : pattern;
+                if (typeof url === 'string' && url.length > 0) {
+                    const u = url.length > 40 ? url.substring(0, 40) + '...' : url;
+                    return t('tools.desc.webFinding', { pattern: p, url: u });
+                }
+                return t('tools.desc.webFinding', { pattern: p, url: '' });
+            }
+            return t('tools.names.webFind');
+        }
+    },
+    'web.weather': {
+        title: t('tools.names.webWeather'),
+        icon: ICON_WEATHER,
+        minimal: true,
+        input: z.object({ location: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const loc = opts.tool.input?.location;
+            if (typeof loc === 'string' && loc.length > 0) {
+                return t('tools.desc.webWeather', { location: loc.length > 60 ? loc.substring(0, 60) + '...' : loc });
+            }
+            return t('tools.names.webWeather');
+        }
+    },
+    'web.time': {
+        title: t('tools.names.webTime'),
+        icon: ICON_CLOCK,
+        minimal: true,
+        input: z.object({ timezone: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const tz = opts.tool.input?.timezone;
+            if (typeof tz === 'string' && tz.length > 0) {
+                return t('tools.desc.webTime', { timezone: tz.length > 60 ? tz.substring(0, 60) + '...' : tz });
+            }
+            return t('tools.names.webTime');
+        }
+    },
+    'web.click': {
+        title: t('tools.names.webClick'),
+        icon: ICON_HAND,
+        minimal: true,
+        input: z.object({ selector: z.string().optional(), link: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const selector = opts.tool.input?.selector;
+            const link = opts.tool.input?.link;
+            if (typeof selector === 'string' && selector.length > 0) {
+                const s = selector.length > 60 ? selector.substring(0, 60) + '...' : selector;
+                return t('tools.desc.webClicking', { selector: s, link: '' });
+            }
+            if (typeof link === 'string' && link.length > 0) {
+                const l = link.length > 80 ? link.substring(0, 80) + '...' : link;
+                return t('tools.desc.webClicking', { selector: '', link: l });
+            }
+            return t('tools.names.webClick');
+        }
+    },
+    'web.image_query': {
+        title: t('tools.names.webImageQuery'),
+        icon: ICON_IMAGE,
+        minimal: true,
+        input: z.object({ query: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const q = opts.tool.input?.query;
+            if (typeof q === 'string' && q.length > 0) {
+                return t('tools.desc.webImageSearching', { query: q.length > 60 ? q.substring(0, 60) + '...' : q });
+            }
+            return t('tools.names.webImageQuery');
+        }
+    },
+    'web.finance': {
+        title: t('tools.names.webFinance'),
+        icon: ICON_FINANCE,
+        minimal: true,
+        input: z.object({ symbol: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const symbol = opts.tool.input?.symbol;
+            if (typeof symbol === 'string' && symbol.length > 0) {
+                return t('tools.desc.webFinanceLookup', { symbol: symbol.length > 40 ? symbol.substring(0, 40) + '...' : symbol });
+            }
+            return t('tools.names.webFinance');
+        }
+    },
+    'web.sports': {
+        title: t('tools.names.webSports'),
+        icon: ICON_SPORTS,
+        minimal: true,
+        input: z.object({ league: z.string().optional(), team: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const league = opts.tool.input?.league;
+            const team = opts.tool.input?.team;
+            const l = typeof league === 'string' && league.length > 0 ? (league.length > 40 ? league.substring(0, 40) + '...' : league) : '';
+            const tm = typeof team === 'string' && team.length > 0 ? (team.length > 40 ? team.substring(0, 40) + '...' : team) : '';
+            if (l || tm) {
+                return t('tools.desc.webSportsLookup', { league: l, team: tm });
+            }
+            return t('tools.names.webSports');
+        }
+    },
+    'web.screenshot': {
+        title: t('tools.names.webScreenshot'),
+        icon: ICON_SCAN,
+        minimal: true,
+        input: z.object({ target: z.string().optional() }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const target = opts.tool.input?.target;
+            if (typeof target === 'string' && target.length > 0) {
+                return t('tools.desc.webScreenshotting', { target: target.length > 80 ? target.substring(0, 80) + '...' : target });
+            }
+            return t('tools.names.webScreenshot');
+        }
+    },
+    // Codex subagent lifecycle verbs.
+    'functions.spawn_agent': {
+        title: 'Spawn Agent',
+        icon: ICON_TASK,
+        minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
+            const messages = opts.messages || [];
+            return !messages.some((message) => message.kind === 'tool-call' || message.kind === 'agent-text');
+        },
+        isMutable: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            prompt: z.string().optional(),
+            sessionSubagent: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Spawn: ${name}`;
+        },
+        extractStatus: codexToolStateStatus
+    },
+    'functions.send_input': {
+        title: 'Send Input',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            input: z.string().optional(),
+            message: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            const text = (typeof input.input === 'string' && input.input)
+                || (typeof input.message === 'string' && input.message)
+                || '';
+            const truncated = text.length > 60 ? text.substring(0, 60) + '...' : text;
+            return truncated ? `Send to ${name}: ${truncated}` : `Send to ${name}`;
+        },
+        extractStatus: codexToolStateStatus
+    },
+    'functions.wait_agent': {
+        title: 'Wait for Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            timeout: z.number().optional(),
+            timeout_seconds: z.number().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            const timeoutVal = (typeof input.timeout === 'number' && input.timeout)
+                || (typeof input.timeout_seconds === 'number' && input.timeout_seconds)
+                || null;
+            return timeoutVal !== null
+                ? `Wait for ${name} (${timeoutVal}s)`
+                : `Wait for ${name}`;
+        },
+        extractStatus: codexToolStateStatus
+    },
+    'functions.resume_agent': {
+        title: 'Resume Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Resume: ${name}`;
+        },
+        extractStatus: codexToolStateStatus
+    },
+    'functions.close_agent': {
+        title: 'Close Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Close: ${name}`;
+        },
+        extractStatus: codexToolStateStatus
+    },
+    // Cycle 6 — D.5 subagent lifecycle merged card. Synthetic envelope name
+    // emitted by the CLI mapper (sessionProtocolMapper.ts) per spawn_agent;
+    // the renderer suppresses the underlying spawn/wait/close cards via
+    // codexToolRendering.useLifecycleSuppressionMap when this envelope is
+    // present for the same sessionSubagent.
+    'functions.subagent_lifecycle': {
+        title: 'Subagent',
+        icon: ICON_TASK,
+        isMutable: true,
+        minimal: false,
+        input: z.object({
+            sessionSubagent: z.string().optional(),
+            prompt: z.string().optional(),
+            agentNickname: z.string().nullish(),
+            lifecycle_state: z.string().optional(),
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const nickname = typeof input.agentNickname === 'string' && input.agentNickname
+                ? input.agentNickname
+                : (typeof input.sessionSubagent === 'string' ? input.sessionSubagent.slice(0, 8) : 'agent');
+            const prompt = typeof input.prompt === 'string' ? input.prompt : '';
+            const truncated = prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt;
+            return truncated ? `${nickname} · ${truncated}` : nickname;
+        },
+        extractStatus: codexToolStateStatus,
+    },
+    // §5.15 Phase D — Codex tool-suggest / parallel renderers (DORMANT until protocol emits events)
+    'functions.tool_suggest': {
+        title: t('tools.names.toolSuggest'),
+        icon: ICON_REASONING,
         noStatus: true,
         input: z.object({
-            skill: z.string().describe('The skill name'),
-            args: z.string().optional().describe('Optional arguments for the skill')
+            tool_name: z.string().optional(),
+            description: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            if (typeof input.tool_name === 'string' && input.tool_name) {
+                return t('tools.desc.toolSuggesting', { name: input.tool_name });
+            }
+            return t('tools.names.toolSuggest');
+        }
+    },
+    'multi_tool_use.parallel': {
+        title: t('tools.names.parallelTool'),
+        icon: ICON_TASK,
+        minimal: false,
+        input: z.object({
+            tool_uses: z.array(z.any()).optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const uses = Array.isArray(input.tool_uses) ? input.tool_uses : [];
+            return t('tools.desc.parallelToolCount', { count: uses.length });
+        }
+    },
+    // §5.15 Phase E — Codex protocol-extension activation (cycle 2, dormant until now)
+    'functions.write_stdin': {
+        title: 'Write stdin',
+        icon: ICON_TERMINAL,
+        minimal: true,
+        input: z.object({
+            text: z.string().optional(),
+            input: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const text = (typeof input.text === 'string' && input.text)
+                || (typeof input.input === 'string' && input.input)
+                || '';
+            return text
+                ? `Write: ${text.length > 60 ? text.substring(0, 60) + '...' : text}`
+                : 'Write to stdin';
+        }
+    },
+    'functions.update_plan': {
+        title: 'Update plan',
+        icon: ICON_TODO,
+        minimal: false,
+        noStatus: true,
+        input: z.object({
+            plan: z.union([z.string(), z.array(z.object({
+                step: z.string().optional(),
+                status: z.string().optional()
+            }).passthrough())]).optional(),
+            steps: z.array(z.any()).optional(),
+            text: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const items = extractPlanItems(input);
+            if (items.length > 0) return summarizePlanItems(items);
+            const plan = (typeof input.text === 'string' && input.text) || '';
+            return plan
+                ? `Update plan: ${plan.length > 60 ? plan.substring(0, 60) + '...' : plan}`
+                : 'Update plan';
+        }
+    },
+    'functions.request_user_input': {
+        title: 'Request user input',
+        icon: ICON_QUESTION,
+        minimal: true,
+        input: z.object({
+            prompt: z.string().optional(),
+            question: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const prompt = (typeof input.prompt === 'string' && input.prompt)
+                || (typeof input.question === 'string' && input.question)
+                || '';
+            return prompt
+                ? `Ask: ${prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt}`
+                : 'Request user input';
+        },
+        extractStatus: codexToolStateStatus
+    },
+    'functions.list_mcp_resources': {
+        title: 'List MCP resources',
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({
+            server: z.string().optional(),
+            serverName: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const server = (typeof input.server === 'string' && input.server)
+                || (typeof input.serverName === 'string' && input.serverName)
+                || '';
+            return server ? `List MCP resources: ${server}` : 'List MCP resources';
+        }
+    },
+    'functions.list_mcp_resource_templates': {
+        title: 'List MCP resource templates',
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({
+            server: z.string().optional(),
+            serverName: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const server = (typeof input.server === 'string' && input.server)
+                || (typeof input.serverName === 'string' && input.serverName)
+                || '';
+            return server ? `List MCP templates: ${server}` : 'List MCP resource templates';
+        }
+    },
+    'functions.read_mcp_resource': {
+        title: 'Read MCP resource',
+        icon: ICON_READ,
+        minimal: false,
+        input: z.object({
+            uri: z.string().optional(),
+            resourceUri: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const uri = (typeof input.uri === 'string' && input.uri)
+                || (typeof input.resourceUri === 'string' && input.resourceUri)
+                || '';
+            return uri
+                ? `Read: ${uri.length > 80 ? uri.substring(0, 80) + '...' : uri}`
+                : 'Read MCP resource';
+        },
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const uri = (typeof input.uri === 'string' && input.uri)
+                || (typeof input.resourceUri === 'string' && input.resourceUri)
+                || '';
+            return uri || null;
+        },
+        extractStatus: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return typeof opts.tool.result?.status === 'string' ? opts.tool.result.status : null;
+        }
+    },
+    'mcp__resources__read': {
+        title: 'resources.read',
+        icon: ICON_READ,
+        minimal: false,
+        input: z.object({
+            uri: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const uri = typeof opts.tool.input?.uri === 'string' ? opts.tool.input.uri : '';
+            return uri
+                ? `Read: ${uri.length > 80 ? uri.substring(0, 80) + '...' : uri}`
+                : 'resources.read';
+        },
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const uri = typeof opts.tool.input?.uri === 'string' ? opts.tool.input.uri : '';
+            return uri || null;
+        },
+        extractStatus: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return typeof opts.tool.result?.status === 'string' ? opts.tool.result.status : null;
+        }
+    },
+    'mcp__playwright__browser_take_screenshot': {
+        title: 'Playwright screenshot',
+        icon: ICON_SCAN,
+        minimal: false,
+        input: z.object({
+            filename: z.string().optional(),
+            path: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const p = extractAttachmentSummary(opts.tool.input, opts.tool.result).path || '';
+            return p ? `Screenshot: ${p.length > 80 ? p.substring(0, 80) + '...' : p}` : 'Playwright screenshot';
+        }
+    },
+    // F.4 (cycle 4): Playwright long-input compact summary entries. The four
+    // tools below have potentially huge `input` strings (data: URLs, JS source,
+    // typed text). The inline card subtitle is truncated; full input remains
+    // accessible in the expanded details panel via standard ToolView behavior.
+    'mcp__playwright__browser_navigate': {
+        title: 'Playwright navigate',
+        icon: ICON_LINK,
+        minimal: true,
+        input: z.object({
+            url: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const url = typeof opts.tool.input?.url === 'string' ? opts.tool.input.url : '';
+            if (!url) return null;
+            if (url.startsWith('data:')) {
+                // Synthesize a "data: <mime>" synopsis with size when computable.
+                const mimeMatch = url.match(/^data:([^;,]+)/);
+                const mime = mimeMatch ? mimeMatch[1] : 'data';
+                const sizeKb = (url.length / 1024).toFixed(1);
+                return `data: ${mime} (${sizeKb} KB)`;
+            }
+            if (url.length > 120) {
+                return url.substring(0, 60) + '…';
+            }
+            return url;
+        }
+    },
+    'mcp__playwright__browser_evaluate': {
+        title: 'Playwright evaluate',
+        icon: ICON_TERMINAL,
+        minimal: true,
+        input: z.object({
+            function: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const fn = typeof opts.tool.input?.function === 'string' ? opts.tool.input.function : '';
+            if (!fn) return null;
+            if (fn.length > 120) {
+                return fn.substring(0, 60) + '…';
+            }
+            return fn;
+        }
+    },
+    'mcp__playwright__browser_run_code': {
+        title: 'Playwright run code',
+        icon: ICON_TERMINAL,
+        minimal: true,
+        input: z.object({
+            code: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const code = typeof opts.tool.input?.code === 'string' ? opts.tool.input.code : '';
+            if (!code) return null;
+            if (code.length > 120) {
+                return code.substring(0, 60) + '…';
+            }
+            return code;
+        }
+    },
+    'mcp__playwright__browser_type': {
+        title: 'Playwright type',
+        icon: ICON_EDIT,
+        minimal: true,
+        input: z.object({
+            text: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const text = typeof opts.tool.input?.text === 'string' ? opts.tool.input.text : '';
+            if (!text) return null;
+            if (text.length > 120) {
+                return text.substring(0, 60) + '…';
+            }
+            return text;
+        }
+    },
+    'image_gen.imagegen': {
+        title: 'Generated image',
+        icon: ICON_IMAGE,
+        minimal: false,
+        input: z.object({
+            prompt: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ? `Generated: ${summary.path.length > 80 ? summary.path.substring(0, 80) + '...' : summary.path}` : summary.label;
+        }
+    },
+    'functions.view_image': {
+        title: 'View image',
+        icon: ICON_IMAGE,
+        minimal: false,
+        input: z.object({
+            path: z.string().optional(),
+            image_path: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const p = extractAttachmentSummary(opts.tool.input, opts.tool.result).path || '';
+            return p
+                ? `View: ${p.length > 80 ? p.substring(0, 80) + '...' : p}`
+                : 'View image';
+        }
+    },
+    'file': {
+        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return extractAttachmentSummary(opts.tool.input, opts.tool.result).label;
+        },
+        icon: ICON_IMAGE,
+        minimal: false,
+        noStatus: true,
+        input: z.object({
+            ref: z.string().optional(),
+            name: z.string().optional(),
+            size: z.number().optional(),
+            image: z.object({
+                width: z.number().optional(),
+                height: z.number().optional(),
+                thumbhash: z.string().optional(),
+            }).partial().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return [summary.path, summary.dimensions, summary.size].filter(Boolean).join(' · ') || summary.label;
+        }
+    },
+    // Codex subagent lifecycle verbs (without functions. prefix — reducer synthetic grouping).
+    // These entries mirror functions.spawn_agent/send_input/wait_agent/close_agent but
+    // handle the case where the reducer groups them under a synthetic 'spawn_agent' card.
+    'spawn_agent': {
+        title: 'Spawn Agent',
+        icon: ICON_TASK,
+        isMutable: true,
+        minimal: (opts: { metadata: Metadata | null, tool: ToolCall, messages?: Message[] }) => {
+            const messages = opts.messages || [];
+            return !messages.some((message) => message.kind === 'tool-call' || message.kind === 'agent-text');
+        },
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            prompt: z.string().optional(),
+            sessionSubagent: z.string().optional()
+        }).partial().passthrough(),
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const name = (typeof input.agent_name === 'string' && input.agent_name)
+                || (typeof input.name === 'string' && input.name)
+                || 'agent';
+            return `Spawn: ${name}`;
+        }
+    },
+    'send_input': {
+        title: 'Send Input',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional(),
+            input: z.string().optional()
+        }).partial().passthrough()
+    },
+    'wait_agent': {
+        title: 'Wait for Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
+        }).partial().passthrough()
+    },
+    'close_agent': {
+        title: 'Close Agent',
+        icon: ICON_TASK,
+        minimal: true,
+        input: z.object({
+            agent_name: z.string().optional(),
+            name: z.string().optional()
         }).partial().passthrough()
     },
     // Internal Claude Code tool for loading deferred tools - no user-visible output

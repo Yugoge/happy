@@ -1,13 +1,12 @@
 import * as React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ScrollView, Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Ionicons, Octicons } from '@expo/vector-icons';
+import { Octicons } from '@expo/vector-icons';
 import { ToolCall } from '@/sync/typesMessage';
-import { ToolSectionView } from '../ToolSectionView';
 import { CommandView } from '@/components/CommandView';
-import { CodeView } from '@/components/CodeView';
 import { Metadata } from '@/sync/storageTypes';
 import { resolvePath } from '@/utils/pathUtils';
+import { buildTerminalRenderData } from '@/utils/codexToolRendering';
 import { t } from '@/text';
 
 interface CodexBashViewProps {
@@ -15,13 +14,15 @@ interface CodexBashViewProps {
     metadata: Metadata | null;
 }
 
+// Parity with BashView.tsx: cap inline output preview at 2 lines
+const MAX_PREVIEW_LINES = 2;
+
 export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata }) => {
     const { theme } = useUnistyles();
     const { input, result, state } = tool;
 
     // Parse the input structure
     const command = input?.command;
-    const cwd = input?.cwd;
     const parsedCmd = input?.parsed_cmd;
 
     // Determine the type of operation from parsed_cmd
@@ -36,92 +37,161 @@ export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata })
         commandStr = firstCmd.cmd || null;
     }
 
-    // Get the appropriate icon based on operation type
-    let icon: React.ReactNode;
-    switch (operationType) {
-        case 'read':
-            icon = <Octicons name="eye" size={18} color={theme.colors.textSecondary} />;
-            break;
-        case 'write':
-            icon = <Octicons name="file-diff" size={18} color={theme.colors.textSecondary} />;
-            break;
-        default:
-            icon = <Octicons name="terminal" size={18} color={theme.colors.textSecondary} />;
+    // Read branch — eye icon + readingFile label, horizontally scrollable
+    if (operationType === 'read' && fileName) {
+        const resolvedPath = resolvePath(fileName, metadata);
+        return (
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.container}>
+                <View style={styles.iconRow}>
+                    <Octicons name="eye" size={18} color={theme.colors.textSecondary} />
+                    <Text style={styles.operationText}>{t('tools.desc.readingFile', { file: resolvedPath })}</Text>
+                </View>
+            </ScrollView>
+        );
     }
 
-    // Format the display based on operation type
-    if (operationType === 'read' && fileName) {
-        // Display as a read operation
+    // Write branch — terminal icon + writingFile label, horizontally scrollable
+    if (operationType === 'write' && fileName) {
         const resolvedPath = resolvePath(fileName, metadata);
-        
         return (
-            <ToolSectionView>
-                <View style={styles.readContainer}>
-                    <View style={styles.iconRow}>
-                        {icon}
-                        <Text style={styles.operationText}>{t('tools.desc.readingFile', { file: resolvedPath })}</Text>
-                    </View>
-                    {commandStr && (
-                        <Text style={styles.commandText}>{commandStr}</Text>
-                    )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.container}>
+                <View style={styles.iconRow}>
+                    <Octicons name="terminal" size={18} color={theme.colors.textSecondary} />
+                    <Text style={styles.operationText}>{t('tools.desc.writingFile', { file: resolvedPath })}</Text>
                 </View>
-            </ToolSectionView>
-        );
-    } else if (operationType === 'write' && fileName) {
-        // Display as a write operation
-        const resolvedPath = resolvePath(fileName, metadata);
-        
-        return (
-            <ToolSectionView>
-                <View style={styles.readContainer}>
-                    <View style={styles.iconRow}>
-                        {icon}
-                        <Text style={styles.operationText}>{t('tools.desc.writingFile', { file: resolvedPath })}</Text>
-                    </View>
-                    {commandStr && (
-                        <Text style={styles.commandText}>{commandStr}</Text>
-                    )}
-                </View>
-            </ToolSectionView>
-        );
-    } else {
-        // Display as a regular command
-        const commandDisplay = commandStr || (command && Array.isArray(command) ? command.join(' ') : '');
-        
-        return (
-            <ToolSectionView>
-                <CommandView 
-                    command={commandDisplay}
-                    stdout={null}
-                    stderr={null}
-                    error={state === 'error' && typeof result === 'string' ? result : null}
-                    hideEmptyOutput
-                />
-            </ToolSectionView>
+            </ScrollView>
         );
     }
+
+    // Bash / unknown branch — flat BashView-style render (no dark wrapper, B03 fix)
+    const terminal = buildTerminalRenderData(
+        { ...input, command, parsed_cmd: parsedCmd, cmd: commandStr },
+        state,
+        result,
+        MAX_PREVIEW_LINES,
+    );
+
+    return (
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            style={styles.container}
+        >
+            <View>
+                <View style={styles.commandLine}>
+                    <Text style={styles.prompt}>$ </Text>
+                    <Text style={styles.command}>{terminal.command}</Text>
+                </View>
+                {terminal.stdout && <Text style={styles.stdout}>{terminal.stdout}</Text>}
+                {terminal.stderr && <Text style={styles.stderr}>{terminal.stderr}</Text>}
+                {terminal.error && <Text style={styles.errorText}>{terminal.error}</Text>}
+                {terminal.statusLine && <Text style={styles.statusText}>{terminal.statusLine}</Text>}
+                {terminal.extraLines > 0 && (
+                    <Text style={styles.moreText}>+{terminal.extraLines} more lines</Text>
+                )}
+            </View>
+        </ScrollView>
+    );
 });
 
+export const CodexBashViewFull = React.memo<CodexBashViewProps>(({ tool }) => {
+    const terminal = buildTerminalRenderData(tool.input, tool.state, tool.result);
+    return (
+        <View style={styles.fullContainer}>
+            <CommandView
+                command={terminal.command}
+                stdout={terminal.stdout}
+                stderr={terminal.stderr}
+                error={terminal.error}
+                status={terminal.statusLine}
+                fullWidth
+                wrap
+            />
+        </View>
+    );
+});
+
+const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+
 const styles = StyleSheet.create((theme) => ({
-    readContainer: {
-        padding: 12,
-        backgroundColor: theme.colors.surfaceHigh,
-        borderRadius: 8,
+    container: {
+        paddingBottom: 4,
+    },
+    // Flat BashView-style command line (no dark background wrapper, B03)
+    commandLine: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+    },
+    prompt: {
+        fontFamily: MONO_FONT,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.textSecondary,
+        fontWeight: '600',
+    },
+    command: {
+        fontFamily: MONO_FONT,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.textSecondary,
+        fontWeight: '500',
+    },
+    stdout: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textSecondary,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    stderr: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.warning,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    errorText: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textDestructive,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    statusText: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textSecondary,
+        fontStyle: 'italic',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
     },
     iconRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
     },
     operationText: {
         fontSize: 14,
         color: theme.colors.text,
         fontWeight: '500',
     },
-    commandText: {
-        fontSize: 12,
+    moreText: {
+        fontSize: 14,
         color: theme.colors.textSecondary,
-        fontFamily: 'monospace',
-        marginTop: 8,
+        fontStyle: 'italic',
+        opacity: 0.7,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+    },
+    fullContainer: {
+        paddingBottom: 24,
     },
 }));
