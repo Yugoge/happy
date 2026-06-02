@@ -1,5 +1,5 @@
 import { MarkdownBlock, MarkdownSpan, parseMarkdown } from './parseMarkdown';
-import { MarkdownDefsContext, RenderInteractiveSpan, RenderDetailsBlock as RenderDetailsBlockFromDecor } from './MarkdownInlineDecorations';
+import { MarkdownDefsContext, RenderInteractiveSpan, RenderDetailsBlock as RenderDetailsBlockFromDecor, RenderFootnoteRegion } from './MarkdownInlineDecorations';
 import * as React from 'react';
 import { Image, Pressable, ScrollView, View, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -133,10 +133,15 @@ export const MarkdownView = React.memo((props: {
         linkDefs: (blocks as any).linkDefs ?? new Map(),
     }), [blocks]);
 
+    // B06: adapter injecting MarkdownView's local RenderSpans into the extracted footnote-region renderer.
+    const renderSpansForRegion = React.useCallback((spans: MarkdownSpan[], baseStyle: any, sel: boolean, onLinkPress: (url: string) => void) => (
+        <RenderSpans spans={spans} baseStyle={baseStyle} selectable={sel} onLinkPress={onLinkPress} />
+    ), []);
     const renderContent = () => (
         <MarkdownDefsContext.Provider value={defs}>
             <View style={{ width: '100%', overflow: 'hidden' }}>
                 {blocks.map((block, index) => renderBlock(block, index, blocks.length, selectable, handleLinkPress, props.onOptionPress))}
+                <RenderFootnoteRegion footnotes={defs.footnotes} selectable={selectable} onLinkPress={handleLinkPress} renderSpans={renderSpansForRegion} style={style} />
             </View>
         </MarkdownDefsContext.Provider>
     );
@@ -512,7 +517,13 @@ const style = StyleSheet.create((theme) => ({
     semibold: {
         fontWeight: '600',
     },
-    code: { ...Typography.mono(), fontSize: 16, lineHeight: 24, color: theme.colors.text },
+    // B08 (Cycle 12): inline-code chip mirrors style.kbd (surfaceHigh resolves per-platform
+    // dark via theme.ts; never hardcode) so Chinese — which falls back to the sans body face,
+    // IBM Plex Mono having no CJK glyphs — is distinct from body text. English uniform, no regression.
+    code: {
+        ...Typography.mono(), fontSize: 16, lineHeight: 24, color: theme.colors.text,
+        backgroundColor: theme.colors.surfaceHigh, borderRadius: 3, paddingHorizontal: 4,
+    },
     strikethrough: { textDecorationLine: 'line-through' },
     kbd: {
         ...Typography.mono(), fontSize: 14, lineHeight: 20, color: theme.colors.text,
@@ -528,10 +539,17 @@ const style = StyleSheet.create((theme) => ({
     sup: { fontSize: 10, lineHeight: 14, transform: [{ translateY: -4 }] },
     abbr: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' as const, color: theme.colors.text },
     'footnote-ref': { fontSize: 12, lineHeight: 16, color: theme.colors.textLink, paddingHorizontal: 2 },
-    detailsBlock: { borderLeftWidth: 3, borderLeftColor: theme.colors.divider, paddingLeft: 12, marginVertical: 6 },
+    // B07 (Cycle 12): heavy 3px left border -> 1px faint divider so the disclosure reads as integrated body content.
+    detailsBlock: { borderLeftWidth: 1, borderLeftColor: theme.colors.divider, paddingLeft: 12, marginVertical: 6 },
     detailsSummary: { fontWeight: '600' as const },
     detailsCaret: { color: theme.colors.textSecondary },
     detailsBody: { paddingLeft: 8, marginTop: 4 },
+    // B06 (Cycle 12): GFM footnote region — tokens reused from style.text/footnote-ref/horizontalRule (glyph+divider tunable).
+    footnoteRegion: { marginTop: 8 },
+    footnoteEntry: { flexDirection: 'row', alignItems: 'flex-start' },
+    footnoteEntryMarker: { color: theme.colors.textLink, marginTop: 0, marginBottom: 4, flexShrink: 0 },
+    footnoteEntryBody: { flex: 1, marginTop: 0, marginBottom: 4 },
+    footnoteBackref: { color: theme.colors.textLink, fontSize: 14 },
     taskCheckbox: { ...Typography.default(), color: theme.colors.text },
     blockquote: {
         borderLeftWidth: 3, borderLeftColor: theme.colors.divider, paddingLeft: 12,

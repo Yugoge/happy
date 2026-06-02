@@ -94,3 +94,44 @@ export function RenderDetailsBlock(props: DetailsBlockProps) {
         </View>
     );
 }
+
+// Cycle 12 (B06): GFM footnote region. The footnotes Map (label -> body spans)
+// is parsed in parseMarkdownBlock and threaded via MarkdownDefsContext, but no
+// region was ever emitted after the block list. This renders a divider + one
+// numbered entry per footnote (in Map insertion order = appearance order) with
+// a backref glyph, mirroring Claude Code's GFM footnote rendering. Renders
+// nothing when the Map is empty (most messages). Tokens reused: horizontalRule
+// divider, style.text body face, footnote-ref color for the marker/backref.
+// Extracted here (not MarkdownView.tsx) to keep that file under its 800-line budget.
+export function RenderFootnoteRegion(props: {
+    footnotes: Map<string, MarkdownSpan[]>,
+    selectable: boolean,
+    onLinkPress: (url: string) => void,
+    renderSpans: (spans: MarkdownSpan[], baseStyle: any, selectable: boolean,
+        onLinkPress: (url: string) => void) => React.ReactNode,
+    style: any,
+}) {
+    if (!props.footnotes || props.footnotes.size === 0) {
+        return null;
+    }
+    const entries = Array.from(props.footnotes.entries());
+    return (
+        <View style={props.style.footnoteRegion} accessibilityRole={Platform.OS === 'web' ? ('list' as any) : undefined}>
+            <View style={props.style.horizontalRule} />
+            {entries.map(([label, body]) => (
+                <View key={label} style={props.style.footnoteEntry}
+                    accessibilityRole={Platform.OS === 'web' ? ('listitem' as any) : undefined}>
+                    {/* Marker = the footnote label itself (e.g. "1.", "note.") so it corresponds
+                        exactly to what the inline ref chip displays (parseMarkdownSpans renders the
+                        raw label as the ref text), independent of Map iteration order. */}
+                    <Text selectable={false} style={[props.style.text, props.style.footnoteEntryMarker]}>{`${label}. `}</Text>
+                    <Text selectable={props.selectable} style={[props.style.text, props.style.footnoteEntryBody]}>
+                        {props.renderSpans(body, [props.style.text, props.style.footnoteEntryBody], props.selectable, props.onLinkPress)}
+                        <Text style={props.style.footnoteBackref}
+                            accessibilityLabel={t('markdown.footnoteTitle', { label })}>{' ↩'}</Text>
+                    </Text>
+                </View>
+            ))}
+        </View>
+    );
+}
