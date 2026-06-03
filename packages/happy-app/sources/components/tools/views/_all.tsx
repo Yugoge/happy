@@ -21,6 +21,7 @@ import { AgentFullView } from './AgentFullView';
 import { CodexParallelView } from './CodexParallelView';
 import { CodexPlanView } from './CodexPlanView';
 import { CodexAttachmentView } from './CodexAttachmentView';
+import { ReadView } from './ReadView';
 import { AskUserQuestionView } from './AskUserQuestionView';
 import { GeminiEditView } from './GeminiEditView';
 import { GeminiExecuteView } from './GeminiExecuteView';
@@ -47,6 +48,8 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     file: CodexAttachmentView,
     'mcp__playwright__browser_take_screenshot': CodexAttachmentView,
     'image_gen.imagegen': CodexAttachmentView,
+    // B05 (bidirectional): Claude Read of an image gains an inline preview thumbnail.
+    Read: ReadView,
     Write: WriteView,
     TodoWrite: TodoView,
     ExitPlanMode: ExitPlanToolView,

@@ -11,6 +11,7 @@ import { t } from '@/text';
 import { useFilteredTools } from './TaskView';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useLocalSearchParams } from 'expo-router';
+import { extractLifecycleResultText } from '@/utils/codexToolRendering';
 
 // Renders the list of child messages inside the bordered box
 const ChildMessageList = React.memo<{
@@ -38,28 +39,63 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
     const { id: routeSessionId } = useLocalSearchParams<{ id: string }>();
     const toolCount = filtered.length;
 
-    if (messages.length === 0) return null;
+    // B13 (AC-B13-2): the lifecycle mobile detail must show Prompt + Tool Calls +
+    // Result. Once functions.subagent_lifecycle is in SPECIALIZED_FULL_PAYLOAD_TOOLS
+    // the raw Input/Output sections are suppressed, so the prompt and the OBJECT
+    // result.final_summary must be rendered here or they are lost (codex finding 4).
+    // Gated to the lifecycle envelope ONLY: spawn_agent / functions.spawn_agent also
+    // reach AgentFullView but still render their raw Input/Output, so showing Prompt/
+    // Result for them would duplicate (codex F6).
+    const isLifecycle = tool.name === 'functions.subagent_lifecycle';
+    const promptText = isLifecycle && typeof tool.input?.prompt === 'string' && tool.input.prompt.length > 0
+        ? tool.input.prompt : null;
+    const resultText = isLifecycle && tool.state === 'completed'
+        ? extractLifecycleResultText(tool.result) : null;
+
+    if (messages.length === 0 && !promptText && !resultText) return null;
 
     return (
-        <View style={toolFullViewStyles.section}>
-            <TouchableOpacity onPress={toggle} activeOpacity={0.7}>
-                <View style={toolFullViewStyles.sectionHeader}>
-                    <Ionicons name="layers-outline" size={20} color="#5856D6" />
-                    <Text style={toolFullViewStyles.sectionTitle}>
-                        {t('tools.fullView.subTools')}{toolCount > 0 ? ` (${toolCount})` : ''}
-                    </Text>
-                    <Ionicons
-                        name={expanded ? 'chevron-up' : 'chevron-down'}
-                        size={18}
-                        color={theme.colors.textSecondary}
-                        style={{ marginLeft: 'auto' }}
-                    />
+        <>
+            {promptText && (
+                <View style={toolFullViewStyles.section}>
+                    <View style={toolFullViewStyles.sectionHeader}>
+                        <Ionicons name="chatbubble-outline" size={20} color="#5856D6" />
+                        <Text style={toolFullViewStyles.sectionTitle}>Prompt</Text>
+                    </View>
+                    <MarkdownView markdown={promptText} />
                 </View>
-            </TouchableOpacity>
-            {expanded && (
-                <ChildMessageList messages={messages} metadata={metadata} sessionId={routeSessionId} />
             )}
-        </View>
+            {messages.length > 0 && (
+                <View style={toolFullViewStyles.section}>
+                    <TouchableOpacity onPress={toggle} activeOpacity={0.7}>
+                        <View style={toolFullViewStyles.sectionHeader}>
+                            <Ionicons name="layers-outline" size={20} color="#5856D6" />
+                            <Text style={toolFullViewStyles.sectionTitle}>
+                                {t('tools.fullView.subTools')}{toolCount > 0 ? ` (${toolCount})` : ''}
+                            </Text>
+                            <Ionicons
+                                name={expanded ? 'chevron-up' : 'chevron-down'}
+                                size={18}
+                                color={theme.colors.textSecondary}
+                                style={{ marginLeft: 'auto' }}
+                            />
+                        </View>
+                    </TouchableOpacity>
+                    {expanded && (
+                        <ChildMessageList messages={messages} metadata={metadata} sessionId={routeSessionId} />
+                    )}
+                </View>
+            )}
+            {resultText && (
+                <View style={toolFullViewStyles.section}>
+                    <View style={toolFullViewStyles.sectionHeader}>
+                        <Ionicons name="checkmark-done-outline" size={20} color="#34C759" />
+                        <Text style={toolFullViewStyles.sectionTitle}>Result</Text>
+                    </View>
+                    <MarkdownView markdown={resultText} />
+                </View>
+            )}
+        </>
     );
 });
 

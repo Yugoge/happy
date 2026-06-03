@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createId, isCuid } from '@paralleldrive/cuid2';
@@ -338,6 +339,62 @@ describe('mapClaudeLogMessageToSessionEnvelopes', () => {
 
         expect(result.currentTurnId).toBe('turn-1');
         expect(result.envelopes).toHaveLength(0);
+    });
+
+    // B05 R2 (PRODUCER): a Claude `Read` of an image file emits a structured
+    // `result.preview_uri` on tool-call-end so the app-side ReadView renders an
+    // inline thumbnail. A text `Read` emits NO `result` (text reads must not gain
+    // a preview). This is the producer the prior consumer-only cycle was missing.
+    it('synthesizes a Read image preview result for an image-target Read (and none for text)', () => {
+        const tmpDir = mkdtempSync(join(tmpdir(), 'happy-read-image-'));
+        const imgPath = join(tmpDir, 'shot.png');
+        // 1x1 transparent PNG.
+        const pngBytes = Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFBQIAHl6u2QAAAABJRU5ErkJggg==',
+            'base64',
+        );
+        writeFileSync(imgPath, pngBytes);
+        const txtPath = join(tmpDir, 'notes.txt');
+        writeFileSync(txtPath, 'just text');
+
+        const state = { currentTurnId: null as string | null };
+        mapClaudeLogMessageToSessionEnvelopes({
+            type: 'assistant',
+            uuid: 'a-read',
+            message: {
+                role: 'assistant',
+                content: [
+                    { type: 'tool_use', id: 'read-img', name: 'Read', input: { file_path: imgPath } },
+                    { type: 'tool_use', id: 'read-txt', name: 'Read', input: { file_path: txtPath } },
+                ],
+            },
+        } as any, state);
+
+        const ended = mapClaudeLogMessageToSessionEnvelopes({
+            type: 'user',
+            uuid: 'u-read',
+            message: {
+                role: 'user',
+                content: [
+                    { type: 'tool_result', tool_use_id: 'read-img', content: 'binary image' },
+                    { type: 'tool_result', tool_use_id: 'read-txt', content: 'just text' },
+                ],
+            },
+        } as any, state);
+
+        const imgEnd = ended.envelopes.find((e) => e.ev.t === 'tool-call-end' && e.ev.call === 'read-img');
+        const txtEnd = ended.envelopes.find((e) => e.ev.t === 'tool-call-end' && e.ev.call === 'read-txt');
+
+        expect(imgEnd?.ev.t).toBe('tool-call-end');
+        const imgResult = (imgEnd?.ev as { result?: { preview_uri?: string; path?: string } }).result;
+        expect(typeof imgResult?.preview_uri).toBe('string');
+        expect(imgResult?.preview_uri?.startsWith('data:image/png;base64,')).toBe(true);
+        expect(imgResult?.path).toBe(imgPath);
+
+        // Text Read: no preview result field at all.
+        expect((txtEnd?.ev as { result?: unknown }).result).toBeUndefined();
+
+        rmSync(tmpDir, { recursive: true, force: true });
     });
 });
 

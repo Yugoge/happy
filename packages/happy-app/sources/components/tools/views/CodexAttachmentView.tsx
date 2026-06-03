@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native-unistyles';
-import { Ionicons } from '@expo/vector-icons';
 import type { ToolViewProps } from './_all';
 import { ToolSectionView } from '../ToolSectionView';
 import { extractAttachmentSummary } from '@/utils/codexToolRendering';
@@ -16,55 +15,58 @@ const attachmentPreviewStyle = {
     marginVertical: 8,
 };
 
+// B05: flatten the inner attachment card. The previous double-nest was the
+// duplicate icon + TITLE ROW stacked under the ToolView header — that row is
+// gone. We render the preview thumbnail (when present) + a single compact
+// filename caption + secondary meta (dimensions/size) + the stale-advisory
+// fallback. The caption is a plain muted line (NOT an icon+title row), so it is
+// not the double-nest; it also recovers the filename on header-less surfaces
+// (desktop sidebar via SidebarContentRenderer, where there is no ToolView
+// header subtitle to carry the path — codex F4).
 export const CodexAttachmentView = React.memo<ToolViewProps>(({ tool }) => {
     const attachment = extractAttachmentSummary(tool.input, tool.result);
     const hasResult = tool.result !== undefined && tool.result !== null;
+    const caption = attachment.path
+        ? (attachment.path.split('/').filter(Boolean).pop() ?? attachment.path)
+        : (attachment.label && attachment.label !== 'Attachment' ? attachment.label : null);
+    const meta = [attachment.dimensions, attachment.size].filter(Boolean) as string[];
+    const showFallback = !attachment.previewUri && hasResult;
+    if (!attachment.previewUri && !showFallback && !caption && meta.length === 0) {
+        return null;
+    }
     return (
         <ToolSectionView>
-            <View style={attachmentStyles.card}>
-                <Ionicons name="image-outline" size={20} style={attachmentStyles.icon} />
-                <View style={attachmentStyles.body}>
-                    <Text style={attachmentStyles.title} numberOfLines={1} ellipsizeMode="middle">
-                        {attachment.label}
-                    </Text>
-                    {attachment.previewUri ? (
-                        <Image
-                            source={{ uri: attachment.previewUri }}
-                            style={attachmentPreviewStyle}
-                            contentFit="contain"
-                        />
-                    ) : hasResult ? <Text style={attachmentStyles.meta}>
+            <View style={attachmentStyles.body}>
+                {attachment.previewUri ? (
+                    <Image
+                        source={{ uri: attachment.previewUri }}
+                        style={attachmentPreviewStyle}
+                        contentFit="contain"
+                    />
+                ) : showFallback ? (
+                    <Text style={attachmentStyles.meta}>
                         {attachment.previewUnavailableReason ?? t('tools.attachment.staleAdvisory')}
-                    </Text> : null}
-                    {attachment.path ? <Text style={attachmentStyles.meta}>{attachment.path}</Text> : null}
-                    {attachment.dimensions ? <Text style={attachmentStyles.meta}>{attachment.dimensions}</Text> : null}
-                    {attachment.size ? <Text style={attachmentStyles.meta}>{attachment.size}</Text> : null}
-                </View>
+                    </Text>
+                ) : null}
+                {caption ? (
+                    <Text style={attachmentStyles.caption} numberOfLines={1}>{caption}</Text>
+                ) : null}
+                {meta.map((line) => (
+                    <Text key={line} style={attachmentStyles.meta}>{line}</Text>
+                ))}
             </View>
         </ToolSectionView>
     );
 });
 
 const attachmentStyles = StyleSheet.create((theme) => ({
-    card: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-        paddingVertical: 4,
-        marginBottom: 8,
-    },
-    icon: {
-        color: theme.colors.textSecondary,
-        marginTop: 1,
-    },
     body: {
-        flex: 1,
         minWidth: 0,
     },
-    title: {
+    caption: {
         color: theme.colors.text,
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 13,
+        lineHeight: 18,
     },
     meta: {
         color: theme.colors.textSecondary,

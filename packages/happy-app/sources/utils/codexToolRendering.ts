@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { stringifyToolCommand } from './toolCommand';
+import { parseToolUseError } from './toolErrorParser';
 import { isMcpInlineChipOnlyTool } from '@/components/tools/mcpHelpers';
 import type { Message, ToolCall } from '@/sync/typesMessage';
 import type { Metadata } from '@/sync/storageTypes';
@@ -79,6 +80,29 @@ export function buildLifecycleSuppressionMap(messages: ReadonlyArray<Message>): 
     return map;
 }
 
+// B13 (Cycle 13): predicate used by the lifecycle INLINE card to filter the
+// four control verbs (spawn/send/wait/close/resume) out of the subagent's own
+// tool list. Lifecycle-LOCAL: applied only inside CodexSubagentLifecycleView so
+// the shared useFilteredTools hook semantics (Claude Task/Agent + mobile detail)
+// stay untouched (codex finding 1 / AC-REG-1).
+export function isCodexSubagentControlTool(name: string): boolean {
+    return CODEX_SUBAGENT_CONTROL_TOOLS.has(name);
+}
+
+// B13 (Cycle 13): the lifecycle result is an OBJECT ({ final_summary, message })
+// not a string, so the sidebar/detail Result gate (typeof result === 'string')
+// drops it. Extract the displayable final summary from either an object result
+// or a string result so the detail surfaces can render it without data loss
+// (codex finding 3 / AC-B13-2).
+export function extractLifecycleResultText(result: unknown): string | null {
+    if (typeof result === 'string') return result.length > 0 ? result : null;
+    if (isRecord(result)) {
+        const summary = result.final_summary ?? result.message ?? result.summary;
+        if (typeof summary === 'string' && summary.length > 0) return summary;
+    }
+    return null;
+}
+
 // Returns true if the given control-tool message should be suppressed because
 // a lifecycle envelope exists for its sessionSubagent. Returns false (render)
 // for any tool that is NOT in CODEX_SUBAGENT_CONTROL_TOOLS.
@@ -106,6 +130,14 @@ export function isCodexSourceTool(tool: ToolCall, metadata?: Metadata | null): b
 export function shouldRenderToolContent(
     tool: ToolCall, hasSpecializedView: boolean, minimal: boolean, metadata?: Metadata | null,
 ): boolean {
+    // B11 (Cycle 13): a FAILED functions.request_user_input must show its error
+    // INLINE (Claude Code parity, no failure-card). For a string <tool_use_error>
+    // payload ToolView.buildToolConfig force-sets minimal=true, which the next gate
+    // would suppress — so this SCOPED exception (exact tool-name + error-state) is
+    // returned BEFORE the minimal-gate to let the GenericToolPreview body render.
+    // Narrowly gated: does NOT widen to other tools and does NOT regress any other
+    // tool's header-only minimal (codex F5).
+    if (tool.name === 'functions.request_user_input' && tool.state === 'error') return true;
     // AC2 fix: minimal=true means header-only — suppress body regardless of specialized view.
     // CodexPatch has minimal=true AND a specialized view; without this guard its body renders
     // Octicons name="file-diff" inline, duplicating CodexDiff's file-diff icon.
@@ -206,16 +238,62 @@ function summarizeWebResult(record: Record<string, unknown>): string[] {
     ].filter((line): line is string => !!line);
 }
 
+// B11 (Cycle 13): strip <tool_use_error> wrapper tags from a candidate so the
+// raw markup is never rendered inline; falls back to a plain summary when the
+// candidate is not wrapped (codex F4).
+function extractFailureText(candidate: unknown): string | null {
+    if (typeof candidate === 'string') {
+        const unwrapped = parseToolUseError(candidate).errorMessage;
+        if (unwrapped !== null) return summarizeText(unwrapped);
+    }
+    return summarizeText(candidate);
+}
+
+// B11 (Cycle 13, codex G3 review): the request_user_input failure must show the
+// ACTUAL error/stderr inline, so — unlike the generic summarizeText path — this
+// extractor strips <tool_use_error> tags but PRESERVES line breaks and does NOT
+// apply the 160-char single-line summary cap (a multi-line stderr would otherwise
+// lose its actionable lines). Scoped to buildRequestUserInputFailureLine only.
+function extractRequestUserInputFailureText(candidate: unknown): string | null {
+    let text = typeof candidate === 'string' ? candidate : stringifyUnknown(candidate);
+    if (text === null) return null;
+    const unwrapped = parseToolUseError(text).errorMessage;
+    if (unwrapped !== null) text = unwrapped;
+    const trimmed = text.replace(/[ \t]+/g, ' ').trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
+// B11 (Cycle 13): a FAILED functions.request_user_input surfaces its error/stderr
+// INLINE for BOTH payload shapes — a string <tool_use_error> result (resultRecord
+// null) AND a structured object (read stderr ?? error ?? message ?? reason, codex
+// F3). Tags are stripped in either case (codex F4); line breaks preserved (codex
+// G3). Falls back to a scoped message when the failed call carries no error text
+// so the inline body is never empty (worse than header-only) — codex G3.
+function buildRequestUserInputFailureLine(parsedResult: unknown): string | null {
+    let candidate: unknown = parsedResult;
+    if (isRecord(parsedResult)) {
+        candidate = parsedResult.stderr ?? parsedResult.error
+            ?? parsedResult.message ?? parsedResult.reason;
+    }
+    return extractRequestUserInputFailureText(candidate)
+        ?? 'Request user input failed with no error output';
+}
+
 export function buildGenericToolSummary(tool: ToolCall): GenericToolSummary {
     const parsedResult = parseProtocolResult(tool.result);
     const resultRecord = isRecord(parsedResult) ? parsedResult : null;
     const lines: string[] = [];
 
+    if (tool.name === 'functions.request_user_input' && tool.state === 'error') {
+        const failure = buildRequestUserInputFailureLine(parsedResult);
+        if (failure) lines.push(failure);
+    }
+
     if (resultRecord) {
         const unavailable = tool.name === 'functions.request_user_input'
-            ? summarizeText(resultRecord.error ?? resultRecord.message ?? resultRecord.reason)
+            ? extractFailureText(resultRecord.error ?? resultRecord.message ?? resultRecord.reason)
             : null;
-        if (unavailable) lines.push(unavailable);
+        if (unavailable && !lines.includes(unavailable)) lines.push(unavailable);
 
         const mcpEmpty = summarizeMcpEmpty(tool, resultRecord);
         if (mcpEmpty) lines.push(mcpEmpty);
@@ -224,7 +302,7 @@ export function buildGenericToolSummary(tool: ToolCall): GenericToolSummary {
             lines.push(...summarizeWebResult(resultRecord));
         }
 
-        const error = summarizeText(resultRecord.error ?? resultRecord.message);
+        const error = extractFailureText(resultRecord.error ?? resultRecord.message);
         if (error && !lines.includes(error)) lines.push(error);
 
         const reason = summarizeReason(resultRecord.reason);
@@ -237,7 +315,11 @@ export function buildGenericToolSummary(tool: ToolCall): GenericToolSummary {
 
         const primaryOutput = summarizeText(resultRecord.output ?? resultRecord.content ?? resultRecord.summary);
         if (primaryOutput && lines.length === 0) lines.push(primaryOutput);
-    } else {
+    } else if (lines.length === 0) {
+        // B11: the request_user_input failure branch above may already have pushed
+        // the tag-stripped error line; only fall back to the raw string summary
+        // when nothing was extracted (otherwise the literal <tool_use_error> markup
+        // would be re-appended for a string payload).
         const text = summarizeText(parsedResult);
         if (text) lines.push(text);
     }
@@ -422,11 +504,64 @@ export function extractToolUses(input: any): { name: string; summary: string | n
     });
 }
 
+const ATTACHMENT_MIME_KEYS = ['mime_type', 'mimeType', 'media_type', 'mediaType'];
+const ATTACHMENT_BASE64_KEYS = ['base64', 'imageBase64', 'image_base64', 'b64_json', 'data'];
+
+function mimeForAttachmentPath(value: string | null): string | null {
+    if (!value) return null;
+    const ext = value.split('.').pop()?.toLowerCase() ?? '';
+    const map: Record<string, string> = {
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+        webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp', avif: 'image/avif',
+    };
+    return map[ext] ?? null;
+}
+
+// Recognize an inline-renderable image URI from an EXPLICIT uri/preview field.
+// Only a data:image/* or http(s) URL is accepted — a non-image url/uri (e.g. a
+// docs link) is NOT promoted to a preview (codex F2: prevents a broken <Image>).
+// A data:* URI with a non-image media type is rejected too.
+function recognizeImageUri(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^data:image\//i.test(trimmed)) return trimmed;
+    if (/^data:/i.test(trimmed)) return null; // non-image data: URI
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return null;
+}
+
+// Recognize a renderable image from a TRUSTED base64 field (b64_json/data/…).
+// Standard base64 contains '/' (codex F1), so the charset check permits it; we
+// require a POSITIVE image signal (an image mime hint) before synthesizing a
+// data URI so a long non-image base64-shaped blob is not rendered as an image.
+function recognizeImageBase64(value: unknown, mimeHint: string | null): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    // Already a usable image URI (some payloads put a data:image/ URI here).
+    const asUri = recognizeImageUri(trimmed);
+    if (asUri) return asUri;
+    // Bare base64 blob: base64 charset only, length > 64, AND an image mime hint
+    // (the only positive signal that this blob is actually an image).
+    if (mimeHint && /^image\//i.test(mimeHint)
+        && /^[A-Za-z0-9+/=\s]+$/.test(trimmed) && trimmed.replace(/\s+/g, '').length > 64) {
+        return `data:${mimeHint};base64,${trimmed.replace(/\s+/g, '')}`;
+    }
+    return null;
+}
+
 export function extractAttachmentSummary(input: any, result?: unknown): AttachmentSummary {
     const parsedResult = parseProtocolResult(result);
     const resultRecord = isRecord(parsedResult) ? parsedResult : {};
-    const path = stringifyUnknown(input?.path ?? input?.image_path ?? input?.ref ?? resultRecord.path
-        ?? resultRecord.file_path ?? resultRecord.filePath) ?? null;
+    // B05: Claude Read carries the path in input.file_path and the result under
+    // a nested { file: { filePath, content } }. Recognize both so an image Read
+    // is detectable app-side.
+    const fileRecord = isRecord(resultRecord.file) ? resultRecord.file : {};
+    const path = stringifyUnknown(input?.path ?? input?.image_path ?? input?.ref ?? input?.file_path
+        ?? resultRecord.path ?? resultRecord.file_path ?? resultRecord.filePath
+        ?? resultRecord.output_path ?? resultRecord.outputPath
+        ?? fileRecord.filePath ?? fileRecord.file_path ?? fileRecord.path) ?? null;
     const pathName = path ? path.split('/').filter(Boolean).pop() : null;
     const label = stringifyUnknown(input?.name ?? input?.title ?? resultRecord.name) ?? pathName ?? 'Attachment';
     const rawSize = input?.size ?? resultRecord.size;
@@ -435,11 +570,51 @@ export function extractAttachmentSummary(input: any, result?: unknown): Attachme
     const width = image ? stringifyUnknown(image.width) : stringifyUnknown(input?.width ?? resultRecord.width);
     const height = image ? stringifyUnknown(image.height) : stringifyUnknown(input?.height ?? resultRecord.height);
     const dimensions = width && height ? `${width}×${height}` : null;
-    const previewUri = stringifyUnknown(
+    const mimeHint = stringifyUnknown(
+        readValue(resultRecord, ATTACHMENT_MIME_KEYS) ?? (image ? readValue(image, ATTACHMENT_MIME_KEYS) : null)
+    ) ?? mimeForAttachmentPath(path);
+    // Prefer an explicit URI/preview field; otherwise broaden to base64/data-uri
+    // blobs carried under recognized keys (B12 real-payload recognition).
+    const explicitUri = stringifyUnknown(
         input?.preview_uri ?? input?.previewUri ?? input?.url ?? input?.uri
         ?? resultRecord.preview_uri ?? resultRecord.previewUri ?? resultRecord.url ?? resultRecord.uri
         ?? (image ? image.preview_uri ?? image.previewUri ?? image.url ?? image.uri : null)
     );
+    // codex F2: only an actual image URI becomes a preview — never fall through
+    // to a raw non-image url/uri (which would render a broken <Image>).
+    let previewUri = recognizeImageUri(explicitUri);
+    if (!previewUri) {
+        const base64 = readValue(resultRecord, ATTACHMENT_BASE64_KEYS)
+            ?? readValue(fileRecord, ATTACHMENT_BASE64_KEYS)
+            ?? (image ? readValue(image, ATTACHMENT_BASE64_KEYS) : null)
+            ?? readValue(isRecord(input) ? input : {}, ATTACHMENT_BASE64_KEYS);
+        previewUri = recognizeImageBase64(stringifyUnknown(base64), mimeHint);
+    }
     const previewUnavailableReason = stringifyUnknown(resultRecord.preview_unavailable_reason);
     return { label, path, size, dimensions, previewUri, previewUnavailableReason };
+}
+
+// True ONLY when the attachment has an actually-renderable preview URI. The
+// Read view renders nothing without a previewUri, so Read.minimal must gate on
+// THIS (not the looser extension check) — otherwise an image-extension Read
+// whose result carries no preview would relax minimal yet render an empty body
+// (codex F3). ReadView uses the same predicate so the two never disagree.
+export function attachmentHasRenderableImagePreview(summary: AttachmentSummary): boolean {
+    return Boolean(summary.previewUri);
+}
+
+// B05 R2 (codex F1): resolve the inline preview URI for a Claude `Read` STRICTLY
+// from a producer-emitted STRUCTURED object result. The happy-cli mapper always
+// emits the image preview as an object (`{ path, preview_uri }`); a real text
+// Read result is always a string (the file's text). Gating on an object result
+// here prevents a pathological text file whose content is literally
+// `{"preview_uri":"data:image/…"}` from being JSON-parsed and mis-rendered as an
+// image (the shared extractAttachmentSummary parses such strings for Codex's
+// string-over-wire payloads — that behavior is preserved for Codex tools). Used
+// by ReadView so the Claude Read preview never fires on a text Read.
+export function readImagePreviewUri(input: unknown, result?: unknown): string | null {
+    if (!isRecord(result)) return null;
+    return attachmentHasRenderableImagePreview(extractAttachmentSummary(input, result))
+        ? extractAttachmentSummary(input, result).previewUri
+        : null;
 }

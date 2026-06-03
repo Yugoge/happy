@@ -26,6 +26,10 @@ const SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set([
     'functions.view_image',
     'file',
     'multi_tool_use.parallel',
+    // B13 (AC-B13-2): the lifecycle full view (AgentFullView → TaskViewFull) now
+    // renders structured Prompt + Tool Calls + Result/final_summary itself, so
+    // suppress the raw Input/Output JSON dump that would otherwise duplicate it.
+    'functions.subagent_lifecycle',
 ]);
 
 // Extracted generic sections so ToolFullView stays under line-count limits
@@ -61,6 +65,10 @@ function getCommandCandidates(input: ToolCall['input']): string[] {
 }
 
 function ToolDescriptionSection({ tool }: { tool: ToolCall }) {
+    // B13 (codex F4): the lifecycle full view (TaskViewFull) renders the prompt in
+    // its own Prompt section, and tool.description echoes that prompt — hide the
+    // generic Description here to avoid duplicating it on mobile detail.
+    if (tool.name === 'functions.subagent_lifecycle') return null;
     // Guard: hide Description when it is empty or echoes a raw command.
     // Codex exec_command populates tool.description from input.description,
     // which is the raw `/bin/bash -lc "..."` string — identical to input.command.

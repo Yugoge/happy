@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Platform } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Octicons } from '@expo/vector-icons';
 import { ToolCall } from '@/sync/typesMessage';
@@ -63,7 +63,7 @@ export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata })
         );
     }
 
-    // Bash / unknown branch — ScrollView horizontal + CommandView with parsed result
+    // Bash / unknown branch — flat BashView-style render (no dark wrapper, B03 fix)
     const terminal = buildTerminalRenderData(
         { ...input, command, parsed_cmd: parsedCmd, cmd: commandStr },
         state,
@@ -76,17 +76,16 @@ export const CodexBashView = React.memo<CodexBashViewProps>(({ tool, metadata })
             horizontal
             showsHorizontalScrollIndicator={true}
             style={styles.container}
-            contentContainerStyle={styles.scrollContent}
         >
-            <View style={styles.commandWrapper}>
-                <CommandView
-                    command={terminal.command}
-                    stdout={terminal.stdout}
-                    stderr={terminal.stderr}
-                    error={terminal.error}
-                    status={terminal.statusLine}
-                    hideEmptyOutput
-                />
+            <View>
+                <View style={styles.commandLine}>
+                    <Text style={styles.prompt}>$ </Text>
+                    <Text style={styles.command}>{terminal.command}</Text>
+                </View>
+                {terminal.stdout && <Text style={styles.stdout}>{terminal.stdout}</Text>}
+                {terminal.stderr && <Text style={styles.stderr}>{terminal.stderr}</Text>}
+                {terminal.error && <Text style={styles.errorText}>{terminal.error}</Text>}
+                {terminal.statusLine && <Text style={styles.statusText}>{terminal.statusLine}</Text>}
                 {terminal.extraLines > 0 && (
                     <Text style={styles.moreText}>+{terminal.extraLines} more lines</Text>
                 )}
@@ -112,16 +111,65 @@ export const CodexBashViewFull = React.memo<CodexBashViewProps>(({ tool }) => {
     );
 });
 
+const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+
 const styles = StyleSheet.create((theme) => ({
     container: {
         paddingBottom: 4,
     },
-    scrollContent: {
-        flexGrow: 1,
+    // Flat BashView-style command line (no dark background wrapper, B03)
+    commandLine: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        paddingVertical: 4,
+        paddingHorizontal: 4,
     },
-    commandWrapper: {
-        flex: 1,
-        minWidth: '100%' as any,
+    prompt: {
+        fontFamily: MONO_FONT,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.textSecondary,
+        fontWeight: '600',
+    },
+    command: {
+        fontFamily: MONO_FONT,
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.textSecondary,
+        fontWeight: '500',
+    },
+    stdout: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textSecondary,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    stderr: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.warning,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    errorText: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textDestructive,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    statusText: {
+        fontFamily: MONO_FONT,
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textSecondary,
+        fontStyle: 'italic',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
     },
     iconRow: {
         flexDirection: 'row',

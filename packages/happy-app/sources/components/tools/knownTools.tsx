@@ -2,7 +2,7 @@ import { Metadata } from '@/sync/storageTypes';
 import { ToolCall, Message } from '@/sync/typesMessage';
 import { resolvePath } from '@/utils/pathUtils';
 import { stringifyToolCommand } from '@/utils/toolCommand';
-import { extractAttachmentSummary, extractPlanItems, summarizePlanItems } from '@/utils/codexToolRendering';
+import { extractAttachmentSummary, attachmentHasRenderableImagePreview, extractPlanItems, summarizePlanItems, isCodexSubagentControlTool } from '@/utils/codexToolRendering';
 import * as z from 'zod';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import React from 'react';
@@ -212,7 +212,13 @@ export const knownTools = {
             }
             return t('tools.names.readFile');
         },
-        minimal: true,
+        // B05 (bidirectional): relax header-only minimal ONLY when the Read result
+        // carries an actually-renderable image preview (so ReadView renders it).
+        // Text reads — and image-extension reads with no preview — stay minimal=true
+        // → header-only, unchanged (no empty body; codex F3).
+        minimal: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return !attachmentHasRenderableImagePreview(extractAttachmentSummary(opts.tool.input, opts.tool.result));
+        },
         icon: ICON_READ,
         input: z.object({
             file_path: z.string().describe('The absolute path to the file to read'),
@@ -464,20 +470,42 @@ export const knownTools = {
     },
     'CodexBash': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            // Check if this is a single read command
-            if (opts.tool.input?.parsed_cmd && 
-                Array.isArray(opts.tool.input.parsed_cmd) && 
-                opts.tool.input.parsed_cmd.length === 1 && 
-                opts.tool.input.parsed_cmd[0].type === 'read' &&
-                opts.tool.input.parsed_cmd[0].name) {
-                // Display the file name being read
-                const path = resolvePath(opts.tool.input.parsed_cmd[0].name, opts.metadata);
-                return path;
+            const parsedCmd = opts.tool.input?.parsed_cmd;
+            if (Array.isArray(parsedCmd) && parsedCmd.length === 1) {
+                const cmd = parsedCmd[0];
+                // Read branch: show the file path being read
+                if (cmd.type === 'read' && cmd.name) {
+                    return resolvePath(cmd.name, opts.metadata);
+                }
+                // Bash/unknown branch: show the command string as description (AC4)
+                if ((cmd.type === 'bash' || cmd.type === 'unknown' || !cmd.type) && cmd.cmd) {
+                    const desc = cmd.cmd;
+                    return desc.length > 60 ? desc.substring(0, 60) + '…' : desc;
+                }
+            }
+            // Fallback only when parsedCmd is absent/empty: show the raw command (AC4)
+            if (!Array.isArray(parsedCmd) || parsedCmd.length === 0) {
+                const rawCmd = opts.tool.input?.command;
+                if (typeof rawCmd === 'string' && rawCmd) {
+                    return rawCmd.length > 60 ? rawCmd.substring(0, 60) + '…' : rawCmd;
+                }
             }
             return t('tools.names.terminal');
         },
         icon: ICON_TERMINAL,
-        minimal: true,
+        minimal: (opts: { tool: ToolCall }) => {
+            // Return false for bash/unknown commands so the flat inline body renders (B03/M6).
+            const parsedCmd = opts.tool.input?.parsed_cmd;
+            if (Array.isArray(parsedCmd) && parsedCmd.length > 0) {
+                const type = parsedCmd[0].type;
+                if (type === 'bash' || type === 'unknown' || !type) return false;
+                // Read/write are compact — their view returns early with iconRow anyway
+                return true;
+            }
+            // No parsed_cmd: if raw command exists, render inline (it's a bash call)
+            if (opts.tool.input?.command) return false;
+            return true;
+        },
         hideDefaultError: true,
         isMutable: true,
         input: z.object({
@@ -726,9 +754,19 @@ export const knownTools = {
         }
     },
     'CodexPatch': {
-        title: t('tools.names.applyChanges'),
-        icon: ICON_APPLY,
-        minimal: true,
+        title: (opts: { tool: ToolCall; metadata: Metadata | null }) => {
+            const files = getPatchFiles(opts.tool.input);
+            if (files.length === 1) {
+                const path = resolvePath(files[0], opts.metadata);
+                return path.split('/').pop() || path;
+            }
+            if (files.length > 1) {
+                return t('tools.desc.modifyingFiles', { count: files.length });
+            }
+            return t('tools.names.applyChanges');
+        },
+        icon: ICON_EDIT,
+        minimal: false,
         hideDefaultError: true,
         input: z.object({
             auto_approved: z.boolean().optional().describe('Whether changes were auto-approved'),
@@ -1213,26 +1251,40 @@ export const knownTools = {
     // codexToolRendering.useLifecycleSuppressionMap when this envelope is
     // present for the same sessionSubagent.
     'functions.subagent_lifecycle': {
-        title: 'Subagent',
+        // B13 (Cycle 13): the inline header is the subagent's TASK title (matches
+        // bug13-claude-agent.png), derived from agentNickname → first prompt line →
+        // 'Subagent' fallback, NOT a generic 'Subagent' label (codex F1).
+        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const input = opts.tool.input || {};
+            const nickname = typeof input.agentNickname === 'string' ? input.agentNickname.trim() : '';
+            if (nickname) return nickname.length > 80 ? nickname.substring(0, 80) + '…' : nickname;
+            const prompt = typeof input.prompt === 'string' ? input.prompt.trim() : '';
+            const firstLine = prompt.split('\n')[0]?.trim() ?? '';
+            if (firstLine) return firstLine.length > 80 ? firstLine.substring(0, 80) + '…' : firstLine;
+            return 'Subagent';
+        },
         icon: ICON_TASK,
         isMutable: true,
-        minimal: false,
+        // B13 (Cycle 13 / codex F2 / AC-B13-3): header-only when the subagent
+        // threaded no OWN (non-control) tools — minimal=true suppresses the body
+        // wrapper so no empty bordered content area is rendered.
+        minimal: (opts: { tool: ToolCall, messages?: Message[] }) => {
+            const children = opts.messages ?? [];
+            const hasOwnTool = children.some((m) =>
+                m.kind === 'tool-call' && !isCodexSubagentControlTool(m.tool.name));
+            return !hasOwnTool;
+        },
         input: z.object({
             sessionSubagent: z.string().optional(),
             prompt: z.string().optional(),
             agentNickname: z.string().nullish(),
             lifecycle_state: z.string().optional(),
         }).partial().passthrough(),
-        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
-            const input = opts.tool.input || {};
-            const nickname = typeof input.agentNickname === 'string' && input.agentNickname
-                ? input.agentNickname
-                : (typeof input.sessionSubagent === 'string' ? input.sessionSubagent.slice(0, 8) : 'agent');
-            const prompt = typeof input.prompt === 'string' ? input.prompt : '';
-            const truncated = prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt;
-            return truncated ? `${nickname} · ${truncated}` : nickname;
-        },
-        extractStatus: codexToolStateStatus,
+        // B13 (Cycle 13 / G2-iter2): NO extractStatus — the inline header renders
+        // the task title ONLY (matches taskLikeTool / bug13-claude-agent.png). The
+        // user does not care about lifecycle state (per spec-20260520-051938 Cycle 13); a 'completed'/'error'
+        // status word in the header is the rejected anti-target. State depth lives
+        // in the detail view, not the inline header.
     },
     // §5.15 Phase D — Codex tool-suggest / parallel renderers (DORMANT until protocol emits events)
     'functions.tool_suggest': {
@@ -1254,7 +1306,7 @@ export const knownTools = {
     'multi_tool_use.parallel': {
         title: t('tools.names.parallelTool'),
         icon: ICON_TASK,
-        minimal: true,
+        minimal: false,
         input: z.object({
             tool_uses: z.array(z.any()).optional()
         }).partial().passthrough(),
@@ -1501,6 +1553,12 @@ export const knownTools = {
         input: z.object({
             prompt: z.string().optional()
         }).partial().passthrough(),
+        // B05: surface the path in the header subtitle (ToolView reads extractSubtitle,
+        // not extractDescription) so the flattened inner card need not repeat it.
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ?? summary.label;
+        },
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
             return summary.path ? `Generated: ${summary.path.length > 80 ? summary.path.substring(0, 80) + '...' : summary.path}` : summary.label;
@@ -1514,6 +1572,11 @@ export const knownTools = {
             path: z.string().optional(),
             image_path: z.string().optional()
         }).partial().passthrough(),
+        // B05: surface the path in the header subtitle so the inner card collapses
+        // to a single compact row (header carries icon+title+path; card = thumbnail only).
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            return extractAttachmentSummary(opts.tool.input, opts.tool.result).path ?? null;
+        },
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             const p = extractAttachmentSummary(opts.tool.input, opts.tool.result).path || '';
             return p
@@ -1538,6 +1601,11 @@ export const knownTools = {
                 thumbhash: z.string().optional(),
             }).partial().optional()
         }).partial().passthrough(),
+        // B05: surface the path in the header subtitle (dimensions/size stay in the card).
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ?? null;
+        },
         extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
             return [summary.path, summary.dimensions, summary.size].filter(Boolean).join(' · ') || summary.label;

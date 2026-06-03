@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Text, View } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import type { ToolViewProps } from './_all';
 import { ToolSectionView } from '../ToolSectionView';
-import { extractPlanItems, summarizePlanItems } from '@/utils/codexToolRendering';
+import { extractPlanItems } from '@/utils/codexToolRendering';
 
 function iconNameForStatus(status: string) {
     if (status === 'completed') return 'checkmark-circle';
@@ -19,18 +19,19 @@ function statusStyle(status: string) {
 }
 
 export const CodexPlanView = React.memo<ToolViewProps>(({ tool }) => {
+    const { theme } = useUnistyles();
     const items = extractPlanItems(tool.input);
     if (items.length === 0) return null;
     return (
         <ToolSectionView>
             <View style={planStyles.container}>
-                <Text style={planStyles.summary}>{summarizePlanItems(items)}</Text>
                 {items.map((item, index) => (
                     <View key={`${item.status}-${index}`} style={planStyles.row}>
                         <Ionicons
                             name={iconNameForStatus(item.status) as any}
                             size={16}
-                            style={[planStyles.icon, statusStyle(item.status)]}
+                            color={item.status === 'completed' ? theme.colors.success : item.status === 'in_progress' ? theme.colors.status.connecting : theme.colors.textSecondary}
+                            style={planStyles.icon}
                         />
                         <Text style={[planStyles.text, statusStyle(item.status)]}>{item.step}</Text>
                     </View>
@@ -43,12 +44,6 @@ export const CodexPlanView = React.memo<ToolViewProps>(({ tool }) => {
 const planStyles = StyleSheet.create((theme) => ({
     container: {
         gap: 4,
-    },
-    summary: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.textSecondary,
-        marginBottom: 2,
     },
     row: {
         flexDirection: 'row',
@@ -66,6 +61,7 @@ const planStyles = StyleSheet.create((theme) => ({
     },
     completedText: {
         color: theme.colors.success,
+        textDecorationLine: 'line-through',
     },
     inProgressText: {
         color: theme.colors.status.connecting,

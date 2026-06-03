@@ -14,6 +14,8 @@ import {
     shouldRenderToolContent,
     buildLifecycleSuppressionMap,
     isControlToolSuppressedByLifecycle,
+    attachmentHasRenderableImagePreview,
+    readImagePreviewUri,
     CODEX_LIFECYCLE_TOOL,
 } from './codexToolRendering';
 
@@ -130,6 +132,98 @@ describe('codex rendering helpers', () => {
         expect(preview.truncated).toBe(true);
     });
 
+    // B12 (G1): real image_gen payloads may carry the image as a data-URI or a
+    // bare base64 blob under b64_json/data — not only an explicit preview_uri.
+    // extractAttachmentSummary must broaden to recognize these.
+    it('recognizes image previews from data-uri and base64 payloads (B12)', () => {
+        const dataUri = extractAttachmentSummary({}, JSON.stringify({
+            output_path: '/tmp/render-fixtures/generated-image.png',
+            data: 'data:image/png;base64,iVBORw0KGgo=',
+        }));
+        expect(dataUri.previewUri).toBe('data:image/png;base64,iVBORw0KGgo=');
+        expect(dataUri.path).toBe('/tmp/render-fixtures/generated-image.png');
+
+        const bareB64 = 'A'.repeat(80);
+        const b64Json = extractAttachmentSummary({}, JSON.stringify({
+            b64_json: bareB64,
+            mime_type: 'image/jpeg',
+        }));
+        expect(b64Json.previewUri).toBe(`data:image/jpeg;base64,${bareB64}`);
+
+        // A text-Read result (no image signal) must NOT produce a preview.
+        const textRead = extractAttachmentSummary(
+            { file_path: '/src/index.ts' },
+            JSON.stringify({ file: { filePath: '/src/index.ts', content: 'const a = 1;\n' } }),
+        );
+        expect(textRead.previewUri).toBeNull();
+
+        // An image-extension Read whose result carries NO preview URI must NOT
+        // report a renderable preview (codex F3 — gating Read.minimal on the
+        // looser extension check would otherwise render an empty body).
+        const imageRead = extractAttachmentSummary(
+            { file_path: '/tmp/shot.png' },
+            JSON.stringify({ file: { filePath: '/tmp/shot.png' } }),
+        );
+        expect(attachmentHasRenderableImagePreview(imageRead)).toBe(false);
+    });
+
+    // B05 R2 (codex F1): readImagePreviewUri is the ReadView gate. It must yield a
+    // preview ONLY from a producer-emitted STRUCTURED OBJECT result; a string
+    // result (a real text Read) — even one whose content is a JSON image data-URI
+    // — must never render an image. (The shared extractAttachmentSummary still
+    // parses string payloads for Codex's string-over-wire tools; this gate is
+    // Read-specific so text Reads cannot regress.)
+    it('resolves a Read preview only from an object result, never from a string (codex F1)', () => {
+        // Producer-emitted object result → preview renders.
+        const objResult = readImagePreviewUri(
+            { file_path: '/tmp/shot.png' },
+            { path: '/tmp/shot.png', preview_uri: 'data:image/png;base64,AAAB' },
+        );
+        expect(objResult).toBe('data:image/png;base64,AAAB');
+
+        // Pathological text Read whose CONTENT is a JSON image data-URI string →
+        // NO preview (the false-positive codex flagged).
+        const stringResult = readImagePreviewUri(
+            { file_path: '/tmp/notes.txt' },
+            JSON.stringify({ preview_uri: 'data:image/png;base64,AAAB' }),
+        );
+        expect(stringResult).toBeNull();
+
+        // Plain text Read → no preview.
+        expect(readImagePreviewUri({ file_path: '/tmp/notes.txt' }, 'just text')).toBeNull();
+
+        // Object result with no renderable image URI → no preview.
+        expect(readImagePreviewUri({ file_path: '/tmp/notes.txt' }, { content: 'x' })).toBeNull();
+    });
+
+    // codex F1: real PNG/JPEG base64 routinely contains '/'. A trusted base64
+    // field with an image mime hint must render even with '/' in the payload.
+    it('accepts trusted base64 containing "/" when an image mime hint is present (codex F1)', () => {
+        const b64WithSlash = 'iVBORw0KGg/oABBQ=='.repeat(5); // contains '/', len > 64
+        const withSlash = extractAttachmentSummary({}, JSON.stringify({
+            b64_json: b64WithSlash,
+            media_type: 'image/png',
+        }));
+        expect(withSlash.previewUri).toBe(`data:image/png;base64,${b64WithSlash}`);
+
+        // A long base64-shaped blob with NO image mime hint is NOT promoted to a
+        // preview (it could be any binary/text blob, not an image).
+        const noMime = extractAttachmentSummary({}, JSON.stringify({ data: 'Z'.repeat(120) }));
+        expect(noMime.previewUri).toBeNull();
+    });
+
+    // codex F2: a non-image url/uri must NOT become a previewUri (it would render
+    // a broken <Image>). Only data:image/* and http(s) URLs are accepted.
+    it('does not promote a non-image url/uri to a preview (codex F2)', () => {
+        const docLink = extractAttachmentSummary({}, JSON.stringify({ url: 'ftp://example.com/file' }));
+        expect(docLink.previewUri).toBeNull();
+        const nonImageDataUri = extractAttachmentSummary({}, JSON.stringify({ uri: 'data:text/plain;base64,SGk=' }));
+        expect(nonImageDataUri.previewUri).toBeNull();
+        // An http(s) image URL is still accepted.
+        const httpImg = extractAttachmentSummary({}, JSON.stringify({ preview_uri: 'https://cdn/x.png' }));
+        expect(httpImg.previewUri).toBe('https://cdn/x.png');
+    });
+
     it('parses markdown/rich Codex text primitives without flattening', () => {
         const blocks = parseMarkdown([
             '# Heading',
@@ -149,6 +243,7 @@ describe('codex rendering helpers', () => {
 
     it('keeps every QA Codex fixture row reachable by stable UI identifiers', () => {
         expect(codexRenderFixtures.map((fixture) => fixture.id)).toEqual([
+            'qa-b06b07b08',
             'markdown-rich-detail',
             'terminal-stdout-stderr-exit',
             'patch-unified-diff',
@@ -157,6 +252,8 @@ describe('codex rendering helpers', () => {
             'image-view',
             'playwright-screenshot',
             'image-generation',
+            'claude-read-image',
+            'claude-read-text',
             'subagent-spawn',
             'subagent-wait',
             'subagent-close',
@@ -223,6 +320,80 @@ describe('codex rendering helpers', () => {
         expect(webSearch.lines.join('\n')).not.toContain('{');
         expect(unavailable.lines.join('\n')).toContain('request_user_input is only available in Plan mode');
         expect(unavailable.detailsHint).toBe('Raw input/output available in details');
+    });
+
+    it('B11: failed request_user_input surfaces the error INLINE for both payload shapes (tags stripped)', () => {
+        // (a) string <tool_use_error> payload: resultRecord is null, so the old
+        // object-only extraction skipped it. The scoped branch must still surface
+        // the UNWRAPPED message (no literal <tool_use_error> markup).
+        const stringPayload = buildGenericToolSummary(
+            makeToolCall('functions.request_user_input',
+                { question: 'Pick one' },
+                '<tool_use_error>request_user_input is unavailable in Default mode</tool_use_error>',
+                'error'),
+        );
+        expect(stringPayload.lines.join('\n')).toContain('request_user_input is unavailable in Default mode');
+        expect(stringPayload.lines.join('\n')).not.toContain('<tool_use_error>');
+
+        // (b) structured-object payload: read stderr ?? error ?? message ?? reason,
+        // tag-stripped if the field itself wraps a <tool_use_error>.
+        const objPayload = buildGenericToolSummary(
+            makeToolCall('functions.request_user_input',
+                { question: 'Pick one' },
+                { error: '<tool_use_error>stderr boom</tool_use_error>' },
+                'error'),
+        );
+        expect(objPayload.lines.join('\n')).toContain('stderr boom');
+        expect(objPayload.lines.join('\n')).not.toContain('<tool_use_error>');
+        // No duplicate line for the same extracted message.
+        expect(objPayload.lines.filter((l) => l.includes('stderr boom')).length).toBe(1);
+
+        // stderr is preferred over error when both present.
+        const stderrPref = buildGenericToolSummary(
+            makeToolCall('functions.request_user_input', {},
+                { stderr: 'from-stderr', error: 'from-error' }, 'error'),
+        );
+        expect(stderrPref.lines.join('\n')).toContain('from-stderr');
+
+        // codex G3: a multi-line stderr keeps its line breaks (NOT collapsed to one
+        // 160-char summary line) so the actionable lines remain visible inline.
+        const multiline = buildGenericToolSummary(
+            makeToolCall('functions.request_user_input', {},
+                '<tool_use_error>line one\nline two\nline three</tool_use_error>', 'error'),
+        );
+        expect(multiline.lines.join('\n')).toContain('line one\nline two\nline three');
+
+        // codex G3: a failed call with NO error text (result null/omitted) still
+        // shows a scoped failure line inline — never an empty body (worse than
+        // header-only).
+        const nullResult = buildGenericToolSummary(
+            makeToolCall('functions.request_user_input', { question: 'q' }, null, 'error'),
+        );
+        expect(nullResult.lines.length).toBeGreaterThan(0);
+        expect(nullResult.lines.join('\n')).toContain('Request user input failed with no error output');
+        const omittedResult = buildGenericToolSummary(
+            makeToolCall('functions.request_user_input', { question: 'q' }, undefined, 'error'),
+        );
+        expect(omittedResult.lines.length).toBeGreaterThan(0);
+        expect(omittedResult.lines.join('\n')).toContain('Request user input failed with no error output');
+    });
+
+    it('B11: shouldRenderToolContent renders the failed request_user_input body despite forced minimal, scoped to exactly that tool+state', () => {
+        // The failed tool bypasses the minimal-gate (ToolView force-sets minimal=true
+        // for a <tool_use_error> payload) so the inline error is reachable.
+        const failed = makeToolCall('functions.request_user_input', {}, '<tool_use_error>x</tool_use_error>', 'error');
+        expect(shouldRenderToolContent(failed, false, true)).toBe(true);
+
+        // Non-error request_user_input still renders header-only (exception gated on error).
+        const running = makeToolCall('functions.request_user_input', { question: 'q' }, undefined, 'running');
+        expect(shouldRenderToolContent(running, false, true)).toBe(false);
+        const completed = makeToolCall('functions.request_user_input', {}, { answer: 'ok' }, 'completed');
+        expect(shouldRenderToolContent(completed, false, true)).toBe(false);
+
+        // Regression (codex F5): a DIFFERENT minimal tool in an error state still
+        // renders header-only — the exception must not widen beyond this tool.
+        const otherErrorMinimal = makeToolCall('CodexPatch', {}, '<tool_use_error>diff failed</tool_use_error>', 'error');
+        expect(shouldRenderToolContent(otherErrorMinimal, true, true)).toBe(false);
     });
 
     it('renders Codex-sourced generic / unknown / resource tools inline (S2 forward fix; Cycle 7 M5 #17 chip-only gate)', () => {

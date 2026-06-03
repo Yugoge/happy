@@ -96,30 +96,64 @@ function getPatchKindLabel(change: CodexPatchEntry): string | null {
 
 export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata }) => {
     const { theme } = useUnistyles();
-    const entries = Object.entries(getPatchChanges(tool.input) ?? {});
+    const showLineNumbersInToolViews = useSetting('showLineNumbersInToolViews');
+    const changes = getPatchChanges(tool.input);
+    const entries = Object.entries(changes ?? {});
 
     if (entries.length === 0) {
         return null;
     }
 
+    if (entries.length === 1) {
+        // Single-file: render diff inline directly (WriteView style)
+        const [, change] = entries[0];
+        const texts = getPatchTexts(change);
+        if (!texts) return null;
+        return (
+            <ToolSectionView fullWidth>
+                <ToolDiffView
+                    oldText={texts.oldText}
+                    newText={texts.newText}
+                    showLineNumbers={showLineNumbersInToolViews}
+                    showPlusMinusSymbols={showLineNumbersInToolViews}
+                />
+            </ToolSectionView>
+        );
+    }
+
+    // Multi-file: render per-file header + diff sections (§5.2)
     return (
-        <ToolSectionView>
-            <View style={styles.summaryContainer}>
-                {entries.map(([file, change]) => {
-                    const filePath = resolvePath(file, metadata);
-                    const kindLabel = getPatchKindLabel(change) ?? 'edit';
-                    return (
-                        <View key={file} style={styles.summaryRow}>
-                            <Octicons name="file" size={16} color={theme.colors.textSecondary} />
-                            <Text style={styles.summaryFile} numberOfLines={1} ellipsizeMode="middle">
-                                {filePath}
-                            </Text>
-                            <Text style={styles.kindLabel}>{kindLabel}</Text>
+        <>
+            {entries.map(([file, change]) => {
+                const filePath = resolvePath(file, metadata);
+                const texts = getPatchTexts(change);
+                const kindLabel = getPatchKindLabel(change);
+                const movePath = change.kind?.move_path ? resolvePath(change.kind.move_path, metadata) : null;
+                const hasDiff = !!texts && (texts.oldText.length > 0 || texts.newText.length > 0);
+                return (
+                    <ToolSectionView key={file} fullWidth>
+                        <View style={styles.patchContainer}>
+                            <View style={styles.fileHeader}>
+                                <View style={styles.fileHeaderMain}>
+                                    <Octicons name="file-diff" size={16} color={theme.colors.textSecondary} />
+                                    <Text style={styles.filePath} numberOfLines={1} ellipsizeMode="middle">{filePath}</Text>
+                                    {kindLabel ? <Text style={styles.kindLabel}>{kindLabel}</Text> : null}
+                                </View>
+                                {movePath ? <Text style={styles.movePath}>{movePath}</Text> : null}
+                            </View>
+                            {hasDiff ? (
+                                <ToolDiffView
+                                    oldText={texts.oldText}
+                                    newText={texts.newText}
+                                    showLineNumbers={showLineNumbersInToolViews}
+                                    showPlusMinusSymbols={showLineNumbersInToolViews}
+                                />
+                            ) : null}
                         </View>
-                    );
-                })}
-            </View>
-        </ToolSectionView>
+                    </ToolSectionView>
+                );
+            })}
+        </>
     );
 });
 

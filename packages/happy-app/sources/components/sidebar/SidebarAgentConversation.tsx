@@ -7,6 +7,7 @@ import { Metadata } from '@/sync/storageTypes';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { ToolView } from '../tools/ToolView';
 import { MarkdownView } from '../markdown/MarkdownView';
+import { extractLifecycleResultText } from '@/utils/codexToolRendering';
 
 interface SidebarAgentConversationProps {
     tool: ToolCall;
@@ -159,7 +160,11 @@ function filterToLatestTodoWrite(messages: Message[]): Message[] {
 }
 
 export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps>(({ tool, messages, metadata, sessionId }) => {
-    const hasResult = tool.state === 'completed' && tool.result && typeof tool.result === 'string' && tool.result.length > 0;
+    // B13 (AC-B13-2): the lifecycle result is an OBJECT (result.final_summary),
+    // not a string — extract it so the Result section is not dropped by the
+    // string-only gate (codex finding 3). Falls back to a plain string result
+    // for Claude Task/Agent (unchanged).
+    const resultText = tool.state === 'completed' ? extractLifecycleResultText(tool.result) : null;
     const promptText = typeof tool.input?.prompt === 'string' ? tool.input.prompt : null;
     const visibleMessages = React.useMemo(() => filterToLatestTodoWrite(messages), [messages]);
 
@@ -184,10 +189,10 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
                     ))}
                 </View>
             )}
-            {hasResult && (
+            {resultText && (
                 <View style={styles.resultBox}>
                     <SectionHeader icon="checkmark-done-outline" title="Result" />
-                    <MarkdownView markdown={String(tool.result)} />
+                    <MarkdownView markdown={resultText} />
                 </View>
             )}
         </ScrollView>

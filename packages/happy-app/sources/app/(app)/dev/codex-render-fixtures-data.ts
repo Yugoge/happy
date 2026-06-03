@@ -178,6 +178,27 @@ const generatedImageTool = makeTool(
     },
 );
 
+// B05 R2 (PRODUCER→CONSUMER): a Claude `Read` of an image file. The happy-cli
+// claude sessionProtocolMapper synthesizes `result.preview_uri` for an image
+// Read (buildReadImagePreview); the fixture carries that producer-emitted shape
+// so ReadView is live-exercisable at /dev/codex-render-fixtures.
+const readImageTool = makeTool(
+    'Read',
+    'completed',
+    { file_path: '/tmp/render-fixtures/claude-read.png' },
+    { path: '/tmp/render-fixtures/claude-read.png', preview_uri: IMAGE_PREVIEW_URI },
+);
+
+// B05 R2 (no-regression control): a Claude `Read` of a TEXT file. The producer
+// emits NO preview_uri for a non-image target, so ReadView returns null and the
+// card stays header-only — proving the preview never leaks onto text Reads.
+const readTextTool = makeTool(
+    'Read',
+    'completed',
+    { file_path: '/tmp/render-fixtures/notes.txt' },
+    'line one\nline two\nline three',
+);
+
 const spawnAgentTool = makeTool(
     'functions.spawn_agent',
     'completed',
@@ -387,6 +408,33 @@ const imageStaleTool = makeTool(
 
 export const codexRenderFixtures: CodexRenderFixture[] = [
     {
+        id: 'qa-b06b07b08',
+        matrixRow: 'qa_b06b07b08',
+        matrix: makeMatrix('assistant.text', 'MessageView.MarkdownView', 'markdown text', 'inline rich text'),
+        title: 'QA B06/B07/B08 fixture',
+        description: 'QA-20260602: two footnotes (B06), details (B07), Chinese+English inline code (B08).',
+        tool: null,
+        message: makeAgentMessage('codex-fixture-qa-b06b07b08', [
+            '# QA fixture B06/B07/B08',
+            '',
+            'Body text with English inline code `result` and Chinese inline code `用户名称` and another `中文行内代码测试` span. First ref[^one] and second ref[^two].',
+            '',
+            'A plain paragraph between, no code here.',
+            '',
+            '<details>',
+            '<summary>点击展开详情 / Click to expand</summary>',
+            'Hidden disclosure body with `code` inside.',
+            '</details>',
+            '',
+            '[^one]: 第一个脚注 first footnote body with `inline`.',
+            '[^two]: 第二个脚注 second footnote body.',
+        ].join('\n'), 0),
+        expectedVisibleStrings: {
+            inline: ['QA fixture', 'result', '用户名称', '点击展开详情'],
+            detail: ['QA fixture', 'result', '用户名称', '点击展开详情'],
+        },
+    },
+    {
         id: 'markdown-rich-detail',
         matrixRow: 'markdown_rich_text',
         matrix: makeMatrix('assistant.text', 'MessageView.MarkdownView', 'markdown text', 'inline rich text'),
@@ -536,6 +584,40 @@ export const codexRenderFixtures: CodexRenderFixture[] = [
             inline: ['generated-image.png', '/tmp/render-fixtures/generated-image.png'],
             detail: ['generated-image.png', '/tmp/render-fixtures/generated-image.png'],
             sidebar: ['generated-image.png', '/tmp/render-fixtures/generated-image.png'],
+        },
+    },
+    // B05 R2: Claude Read of an IMAGE — producer-synthesized preview_uri drives
+    // the inline ReadView thumbnail (bidirectional "Claude Code gains a Codex-
+    // style preview").
+    {
+        id: 'claude-read-image',
+        matrixRow: 'claude_read_image_preview',
+        matrix: makeMatrix('Read', 'Read', 'image path + producer data URI', 'true inline image'),
+        title: 'Read (image)',
+        description: 'Claude Read of an image renders an inline preview thumbnail (producer-synthesized preview_uri).',
+        tool: readImageTool,
+        message: makeToolMessage('codex-fixture-claude-read-image', readImageTool, 7400),
+        expectedVisibleStrings: {
+            inline: ['claude-read.png'],
+            detail: ['claude-read.png', '/tmp/render-fixtures/claude-read.png'],
+            sidebar: ['claude-read.png'],
+        },
+    },
+    // B05 R2 no-regression control: Claude Read of a TEXT file — no preview_uri,
+    // so ReadView returns null and the card stays header-only (text Reads must
+    // NOT gain a thumbnail).
+    {
+        id: 'claude-read-text',
+        matrixRow: 'claude_read_text_no_preview',
+        matrix: makeMatrix('Read', 'Read', 'text content, no preview', 'header-only (no thumbnail)', 'partial'),
+        title: 'Read (text)',
+        description: 'Claude Read of a text file renders header-only with NO inline preview (no regression).',
+        tool: readTextTool,
+        message: makeToolMessage('codex-fixture-claude-read-text', readTextTool, 7450),
+        expectedVisibleStrings: {
+            inline: ['notes.txt'],
+            detail: ['notes.txt', 'line one'],
+            sidebar: ['notes.txt'],
         },
     },
     {

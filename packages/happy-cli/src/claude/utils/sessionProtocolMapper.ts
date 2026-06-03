@@ -5,7 +5,7 @@ import {
     type SessionEnvelope,
     type SessionTurnEndStatus,
 } from '@slopus/happy-wire';
-import { FILE_CONTENT_TOOLS, readFileContentForToolEnd } from './fileContentReader';
+import { FILE_CONTENT_TOOLS, readFileContentForToolEnd, buildReadImagePreview } from './fileContentReader';
 
 export type ClaudeSessionProtocolState = {
     currentTurnId: string | null;
@@ -69,6 +69,30 @@ function enrichToolResultOutput(
     if (!fileContent) return baseOutput;
 
     return fileContent;
+}
+
+/**
+ * B05 R2 (PRODUCER): build the structured `result` for a Claude Read of an image
+ * file so the app-side ReadView renders an inline preview thumbnail. Returns the
+ * `{ path, preview_uri }` payload only for a `Read` whose target is a readable
+ * image; `undefined` for every other tool / a text Read (so the `result` field
+ * is omitted and text Reads keep their unchanged header-only rendering). This is
+ * the missing producer the prior cycle's consumer-only ReadView could not reach.
+ */
+function buildToolResultImagePreview(
+    block: { tool_use_id?: string },
+    state: ClaudeSessionProtocolState,
+): Record<string, unknown> | undefined {
+    const toolUseId = typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined;
+    if (!toolUseId) return undefined;
+
+    const toolInfo = getToolUseMap(state).get(toolUseId);
+    if (!toolInfo || toolInfo.name !== 'Read') return undefined;
+
+    const filePath = toolInfo.input?.file_path;
+    if (typeof filePath !== 'string' || filePath.length === 0) return undefined;
+
+    return buildReadImagePreview(filePath);
 }
 
 function isSubagentTool(name: string): boolean {
@@ -787,10 +811,12 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                         if (sessionSubagentForToolResult) {
                             maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
                         }
+                        const imagePreview = buildToolResultImagePreview(block, state);
                         envelopes.push(createEnvelope('agent', {
                             t: 'tool-call-end',
                             call: block.tool_use_id,
                             output: enrichToolResultOutput(block, state),
+                            ...(imagePreview ? { result: imagePreview } : {}),
                         }, { turn: turnId, subagent }));
                     }
                 }
@@ -818,10 +844,12 @@ function mapClaudeLogMessageToSessionEnvelopesInternal(
                     if (sessionSubagentForToolResult) {
                         maybeEmitSubagentStop(state, turnId, sessionSubagentForToolResult, envelopes);
                     }
+                    const imagePreview = buildToolResultImagePreview(block, state);
                     envelopes.push(createEnvelope('agent', {
                         t: 'tool-call-end',
                         call: block.tool_use_id,
                         output: enrichToolResultOutput(block, state),
+                        ...(imagePreview ? { result: imagePreview } : {}),
                     }, { turn: turnId, subagent }));
                     continue;
                 }
