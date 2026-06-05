@@ -22,7 +22,11 @@ const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'CodexPatch', 'CodexDi
 const BASH_TOOLS = new Set(['Bash', 'CodexBash', 'execute', 'shell']);
 const TODO_TOOLS = new Set(['TodoWrite']);
 const PLAN_TOOLS = new Set(['functions.update_plan']);
-const ATTACHMENT_TOOLS = new Set(['file', 'functions.view_image']);
+// image_gen aliases route the RightSidebar (DesktopSidebar panel + MobileSidebar modal, which
+// share this gate) to CodexAttachmentView (inline image) instead of the JSON-only SidebarGenericView
+// fallback. mcp__image_gen__imagegen is the real producer name (sessionProtocolMapper.ts:903-904);
+// the dot-form image_gen.imagegen is the legacy/replay key — both kept symmetric (consistency option a).
+const ATTACHMENT_TOOLS = new Set(['file', 'functions.view_image', 'mcp__image_gen__imagegen', 'image_gen.imagegen']);
 const PARALLEL_TOOLS = new Set(['multi_tool_use.parallel']);
 
 export const SidebarContentRenderer = React.memo<SidebarContentProps>(({ tool, messages, metadata, sessionId }) => {

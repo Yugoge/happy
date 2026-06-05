@@ -48,6 +48,10 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     file: CodexAttachmentView,
     'mcp__playwright__browser_take_screenshot': CodexAttachmentView,
     'image_gen.imagegen': CodexAttachmentView,
+    // Real producer-emitted MCP name (happy-cli sessionProtocolMapper.ts:903-904
+    // builds `mcp__${server}__${tool}` = mcp__image_gen__imagegen). The dot-form
+    // above is the legacy/replay key; this is the name a live session actually emits.
+    'mcp__image_gen__imagegen': CodexAttachmentView,
     // B05 (bidirectional): Claude Read of an image gains an inline preview thumbnail.
     Read: ReadView,
     Write: WriteView,
@@ -87,6 +91,8 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     file: CodexAttachmentView,
     'mcp__playwright__browser_take_screenshot': CodexAttachmentView,
     'image_gen.imagegen': CodexAttachmentView,
+    // Real producer-emitted MCP name (sessionProtocolMapper.ts:903-904) — detail/full view.
+    'mcp__image_gen__imagegen': CodexAttachmentView,
     'multi_tool_use.parallel': CodexParallelView,
     MultiEdit: MultiEditViewFull,
     // CONSTRAINT-2: reducer synthetic grouping — spawn_agent (no prefix) → AgentFullView

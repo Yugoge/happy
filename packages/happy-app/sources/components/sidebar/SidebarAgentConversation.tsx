@@ -7,7 +7,7 @@ import { Metadata } from '@/sync/storageTypes';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { ToolView } from '../tools/ToolView';
 import { MarkdownView } from '../markdown/MarkdownView';
-import { extractLifecycleResultText } from '@/utils/codexToolRendering';
+import { extractLifecycleResultText, extractLifecycleStatusFallback } from '@/utils/codexToolRendering';
 
 interface SidebarAgentConversationProps {
     tool: ToolCall;
@@ -164,7 +164,19 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
     // not a string — extract it so the Result section is not dropped by the
     // string-only gate (codex finding 3). Falls back to a plain string result
     // for Claude Task/Agent (unchanged).
-    const resultText = tool.state === 'completed' ? extractLifecycleResultText(tool.result) : null;
+    // ITEM 2 (AC-ITEM2-1): relax from completed-only to a TERMINAL gate
+    // (completed||error) so an errored lifecycle's final_summary still renders in
+    // the sidebar. The reducer only sets tool.result on a terminal result, so a
+    // still-running lifecycle has no result and shows no stale summary (AC-REG-1).
+    const isTerminal = tool.state === 'completed' || tool.state === 'error';
+    const resultText = isTerminal ? extractLifecycleResultText(tool.result) : null;
+    // ITEM 2 (AC-ITEM2-3): an errored lifecycle with NO final_summary would leave
+    // the sidebar Result section blank (the desktop counterpart of the mobile
+    // dead-end). Surface a narrow status/lifecycle_state fallback in that case
+    // only — gated to the lifecycle envelope + error + no resultText.
+    const isLifecycle = tool.name === 'functions.subagent_lifecycle';
+    const statusFallbackText = isLifecycle && tool.state === 'error' && !resultText
+        ? extractLifecycleStatusFallback(tool.result) : null;
     const promptText = typeof tool.input?.prompt === 'string' ? tool.input.prompt : null;
     const visibleMessages = React.useMemo(() => filterToLatestTodoWrite(messages), [messages]);
 
@@ -193,6 +205,12 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
                 <View style={styles.resultBox}>
                     <SectionHeader icon="checkmark-done-outline" title="Result" />
                     <MarkdownView markdown={resultText} />
+                </View>
+            )}
+            {statusFallbackText && (
+                <View style={styles.resultBox}>
+                    <SectionHeader icon="close-circle" title="Result" />
+                    <Text style={styles.statusFallbackText}>{statusFallbackText}</Text>
                 </View>
             )}
         </ScrollView>
@@ -285,5 +303,10 @@ const styles = StyleSheet.create((theme) => ({
         borderWidth: 1,
         borderColor: theme.colors.divider,
         padding: 12,
+    },
+    statusFallbackText: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: theme.colors.textSecondary,
     },
 }));

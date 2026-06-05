@@ -11,7 +11,7 @@ import { t } from '@/text';
 import { useFilteredTools } from './TaskView';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useLocalSearchParams } from 'expo-router';
-import { extractLifecycleResultText } from '@/utils/codexToolRendering';
+import { extractLifecycleResultText, extractLifecycleStatusFallback } from '@/utils/codexToolRendering';
 
 // Renders the list of child messages inside the bordered box
 const ChildMessageList = React.memo<{
@@ -49,10 +49,21 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
     const isLifecycle = tool.name === 'functions.subagent_lifecycle';
     const promptText = isLifecycle && typeof tool.input?.prompt === 'string' && tool.input.prompt.length > 0
         ? tool.input.prompt : null;
-    const resultText = isLifecycle && tool.state === 'completed'
+    // ITEM 2 (AC-ITEM2-1/2): relax from completed-only to a TERMINAL gate
+    // (completed||error) so an errored lifecycle's final_summary still renders.
+    // The reducer only sets tool.result on a terminal result, so a still-running
+    // lifecycle has no result and shows no stale summary (AC-REG-1).
+    const isTerminal = tool.state === 'completed' || tool.state === 'error';
+    const resultText = isLifecycle && isTerminal
         ? extractLifecycleResultText(tool.result) : null;
+    // ITEM 2 (AC-ITEM2-3): an errored lifecycle with NO final_summary would be a
+    // blank dead-end (ToolErrorSection is suppressed for the lifecycle envelope).
+    // Surface a narrow status/lifecycle_state fallback in that case only — never
+    // on the success/with-summary path (does not re-expose the raw JSON dump).
+    const statusFallbackText = isLifecycle && tool.state === 'error' && !resultText
+        ? extractLifecycleStatusFallback(tool.result) : null;
 
-    if (messages.length === 0 && !promptText && !resultText) return null;
+    if (messages.length === 0 && !promptText && !resultText && !statusFallbackText) return null;
 
     return (
         <>
@@ -93,6 +104,15 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
                         <Text style={toolFullViewStyles.sectionTitle}>Result</Text>
                     </View>
                     <MarkdownView markdown={resultText} />
+                </View>
+            )}
+            {statusFallbackText && (
+                <View style={toolFullViewStyles.section}>
+                    <View style={toolFullViewStyles.sectionHeader}>
+                        <Ionicons name="close-circle" size={20} color="#FF3B30" />
+                        <Text style={toolFullViewStyles.sectionTitle}>Result</Text>
+                    </View>
+                    <Text style={localStyles.statusFallbackText}>{statusFallbackText}</Text>
                 </View>
             )}
         </>
@@ -145,5 +165,10 @@ const localStyles = StyleSheet.create((theme) => ({
     },
     childTool: {
         // no extra margin needed, gap handles it
+    },
+    statusFallbackText: {
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.textSecondary,
     },
 }));

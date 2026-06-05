@@ -30,6 +30,15 @@ export type ToolRenderingMatrixRow = {
 
 const BASE_TIME = Date.UTC(2026, 3, 28, 13, 30, 0);
 const IMAGE_PREVIEW_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFBQIAHl6u2QAAAABJRU5ErkJggg==';
+// B12 (AC-B12-1/AC-B12-3): a REAL 1x1 PNG base64 — the same bytes that flow on
+// the wire inside an image_gen MCP content item ({type:'image',data,mimeType}).
+// The image_gen fixtures below DERIVE their preview_uri from this exact base64
+// (preview_uri === 'data:' + mime + ';base64,' + GENERATED_IMAGE_BASE64), so the
+// fixture exercises the genuine producer→consumer recognition path rather than a
+// disconnected/fabricated placeholder (the prior PASS_AS_SUBSTITUTE failure).
+const GENERATED_IMAGE_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFBQIAHl6u2QAAAABJRU5ErkJggg==';
+const GENERATED_IMAGE_MIME = 'image/png';
+const GENERATED_IMAGE_PREVIEW_URI = `data:${GENERATED_IMAGE_MIME};base64,${GENERATED_IMAGE_BASE64}`;
 
 function makeTool(name: string, state: ToolCall['state'], input: any, result?: any, description: string | null = null): ToolCall {
     return {
@@ -167,14 +176,55 @@ const screenshotTool = makeTool(
     },
 );
 
+// B12 (AC-B12-1): HONEST image_gen fixture mirroring the REAL wire shape emitted
+// by happy-cli buildImageToolResult on a live image_gen MCP payload — the raw
+// `contentItems:[{type:'image',data:<real base64>,mimeType}]` the producer
+// consumes AND the top-level `preview_uri` it synthesizes, DERIVED from that same
+// base64 (GENERATED_IMAGE_PREVIEW_URI). NOT a disconnected placeholder: the
+// preview_uri equals 'data:image/png;base64,'+the contentItems[0].data bytes, so
+// rendering this fixture exercises the genuine producer→consumer path.
 const generatedImageTool = makeTool(
     'image_gen.imagegen',
     'completed',
     { prompt: 'tiny fixture image' },
     {
         path: '/tmp/render-fixtures/generated-image.png',
-        preview_uri: IMAGE_PREVIEW_URI,
+        contentItems: [{ type: 'image', data: GENERATED_IMAGE_BASE64, mimeType: GENERATED_IMAGE_MIME }],
+        preview_uri: GENERATED_IMAGE_PREVIEW_URI,
         status: 'completed',
+    },
+);
+
+// B12 (AC-B12-3): the RAW replay-child shape — rolloutHistoryReplay
+// buildChildEndEnvelope emits result: payload.output verbatim, bypassing
+// buildImageToolResult, so a replayed/history image_gen child reaches the app as
+// nested contentItems with NO top-level preview_uri and NO flat base64. The app's
+// recursive recognition (extractAttachmentSummary → findNestedImageDataUri) must
+// find the nested image bytes so the replay surface still renders inline.
+const replayImageTool = makeTool(
+    'image_gen.imagegen',
+    'completed',
+    { prompt: 'replayed fixture image' },
+    {
+        status: 'completed',
+        contentItems: [{ type: 'image', data: GENERATED_IMAGE_BASE64, mimeType: GENERATED_IMAGE_MIME }],
+    },
+);
+
+// B12 (real-MCP-name): the LIVE producer (happy-cli sessionProtocolMapper.ts:903-904)
+// emits the image_gen tool under the REAL MCP name `mcp__image_gen__imagegen`
+// (`mcp__${server}__${tool}`), NOT the dot-form. This fixture keys on that real name
+// and carries the genuine nested-contentItems wire shape (NO top-level preview_uri),
+// so the app's recursive recognition (extractAttachmentSummary → findNestedImageDataUri)
+// renders the generated image inline. Reuses GENERATED_IMAGE_BASE64 (real bytes).
+// The dot-form fixtures above must NOT be accepted as evidence for the real MCP name.
+const generatedImageMcpNameTool = makeTool(
+    'mcp__image_gen__imagegen',
+    'completed',
+    { prompt: 'real mcp-name fixture image' },
+    {
+        status: 'completed',
+        contentItems: [{ type: 'image', data: GENERATED_IMAGE_BASE64, mimeType: GENERATED_IMAGE_MIME }],
     },
 );
 
@@ -238,6 +288,46 @@ const lifecycleAgentTool = makeTool(
         status: 'completed',
         lifecycle_state: 'completed',
         final_summary: 'inspected fixture rendering',
+    },
+);
+
+// ITEM 2 (AC-ITEM2-1/2): an ERRORED subagent lifecycle that STILL carries a
+// final_summary (emitLifecycleEnd spreads final_summary even on errored close,
+// sessionProtocolMapper.ts:855-856). state==='error' so the prior completed-only
+// Result gate dropped this — the relaxed terminal (completed||error) gate must
+// now render the final_summary in both the sidebar and the mobile detail.
+const lifecycleErroredWithSummaryTool = makeTool(
+    'functions.subagent_lifecycle',
+    'error',
+    {
+        sessionSubagent: 'codex-fixture-errored-subagent',
+        prompt: 'inspect fixture rendering (errored run)',
+        agentNickname: 'errored-agent',
+        lifecycle_state: 'started',
+    },
+    {
+        status: 'failed',
+        lifecycle_state: 'errored',
+        final_summary: 'partial progress before the run errored out',
+    },
+);
+
+// ITEM 2 (AC-ITEM2-3): an ERRORED lifecycle with NO final_summary (the
+// flushOpenLifecycles turn-abort shape: {status, lifecycle_state}). ToolFullView
+// suppresses the generic ToolErrorSection for the lifecycle envelope, so without
+// the narrow status/error fallback the mobile detail would be a blank dead-end.
+const lifecycleErroredNoSummaryTool = makeTool(
+    'functions.subagent_lifecycle',
+    'error',
+    {
+        sessionSubagent: 'codex-fixture-aborted-subagent',
+        prompt: 'inspect fixture rendering (aborted run)',
+        agentNickname: 'aborted-agent',
+        lifecycle_state: 'started',
+    },
+    {
+        status: 'failed',
+        lifecycle_state: 'errored',
     },
 );
 
@@ -586,6 +676,43 @@ export const codexRenderFixtures: CodexRenderFixture[] = [
             sidebar: ['generated-image.png', '/tmp/render-fixtures/generated-image.png'],
         },
     },
+    // B12 (AC-B12-3): replay-child raw shape — nested contentItems, NO top-level
+    // preview_uri. Renders inline ONLY via the app's recursive recognition; if the
+    // app only read a top-level preview_uri this surface would be blank.
+    {
+        id: 'image-generation-replay-raw',
+        matrixRow: 'image_inline_generation_replay',
+        matrix: makeMatrix('image_gen.imagegen', 'image_gen.imagegen', 'replay raw contentItems (no top-level preview_uri)', 'true inline image'),
+        title: 'image_gen.imagegen (replay raw shape)',
+        description: 'Replay/history child image_gen reaches the app as raw nested contentItems with no top-level preview_uri; recursive recognition renders it inline.',
+        tool: replayImageTool,
+        message: makeToolMessage('codex-fixture-image-generation-replay-raw', replayImageTool, 7100),
+        expectedVisibleStrings: {
+            inline: ['image_gen'],
+            detail: ['image_gen'],
+            sidebar: ['image_gen'],
+        },
+    },
+    // B12 (real-MCP-name): the LIVE producer name mcp__image_gen__imagegen with the
+    // genuine nested-contentItems shape (no top-level preview_uri). This is the surface
+    // a real Codex image_gen session hits; it must render the generated image inline on
+    // the ToolView card, the detail view, AND the RightSidebar (via ATTACHMENT_TOOLS →
+    // CodexAttachmentView). The dot-form fixtures above do NOT exercise the minimal=isMcp
+    // gate, so this real-MCP-name fixture is the honest B12 evidence.
+    {
+        id: 'image-generation-mcp-name',
+        matrixRow: 'image_inline_generation_mcp_name',
+        matrix: makeMatrix('mcp__image_gen__imagegen', 'mcp__image_gen__imagegen', 'real MCP-name nested contentItems (no top-level preview_uri)', 'true inline image'),
+        title: 'mcp__image_gen__imagegen (real producer name)',
+        description: 'The live producer emits image_gen under the real MCP name mcp__image_gen__imagegen; nested contentItems render inline via recursive recognition on the card, detail view, and sidebar.',
+        tool: generatedImageMcpNameTool,
+        message: makeToolMessage('codex-fixture-image-generation-mcp-name', generatedImageMcpNameTool, 7150),
+        expectedVisibleStrings: {
+            inline: ['image_gen'],
+            detail: ['image_gen'],
+            sidebar: ['image_gen'],
+        },
+    },
     // B05 R2: Claude Read of an IMAGE — producer-synthesized preview_uri drives
     // the inline ReadView thumbnail (bidirectional "Claude Code gains a Codex-
     // style preview").
@@ -680,6 +807,41 @@ export const codexRenderFixtures: CodexRenderFixture[] = [
             inline: ['Subagent', 'fixture-agent', 'inspected fixture rendering'],
             detail: ['fixture-agent', 'completed', 'inspected fixture rendering'],
             sidebar: ['fixture-agent', 'completed', 'inspected fixture rendering'],
+        },
+    },
+    // ITEM 2 (AC-ITEM2-1/2): errored lifecycle WITH a final_summary. The relaxed
+    // terminal gate renders the final_summary in the sidebar + mobile detail even
+    // though state==='error'.
+    {
+        id: 'subagent-lifecycle-errored-summary',
+        matrixRow: 'subagent_lifecycle_errored_summary',
+        matrix: makeMatrix('subagent_lifecycle', 'functions.subagent_lifecycle', 'errored lifecycle + final_summary', 'errored lifecycle card', 'failure'),
+        title: 'subagent_lifecycle (errored + final_summary)',
+        description: 'An errored subagent lifecycle still carries final_summary; the detail/sidebar Result must render it (terminal gate, not completed-only).',
+        tool: lifecycleErroredWithSummaryTool,
+        message: makeToolMessage('codex-fixture-subagent-lifecycle-errored-summary', lifecycleErroredWithSummaryTool, 10600),
+        expectedVisibleStrings: {
+            inline: ['errored-agent'],
+            detail: ['errored-agent', 'partial progress before the run errored out'],
+            sidebar: ['errored-agent', 'partial progress before the run errored out'],
+        },
+    },
+    // ITEM 2 (AC-ITEM2-3): errored lifecycle with NO final_summary (turn-abort
+    // shape). The mobile detail must surface status/lifecycle_state via the narrow
+    // fallback instead of a blank dead-end (ToolErrorSection is suppressed for the
+    // lifecycle envelope).
+    {
+        id: 'subagent-lifecycle-errored-no-summary',
+        matrixRow: 'subagent_lifecycle_errored_no_summary',
+        matrix: makeMatrix('subagent_lifecycle', 'functions.subagent_lifecycle', 'errored lifecycle, no final_summary', 'errored status fallback', 'failure'),
+        title: 'subagent_lifecycle (errored, no final_summary)',
+        description: 'An errored lifecycle with no final_summary must still surface status/lifecycle_state on mobile detail (not a blank dead-end).',
+        tool: lifecycleErroredNoSummaryTool,
+        message: makeToolMessage('codex-fixture-subagent-lifecycle-errored-no-summary', lifecycleErroredNoSummaryTool, 10700),
+        expectedVisibleStrings: {
+            inline: ['aborted-agent'],
+            detail: ['aborted-agent', 'errored'],
+            sidebar: ['aborted-agent', 'errored'],
         },
     },
     {

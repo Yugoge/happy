@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parseMarkdown } from '@/components/markdown/parseMarkdown';
 import { parseUnifiedDiff } from './codexUnifiedDiff';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { codexRenderFixtures } from '@/app/(app)/dev/codex-render-fixtures-data';
 import {
     buildTerminalRenderData,
@@ -224,6 +226,116 @@ describe('codex rendering helpers', () => {
         expect(httpImg.previewUri).toBe('https://cdn/x.png');
     });
 
+    // AC-B12-3 (replay-child raw shape): the rolloutHistoryReplay.buildChildEndEnvelope
+    // image_gen result has NO top-level preview_uri and NO flat base64 — the bytes are
+    // nested in contentItems:[{type:'image',data,mimeType}]. The recursive recognizer
+    // must find them so the replay surface still renders inline.
+    it('recognizes a nested contentItems image (replay-child raw shape) — AC-B12-3', () => {
+        const realPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFBQIAHl6u2QAAAABJRU5ErkJggg==';
+        const replayRaw = extractAttachmentSummary({}, JSON.stringify({
+            status: 'completed',
+            contentItems: [{ type: 'image', data: realPng, mimeType: 'image/png' }],
+        }));
+        expect(replayRaw.previewUri).toBe(`data:image/png;base64,${realPng}`);
+
+        // A nested NON-image content item must NOT be promoted to a preview.
+        const replayText = extractAttachmentSummary({}, JSON.stringify({
+            status: 'completed',
+            content: [{ type: 'text', text: 'just a note' }],
+        }));
+        expect(replayText.previewUri).toBeNull();
+    });
+
+    // AC-B12-1 (fixture honesty): the honest image_gen fixture's preview_uri MUST be
+    // derived from its own contentItems base64. A disconnected placeholder preview_uri
+    // unrelated to the contentItems bytes must NOT be the rendered preview — this test
+    // FAILS if the fixture reverts to a fabricated/disconnected preview_uri.
+    it('honest image_gen fixture derives preview_uri from its own contentItems base64 — AC-B12-1', () => {
+        const fixture = codexRenderFixtures.find((f) => f.id === 'image-generation');
+        expect(fixture).toBeTruthy();
+        const result = fixture!.tool!.result as Record<string, any>;
+        const items = result.contentItems as Array<{ data: string; mimeType: string }>;
+        expect(Array.isArray(items) && items.length > 0).toBe(true);
+        const derived = `data:${items[0].mimeType};base64,${items[0].data}`;
+        // The fixture's declared top-level preview_uri equals the value DERIVED from
+        // its own contentItems bytes (not a disconnected constant).
+        expect(result.preview_uri).toBe(derived);
+        // And the consumer recognizes exactly that derived URI from the fixture result.
+        expect(extractAttachmentSummary(fixture!.tool!.input, result).previewUri).toBe(derived);
+    });
+
+    // AC4 (real-MCP-name): the LIVE producer emits image_gen as mcp__image_gen__imagegen
+    // (sessionProtocolMapper.ts:903-904). This NON-VACUOUS test derives hasSpecializedView +
+    // minimal from the REAL registry SOURCE (not hardcoded true,false) and proves the inline
+    // image renders, with two negative controls proving both gates are real. A dot-form-only
+    // path would NOT exercise the minimal=isMcp gate, so this asserts the genuine producer
+    // surface. NOTE: the view-registry modules (_all.tsx, knownTools.tsx) transitively import
+    // react-native/expo, which cannot load in this node-env vitest; deriving the flags from the
+    // registry SOURCE is the honest registry-derived substitute — it FAILS if the registration
+    // is removed, exactly like a runtime lookup would.
+    it('renders the real MCP name mcp__image_gen__imagegen inline — registry-derived, with negative controls — AC4', () => {
+        const MCP_NAME = 'mcp__image_gen__imagegen';
+        const fixture = codexRenderFixtures.find((f) => f.id === 'image-generation-mcp-name');
+        expect(fixture).toBeTruthy();
+        expect(fixture!.tool!.name).toBe(MCP_NAME);
+        const mcpTool = fixture!.tool!;
+
+        // DERIVED FROM REAL WIRING (codex finding #4): hasSpecializedView from the actual
+        // _all.tsx registry source, minimal from the actual knownTools.tsx entry — NOT hardcoded.
+        const allSrc = readFileSync(resolve(__dirname, '../components/tools/views/_all.tsx'), 'utf8');
+        const knownToolsSrc = readFileSync(resolve(__dirname, '../components/tools/knownTools.tsx'), 'utf8');
+        // hasSpecializedView ⇔ the MCP name maps to CodexAttachmentView in BOTH registry BLOCKS.
+        // Slice each registry object body so a false-pass (both occurrences landing in one block
+        // or a comment) cannot occur — assert the entry inside EACH block separately (codex ISSUE 1).
+        const inlineBlock = /export const toolViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
+        const fullBlock = /export const toolFullViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
+        const attachmentEntry = new RegExp(`'${MCP_NAME}':\\s*CodexAttachmentView`);
+        expect(attachmentEntry.test(inlineBlock)).toBe(true); // inline ToolView card
+        expect(attachmentEntry.test(fullBlock)).toBe(true);   // detail/full view
+        const derivedHasSpecializedView = attachmentEntry.test(inlineBlock);
+        // minimal ⇔ the knownTools entry for the MCP name declares minimal:false.
+        const knownEntry = new RegExp(`'${MCP_NAME}':\\s*\\{[\\s\\S]*?minimal:\\s*(true|false)`).exec(knownToolsSrc);
+        const derivedMinimal = knownEntry ? knownEntry[1] === 'true' : true; // absent → isMcp default true
+        // Prove the wiring actually supplies the values the positive assertion depends on.
+        expect(derivedHasSpecializedView).toBe(true);
+        expect(derivedMinimal).toBe(false);
+
+        // POSITIVE: with the registry-derived flags, the inline content renders.
+        expect(shouldRenderToolContent(mcpTool, derivedHasSpecializedView, derivedMinimal)).toBe(true);
+        // POSITIVE: the nested contentItems image is recognized as a renderable preview AND the
+        // preview is DERIVED from the nested contentItems (no top-level preview_uri), proving the
+        // findNestedImageDataUri recursion is the load-bearing path (codex ISSUE 2 — anti-false-pass).
+        const result = mcpTool.result as Record<string, any>;
+        expect(result.preview_uri).toBeUndefined();
+        expect(result.previewUri).toBeUndefined();
+        const item = result.contentItems?.[0];
+        expect(item).toMatchObject({ type: 'image', mimeType: 'image/png' });
+        const summary = extractAttachmentSummary(mcpTool.input, mcpTool.result);
+        expect(summary.previewUri).toBe(`data:${item.mimeType};base64,${item.data}`);
+        expect(attachmentHasRenderableImagePreview(summary)).toBe(true);
+
+        // NEGATIVE CONTROL 1: minimal=true → suppressed at codexToolRendering.ts:162.
+        expect(shouldRenderToolContent(mcpTool, true, true)).toBe(false);
+        // NEGATIVE CONTROL 2: hasSpecializedView=false & minimal=false → chip-only gate at
+        // line 164 fires for the mcp__* name. Proves registration (not the name alone) is load-bearing.
+        expect(shouldRenderToolContent(mcpTool, false, false)).toBe(false);
+    });
+
+    // AC1/AC7 (sidebar registry): the SidebarContentRenderer ATTACHMENT_TOOLS Set must contain
+    // BOTH image_gen aliases so the RightSidebar (desktop panel + mobile modal share this gate)
+    // routes them to CodexAttachmentView (inline image) instead of the SidebarGenericView JSON-only
+    // fallback. Registry-derived from the actual SidebarContentRenderer.tsx source.
+    it('routes both image_gen aliases through the sidebar ATTACHMENT_TOOLS gate — AC1/AC7', () => {
+        const sidebarSrc = readFileSync(resolve(__dirname, '../components/sidebar/SidebarContentRenderer.tsx'), 'utf8');
+        const setMatch = /const ATTACHMENT_TOOLS = new Set\(\[([^\]]*)\]\)/.exec(sidebarSrc);
+        expect(setMatch).toBeTruthy();
+        const members = setMatch![1];
+        expect(members).toContain("'mcp__image_gen__imagegen'");
+        expect(members).toContain("'image_gen.imagegen'");
+        // The gate routes members to CodexAttachmentView (inline), not SidebarGenericView (JSON-only).
+        expect(/ATTACHMENT_TOOLS\.has\(tool\.name\)\)\s*\{?\s*\n?\s*return <CodexAttachmentView/.test(sidebarSrc)).toBe(true);
+    });
+
     it('parses markdown/rich Codex text primitives without flattening', () => {
         const blocks = parseMarkdown([
             '# Heading',
@@ -252,12 +364,16 @@ describe('codex rendering helpers', () => {
             'image-view',
             'playwright-screenshot',
             'image-generation',
+            'image-generation-replay-raw',
+            'image-generation-mcp-name',
             'claude-read-image',
             'claude-read-text',
             'subagent-spawn',
             'subagent-wait',
             'subagent-close',
             'subagent-lifecycle-merged',
+            'subagent-lifecycle-errored-summary',
+            'subagent-lifecycle-errored-no-summary',
             'request-user-input-unavailable',
             'web-search',
             'web-weather',

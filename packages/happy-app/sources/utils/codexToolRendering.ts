@@ -103,6 +103,24 @@ export function extractLifecycleResultText(result: unknown): string | null {
     return null;
 }
 
+// ITEM 2 (AC-ITEM2-3): when an ERRORED lifecycle carries NO final_summary (the
+// flushOpenLifecycles turn-abort shape {status, lifecycle_state}), build a short
+// status/lifecycle_state line so the mobile detail surfaces the error instead of
+// a blank dead-end (ToolErrorSection is suppressed for the lifecycle envelope).
+// Returns null when there is nothing meaningful to show.
+export function extractLifecycleStatusFallback(result: unknown): string | null {
+    if (!isRecord(result)) return null;
+    const state = typeof result.lifecycle_state === 'string' ? result.lifecycle_state : null;
+    const status = typeof result.status === 'string' ? result.status : null;
+    const error = typeof result.error === 'string' ? result.error : null;
+    const parts = [
+        state ? `lifecycle: ${state}` : null,
+        status ? `status: ${status}` : null,
+        error,
+    ].filter((p): p is string => !!p);
+    return parts.length > 0 ? parts.join('\n') : null;
+}
+
 // Returns true if the given control-tool message should be suppressed because
 // a lifecycle envelope exists for its sessionSubagent. Returns false (render)
 // for any tool that is NOT in CODEX_SUBAGENT_CONTROL_TOOLS.
@@ -506,6 +524,13 @@ export function extractToolUses(input: any): { name: string; summary: string | n
 
 const ATTACHMENT_MIME_KEYS = ['mime_type', 'mimeType', 'media_type', 'mediaType'];
 const ATTACHMENT_BASE64_KEYS = ['base64', 'imageBase64', 'image_base64', 'b64_json', 'data'];
+// B12 AC-B12-3 (replay-child raw shape): the MCP/replay wire result nests image
+// bytes inside an array of content items (contentItems / content / contentBlocks)
+// with NO top-level preview_uri (rolloutHistoryReplay.buildChildEndEnvelope emits
+// payload.output verbatim, bypassing buildImageToolResult). The flat readValue
+// above cannot see nested data, so recurse into these arrays to find an image
+// item's { type:'image', data, mimeType }.
+const ATTACHMENT_CONTENT_ARRAY_KEYS = ['contentItems', 'content', 'contentBlocks'];
 
 function mimeForAttachmentPath(value: string | null): string | null {
     if (!value) return null;
@@ -551,6 +576,33 @@ function recognizeImageBase64(value: unknown, mimeHint: string | null): string |
     return null;
 }
 
+// B12 AC-B12-3: recursively locate a nested image content item carrying base64
+// bytes + a mime in an MCP/replay contentItems[]/content[] array (depth-bounded
+// to avoid pathological deep payloads). Returns the recognized data:image URI
+// via the SAME recognizeImageBase64 guard (positive image-mime signal required),
+// so a non-image content block is never promoted to a preview.
+function findNestedImageDataUri(value: unknown, depth = 0): string | null {
+    if (depth > 4 || !isRecord(value)) return null;
+    for (const key of ATTACHMENT_CONTENT_ARRAY_KEYS) {
+        const items = value[key];
+        if (!Array.isArray(items)) continue;
+        for (const item of items) {
+            if (!isRecord(item)) continue;
+            // codex review: only an EXACT image item type (not any 'image*'
+            // prefix) backstops a missing mime — so a non-image typed block with a
+            // long base64-shaped `data` cannot false-positive into a preview.
+            const itemMime = stringifyUnknown(readValue(item, ATTACHMENT_MIME_KEYS))
+                ?? (item.type === 'image' || item.type === 'input_image' ? 'image/png' : null);
+            const itemBase64 = stringifyUnknown(readValue(item, ATTACHMENT_BASE64_KEYS));
+            const recognized = recognizeImageBase64(itemBase64, itemMime);
+            if (recognized) return recognized;
+            const nested = findNestedImageDataUri(item, depth + 1);
+            if (nested) return nested;
+        }
+    }
+    return null;
+}
+
 export function extractAttachmentSummary(input: any, result?: unknown): AttachmentSummary {
     const parsedResult = parseProtocolResult(result);
     const resultRecord = isRecord(parsedResult) ? parsedResult : {};
@@ -589,6 +641,12 @@ export function extractAttachmentSummary(input: any, result?: unknown): Attachme
             ?? (image ? readValue(image, ATTACHMENT_BASE64_KEYS) : null)
             ?? readValue(isRecord(input) ? input : {}, ATTACHMENT_BASE64_KEYS);
         previewUri = recognizeImageBase64(stringifyUnknown(base64), mimeHint);
+        // B12 AC-B12-3: last resort — recurse into nested contentItems[]/content[]
+        // (the raw replay-child shape with no top-level preview_uri or flat base64).
+        if (!previewUri) {
+            previewUri = findNestedImageDataUri(resultRecord)
+                ?? (isRecord(input) ? findNestedImageDataUri(input) : null);
+        }
     }
     const previewUnavailableReason = stringifyUnknown(resultRecord.preview_unavailable_reason);
     return { label, path, size, dimensions, previewUri, previewUnavailableReason };

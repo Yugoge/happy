@@ -1564,6 +1564,27 @@ export const knownTools = {
             return summary.path ? `Generated: ${summary.path.length > 80 ? summary.path.substring(0, 80) + '...' : summary.path}` : summary.label;
         }
     },
+    // Real producer-emitted MCP name for image_gen (happy-cli sessionProtocolMapper.ts:903-904
+    // builds `mcp__${server}__${tool}` = mcp__image_gen__imagegen). minimal:false overrides the
+    // minimal=isMcp default (ToolView.tsx:217) so shouldRenderToolContent does NOT short-circuit
+    // at codexToolRendering.ts:162 and the inline generated image renders. Field shape mirrors the
+    // dot-form 'image_gen.imagegen' entry above; same pattern as mcp__playwright__browser_take_screenshot.
+    'mcp__image_gen__imagegen': {
+        title: 'Generated image',
+        icon: ICON_IMAGE,
+        minimal: false,
+        input: z.object({
+            prompt: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ?? summary.label;
+        },
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ? `Generated: ${summary.path.length > 80 ? summary.path.substring(0, 80) + '...' : summary.path}` : summary.label;
+        }
+    },
     'functions.view_image': {
         title: 'View image',
         icon: ICON_IMAGE,
