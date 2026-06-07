@@ -469,6 +469,11 @@ export const it: TranslationStructure = {
             running: 'Strumento in esecuzione...',
             rawJsonDevMode: 'JSON grezzo (Modalità sviluppatore)',
             subTools: 'Sotto-strumenti',
+            outputPath: 'Percorso',
+            outputDimensions: 'Dimensioni',
+            outputType: 'Tipo',
+            unknownType: 'sconosciuto',
+            redactedBinary: '[dati binari omessi]',
         },
         taskView: {
             initializing: 'Inizializzazione agente...',

@@ -471,6 +471,11 @@ export const zhHant: TranslationStructure = {
             running: '工具正在執行...',
             rawJsonDevMode: '原始 JSON（開發模式）',
             subTools: '子工具',
+            outputPath: '路徑',
+            outputDimensions: '尺寸',
+            outputType: '類型',
+            unknownType: '未知',
+            redactedBinary: '[已省略二進位資料]',
         },
         taskView: {
             initializing: '正在初始化 agent...',

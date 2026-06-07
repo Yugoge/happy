@@ -6,13 +6,12 @@ import { t } from '@/text';
 import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage, ToolCall } from "@/sync/typesMessage";
 import { MessageAttachments } from "./MessageAttachments";
 import { Metadata } from "@/sync/storageTypes";
-import { layout } from "./layout";
 import { ToolView } from "./tools/ToolView";
 import { AgentEvent } from "@/sync/typesRaw";
 import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
 import { Ionicons } from '@expo/vector-icons';
-import { useMessageContentMaxWidth } from '@/hooks/useMessageContentMaxWidth';
+import { useChatContentWidth } from '@/hooks/useChatContentWidth';
 import { LifecycleSuppressionContext, isControlToolSuppressedByLifecycle } from '@/utils/codexToolRendering';
 
 
@@ -30,10 +29,10 @@ export const MessageView = (props: {
   getMessageById?: (id: string) => Message | null;
   onContentPress?: (data: ToolContentPressData) => void;
 }) => {
-  const messageContentMaxWidth = useMessageContentMaxWidth();
+  const messageContentMaxWidth = useChatContentWidth();
   return (
-    <View style={styles.messageContainer} renderToHardwareTextureAndroid={true}>
-      <View style={[styles.messageContent, { maxWidth: messageContentMaxWidth }]}>
+    <View style={styles.messageContainer} renderToHardwareTextureAndroid={true} testID="message-container">
+      <View style={[styles.messageContent, { maxWidth: messageContentMaxWidth }]} testID="message-content">
         <RenderBlock
           message={props.message}
           metadata={props.metadata}
@@ -206,14 +205,18 @@ function ToolCallBlock(props: {
 const styles = StyleSheet.create((theme) => ({
   messageContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    // LEFT-anchor (M3): share the same origin as the header + composer so equal
+    // width yields coincident edges. The inline maxWidth (useChatContentWidth)
+    // is the single shared width source; the prior static `maxWidth:
+    // layout.maxWidth` cap was removed so the 800 web/tablet clamp can never
+    // resurface.
+    justifyContent: 'flex-start',
   },
   messageContent: {
     minWidth: 0,
     flexDirection: 'column',
     flexGrow: 1,
     flexBasis: 0,
-    maxWidth: layout.maxWidth,
   },
   userMessageContainer: {
     maxWidth: '100%',

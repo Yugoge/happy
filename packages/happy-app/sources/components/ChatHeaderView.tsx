@@ -10,7 +10,7 @@ import { Typography } from '@/constants/Typography';
 import { Session } from '@/sync/storageTypes';
 import { useHeaderHeight } from '@/utils/responsive';
 import { useUnistyles } from 'react-native-unistyles';
-import { useHeaderMaxWidth } from '@/hooks/useHeaderMaxWidth';
+import { useChatContentWidth } from '@/hooks/useChatContentWidth';
 
 interface ChatHeaderViewProps {
     title: string;
@@ -47,7 +47,7 @@ export const ChatHeaderView: React.FC<ChatHeaderViewProps> = ({
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const headerHeight = useHeaderHeight();
-    const headerMaxWidth = useHeaderMaxWidth();
+    const headerMaxWidth = useChatContentWidth();
     const avatarAnchorRef = React.useRef<View | null>(null);
     const suppressAvatarPressUntilRef = React.useRef(0);
 
@@ -116,8 +116,8 @@ export const ChatHeaderView: React.FC<ChatHeaderViewProps> = ({
 
     return (
         <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.header.background }]}>
-            <View style={styles.contentWrapper}>
-                <View style={[styles.content, { height: headerHeight, maxWidth: headerMaxWidth }]}>
+            <View style={styles.contentWrapper} testID="chat-header-content-wrapper">
+                <View style={[styles.content, { height: headerHeight, maxWidth: headerMaxWidth }]} testID="chat-header-content">
                     <Pressable onPress={handleBackPress} style={styles.backButton} hitSlop={15}>
                         <Ionicons
                             name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
@@ -212,7 +212,10 @@ const styles = StyleSheet.create({
     },
     contentWrapper: {
         width: '100%',
-        alignItems: 'center',
+        // LEFT-anchor (M2): equal width with the message column + composer
+        // yields coincident left+right edges, and opening the right sidebar
+        // moves only the right edge inward (no symmetric "narrowing").
+        alignItems: 'flex-start',
     },
     content: {
         flexDirection: 'row',

@@ -5,7 +5,7 @@ Organization and usage documentation for `components/`.
 <!-- AUTO:readme-stats -->
 
 ## Overview
-- **Total files**: 93
+- **Total files**: 94
 - **Subdirectories**: 10
 - **Naming convention**: lower
 
@@ -25,6 +25,7 @@ Organization and usage documentation for `components/`.
 - `AvatarSkia.web.tsx` - tsx file
 - `ChatFooter.tsx` - tsx file
 - `ChatHeaderView.tsx` - tsx file
+- `ChatList.test.ts` - ts file
 - `ChatList.tsx` - tsx file
 - `CodeView.tsx` - tsx file
 - `CommandView.tsx` - tsx file

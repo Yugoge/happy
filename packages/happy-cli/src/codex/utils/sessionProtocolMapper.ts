@@ -364,6 +364,92 @@ const TOOL_END_OMIT_KEYS = new Set([
     'id',
 ]);
 
+// Item 2 (spec-20260607-124814): a Codex functions.request_user_input invoked
+// OUTSIDE Plan mode arrives as a COMPLETED dynamic_tool_call_end whose availability
+// message is buried in the output text (status stays 'completed', no error-shaped
+// field). The app reducer (typesRaw.isSessionToolEndError) therefore never derives
+// state:'error', so the inline card + detail page render as a normal/success card.
+// The producer normalizes this case into an error-shaped result the EXISTING reducer
+// already recognizes, so the failure styling fires WITHOUT editing the app reducer/view.
+//
+// MODE-CONTEXT anchored (mirrors codexToolRendering REQUEST_USER_INPUT_UNAVAILABLE_PATTERNS,
+// kept CLI-local — happy-cli must NOT import happy-app): the signal is NOT the bare word
+// 'unavailable' (a legitimate answer like 'I am unavailable tomorrow' must NOT trigger) —
+// it is the tool-availability message naming the Codex mode (Default/Plan) or the tool.
+//
+// Pattern 2 is TIGHTER than the app-side mirror on the CLI side (codex review F4): it requires
+// the tool-availability GRAMMAR `request_user_input is/isn't/is not (un)available`, not mere
+// co-occurrence of the tool name and an availability word — so a user answer like
+// 'For request_user_input, I am unavailable tomorrow' does NOT flip state. The state flip is
+// CLI-exclusive, so a false positive here is the dangerous case; the app-side mirror only
+// gates inline body rendering (cosmetic), so its looser pattern stays unchanged (guard).
+const REQUEST_USER_INPUT_UNAVAILABLE_PATTERNS = [
+    /\b(?:unavailable|not available|only available)\b[^]*\b(?:Default|Plan)\s+mode\b/i,
+    /\brequest_user_input\b\s+(?:is\s+not|isn['’]t|is)\s+(?:currently\s+)?(?:unavailable|not available|only available)\b/i,
+] as const;
+
+// Only top-level reason-bearing fields are inspected (no recursive scan of arbitrary
+// content/data) so a normal answer that merely mentions a mode word cannot false-positive.
+// `content` is included to match the app-side detection field set (codexToolRendering
+// REQUEST_USER_INPUT_RESULT_FIELDS, codex review F3) — but readReasonText only reads a STRING
+// content, so an array/object `content` is never scanned (non-recursive preserved).
+const REQUEST_USER_INPUT_REASON_FIELDS = [
+    'output', 'error', 'message', 'reason', 'stderr', 'content',
+] as const;
+
+// Strip a <tool_use_error>…</tool_use_error> wrapper (Codex/Claude error envelope) so the
+// raw markup never lands in the normalized error reason; return the inner text otherwise
+// the original string trimmed.
+function unwrapToolUseError(text: string): string {
+    const match = text.match(/<tool_use_error>([^]*?)<\/tool_use_error>/i);
+    return (match ? match[1] : text).trim();
+}
+
+function readReasonText(value: unknown): string | null {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return null;
+}
+
+// True only for the mode-anchored unavailable/only-available message.
+function matchesRequestUserInputUnavailable(text: string | null): boolean {
+    return text !== null && REQUEST_USER_INPUT_UNAVAILABLE_PATTERNS.some((re) => re.test(text));
+}
+
+// Scoped to functions.request_user_input (namespace null/''/'functions'). When the
+// dynamic_tool_call_end message reports the unavailable/only-available-in-mode shape,
+// returns the cleaned reason; otherwise null (no normalization).
+function detectRequestUserInputUnavailableReason(message: Record<string, unknown>): string | null {
+    const tool = typeof message.tool === 'string' ? message.tool : '';
+    if (tool !== 'request_user_input') return null;
+    const namespace = typeof message.namespace === 'string' ? message.namespace : '';
+    if (namespace !== '' && namespace !== 'functions') return null;
+    for (const field of REQUEST_USER_INPUT_REASON_FIELDS) {
+        const text = readReasonText(message[field]);
+        if (text === null) continue;
+        const cleaned = unwrapToolUseError(text);
+        if (matchesRequestUserInputUnavailable(cleaned)) return cleaned;
+    }
+    return null;
+}
+
+// Inject the error-shape the EXISTING app reducer recognizes (status:'failed' +
+// success:false + non-empty error). status+error survive TOOL_END_OMIT_KEYS and force
+// buildToolEndOutput into the JSON-object branch (the bare-string collapse fires only when
+// the sole non-omitted key is a string output). Returns the message unchanged when not an
+// unavailable request_user_input — strictly scoped, so other dynamic tools are byte-identical.
+function normalizeRequestUserInputUnavailable(message: Record<string, unknown>): Record<string, unknown> {
+    const reason = detectRequestUserInputUnavailableReason(message);
+    if (reason === null) return message;
+    return {
+        ...message,
+        status: 'failed',
+        success: false,
+        error: reason,
+        output: typeof message.output === 'string' && message.output.length > 0 ? message.output : reason,
+    };
+}
+
 function buildToolEndOutput(message: Record<string, unknown>): string | undefined {
     const payload: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(message)) {
@@ -890,7 +976,9 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(toolEndEnvelope(call, message, opts));
+        // Item 2: normalize an unavailable functions.request_user_input into an error
+        // shape the existing app reducer flags as state:'error' (no-op for every other tool).
+        envelopes.push(toolEndEnvelope(call, normalizeRequestUserInputUnavailable(message), opts));
         return {
             currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
         };

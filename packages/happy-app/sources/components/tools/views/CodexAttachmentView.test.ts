@@ -134,6 +134,105 @@ describe('AC5#2 header-less caption affordance PRESERVED (pre_existing_guard rem
     });
 });
 
+// ── spec-20260607-124814 Item 3+4 (L4): unknown-dimensions images (screenshots,
+//    generated images) resolve their aspect ratio from the actually-loaded natural
+//    size via expo-image onLoad, instead of terminally letterboxing inside a square.
+//    The component module transitively imports react-native/expo-image and CANNOT be
+//    imported in this node-env vitest (same documented constraint as parseDimensions
+//    above). So we MIRROR the pure aspectRatioFromSize helper here as a contract and
+//    prove — via a revert-sensitive source assertion — that the component exports the
+//    same shape. This is the project's blessed substitute for a runtime import.
+function aspectRatioFromSize(size: { width: number; height: number } | null): number | null {
+    if (!size) return null;
+    const { width, height } = size;
+    if (!(width > 0) || !(height > 0)) return null;
+    return width / height;
+}
+
+describe('Item 3+4 natural-size onLoad aspect ratio (pure helper mirror)', () => {
+    it('returns width/height for a valid loaded natural size (wide screenshot → true ratio, not square)', () => {
+        expect(aspectRatioFromSize({ width: 1440, height: 900 })).toBeCloseTo(1.6, 5);
+        expect(aspectRatioFromSize({ width: 1024, height: 768 })).toBeCloseTo(1.3333, 3);
+        // a square image still resolves to 1 — but from its REAL size, not the fallback.
+        expect(aspectRatioFromSize({ width: 512, height: 512 })).toBe(1);
+    });
+
+    it('returns null for null / degenerate (zero/NaN/negative) onLoad payloads so the prior aspect is retained (C1 guard)', () => {
+        expect(aspectRatioFromSize(null)).toBeNull();
+        expect(aspectRatioFromSize({ width: 0, height: 400 })).toBeNull();
+        expect(aspectRatioFromSize({ width: 400, height: 0 })).toBeNull();
+        expect(aspectRatioFromSize({ width: NaN, height: 400 })).toBeNull();
+        expect(aspectRatioFromSize({ width: -10, height: 400 })).toBeNull();
+    });
+
+    it('the component exports the aspectRatioFromSize helper with the degenerate-size guard (revert-sensitive)', () => {
+        // Reverting the L4 fix (removing the runtime ratio resolver) deletes this export.
+        expect(attachmentSrc).toMatch(/export function aspectRatioFromSize\(/);
+        expect(attachmentSrc).toMatch(/if \(!\(width > 0\) \|\| !\(height > 0\)\) return null/);
+    });
+});
+
+describe('AC4 square fallback is no longer the terminal value for a loaded image (revert-sensitive)', () => {
+    it('wires an onLoad handler on the inline <Image> (reverting removes it → fails)', () => {
+        expect(attachmentSrc).toMatch(/onLoad=\{/);
+        // the handler must read the loaded natural size off event.source
+        expect(attachmentSrc).toMatch(/e\.source/);
+    });
+
+    it('captures the loaded natural size into component state (natural-size state path)', () => {
+        expect(attachmentSrc).toMatch(/setLoaded/);
+        expect(attachmentSrc).toMatch(/useState<\{\s*uri:\s*string;\s*width:\s*number;\s*height:\s*number\s*\}\s*\|\s*null>/);
+    });
+
+    it('prefers producer dims, then the loaded natural size, before the square fallback (resolvedDims)', () => {
+        // producerDims ?? naturalSize drives the style — the square fallback only when both absent.
+        expect(attachmentSrc).toMatch(/producerDims\s*\?\?\s*naturalSize/);
+        expect(attachmentSrc).toMatch(/adaptivePreviewStyle\(resolvedDims\)/);
+    });
+
+    it('only adopts the natural size when producer dims are absent (no regression of the known path)', () => {
+        // the onLoad handler must early-return when producerDims is present.
+        expect(attachmentSrc).toMatch(/if\s*\(producerDims\)\s*return/);
+    });
+
+    it('binds the captured size to the uri it was measured from so a stale ratio is never applied + a fast onLoad is not clobbered (codex F1, revert-sensitive)', () => {
+        // The natural size is URI-bound: it is only applied when loaded.uri === the
+        // current previewUri. This replaces the racy unconditional reset effect (which
+        // could wipe a fast cached/data-uri onLoad and leave the terminal square).
+        expect(attachmentSrc).toMatch(/loaded\.uri === attachment\.previewUri/);
+        expect(attachmentSrc).toMatch(/setLoaded\(\{ uri, width, height \}\)/);
+        // the old racy reset effect must NOT be reintroduced.
+        expect(attachmentSrc).not.toMatch(/setNaturalSize\(null\)/);
+    });
+
+    it('the square FALLBACK_ASPECT_RATIO is documented as a pre-load transient only (not terminal)', () => {
+        // The fallback constant survives (no native collapse) but is no longer the
+        // terminal value — its comment must mark it transient. Reverting to a terminal
+        // square (removing the natural-size path) is caught by the assertions above.
+        expect(attachmentSrc).toMatch(/FALLBACK_ASPECT_RATIO/);
+        expect(attachmentSrc).toMatch(/transient/i);
+    });
+});
+
+describe('AC3 known-dimensions contain-fit not regressed (revert-sensitive)', () => {
+    it('still contain-fits known dimensions inside the 360 cap via Math.min(1, ...)', () => {
+        expect(attachmentSrc).toMatch(/Math\.min\(1,\s*PREVIEW_MAX_WIDTH/);
+    });
+    it('keeps contentFit="contain" on the inline image', () => {
+        expect(attachmentSrc).toMatch(/contentFit="contain"/);
+    });
+});
+
+describe('AC5 public contract + caption guard preserved (revert-sensitive)', () => {
+    it('keeps the public type ToolViewProps & { headerless?: boolean }', () => {
+        expect(attachmentSrc).toMatch(/ToolViewProps\s*&\s*\{\s*headerless\?:\s*boolean\s*\}/);
+    });
+    it('keeps headerless default true and the showCaption gate intact', () => {
+        expect(attachmentSrc).toMatch(/headerless\s*=\s*true/);
+        expect(attachmentSrc).toMatch(/showCaption\s*=\s*headerless\s*&&/);
+    });
+});
+
 describe('AC5#3 detail title is exactly "View: <path>" (knownTools extractDescription source)', () => {
     it('functions.view_image extractDescription builds the `View: <path>` string', () => {
         // Behavior #3 is owned by knownTools.tsx; assert the contract at its source

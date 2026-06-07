@@ -471,6 +471,11 @@ export const es: TranslationStructure = {
             running: 'La herramienta está ejecutándose...',
             rawJsonDevMode: 'JSON crudo (modo desarrollador)',
             subTools: 'Sub-herramientas',
+            outputPath: 'Ruta',
+            outputDimensions: 'Dimensiones',
+            outputType: 'Tipo',
+            unknownType: 'desconocido',
+            redactedBinary: '[datos binarios omitidos]',
         },
         taskView: {
             initializing: 'Inicializando agente...',

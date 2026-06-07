@@ -313,10 +313,20 @@ describe('AC4 app registry resolves the real image-generation name (registry-der
         expect(entry![1]).toBe('false');
     });
 
-    it('routes functions.image_generation to CodexAttachmentView in BOTH the inline and full view registries', () => {
-        expect(/'functions\.image_generation':\s*CodexAttachmentView/.test(VIEW_REGISTRY_SRC)).toBe(true);
-        // It must appear in both registry objects (inline toolViewRegistry + toolFullViewRegistry).
-        const occurrences = VIEW_REGISTRY_SRC.match(/'functions\.image_generation':\s*CodexAttachmentView/g) ?? [];
-        expect(occurrences.length).toBeGreaterThanOrEqual(2);
+    it('routes functions.image_generation to CodexAttachmentView INLINE and to the text-only ImageToolFullView on DETAIL (Wave-1 Item 1 spec-20260607-124814)', () => {
+        // The inline chat card keeps the image renderer (CodexAttachmentView) so the generated
+        // image still renders inline. Wave-1 Item 1 INTENTIONALLY re-pointed the DETAIL/full view
+        // away from CodexAttachmentView to the Claude-Code-style text-only ImageToolFullView (no
+        // image render, no base64 leak on the detail surface). Slice each registry object body so
+        // a false-pass cannot occur, then assert each block separately — revert-sensitive: if a
+        // revert re-points the full registry back to CodexAttachmentView this test fails.
+        const inlineBlock = /export const toolViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(VIEW_REGISTRY_SRC)?.[1] ?? '';
+        const fullBlock = /export const toolFullViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(VIEW_REGISTRY_SRC)?.[1] ?? '';
+        // Inline card → image renderer (unchanged).
+        expect(/'functions\.image_generation':\s*CodexAttachmentView/.test(inlineBlock)).toBe(true);
+        // Detail/full view → text-only structured view (Wave-1 Item 1).
+        expect(/'functions\.image_generation':\s*ImageToolFullView/.test(fullBlock)).toBe(true);
+        // The detail view must NOT render the image.
+        expect(/'functions\.image_generation':\s*CodexAttachmentView/.test(fullBlock)).toBe(false);
     });
 });

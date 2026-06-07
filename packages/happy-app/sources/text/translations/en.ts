@@ -485,6 +485,11 @@ export const en: TranslationStructure = {
             running: 'Tool is running...',
             rawJsonDevMode: 'Raw JSON (Dev Mode)',
             subTools: 'Sub-tools',
+            outputPath: 'Path',
+            outputDimensions: 'Dimensions',
+            outputType: 'Type',
+            unknownType: 'unknown',
+            redactedBinary: '[binary data omitted]',
         },
         taskView: {
             initializing: 'Initializing agent...',

@@ -480,6 +480,11 @@ export const ru: TranslationStructure = {
             running: 'Выполняется...',
             rawJsonDevMode: 'Исходный JSON (режим разработчика)',
             subTools: 'Подзадачи',
+            outputPath: 'Путь',
+            outputDimensions: 'Размеры',
+            outputType: 'Тип',
+            unknownType: 'неизвестно',
+            redactedBinary: '[двоичные данные опущены]',
         },
         taskView: {
             initializing: 'Инициализация агента...',

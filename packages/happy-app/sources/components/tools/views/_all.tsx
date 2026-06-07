@@ -21,6 +21,7 @@ import { AgentFullView } from './AgentFullView';
 import { CodexParallelView } from './CodexParallelView';
 import { CodexPlanView } from './CodexPlanView';
 import { CodexAttachmentView } from './CodexAttachmentView';
+import { ImageToolFullView } from './ImageToolFullView';
 import { ReadView } from './ReadView';
 import { AskUserQuestionView } from './AskUserQuestionView';
 import { GeminiEditView } from './GeminiEditView';
@@ -92,14 +93,17 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     CodexPatch: CodexPatchViewFull,
     CodexDiff: CodexDiffViewFull,
     'functions.update_plan': CodexPlanView,
-    'functions.view_image': CodexAttachmentView,
-    file: CodexAttachmentView,
-    'mcp__playwright__browser_take_screenshot': CodexAttachmentView,
-    'image_gen.imagegen': CodexAttachmentView,
-    // Real producer-emitted MCP name (sessionProtocolMapper.ts:903-904) — detail/full view.
-    'mcp__image_gen__imagegen': CodexAttachmentView,
-    // §5.13 AC4 — real image-generation name (detail/full view).
-    'functions.image_generation': CodexAttachmentView,
+    // Wave-1 Item 1 (spec-20260607-124814): the image-tool DETAIL page must be
+    // Claude-Code-style text-only (Description → Input Params JSON → Output
+    // path/dimensions/type) — NO image render, NO base64 leak. Detail routes to the
+    // new ImageToolFullView, NOT the image-rendering CodexAttachmentView (which stays
+    // the INLINE card via toolViewRegistry above). Names mirror IMAGE_DETAIL_TOOLS.
+    'functions.view_image': ImageToolFullView,
+    file: ImageToolFullView,
+    'mcp__playwright__browser_take_screenshot': ImageToolFullView,
+    'image_gen.imagegen': ImageToolFullView,
+    'mcp__image_gen__imagegen': ImageToolFullView,
+    'functions.image_generation': ImageToolFullView,
     'multi_tool_use.parallel': CodexParallelView,
     MultiEdit: MultiEditViewFull,
     // CONSTRAINT-2: reducer synthetic grouping — spawn_agent (no prefix) → AgentFullView

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { View, Text } from 'react-native';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Octicons } from '@expo/vector-icons';
+import { StyleSheet } from 'react-native-unistyles';
 import { ToolCall } from '@/sync/typesMessage';
 import { ToolSectionView } from '../ToolSectionView';
 import { Metadata } from '@/sync/storageTypes';
@@ -95,7 +94,6 @@ function getPatchKindLabel(change: CodexPatchEntry): string | null {
 }
 
 export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata }) => {
-    const { theme } = useUnistyles();
     const showLineNumbersInToolViews = useSetting('showLineNumbersInToolViews');
     const changes = getPatchChanges(tool.input);
     const entries = Object.entries(changes ?? {});
@@ -135,7 +133,6 @@ export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata 
                         <View style={styles.patchContainer}>
                             <View style={styles.fileHeader}>
                                 <View style={styles.fileHeaderMain}>
-                                    <Octicons name="file-diff" size={16} color={theme.colors.textSecondary} />
                                     <Text style={styles.filePath} numberOfLines={1} ellipsizeMode="middle">{filePath}</Text>
                                     {kindLabel ? <Text style={styles.kindLabel}>{kindLabel}</Text> : null}
                                 </View>
@@ -158,7 +155,6 @@ export const CodexPatchView = React.memo<CodexPatchViewProps>(({ tool, metadata 
 });
 
 export const CodexPatchViewFull = React.memo<CodexPatchViewProps>(({ tool, metadata }) => {
-    const { theme } = useUnistyles();
     const showLineNumbersInToolViews = useSetting('showLineNumbersInToolViews');
     const { input } = tool;
     const changes = getPatchChanges(input);
@@ -183,7 +179,6 @@ export const CodexPatchViewFull = React.memo<CodexPatchViewProps>(({ tool, metad
                         <View style={styles.patchContainer}>
                             <View style={styles.fileHeader}>
                                 <View style={styles.fileHeaderMain}>
-                                    <Octicons name="file-diff" size={16} color={theme.colors.textSecondary} />
                                     <Text style={styles.filePath} numberOfLines={1} ellipsizeMode="middle">{filePath}</Text>
                                     {kindLabel ? <Text style={styles.kindLabel}>{kindLabel}</Text> : null}
                                 </View>

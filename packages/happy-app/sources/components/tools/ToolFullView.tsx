@@ -11,6 +11,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { t } from '@/text';
 import { stringifyInspectableValue } from '@/utils/codexToolRendering';
 import { stringifyToolCommand } from '@/utils/toolCommand';
+import { IMAGE_DETAIL_TOOLS } from './views/imageToolDetail';
 
 interface ToolFullViewProps {
     tool: ToolCall;
@@ -23,17 +24,17 @@ const SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set([
     'CodexPatch',
     'CodexDiff',
     'functions.update_plan',
-    'functions.view_image',
-    // Wave-2 fix: the real Codex image-generation tool name (functions.image_generation,
-    // routed to the inline/full image attachment view in _all.tsx). Without this, the
-    // detail page would dump the raw multi-MB base64 data-URI as Output JSON (§5.14#4).
-    'functions.image_generation',
-    'file',
     'multi_tool_use.parallel',
     // B13 (AC-B13-2): the lifecycle full view (AgentFullView → TaskViewFull) now
     // renders structured Prompt + Tool Calls + Result/final_summary itself, so
     // suppress the raw Input/Output JSON dump that would otherwise duplicate it.
     'functions.subagent_lifecycle',
+    // Wave-1 Item 1 (spec-20260607-124814): every image-tool detail is now fully owned
+    // by ImageToolFullView (view_image / screenshot / image_generation / file / aliases),
+    // so the generic Input/Output/Error/Description/RawJson dumps are all suppressed —
+    // they would otherwise re-leak the raw multi-MB base64. Source-of-truth set lives in
+    // ImageToolFullView so the mobile registry + this gate + the desktop sidebar agree.
+    ...IMAGE_DETAIL_TOOLS,
 ]);
 
 // Extracted generic sections so ToolFullView stays under line-count limits
@@ -174,13 +175,18 @@ function ToolRawJsonSection({ tool, messages }: { tool: ToolCall; messages: Mess
 export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProps) {
     const SpecializedFullView = getToolFullViewComponent(tool.name);
     const specializedOwnsPayload = SPECIALIZED_FULL_PAYLOAD_TOOLS.has(tool.name);
+    // Wave-1 Item 1: image-tool detail is text-only and fully owned by ImageToolFullView,
+    // which renders its own Description and a sanitized Input/Output. The generic
+    // Description AND the dev-mode Raw JSON section must be suppressed for these names —
+    // both render unsanitized tool.input/tool.result and would re-leak base64 (codex F1/F2).
+    const isImageDetailTool = IMAGE_DETAIL_TOOLS.has(tool.name);
     const screenWidth = useWindowDimensions().width;
     const devModeEnabled = (useLocalSetting('devModeEnabled') || __DEV__);
 
     return (
         <ScrollView style={[styles.container, { paddingHorizontal: screenWidth > 700 ? 16 : 0 }]}>
             <View style={styles.contentWrapper}>
-                <ToolDescriptionSection tool={tool} />
+                {!isImageDetailTool && <ToolDescriptionSection tool={tool} />}
                 {(!SpecializedFullView || !specializedOwnsPayload) && <ToolInputSection tool={tool} />}
                 {SpecializedFullView ? (
                     <SpecializedFullView tool={tool} metadata={metadata || null} messages={messages} />
@@ -188,7 +194,7 @@ export function ToolFullView({ tool, metadata, messages = [] }: ToolFullViewProp
                 {(!SpecializedFullView || !specializedOwnsPayload) && <ToolOutputSection tool={tool} />}
                 {(!SpecializedFullView || !specializedOwnsPayload) && <ToolErrorSection tool={tool} />}
                 {!SpecializedFullView && <ToolEmptyOutputSection tool={tool} />}
-                {devModeEnabled && <ToolRawJsonSection tool={tool} messages={messages} />}
+                {devModeEnabled && !isImageDetailTool && <ToolRawJsonSection tool={tool} messages={messages} />}
             </View>
         </ScrollView>
     );

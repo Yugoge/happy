@@ -18,8 +18,12 @@ import {
     isControlToolSuppressedByLifecycle,
     attachmentHasRenderableImagePreview,
     readImagePreviewUri,
+    extractRequestUserInputUnavailableReason,
     CODEX_LIFECYCLE_TOOL,
 } from './codexToolRendering';
+import { normalizeRawMessage } from '@/sync/typesRaw';
+import { createReducer, reducer } from '@/sync/reducer/reducer';
+import { createId } from '@paralleldrive/cuid2';
 
 describe('codex rendering helpers', () => {
     it('keeps long terminal previews compact while preserving full output data', () => {
@@ -284,14 +288,21 @@ describe('codex rendering helpers', () => {
         // _all.tsx registry source, minimal from the actual knownTools.tsx entry — NOT hardcoded.
         const allSrc = readFileSync(resolve(__dirname, '../components/tools/views/_all.tsx'), 'utf8');
         const knownToolsSrc = readFileSync(resolve(__dirname, '../components/tools/knownTools.tsx'), 'utf8');
-        // hasSpecializedView ⇔ the MCP name maps to CodexAttachmentView in BOTH registry BLOCKS.
-        // Slice each registry object body so a false-pass (both occurrences landing in one block
-        // or a comment) cannot occur — assert the entry inside EACH block separately (codex ISSUE 1).
+        // Wave-1 Item 1 (spec-20260607-124814): the INLINE card keeps CodexAttachmentView
+        // (image renders inline) but the DETAIL/full view is now the text-only ImageToolFullView
+        // (no image, no base64 leak). So the MCP name maps to CodexAttachmentView in the inline
+        // block and to ImageToolFullView in the full block. Slice each registry object body so a
+        // false-pass (both occurrences landing in one block or a comment) cannot occur — assert
+        // the entry inside EACH block separately (codex ISSUE 1).
         const inlineBlock = /export const toolViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
         const fullBlock = /export const toolFullViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
         const attachmentEntry = new RegExp(`'${MCP_NAME}':\\s*CodexAttachmentView`);
-        expect(attachmentEntry.test(inlineBlock)).toBe(true); // inline ToolView card
-        expect(attachmentEntry.test(fullBlock)).toBe(true);   // detail/full view
+        const imageDetailEntry = new RegExp(`'${MCP_NAME}':\\s*ImageToolFullView`);
+        expect(attachmentEntry.test(inlineBlock)).toBe(true);   // inline ToolView card (image)
+        // Revert-sensitive: detail routes to the text-only ImageToolFullView, NOT the image
+        // renderer. If a revert re-points the full registry back to CodexAttachmentView this fails.
+        expect(imageDetailEntry.test(fullBlock)).toBe(true);    // detail/full view (text-only)
+        expect(attachmentEntry.test(fullBlock)).toBe(false);    // detail must NOT render the image
         const derivedHasSpecializedView = attachmentEntry.test(inlineBlock);
         // minimal ⇔ the knownTools entry for the MCP name declares minimal:false.
         const knownEntry = new RegExp(`'${MCP_NAME}':\\s*\\{[\\s\\S]*?minimal:\\s*(true|false)`).exec(knownToolsSrc);
@@ -321,19 +332,28 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(mcpTool, false, false)).toBe(false);
     });
 
-    // AC1/AC7 (sidebar registry): the SidebarContentRenderer ATTACHMENT_TOOLS Set must contain
-    // BOTH image_gen aliases so the RightSidebar (desktop panel + mobile modal share this gate)
-    // routes them to CodexAttachmentView (inline image) instead of the SidebarGenericView JSON-only
-    // fallback. Registry-derived from the actual SidebarContentRenderer.tsx source.
-    it('routes both image_gen aliases through the sidebar ATTACHMENT_TOOLS gate — AC1/AC7', () => {
+    // AC1/AC7 (sidebar routing) — RECONCILED for Wave-1 Item 1 (spec-20260607-124814):
+    // the predecessor cycles routed the desktop right-sidebar detail of the image_gen aliases
+    // to CodexAttachmentView (rendered the image on the detail surface). Wave-1 INTENTIONALLY
+    // reversed this: the desktop detail is now the text-only ImageToolFullView, gated by the
+    // shared IMAGE_DETAIL_TOOLS Set (imageToolDetail.ts) — never CodexAttachmentView (image),
+    // never the SidebarGenericView JSON/base64 fallback. The old ATTACHMENT_TOOLS Set was
+    // removed. Registry-derived from the actual SidebarContentRenderer.tsx + imageToolDetail.ts
+    // source so it FAILS if a revert re-introduces an image-render path on detail.
+    it('routes both image_gen aliases to the text-only ImageToolFullView on desktop detail (not CodexAttachmentView, not SidebarGenericView) — AC1/AC7', () => {
         const sidebarSrc = readFileSync(resolve(__dirname, '../components/sidebar/SidebarContentRenderer.tsx'), 'utf8');
-        const setMatch = /const ATTACHMENT_TOOLS = new Set\(\[([^\]]*)\]\)/.exec(sidebarSrc);
+        const imageDetailSrc = readFileSync(resolve(__dirname, '../components/tools/views/imageToolDetail.ts'), 'utf8');
+        // The aliases live in the shared IMAGE_DETAIL_TOOLS source-of-truth Set.
+        const setMatch = /export const IMAGE_DETAIL_TOOLS = new Set<string>\(\[([\s\S]*?)\]\)/.exec(imageDetailSrc);
         expect(setMatch).toBeTruthy();
         const members = setMatch![1];
         expect(members).toContain("'mcp__image_gen__imagegen'");
         expect(members).toContain("'image_gen.imagegen'");
-        // The gate routes members to CodexAttachmentView (inline), not SidebarGenericView (JSON-only).
-        expect(/ATTACHMENT_TOOLS\.has\(tool\.name\)\)\s*\{?\s*\n?\s*return <CodexAttachmentView/.test(sidebarSrc)).toBe(true);
+        // The desktop sidebar routes IMAGE_DETAIL_TOOLS members to the text-only ImageToolFullView.
+        expect(/if \(IMAGE_DETAIL_TOOLS\.has\(tool\.name\)\)\s*\{\s*return <ImageToolFullView/.test(sidebarSrc)).toBe(true);
+        // The old image-render path is gone: no CodexAttachmentView branch / import remains.
+        expect(sidebarSrc).not.toMatch(/<CodexAttachmentView/);
+        expect(sidebarSrc).not.toMatch(/ATTACHMENT_TOOLS\b/);
     });
 
     it('parses markdown/rich Codex text primitives without flattening', () => {
@@ -654,6 +674,99 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(unknownNonCodex, false, false)).toBe(false);
         const claudeMcp = makeToolCall('mcp__resources__read', { uri: 'file://fixture.md' }, { resources: [] });
         expect(shouldRenderToolContent(claudeMcp, false, true)).toBe(false);
+    });
+});
+
+// Item 2 (spec-20260607-124814) — AC4 (tightened, no OR escape) + AC5.
+// AC4 binds the user-facing failure styling to the EXISTING reducer: the producer-emitted
+// error-shaped tool-call-end output, fed through the REAL app normalization + reducer path,
+// MUST yield reducer-derived is_error===true AND ToolCall.state==='error'. The test NEVER
+// hand-constructs is_error/state — they are produced by typesRaw.normalizeRawMessage (which
+// calls the FORBIDDEN-to-edit isSessionToolEndError internally) and reducer.ts (state =
+// is_error ? 'error' : 'completed'). The ADD-ONLY helper is asserted only as an ADDITIONAL
+// check, never as an alternative to the state assertion.
+describe('Item 2: producer error-shape -> reducer derives ToolCall.state==error (AC4)', () => {
+    // The exact tool-call-end envelope output the happy-cli producer emits for an
+    // unavailable request_user_input (sessionProtocolMapper.normalizeRequestUserInputUnavailable
+    // -> buildToolEndOutput = JSON.stringify({...,status:'failed',success:false,error,output})).
+    // happy-app cannot import happy-cli, so the producer recipe is reproduced here as a string;
+    // the is_error/state derivation under test is entirely the app reducer path, NOT this fixture.
+    const PRODUCER_REASON = 'request_user_input is unavailable in Default mode';
+    const producerErrorShapedOutput = JSON.stringify({
+        status: 'failed',
+        success: false,
+        error: PRODUCER_REASON,
+        output: PRODUCER_REASON,
+    });
+
+    function sessionRaw(envelope: Record<string, unknown>) {
+        return { role: 'session', content: envelope } as any;
+    }
+
+    function driveThroughReducer(toolEndOutput: string) {
+        const call = 'rui-call-1';
+        const startEnv = {
+            id: createId(), time: 1000, role: 'agent', turn: 'turn-1',
+            ev: {
+                t: 'tool-call-start', call, name: 'functions.request_user_input',
+                title: 'request_user_input', description: 'request_user_input',
+                args: { question: 'Pick one' },
+            },
+        };
+        const endEnv = {
+            id: createId(), time: 1001, role: 'agent', turn: 'turn-1',
+            ev: { t: 'tool-call-end', call, output: toolEndOutput },
+        };
+        const normalized = [startEnv, endEnv]
+            .map((env, i) => normalizeRawMessage(`rui-${i}`, null, env.time, sessionRaw(env)))
+            .filter((m): m is NonNullable<typeof m> => m !== null);
+        // The tool-result NormalizedMessage's is_error is set by isSessionToolEndError — read
+        // it back to prove the reducer's input was derived, not hand-authored.
+        const endNormalized = normalized.find((m) =>
+            m.role === 'agent' && Array.isArray(m.content) && m.content[0]?.type === 'tool-result');
+        const state = createReducer();
+        const result = reducer(state, normalized as any);
+        const toolCall = result.messages.find((m) => m.kind === 'tool-call');
+        return { endNormalized, toolCall };
+    }
+
+    it('AC4: error-shaped output -> is_error===true AND ToolCall.state===error (full normalize+reducer path)', () => {
+        const { endNormalized, toolCall } = driveThroughReducer(producerErrorShapedOutput);
+
+        // (1) reducer-derived is_error on the normalized tool-result (set by isSessionToolEndError).
+        expect(endNormalized).toBeDefined();
+        const content = (endNormalized as any)!.content[0];
+        expect(content.type).toBe('tool-result');
+        expect(content.is_error).toBe(true);
+
+        // (2) the resulting ToolCall.state — derived by reducer.ts (state = is_error?'error':'completed').
+        expect(toolCall).toBeDefined();
+        if (toolCall!.kind !== 'tool-call') throw new Error('expected tool-call');
+        expect(toolCall!.tool.state).toBe('error');
+
+        // ADDITIONAL (never an alternative): the ADD-ONLY helper extracts the reason.
+        expect(extractRequestUserInputUnavailableReason(JSON.parse(producerErrorShapedOutput)))
+            .toBe(PRODUCER_REASON);
+    });
+
+    it('AC2 (symmetric negative): a normal completed answer -> is_error===false AND state===completed', () => {
+        // A normal completed answer is NOT producer-normalized, so the tool-call-end output is
+        // the bare answer string (buildToolEndOutput collapse) — feed it through the same path.
+        const { endNormalized, toolCall } = driveThroughReducer('Friday works best for me');
+        const content = (endNormalized as any)!.content[0];
+        expect(content.is_error).toBe(false);
+        if (toolCall!.kind !== 'tool-call') throw new Error('expected tool-call');
+        expect(toolCall!.tool.state).toBe('completed');
+        // The ADD-ONLY helper returns null for a non-unavailable answer (no false positive).
+        expect(extractRequestUserInputUnavailableReason('Friday works best for me')).toBeNull();
+    });
+
+    it('AC5: ADD-ONLY helper extracts reason from error field and is null for normal answers', () => {
+        expect(extractRequestUserInputUnavailableReason({ error: PRODUCER_REASON })).toBe(PRODUCER_REASON);
+        expect(extractRequestUserInputUnavailableReason({ output: 'request_user_input is only available in Plan mode' }))
+            .toBe('request_user_input is only available in Plan mode');
+        expect(extractRequestUserInputUnavailableReason({ output: 'I am unavailable tomorrow' })).toBeNull();
+        expect(extractRequestUserInputUnavailableReason(null)).toBeNull();
     });
 });
 

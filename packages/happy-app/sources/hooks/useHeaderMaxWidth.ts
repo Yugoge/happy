@@ -54,6 +54,13 @@ function computeHeaderMaxWidth(inputs: HeaderMaxWidthInputs): number {
  * No upper cap is applied on any platform — the formula's true output drives
  * layout. See compute function comment for rationale (Cycle 6 BA spec
  * dev-20260425-201355-5-4-5).
+ *
+ * NOTE (spec-20260607-124814 Item 7): the CHAT surfaces (ChatHeaderView,
+ * MessageView, AgentInput) no longer use this hook — they consume the unified
+ * `useChatContentWidth` so the header/message/composer share one width source
+ * and are left-anchored to coincident edges. This hook's return value and
+ * semantics are intentionally LEFT UNCHANGED because the generic
+ * navigation/Header.tsx still depends on it; do not migrate that consumer here.
  */
 export function useHeaderMaxWidth(): number {
     const auth = useAuth();

@@ -472,6 +472,11 @@ export const ja: TranslationStructure = {
             running: 'ツールを実行中...',
             rawJsonDevMode: 'Raw JSON (開発モード)',
             subTools: 'サブツール',
+            outputPath: 'パス',
+            outputDimensions: 'サイズ',
+            outputType: '種類',
+            unknownType: '不明',
+            redactedBinary: '[バイナリデータは省略されました]',
         },
         taskView: {
             initializing: 'エージェントを初期化中...',

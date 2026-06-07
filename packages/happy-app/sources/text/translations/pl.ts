@@ -481,6 +481,11 @@ export const pl: TranslationStructure = {
             running: 'Narzędzie działa...',
             rawJsonDevMode: 'Surowy JSON (tryb deweloperski)',
             subTools: 'Podnarzędzia',
+            outputPath: 'Ścieżka',
+            outputDimensions: 'Wymiary',
+            outputType: 'Typ',
+            unknownType: 'nieznany',
+            redactedBinary: '[pominięto dane binarne]',
         },
         taskView: {
             initializing: 'Inicjalizacja agenta...',

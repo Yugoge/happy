@@ -143,6 +143,21 @@ function pickToolArtifactFields(item: Record<string, unknown>): Record<string, u
     return Object.fromEntries(keys.flatMap((key) => item[key] === undefined ? [] : [[key, item[key]]]));
 }
 
+// Item 2 (spec-20260607-124814): an unavailable functions.request_user_input may carry its
+// reason in an error/message/reason/stderr field rather than output text. pickToolArtifactFields
+// omits those, so the sessionProtocolMapper normalizer would never see the reason. Forward them
+// (when present) ONLY for request_user_input (namespace null/empty/functions) — for every other
+// dynamic tool this returns {} so the emitted event stays byte-identical to the pre-fix shape
+// (codex review F1: an ungated spread would let an unrelated dynamic tool's top-level `error`
+// trip isSessionToolEndError into state:'error').
+function pickToolReasonFields(item: Record<string, unknown>): Record<string, unknown> {
+    if (item.tool !== 'request_user_input') return {};
+    const namespace = item.namespace;
+    if (namespace !== null && namespace !== undefined && namespace !== '' && namespace !== 'functions') return {};
+    const keys = ['error', 'message', 'reason', 'stderr'];
+    return Object.fromEntries(keys.flatMap((key) => item[key] === undefined ? [] : [[key, item[key]]]));
+}
+
 export class CodexAppServerClient {
     private process: ChildProcess | null = null;
     private readline: ReadlineInterface | null = null;
@@ -569,6 +584,7 @@ export class CodexAppServerClient {
                     success: item.success ?? null,
                     durationMs: item.durationMs ?? null,
                     ...pickToolArtifactFields(item),
+                    ...pickToolReasonFields(item),
                     ...eventContext,
                 });
                 return true;

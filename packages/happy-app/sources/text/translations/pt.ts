@@ -470,6 +470,11 @@ export const pt: TranslationStructure = {
             running: 'Ferramenta está executando...',
             rawJsonDevMode: 'JSON bruto (modo desenvolvedor)',
             subTools: 'Sub-ferramentas',
+            outputPath: 'Caminho',
+            outputDimensions: 'Dimensões',
+            outputType: 'Tipo',
+            unknownType: 'desconhecido',
+            redactedBinary: '[dados binários omitidos]',
         },
         taskView: {
             initializing: 'Inicializando agente...',

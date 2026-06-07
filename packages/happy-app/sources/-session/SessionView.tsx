@@ -1,6 +1,6 @@
 import { AgentContentView } from '@/components/AgentContentView';
 import { AgentInput } from '@/components/AgentInput';
-import { layout } from '@/components/layout';
+import { useChatContentWidth } from '@/hooks/useChatContentWidth';
 import {
     getAvailableModels,
     getAvailablePermissionModes,
@@ -408,14 +408,12 @@ function SessionMainContent({ session, sessionId, micBtn, bottom }: {
 function SessionInputArea({ session, sessionId, micBtn }: {
     session: Session; sessionId: string; micBtn: { onMicPress: () => void; isMicActive: boolean };
 }) {
-    const isTablet = useIsTablet();
-    const pad = Platform.OS === 'web' || isRunningOnMac() || isTablet ? 12 : 8;
     const s = useSessionSettings(sessionId, session);
     const composer = (<SessionComposer session={session} sessionId={sessionId} micBtn={micBtn} settings={s} />);
     if (s.inactiveArchived) {
         return (
             <>
-                <CenteredInputWidth horizontalPadding={pad}>
+                <CenteredInputWidth>
                     <InactiveArchivedHint resumeCommandBlock={s.expResume ? s.resumeCmd : null} />
                 </CenteredInputWidth>
                 {composer}
@@ -425,7 +423,7 @@ function SessionInputArea({ session, sessionId, micBtn }: {
     return (
         <>
             {s.expResume && s.disconnected && s.resumeCmd && (
-                <CenteredInputWidth horizontalPadding={pad}>
+                <CenteredInputWidth>
                     <ResumeCommandHint resumeCommandBlock={s.resumeCmd} />
                 </CenteredInputWidth>
             )}
@@ -627,10 +625,15 @@ function ResumeCommandLines({ lines }: { lines: string[] }) {
     );
 }
 
-function CenteredInputWidth(props: { children: React.ReactNode; horizontalPadding: number }) {
+// Resume / inactive-archived hints share the conversation column geometry (M5):
+// the same shared chat-content width as the header, message column and composer,
+// LEFT-anchored with no outer horizontal padding, so the hint edge coincides
+// with the message column edge instead of being centered + statically capped.
+function CenteredInputWidth(props: { children: React.ReactNode }) {
+    const chatContentMaxWidth = useChatContentWidth();
     return (
-        <View style={{ width: '100%', paddingHorizontal: props.horizontalPadding, alignItems: 'center' }}>
-            <View style={{ width: '100%', maxWidth: layout.maxWidth }}>{props.children}</View>
+        <View style={{ width: '100%', alignItems: 'flex-start' }}>
+            <View style={{ width: '100%', maxWidth: chatContentMaxWidth }}>{props.children}</View>
         </View>
     );
 }

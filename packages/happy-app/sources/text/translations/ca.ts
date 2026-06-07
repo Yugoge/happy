@@ -471,6 +471,11 @@ export const ca: TranslationStructure = {
             running: 'L\'eina s\'està executant...',
             rawJsonDevMode: 'JSON en brut (mode desenvolupador)',
             subTools: 'Sub-eines',
+            outputPath: 'Camí',
+            outputDimensions: 'Dimensions',
+            outputType: 'Tipus',
+            unknownType: 'desconegut',
+            redactedBinary: '[dades binàries omeses]',
         },
         taskView: {
             initializing: 'Inicialitzant l\'agent...',

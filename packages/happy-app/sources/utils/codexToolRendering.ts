@@ -184,6 +184,29 @@ export function isRequestUserInputUnavailableResult(tool: ToolCall): boolean {
     );
 }
 
+// Item 2 (spec-20260607-124814) — ADD-ONLY: extract the human-readable unavailable
+// reason from a normalized error-shaped request_user_input result so detail/inline
+// surfaces can show it WITHOUT re-deriving the mode-anchored match. The happy-cli
+// producer now normalizes the unavailable case to {status:'failed', success:false,
+// error:<reason>}; this reads that reason (preferring the cleaned error field, falling
+// back to the first mode-anchored field) for any consumer that already knows the result
+// is error-shaped. Returns null when no mode-anchored reason is present. Pure/additive:
+// it does NOT alter tool.state and does NOT change any existing export.
+export function extractRequestUserInputUnavailableReason(result: unknown): string | null {
+    const parsed = parseProtocolResult(result);
+    if (isRecord(parsed)) {
+        const direct = stringifyUnknown(parsed.error);
+        if (matchesRequestUserInputUnavailable(direct)) return direct;
+        for (const field of REQUEST_USER_INPUT_RESULT_FIELDS) {
+            const text = stringifyUnknown(parsed[field]);
+            if (matchesRequestUserInputUnavailable(text)) return text;
+        }
+        return null;
+    }
+    const text = stringifyUnknown(parsed);
+    return matchesRequestUserInputUnavailable(text) ? text : null;
+}
+
 // Cycle 7 (M5 #17): MCP namespace tools render chip-only unless a specialized
 // view is registered, regardless of codex source.
 export function shouldRenderToolContent(

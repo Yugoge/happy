@@ -4,7 +4,7 @@ import { View, Platform, useWindowDimensions, ViewStyle, Text, ActivityIndicator
 import { Image } from 'expo-image';
 import { AttachmentStrip } from './AttachmentStrip';
 import { PendingAttachment } from '@/hooks/useAttachments';
-import { layout } from './layout';
+import { useChatContentWidth } from '@/hooks/useChatContentWidth';
 import { MultiTextInput, KeyPressEvent } from './MultiTextInput';
 import { Typography } from '@/constants/Typography';
 import { PermissionMode, ModelMode } from './PermissionModeSelector';
@@ -85,7 +85,12 @@ interface AgentInputProps {
 
 const stylesheet = StyleSheet.create((theme, runtime) => ({
     container: {
-        alignItems: 'center',
+        // LEFT-anchor (M4): share the message column's origin so the composer's
+        // post-padding inner edge coincides with the message-column edge. The
+        // outer horizontal padding is compensated to 0 at the call site (it used
+        // to inset the band away from the message edge); the unifiedPanel keeps
+        // the internal breathing room.
+        alignItems: 'flex-start',
         paddingBottom: 8,
         paddingTop: 8,
     },
@@ -307,6 +312,9 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     const styles = stylesheet;
     const { theme } = useUnistyles();
     const screenWidth = useWindowDimensions().width;
+    // Single shared chat-content width source (M4): the composer band equals the
+    // header + message column band, with the right sidebar subtracted identically.
+    const chatContentMaxWidth = useChatContentWidth();
     const isSendBlocked = props.blockSend ?? false;
 
     const hasText = props.value.trim().length > 0;
@@ -580,12 +588,14 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     return (
         <View style={[
             styles.container,
-            { paddingHorizontal: screenWidth > 700 ? 12 : 8 }
-        ]}>
+            // Outer padding compensated to 0 (M4) so the composer's post-padding
+            // inner box (composer-content) shares the message-column edge.
+            { paddingHorizontal: 0 }
+        ]} testID="composer-outer">
             <View style={[
                 styles.innerContainer,
-                { maxWidth: layout.maxWidth }
-            ]}>
+                { maxWidth: chatContentMaxWidth }
+            ]} testID="composer-content">
                 {/* Autocomplete suggestions overlay */}
                 {suggestions.length > 0 && (
                     <View style={[

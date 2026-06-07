@@ -12,13 +12,20 @@ import { t } from '@/text';
 // the inline preview ADAPT to the image's own dimensions: when the natural W×H is
 // known we contain-fit it inside a 360×360 cap (so a small 32×32 image stays small
 // and a tall image is not given a wide box with whitespace), driving height via the
-// real aspectRatio. When dimensions are unknown we still set a concrete aspectRatio
-// (square fallback) so the box always establishes layout — a concrete aspectRatio
-// (not a fixed height, and not an undefined-height no-op spread) keeps the container
-// from collapsing on native while never forcing the old oversized box (codex review #1/#2).
+// real aspectRatio.
+//
+// spec-20260607-124814 Item 3+4 (L4): producer dimensions are KNOWN only when the
+// payload carries explicit width/height. Browser screenshots and generated images
+// carry NO such fields (only a base64/data-uri preview), so the prior square fallback
+// was their TERMINAL value — wide images letterboxed inside a square (oversized body +
+// whitespace), inconsistent with view_image. We now capture the actually-loaded
+// natural size via expo-image onLoad (event.source.width/height) and prefer it over the
+// square fallback, so the unknown-dimensions path resolves to the true ratio at runtime.
+// The square fallback survives ONLY as a pre-load transient (no collapse on native
+// before the first onLoad fires).
 const PREVIEW_MAX_WIDTH = 360;
 const PREVIEW_MAX_HEIGHT = 360;
-const FALLBACK_ASPECT_RATIO = 1; // square — used only when natural dimensions are unknown
+const FALLBACK_ASPECT_RATIO = 1; // square — pre-load transient ONLY (producer dims absent AND natural size not yet loaded)
 
 function parseDimensions(dimensions: string | null): { width: number; height: number } | null {
     if (!dimensions) return null;
@@ -27,6 +34,16 @@ function parseDimensions(dimensions: string | null): { width: number; height: nu
     const width = Number(m[1]);
     const height = Number(m[2]);
     return width > 0 && height > 0 ? { width, height } : null;
+}
+
+// Pure aspect-ratio resolver (node-env unit-testable). Returns w/h for a valid loaded
+// natural size, or null for a degenerate (zero/NaN/negative) onLoad payload so the
+// caller retains the prior aspect instead of dividing by an invalid size (C1 guard).
+export function aspectRatioFromSize(size: { width: number; height: number } | null): number | null {
+    if (!size) return null;
+    const { width, height } = size;
+    if (!(width > 0) || !(height > 0)) return null;
+    return width / height;
 }
 
 const adaptivePreviewStyle = (dims: { width: number; height: number } | null) => {
@@ -42,8 +59,9 @@ const adaptivePreviewStyle = (dims: { width: number; height: number } | null) =>
             alignSelf: 'flex-start' as const,
         };
     }
-    // Unknown dimensions: a concrete square aspectRatio establishes layout (no
-    // collapse) without an oversized fixed box.
+    // Neither producer dims NOR a loaded natural size yet: a concrete square
+    // aspectRatio establishes layout (no collapse) as a pre-load transient only —
+    // onLoad replaces it with the true ratio as soon as the image reports its size.
     return {
         width: '100%' as const,
         maxWidth: PREVIEW_MAX_WIDTH,
@@ -67,6 +85,18 @@ const adaptivePreviewStyle = (dims: { width: number; height: number } | null) =>
 export const CodexAttachmentView = React.memo<ToolViewProps & { headerless?: boolean }>(({ tool, headerless = true }) => {
     const attachment = extractAttachmentSummary(tool.input, tool.result);
     const hasResult = tool.result !== undefined && tool.result !== null;
+    // L4: the actually-loaded image natural size, captured via expo-image onLoad. It is
+    // the only source of truth for the aspect ratio when the producer omits width/height
+    // (screenshots, generated images). The captured size is BOUND to the uri it was
+    // measured from, so a re-used component never applies a stale ratio AND a fast
+    // (cached/data-uri) onLoad is not clobbered by a passive reset effect — we simply
+    // ignore any size whose uri no longer matches the current preview (codex F1).
+    const [loaded, setLoaded] = React.useState<{ uri: string; width: number; height: number } | null>(null);
+    const producerDims = parseDimensions(attachment.dimensions);
+    const naturalSize = loaded && loaded.uri === attachment.previewUri
+        ? { width: loaded.width, height: loaded.height }
+        : null;
+    const resolvedDims = producerDims ?? naturalSize;
     const caption = attachment.path
         ? (attachment.path.split(/[\\/]/).filter(Boolean).pop() ?? attachment.path)
         : (attachment.label && attachment.label !== 'Attachment' ? attachment.label : null);
@@ -82,8 +112,22 @@ export const CodexAttachmentView = React.memo<ToolViewProps & { headerless?: boo
                 {attachment.previewUri ? (
                     <Image
                         source={{ uri: attachment.previewUri }}
-                        style={adaptivePreviewStyle(parseDimensions(attachment.dimensions))}
+                        style={adaptivePreviewStyle(resolvedDims)}
                         contentFit="contain"
+                        onLoad={(e) => {
+                            // Only adopt the loaded natural size when producer dims are
+                            // absent; a valid (>0) size replaces the square transient.
+                            // aspectRatioFromSize returns null for degenerate payloads
+                            // (zero/NaN/negative), so we keep the prior aspect (C1 guard).
+                            // Bind the size to the uri it was measured from so a stale
+                            // size is never applied to a different preview (codex F1).
+                            if (producerDims) return;
+                            const { width, height } = e.source;
+                            const uri = attachment.previewUri;
+                            if (uri && aspectRatioFromSize({ width, height }) !== null) {
+                                setLoaded({ uri, width, height });
+                            }
+                        }}
                     />
                 ) : showFallback ? (
                     <Text style={attachmentStyles.meta}>

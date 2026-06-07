@@ -1189,3 +1189,164 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         expect((child as any).ev.args.sessionSubagent).toBeUndefined(); // INV-2
     });
 });
+
+// Item 2 (spec-20260607-124814): an unavailable functions.request_user_input must be
+// producer-normalized into an error-shaped tool-call-end the EXISTING app reducer
+// (typesRaw.isSessionToolEndError) recognizes, so the failure card + detail page render.
+describe('request_user_input unavailable normalization (Item 2)', () => {
+    function endEnvelope(message: Record<string, unknown>) {
+        const result = mapCodexMcpMessageToSessionEnvelopes(message, { currentTurnId: 'turn-1' });
+        const env = result.envelopes.find((e) => e.ev.t === 'tool-call-end');
+        if (!env || env.ev.t !== 'tool-call-end') throw new Error('expected tool-call-end');
+        return env.ev;
+    }
+
+    // AC1: the Default-mode unavailable output (tier_3 in-repo shape) normalizes to the
+    // error shape — status:'failed' AND success:false AND a non-empty mode-anchored error.
+    it('AC1: normalizes the unavailable-in-Default-mode result to status:failed + success:false + error', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'rui-1',
+            namespace: 'functions',
+            tool: 'request_user_input',
+            status: 'completed',
+            output: 'request_user_input is unavailable in Default mode',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed).toMatchObject({ status: 'failed', success: false });
+        expect(parsed.error).toMatch(/unavailable|only available/i);
+        expect(parsed.error.length).toBeGreaterThan(0);
+    });
+
+    // AC1 (robustness): the message may carry the reason in an error field (now forwarded
+    // by codexAppServerClient.pickToolReasonFields) rather than output text.
+    it('AC1: normalizes when the reason arrives in the error field (Plan-mode phrasing)', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'rui-2',
+            namespace: 'functions',
+            tool: 'request_user_input',
+            status: 'completed',
+            error: '<tool_use_error>request_user_input is only available in Plan mode</tool_use_error>',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed).toMatchObject({ status: 'failed', success: false });
+        // The <tool_use_error> wrapper is stripped from the normalized reason.
+        expect(parsed.error).toBe('request_user_input is only available in Plan mode');
+        expect(parsed.error).not.toContain('<tool_use_error>');
+    });
+
+    // AC2: a NORMAL completed answer (no unavailable/mode signal) is NOT normalized —
+    // status stays completed-equivalent and no error-shape is injected (no false positive).
+    it('AC2: a normal completed answer is not normalized (no error shape injected)', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'rui-3',
+            namespace: 'functions',
+            tool: 'request_user_input',
+            status: 'completed',
+            output: 'I am unavailable tomorrow but free on Friday',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed.status).not.toBe('failed');
+        expect(parsed.success).not.toBe(false);
+        expect(parsed.error).toBeUndefined();
+        // The bare answer (mode word present but NOT mode-anchored) is preserved verbatim.
+        expect(parsed.output).toBe('I am unavailable tomorrow but free on Friday');
+    });
+
+    // AC3: a DIFFERENT dynamic tool with an unavailable-shaped payload is byte-identical to
+    // the pre-fix mapping (scope is strictly request_user_input).
+    it('AC3: other dynamic tools are byte-equivalent (no normalization applied)', () => {
+        const message = {
+            type: 'dynamic_tool_call_end',
+            call_id: 'other-1',
+            namespace: 'functions',
+            tool: 'search',
+            status: 'completed',
+            output: 'request_user_input is unavailable in Default mode',
+        };
+        const ev = endEnvelope(message);
+        // Pre-fix mapping for a non-request_user_input dynamic tool: buildToolEndOutput
+        // collapses to the bare output string when it is the sole non-omitted key... but
+        // status is also present, so it stays a JSON object WITHOUT error-shape injection.
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed.status).toBe('completed');
+        expect(parsed.success).toBeUndefined();
+        expect(parsed.error).toBeUndefined();
+        expect(parsed.output).toBe('request_user_input is unavailable in Default mode');
+    });
+
+    // codex review F1 (scope guard): a NON-request_user_input dynamic tool carrying a top-level
+    // error/message/reason/stderr must NOT be normalized to an error shape by the mapper — only
+    // the producer's request_user_input normalization may inject status/success/error. (The
+    // codexAppServerClient pickToolReasonFields gate keeps such fields off the wire for other
+    // tools too, but the mapper itself is the last line of defense for the shipped envelope.)
+    it('F1: a non-request dynamic tool with a top-level error field is NOT normalized to error shape', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'other-2',
+            namespace: 'functions',
+            tool: 'search',
+            status: 'completed',
+            error: 'request_user_input is unavailable in Default mode',
+            output: 'results',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        // The mapper passes the tool's own fields through verbatim; it does NOT inject
+        // success:false or rewrite status (that is request_user_input-exclusive).
+        expect(parsed.status).toBe('completed');
+        expect(parsed.success).toBeUndefined();
+        // The tool's pre-existing error field (if any) is preserved as-is, NOT a normalizer
+        // injection — and crucially status stays 'completed' so it is NOT a forced failure.
+        expect(parsed.output).toBe('results');
+    });
+
+    // AC3 (begin-namespace defaulting): the end event may carry namespace:null while begin
+    // defaulted to 'functions'. The normalizer must still fire for request_user_input.
+    it('AC3/scope: fires for tool=request_user_input with namespace null', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'rui-4',
+            namespace: null,
+            tool: 'request_user_input',
+            status: 'completed',
+            output: 'request_user_input is unavailable in Default mode',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed).toMatchObject({ status: 'failed', success: false });
+    });
+
+    // codex review F3: the unavailable text may arrive in a STRING top-level `content` field
+    // (parity with app-side detection). A string content is scanned; an array content is not.
+    it('F3: normalizes when the reason arrives in a string content field', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'rui-5',
+            namespace: 'functions',
+            tool: 'request_user_input',
+            status: 'completed',
+            content: 'request_user_input is unavailable in Default mode',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed).toMatchObject({ status: 'failed', success: false });
+        expect(parsed.error).toMatch(/unavailable/i);
+    });
+
+    // codex review F4: a legitimate answer that names the tool AND a bare availability word but
+    // is NOT the tool-availability grammar must NOT be marked failed (no false positive).
+    it('F4: a user answer mentioning the tool + a bare availability word is NOT normalized', () => {
+        const ev = endEnvelope({
+            type: 'dynamic_tool_call_end',
+            call_id: 'rui-6',
+            namespace: 'functions',
+            tool: 'request_user_input',
+            status: 'completed',
+            output: 'For request_user_input, I am unavailable tomorrow but free Friday',
+        });
+        const parsed = JSON.parse(ev.output ?? '{}');
+        expect(parsed.status).not.toBe('failed');
+        expect(parsed.error).toBeUndefined();
+        expect(parsed.output).toBe('For request_user_input, I am unavailable tomorrow but free Friday');
+    });
+});
