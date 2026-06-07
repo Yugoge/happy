@@ -52,6 +52,11 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     // builds `mcp__${server}__${tool}` = mcp__image_gen__imagegen). The dot-form
     // above is the legacy/replay key; this is the name a live session actually emits.
     'mcp__image_gen__imagegen': CodexAttachmentView,
+    // §5.13 AC4 — the REAL Codex-emitted image-generation name (app-server
+    // imageGeneration item → mapper functions.image_generation). The mcp__/dot
+    // forms above are guessed names never emitted live; this routes the real one
+    // to the image renderer so the generated image renders inline.
+    'functions.image_generation': CodexAttachmentView,
     // B05 (bidirectional): Claude Read of an image gains an inline preview thumbnail.
     Read: ReadView,
     Write: WriteView,
@@ -93,6 +98,8 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     'image_gen.imagegen': CodexAttachmentView,
     // Real producer-emitted MCP name (sessionProtocolMapper.ts:903-904) — detail/full view.
     'mcp__image_gen__imagegen': CodexAttachmentView,
+    // §5.13 AC4 — real image-generation name (detail/full view).
+    'functions.image_generation': CodexAttachmentView,
     'multi_tool_use.parallel': CodexParallelView,
     MultiEdit: MultiEditViewFull,
     // CONSTRAINT-2: reducer synthetic grouping — spawn_agent (no prefix) → AgentFullView

@@ -39,6 +39,26 @@ function getPatchFiles(input: any): string[] {
     return [];
 }
 
+// §5.13 AC3 — resolve the visible web-search text. The live functions.web_search
+// args are { query, action: WebSearchAction|null }; action is
+// search{query,queries} | open_page{url} | find_in_page{url,pattern} | other.
+// Fall back through every variant so the card always shows something meaningful
+// even when the top-level query is empty (codex finding 3).
+function resolveWebSearchQuery(input: any): string {
+    const action = (input?.action && typeof input.action === 'object') ? input.action : undefined;
+    const candidates = [
+        input?.query,
+        action?.query,
+        Array.isArray(action?.queries) ? action.queries[0] : undefined,
+        action?.url,
+        action?.pattern,
+    ];
+    for (const c of candidates) {
+        if (typeof c === 'string' && c.length > 0) return c;
+    }
+    return '';
+}
+
 function codexToolStateStatus(opts: { metadata: Metadata | null, tool: ToolCall }): string | null {
     if (opts.tool.state === 'completed') return 'completed';
     if (opts.tool.state === 'error') {
@@ -1008,6 +1028,40 @@ export const knownTools = {
             return t('tools.names.webSearchQuery');
         }
     },
+    // §5.13 AC3 — the REAL Codex-emitted web-search name. The producer (app-server
+    // webSearch item → mapper) emits functions.web_search carrying { query, action }
+    // (WebSearchAction: search/open_page/find_in_page/other). Registered here as a
+    // header chip (minimal:true) so a visible web-search card renders; the older
+    // web.search_query above is the guessed name that is never actually emitted.
+    'functions.web_search': {
+        title: t('tools.names.webSearchQuery'),
+        icon: ICON_SEARCH,
+        minimal: true,
+        // action is WebSearchAction|null on the live shape — accept null so
+        // an action-less / null-action search still parses (codex finding 2).
+        input: z.object({
+            query: z.string().optional(),
+            action: z.object({}).passthrough().nullable().optional(),
+        }).partial().passthrough(),
+        // The standalone inline card subtitle is sourced from extractSubtitle
+        // (ToolView/ToolHeader read extractSubtitle, NOT extractDescription).
+        // Register BOTH so the query/url shows on the standalone card AND on the
+        // nested TaskView child row (codex finding 1).
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const q = resolveWebSearchQuery(opts.tool.input);
+            if (q.length > 0) {
+                return t('tools.desc.webSearching', { query: q.length > 60 ? q.substring(0, 60) + '...' : q });
+            }
+            return null;
+        },
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const q = resolveWebSearchQuery(opts.tool.input);
+            if (q.length > 0) {
+                return t('tools.desc.webSearching', { query: q.length > 60 ? q.substring(0, 60) + '...' : q });
+            }
+            return t('tools.names.webSearchQuery');
+        }
+    },
     'web.open': {
         title: t('tools.names.webOpen'),
         icon: ICON_LINK,
@@ -1570,6 +1624,29 @@ export const knownTools = {
     // at codexToolRendering.ts:162 and the inline generated image renders. Field shape mirrors the
     // dot-form 'image_gen.imagegen' entry above; same pattern as mcp__playwright__browser_take_screenshot.
     'mcp__image_gen__imagegen': {
+        title: 'Generated image',
+        icon: ICON_IMAGE,
+        minimal: false,
+        input: z.object({
+            prompt: z.string().optional()
+        }).partial().passthrough(),
+        extractSubtitle: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ?? summary.label;
+        },
+        extractDescription: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const summary = extractAttachmentSummary(opts.tool.input, opts.tool.result);
+            return summary.path ? `Generated: ${summary.path.length > 80 ? summary.path.substring(0, 80) + '...' : summary.path}` : summary.label;
+        }
+    },
+    // §5.13 AC4 — the REAL Codex-emitted image-generation name. The producer
+    // (app-server imageGeneration item → mapper) emits functions.image_generation
+    // and normalizes the base64 `result` into a data: preview_uri. minimal:false
+    // overrides the minimal=isMcp default (ToolView.tsx) so shouldRenderToolContent
+    // does NOT short-circuit at codexToolRendering.ts and the inline generated image
+    // renders. The older mcp__image_gen__imagegen / image_gen.imagegen are guessed
+    // names that are never actually emitted by a live session.
+    'functions.image_generation': {
         title: 'Generated image',
         icon: ICON_IMAGE,
         minimal: false,

@@ -3,6 +3,7 @@ import { Text, View, TouchableOpacity, Pressable, ActivityIndicator, Platform, u
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import { getToolViewComponent } from './views/_all';
+import { CodexAttachmentView } from './views/CodexAttachmentView';
 import { Message, ToolCall } from '@/sync/typesMessage';
 import { ToolSectionView } from './ToolSectionView';
 import { useElapsedTime } from '@/hooks/useElapsedTime';
@@ -282,9 +283,26 @@ const ToolContent = React.memo<{
         (tool.permission.status === 'denied' || tool.permission.status === 'canceled');
 
     if (SpecificToolView) {
+        // §5.14 behavior-2 (AC5): the inline view_image ToolView always renders a header
+        // whose subtitle already carries the attachment path (knownTools 'functions.view_image'
+        // extractSubtitle), so the headered inline CodexAttachmentView must SUPPRESS its
+        // duplicate filename/path caption (headerless={false}). This is scoped to
+        // tool.name === 'functions.view_image' ONLY: the other attachment-routed tools
+        // (notably mcp__playwright__browser_take_screenshot, which has NO extractSubtitle)
+        // would lose their only inline filename affordance if suppressed, so they keep the
+        // default headerless={true} caption. The header-less detail (ToolFullView) and
+        // desktop sidebar (SidebarContentRenderer) surfaces render via separate paths that
+        // also keep the default caption — a removal_authorized:false guard — unaffected.
+        const suppressInlineCaption =
+            SpecificToolView === CodexAttachmentView && tool.name === 'functions.view_image';
+        const attachmentBody = suppressInlineCaption ? (
+            <CodexAttachmentView tool={tool} metadata={metadata} messages={messages ?? []} sessionId={sessionId} headerless={false} />
+        ) : (
+            <SpecificToolView tool={tool} metadata={metadata} messages={messages ?? []} sessionId={sessionId} />
+        );
         return (
             <View style={styles.content}>
-                <SpecificToolView tool={tool} metadata={metadata} messages={messages ?? []} sessionId={sessionId} />
+                {attachmentBody}
                 {tool.state === 'error' && tool.result && !isDeniedOrCanceled && !hideDefaultError && (
                     <ToolError message={stringifyInspectableValue(tool.result)} />
                 )}

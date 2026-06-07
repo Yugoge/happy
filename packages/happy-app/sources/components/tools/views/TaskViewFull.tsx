@@ -11,7 +11,7 @@ import { t } from '@/text';
 import { useFilteredTools } from './TaskView';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useLocalSearchParams } from 'expo-router';
-import { extractLifecycleResultText, extractLifecycleStatusFallback } from '@/utils/codexToolRendering';
+import { extractLifecycleResultText, extractLifecycleStatusFallback, isCodexSubagentControlTool } from '@/utils/codexToolRendering';
 
 // Renders the list of child messages inside the bordered box
 const ChildMessageList = React.memo<{
@@ -32,7 +32,19 @@ const ChildMessageList = React.memo<{
 ));
 
 export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, messages }) => {
-    const filtered = useFilteredTools(messages, metadata);
+    // AC2 (§5.16): suppress the lifecycle control verbs (spawn/send_input/wait/
+    // close) from the "Sub-tools" list so they do not leak into the left detail,
+    // and so a control verb's echoed final_summary is not duplicated alongside the
+    // dedicated Result section. Name-based + lifecycle-LOCAL (mirrors
+    // CodexSubagentLifecycleView.tsx:41): Claude Task/Agent children are never
+    // named with these codex control verbs, so this never regresses Claude.
+    const childMessages = React.useMemo(
+        () => messages.filter(
+            (m) => !(m.kind === 'tool-call' && isCodexSubagentControlTool(m.tool.name)),
+        ),
+        [messages],
+    );
+    const filtered = useFilteredTools(childMessages, metadata);
     const [expanded, setExpanded] = React.useState(false);
     const toggle = React.useCallback(() => setExpanded(v => !v), []);
     const { theme } = useUnistyles();
@@ -63,7 +75,7 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
     const statusFallbackText = isLifecycle && tool.state === 'error' && !resultText
         ? extractLifecycleStatusFallback(tool.result) : null;
 
-    if (messages.length === 0 && !promptText && !resultText && !statusFallbackText) return null;
+    if (childMessages.length === 0 && !promptText && !resultText && !statusFallbackText) return null;
 
     return (
         <>
@@ -76,7 +88,7 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
                     <MarkdownView markdown={promptText} />
                 </View>
             )}
-            {messages.length > 0 && (
+            {childMessages.length > 0 && (
                 <View style={toolFullViewStyles.section}>
                     <TouchableOpacity onPress={toggle} activeOpacity={0.7}>
                         <View style={toolFullViewStyles.sectionHeader}>
@@ -93,7 +105,7 @@ export const TaskViewFull = React.memo<ToolViewProps>(({ tool, metadata, message
                         </View>
                     </TouchableOpacity>
                     {expanded && (
-                        <ChildMessageList messages={messages} metadata={metadata} sessionId={routeSessionId} />
+                        <ChildMessageList messages={childMessages} metadata={metadata} sessionId={routeSessionId} />
                     )}
                 </View>
             )}

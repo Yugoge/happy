@@ -7,7 +7,7 @@ import { Metadata } from '@/sync/storageTypes';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { ToolView } from '../tools/ToolView';
 import { MarkdownView } from '../markdown/MarkdownView';
-import { extractLifecycleResultText, extractLifecycleStatusFallback } from '@/utils/codexToolRendering';
+import { extractLifecycleResultText, extractLifecycleStatusFallback, isCodexSubagentControlTool } from '@/utils/codexToolRendering';
 
 interface SidebarAgentConversationProps {
     tool: ToolCall;
@@ -178,7 +178,20 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
     const statusFallbackText = isLifecycle && tool.state === 'error' && !resultText
         ? extractLifecycleStatusFallback(tool.result) : null;
     const promptText = typeof tool.input?.prompt === 'string' ? tool.input.prompt : null;
-    const visibleMessages = React.useMemo(() => filterToLatestTodoWrite(messages), [messages]);
+    // AC2 (§5.16): drop the lifecycle control verbs (spawn/send_input/wait/close)
+    // from the Agent sidebar's Tool Calls list so they do not leak, and so a
+    // control verb's echoed summary is not duplicated alongside the Result
+    // section. Name-based + lifecycle-LOCAL (mirrors CodexSubagentLifecycleView.tsx:41):
+    // Claude Agent children are never named with these codex control verbs, so
+    // Claude rendering is unaffected. Composed with the existing latest-TodoWrite filter.
+    const visibleMessages = React.useMemo(
+        () => filterToLatestTodoWrite(
+            messages.filter(
+                (m) => !(m.kind === 'tool-call' && isCodexSubagentControlTool(m.tool.name)),
+            ),
+        ),
+        [messages],
+    );
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>

@@ -1004,6 +1004,109 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         };
     }
 
+    // §5.13 AC3 — web search visibility. The app-server forwards web_search_begin/
+    // end (from the codex 0.130 `webSearch` item family) carrying {query, action}.
+    // Emit a tool-call-start/end under the REAL registered name functions.web_search
+    // so a visible web-search card renders (header chip carrying the query); the
+    // guessed web.search_query key is NOT used as the live name.
+    if (type === 'web_search_begin') {
+        const call = pickCallId(message);
+        const query = typeof message.query === 'string' ? message.query : '';
+        const action = (message.action && typeof message.action === 'object') ? message.action : null;
+        const description = query.length > 0
+            ? (query.length > 80 ? `${query.slice(0, 77)}...` : query)
+            : 'Web search';
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name: 'functions.web_search',
+                title: 'Web search',
+                description,
+                args: { query, action },
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
+        };
+    }
+
+    if (type === 'web_search_end') {
+        const call = pickCallId(message);
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(toolEndEnvelope(call, message, opts));
+        return {
+            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
+        };
+    }
+
+    // §5.13 AC4 — image generation inline result. The app-server forwards
+    // image_generation_begin/end (from the codex 0.130 `imageGeneration` item
+    // family) carrying {status, revisedPrompt, result, savedPath}. Emit a
+    // tool-call-start/end under the REAL registered name functions.image_generation
+    // so the generated image renders inline via CodexAttachmentView; the guessed
+    // mcp__image_gen__imagegen / image_gen.imagegen keys are NOT used as the live name.
+    if (type === 'image_generation_begin') {
+        const call = pickCallId(message);
+        const revisedPrompt = typeof message.revisedPrompt === 'string' ? message.revisedPrompt : '';
+        const description = revisedPrompt.length > 0
+            ? (revisedPrompt.length > 80 ? `${revisedPrompt.slice(0, 77)}...` : revisedPrompt)
+            : 'Generating image';
+
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(
+            createEnvelope('agent', {
+                t: 'tool-call-start',
+                call,
+                name: 'functions.image_generation',
+                title: 'Generated image',
+                description,
+                args: { prompt: revisedPrompt },
+            }, opts)
+        );
+        return {
+            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
+        };
+    }
+
+    if (type === 'image_generation_end') {
+        const call = pickCallId(message);
+        // codex finding 6: `result` is a RAW base64 PNG (not a path/uri). The
+        // existing image preview extraction (buildImageToolResult/IMAGE_BASE64_KEYS)
+        // does NOT treat `result` as base64, so normalize it into a browser-loadable
+        // data:image/png;base64 preview_uri here (idempotent if it already arrives
+        // as a data:/http(s) URI) before toolEndEnvelope builds the image result.
+        const rawResult = typeof message.result === 'string' ? message.result.trim() : '';
+        const savedPath = typeof message.savedPath === 'string' ? message.savedPath.trim() : '';
+        const normalized: Record<string, unknown> = { ...message };
+        if (rawResult.length > 0) {
+            normalized.preview_uri = browserLoadableImageUri(rawResult)
+                ? rawResult
+                : `data:image/png;base64,${rawResult}`;
+            // The raw `result` is a multi-MB base64 PNG. Once normalized into
+            // preview_uri, drop it so buildToolEndOutput / buildImageToolResult do
+            // NOT re-serialize the megabyte payload into both `output` and `result`
+            // (codex finding 6 — would ~triple per-envelope memory and threaten
+            // inline rendering / persistence).
+            delete normalized.result;
+        } else if (savedPath.length > 0) {
+            // result-less completion: fall back to the on-disk savedPath so the
+            // image still renders inline via the path-based preview (codex finding 1).
+            normalized.path = savedPath;
+        }
+        const envelopes: SessionEnvelope[] = [];
+        maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
+        envelopes.push(toolEndEnvelope(call, normalized, opts));
+        return {
+            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
+        };
+    }
+
     return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes: [] };
 }
 

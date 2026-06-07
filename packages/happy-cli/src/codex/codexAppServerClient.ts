@@ -86,6 +86,24 @@ function isAppServerAvailable(): boolean {
     }
 }
 
+// Codex TurnPlanStepStatus is camelCase ("pending" | "inProgress" | "completed").
+// The renderer (CodexPlanView) and mapper compare against snake_case
+// ("in_progress"); normalize so per-status icons/strikethrough resolve correctly.
+function normalizePlanStepStatus(status: unknown): string {
+    if (status === 'inProgress') return 'in_progress';
+    return typeof status === 'string' && status.length > 0 ? status : 'pending';
+}
+
+// Pass the structured plan array through untouched except for status
+// normalization, preserving each { step, status } shape extractPlanItems reads.
+function normalizePlanSteps(plan: unknown): Array<{ step: string; status: string }> | undefined {
+    if (!Array.isArray(plan)) return undefined;
+    return plan.map((entry: any) => ({
+        step: typeof entry?.step === 'string' ? entry.step : '',
+        status: normalizePlanStepStatus(entry?.status),
+    }));
+}
+
 function normalizeRawFileChangeList(changes: unknown): LegacyPatchChanges | undefined {
     if (!Array.isArray(changes)) {
         return undefined;
@@ -235,6 +253,7 @@ export class CodexAppServerClient {
             || method === 'turn/completed'
             || method === 'thread/status/changed'
             || method === 'thread/tokenUsage/updated'
+            || method === 'turn/plan/updated'
             || method.startsWith('item/');
 
         if (!isRawNotification) {
@@ -341,6 +360,38 @@ export class CodexAppServerClient {
             return true;
         }
 
+        // Codex app-server delivers the structured plan array on its own
+        // turn/plan/updated notification (TurnPlanUpdatedNotification:
+        // { threadId, turnId, explanation, plan: TurnPlanStep[] }), NOT inside
+        // the item/* 'plan' item (whose ThreadItem variant is only { id, text }).
+        // Forward the structured steps so the mapper (:941) emits
+        // functions.update_plan with per-step rows. TurnPlanStepStatus is
+        // camelCase ("inProgress"); normalize to the snake_case the renderer
+        // (CodexPlanView / extractPlanItems) compares against.
+        if (method === 'turn/plan/updated') {
+            const planContext = this.rawNotificationContext(params);
+            const callId = typeof params?.turnId === 'string' ? params.turnId : '';
+            const plan = normalizePlanSteps(params?.plan);
+            const text = typeof params?.explanation === 'string' ? params.explanation : '';
+            this.eventHandler?.({
+                type: 'plan_update_begin',
+                call_id: callId,
+                callId,
+                plan,
+                text,
+                ...planContext,
+            });
+            this.eventHandler?.({
+                type: 'plan_update_end',
+                call_id: callId,
+                callId,
+                plan,
+                text,
+                ...planContext,
+            });
+            return true;
+        }
+
         const item = params?.item;
         if (!item || typeof item !== 'object') {
             return method.startsWith('item/');
@@ -348,6 +399,18 @@ export class CodexAppServerClient {
 
         const eventContext = this.rawNotificationContext(params);
 
+        // §5.13 AC9 (write_stdin) — DOCUMENTED PRODUCER LIMITATION, NOT a discrete
+        // tool action card. The model emits `write_stdin` as a function_call
+        // (~490 corpus hits) targeting a running exec session_id; codex 0.130 does
+        // NOT surface it as its own ThreadItem variant. The app-server delivers it
+        // only as the `item/commandExecution/terminalInteraction` delta
+        // (TerminalInteractionNotification = { threadId, turnId, itemId, processId,
+        // stdin }) — a stdin-echo into THIS already-open commandExecution PTY item,
+        // with no call_id, no begin/end pair, and no result. There is therefore no
+        // mappable tool-call lifecycle to emit; forcing a synthetic card would
+        // either fabricate a producer event the protocol does not provide or
+        // duplicate/break this exec terminal card. So write_stdin remains visible as
+        // its echoed terminal text inside the commandExecution card below (intended).
         if (method === 'item/started' && item.type === 'commandExecution') {
             const callId = typeof item.id === 'string' ? item.id : '';
             this.eventHandler?.({
@@ -547,12 +610,19 @@ export class CodexAppServerClient {
         if (item.type === 'plan') {
             const callId = typeof item.id === 'string' ? item.id : '';
             const text = typeof item.text === 'string' ? item.text : '';
+            // Defensive belt: most Codex builds carry the structured array on the
+            // separate turn/plan/updated notification (handled above), but if a
+            // build ever nests it on the plan item, forward + normalize it too so
+            // the mapper (:941) can emit functions.update_plan with per-step rows;
+            // text stays as fallback.
+            const plan = normalizePlanSteps(item.plan ?? item.steps ?? item.items);
 
             if (method === 'item/started') {
                 this.eventHandler?.({
                     type: 'plan_update_begin',
                     call_id: callId,
                     callId,
+                    plan,
                     text,
                     ...eventContext,
                 });
@@ -564,6 +634,7 @@ export class CodexAppServerClient {
                     type: 'plan_update_end',
                     call_id: callId,
                     callId,
+                    plan,
                     text,
                     ...eventContext,
                 });
@@ -592,6 +663,97 @@ export class CodexAppServerClient {
                     call_id: callId,
                     callId,
                     path,
+                    ...eventContext,
+                });
+                return true;
+            }
+        }
+
+        // §5.13 AC4 — image generation inline result. Codex 0.130 surfaces an
+        // image generation as the item/* family `imageGeneration` (generated
+        // ThreadItem variant, verified against codex 0.130 v2/ThreadItem.ts:
+        // { type:'imageGeneration', id, status, revisedPrompt: string|null,
+        //   result: string /* raw base64 PNG */, savedPath?: AbsolutePathBuf }).
+        // Without this handler the family fell through the broad item/* swallow
+        // below and no tool-call envelope was produced, so the generated image was
+        // swallowed (a later view_image is NOT a substitute). Forward
+        // image_generation_begin/end carrying {call_id, status, revisedPrompt,
+        // result, savedPath} so the mapper emits a tool-call envelope under the
+        // REAL registered name (functions.image_generation) and normalizes the
+        // base64 `result` into a data: preview_uri — the previously-registered
+        // mcp__image_gen__imagegen / image_gen.imagegen are guesses never emitted.
+        if (item.type === 'imageGeneration') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+            const status = typeof item.status === 'string' ? item.status : '';
+            const revisedPrompt = typeof item.revisedPrompt === 'string' ? item.revisedPrompt : null;
+            const result = typeof item.result === 'string' ? item.result : '';
+            const savedPath = typeof item.savedPath === 'string' ? item.savedPath : null;
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'image_generation_begin',
+                    call_id: callId,
+                    callId,
+                    status,
+                    revisedPrompt,
+                    savedPath,
+                    ...eventContext,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'image_generation_end',
+                    call_id: callId,
+                    callId,
+                    status,
+                    revisedPrompt,
+                    result,
+                    savedPath,
+                    ...eventContext,
+                });
+                return true;
+            }
+        }
+
+        // §5.13 AC3 — web search visibility. Codex 0.130 surfaces a web search as
+        // the item/* family `webSearch` (generated ThreadItem variant:
+        // { type:'webSearch', id, query, action: WebSearchAction|null }). Without
+        // this handler the family fell through the broad item/* swallow below and
+        // no tool-call envelope was produced, so no card rendered. Forward
+        // web_search_begin/end carrying {call_id, query, action} so the mapper
+        // emits a tool-call envelope under the REAL registered name
+        // (functions.web_search) — the previously-registered web.search_query is a
+        // guess that is never emitted. action is one of WebSearchAction (the
+        // generated ts-rs type uses snake_case discriminants — verified against
+        // codex 0.130 WebSearchAction.ts):
+        // { type:'search', query, queries } | { type:'open_page', url } |
+        // { type:'find_in_page', url, pattern } | { type:'other' }.
+        if (item.type === 'webSearch') {
+            const callId = typeof item.id === 'string' ? item.id : '';
+            const query = typeof item.query === 'string' ? item.query : '';
+            const action = (item.action && typeof item.action === 'object') ? item.action : null;
+
+            if (method === 'item/started') {
+                this.eventHandler?.({
+                    type: 'web_search_begin',
+                    call_id: callId,
+                    callId,
+                    query,
+                    action,
+                    ...eventContext,
+                });
+                return true;
+            }
+
+            if (method === 'item/completed') {
+                this.eventHandler?.({
+                    type: 'web_search_end',
+                    call_id: callId,
+                    callId,
+                    query,
+                    action,
                     ...eventContext,
                 });
                 return true;

@@ -289,6 +289,16 @@ export async function runCodex(opts: {
     let currentTurnId: string | null = null;
     let codexStartedSubagents = new Set<string>(), codexActiveSubagents = new Set<string>();
     let codexProviderSubagentToSessionSubagent = new Map<string, string>(), codexSubagentLifecycles = new Map<string, LifecycleState>();
+    // Cycle 16 (AC2P): persist the per-turn collab BEGIN-pairing Set + multi-target wait BEGIN target map
+    // across mapper calls on the LIVE loop, exactly as rolloutHistoryReplay.ts:239/242/265/268 does for
+    // replay. Without this, every live message reconstructs both empty (getEmittedCollabBeginCallIds/
+    // getWaitTargetsByCallId materialize fresh on each call), so a control-verb END whose BEGIN arrived in
+    // an earlier message is mis-classified as a true orphan (isTrueOrphanEnd at sessionProtocolMapper.ts:843)
+    // and its legitimate tool-call-end is suppressed — the runtime no-op behind the Wave-1 render fix.
+    // NOTE: we deliberately do NOT set replay:true — the :706 multi-target fan-out gate stays REPLAY-ONLY,
+    // so live multi-target waits remain collapsed (single begin/end via firstReceiverThreadId).
+    let codexEmittedCollabBeginCallIds = new Set<string>();
+    let codexWaitTargetsByCallId = new Map<string, string[]>();
     session.keepAlive(thinking, 'remote');
     // Periodic keep-alive; store handle so we can clear on exit
     const keepAliveInterval = setInterval(() => {
@@ -630,11 +640,20 @@ export async function runCodex(opts: {
                 startedSubagents: codexStartedSubagents,
                 activeSubagents: codexActiveSubagents,
                 providerSubagentToSessionSubagent: codexProviderSubagentToSessionSubagent, subagentLifecycles: codexSubagentLifecycles,
+                // Cycle 16 (AC2P): thread the begin-pairing Set + multi-target wait map into the live mapper
+                // call so cross-message collab begin/end pairing + orphan-suppression survive (replay parity).
+                emittedCollabBeginCallIds: codexEmittedCollabBeginCallIds,
+                waitTargetsByCallId: codexWaitTargetsByCallId,
             });
             currentTurnId = mapped.currentTurnId;
             codexStartedSubagents = mapped.startedSubagents;
             codexActiveSubagents = mapped.activeSubagents;
             codexProviderSubagentToSessionSubagent = mapped.providerSubagentToSessionSubagent; codexSubagentLifecycles = mapped.subagentLifecycles;
+            // Cycle 16 (AC2P): read back the two collections, falling back to the existing reference when the
+            // mapper result omits them (many message types early-return without these fields) — mirrors
+            // rolloutHistoryReplay.ts:265/268 (`mapped.X ?? state.mapper.X`).
+            codexEmittedCollabBeginCallIds = mapped.emittedCollabBeginCallIds ?? codexEmittedCollabBeginCallIds;
+            codexWaitTargetsByCallId = mapped.waitTargetsByCallId ?? codexWaitTargetsByCallId;
             for (const envelope of mapped.envelopes) {
                 session.sendSessionProtocolMessage(envelope);
             }

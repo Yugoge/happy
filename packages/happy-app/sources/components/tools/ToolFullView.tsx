@@ -24,6 +24,10 @@ const SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set([
     'CodexDiff',
     'functions.update_plan',
     'functions.view_image',
+    // Wave-2 fix: the real Codex image-generation tool name (functions.image_generation,
+    // routed to the inline/full image attachment view in _all.tsx). Without this, the
+    // detail page would dump the raw multi-MB base64 data-URI as Output JSON (§5.14#4).
+    'functions.image_generation',
     'file',
     'multi_tool_use.parallel',
     // B13 (AC-B13-2): the lifecycle full view (AgentFullView → TaskViewFull) now

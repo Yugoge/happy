@@ -26,7 +26,14 @@ const PLAN_TOOLS = new Set(['functions.update_plan']);
 // share this gate) to CodexAttachmentView (inline image) instead of the JSON-only SidebarGenericView
 // fallback. mcp__image_gen__imagegen is the real producer name (sessionProtocolMapper.ts:903-904);
 // the dot-form image_gen.imagegen is the legacy/replay key — both kept symmetric (consistency option a).
-const ATTACHMENT_TOOLS = new Set(['file', 'functions.view_image', 'mcp__image_gen__imagegen', 'image_gen.imagegen']);
+// AC4/R8 (spec §5.15.2): route the Playwright screenshot to CodexAttachmentView (image-only)
+// here too, matching the inline + full registries (_all.tsx:49,92). Omitting it leaked the raw
+// input/output JSON + base64 into the JSON-only SidebarGenericView fallback.
+// Wave-2 fix: 'functions.image_generation' is the REAL emitted Codex image-gen tool name
+// (the older 'mcp__image_gen__imagegen'/'image_gen.imagegen' are never emitted). Without the
+// real name here, the image-gen sidebar fell through to the raw-JSON/base64 SidebarGenericView
+// (§5.15.2 leak). Routes it to CodexAttachmentView (image-only), matching _all.tsx + ToolFullView.
+const ATTACHMENT_TOOLS = new Set(['file', 'functions.view_image', 'functions.image_generation', 'mcp__image_gen__imagegen', 'image_gen.imagegen', 'mcp__playwright__browser_take_screenshot']);
 const PARALLEL_TOOLS = new Set(['multi_tool_use.parallel']);
 
 export const SidebarContentRenderer = React.memo<SidebarContentProps>(({ tool, messages, metadata, sessionId }) => {

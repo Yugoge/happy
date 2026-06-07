@@ -143,6 +143,47 @@ export function isCodexSourceTool(tool: ToolCall, metadata?: Metadata | null): b
     return CODEX_TOOL_NAME_PREFIXES.some((p) => tool.name.startsWith(p));
 }
 
+// AC6 (Cycle 16 Wave 2): request_user_input invoked OUTSIDE Plan mode does NOT
+// arrive as state==='error' — it arrives as a COMPLETED function_call_output whose
+// output text is 'request_user_input is unavailable in Default mode' (captured
+// tier-1 live shape). The error-state guard below misses it, so the minimal-gate
+// suppresses it and no card renders. This predicate detects ONLY that
+// completed-with-unavailable/failure-shaped result so the inline body can surface
+// despite minimal:true. SCOPED to functions.request_user_input.
+//
+// MODE-CONTEXT anchored (codex review): the signal is NOT the bare word
+// 'unavailable'/'only available' (a legitimate user answer like 'I am unavailable
+// tomorrow' must NOT trigger) — it is the tool-availability message that names the
+// Codex mode (Default/Plan) or the tool itself. This eliminates the false positive
+// while still covering both captured phrasings:
+//   'request_user_input is unavailable in Default mode'
+//   'request_user_input is only available in Plan mode'
+const REQUEST_USER_INPUT_UNAVAILABLE_PATTERNS = [
+    /\b(?:unavailable|not available|only available)\b[^]*\b(?:Default|Plan)\s+mode\b/i,
+    /\brequest_user_input\b[^]*\b(?:unavailable|not available|only available)\b/i,
+] as const;
+
+// All result fields whose text may carry the availability message; scanned with
+// .some() (codex review) so a leading field like status:'completed' does NOT mask
+// the real message carried in output/error/message (the captured live shape puts it
+// under output).
+const REQUEST_USER_INPUT_RESULT_FIELDS = [
+    'output', 'error', 'message', 'reason', 'content', 'stderr', 'status',
+] as const;
+
+function matchesRequestUserInputUnavailable(text: string | null): boolean {
+    return text !== null && REQUEST_USER_INPUT_UNAVAILABLE_PATTERNS.some((re) => re.test(text));
+}
+
+export function isRequestUserInputUnavailableResult(tool: ToolCall): boolean {
+    if (tool.name !== 'functions.request_user_input') return false;
+    const parsed = parseProtocolResult(tool.result);
+    if (!isRecord(parsed)) return matchesRequestUserInputUnavailable(stringifyUnknown(parsed));
+    return REQUEST_USER_INPUT_RESULT_FIELDS.some(
+        (field) => matchesRequestUserInputUnavailable(stringifyUnknown(parsed[field])),
+    );
+}
+
 // Cycle 7 (M5 #17): MCP namespace tools render chip-only unless a specialized
 // view is registered, regardless of codex source.
 export function shouldRenderToolContent(
@@ -156,6 +197,11 @@ export function shouldRenderToolContent(
     // Narrowly gated: does NOT widen to other tools and does NOT regress any other
     // tool's header-only minimal (codex F5).
     if (tool.name === 'functions.request_user_input' && tool.state === 'error') return true;
+    // AC6 (Cycle 16 Wave 2): EXTEND the above — a COMPLETED request_user_input whose
+    // output reports it is unavailable/only-available-in-Plan-mode also renders inline
+    // (the live Default-mode shape is completed, not error). Scoped to the exact tool +
+    // an unavailable-shaped result, so a normal completed answer stays header-only.
+    if (isRequestUserInputUnavailableResult(tool)) return true;
     // AC2 fix: minimal=true means header-only — suppress body regardless of specialized view.
     // CodexPatch has minimal=true AND a specialized view; without this guard its body renders
     // Octicons name="file-diff" inline, duplicating CodexDiff's file-diff icon.

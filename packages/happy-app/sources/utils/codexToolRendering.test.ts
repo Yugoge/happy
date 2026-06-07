@@ -512,6 +512,83 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(otherErrorMinimal, true, true)).toBe(false);
     });
 
+    it('AC6: COMPLETED request_user_input with the Default-mode unavailable output renders inline (guard extended, error-state + empty-completed unchanged)', () => {
+        // Captured tier-1 live shape (~/.codex rollout): request_user_input invoked
+        // OUTSIDE Plan mode arrives as a COMPLETED function_call_output whose output
+        // is the plain string 'request_user_input is unavailable in Default mode'
+        // (NOT state==='error'). The :158 guard fired only for state==='error', so
+        // the minimal-gate suppressed this completed-unavailable result → no card.
+        const completedUnavailable = makeToolCall(
+            'functions.request_user_input',
+            { questions: [{ id: 'render_choice', header: 'Render', question: 'This is a request_user_input real rendering test' }] },
+            'request_user_input is unavailable in Default mode',
+            'completed',
+        );
+        // (a) The extended guard renders the body despite the registry minimal:true.
+        expect(shouldRenderToolContent(completedUnavailable, false, true)).toBe(true);
+        // (b) The summary surfaces the unavailable message (CJK question must not break it).
+        const summary = buildGenericToolSummary(completedUnavailable);
+        expect(summary.lines.join('\n')).toContain('request_user_input is unavailable in Default mode');
+
+        // Structured-object completed-unavailable shape (error/message/reason carries the signal).
+        const completedUnavailableObj = makeToolCall(
+            'functions.request_user_input',
+            { question: 'Pick one' },
+            { status: 'unavailable', error: 'request_user_input is only available in Plan mode' },
+            'completed',
+        );
+        expect(shouldRenderToolContent(completedUnavailableObj, false, true)).toBe(true);
+
+        // NO-REGRESSION 1 (minimal gate for genuinely-empty completed tools): a normal
+        // completed request_user_input answer still renders header-only (must stay false).
+        const completedOk = makeToolCall('functions.request_user_input', {}, { answer: 'ok' }, 'completed');
+        expect(shouldRenderToolContent(completedOk, false, true)).toBe(false);
+        // A completed request_user_input with no result is still header-only.
+        const completedEmpty = makeToolCall('functions.request_user_input', { question: 'q' }, undefined, 'completed');
+        expect(shouldRenderToolContent(completedEmpty, false, true)).toBe(false);
+
+        // NO-REGRESSION 2 (existing state==='error' branch): unchanged.
+        const failed = makeToolCall('functions.request_user_input', {}, '<tool_use_error>x</tool_use_error>', 'error');
+        expect(shouldRenderToolContent(failed, false, true)).toBe(true);
+
+        // NO-REGRESSION 3 (scope): the extended guard must NOT widen to other tools — a
+        // different completed minimal tool whose result happens to contain 'unavailable'
+        // stays header-only.
+        const otherCompleted = makeToolCall('CodexPatch', {}, 'service unavailable', 'completed');
+        expect(shouldRenderToolContent(otherCompleted, true, true)).toBe(false);
+
+        // codex review — FALSE-NEGATIVE guard: the captured live shape can carry the
+        // message under `output` while a leading `status:'completed'` field is present.
+        // The predicate must scan ALL fields (.some), not stop at the first non-null one.
+        const fieldMasked = makeToolCall(
+            'functions.request_user_input',
+            { question: 'q' },
+            { status: 'completed', output: 'request_user_input is unavailable in Default mode' },
+            'completed',
+        );
+        expect(shouldRenderToolContent(fieldMasked, false, true)).toBe(true);
+        // Same shape delivered as a JSON string (parseProtocolResult must parse it).
+        const fieldMaskedString = makeToolCall(
+            'functions.request_user_input',
+            { question: 'q' },
+            JSON.stringify({ status: 'completed', output: 'request_user_input is unavailable in Default mode' }),
+            'completed',
+        );
+        expect(shouldRenderToolContent(fieldMaskedString, false, true)).toBe(true);
+
+        // codex review — FALSE-POSITIVE guard: a LEGITIMATE completed answer whose text
+        // merely contains the bare words 'unavailable'/'only available' (with NO mode /
+        // tool-name context) must stay header-only. Mode-context anchoring prevents it.
+        const benignAnswer = makeToolCall(
+            'functions.request_user_input', {}, "I'm only available Friday and unavailable tomorrow", 'completed',
+        );
+        expect(shouldRenderToolContent(benignAnswer, false, true)).toBe(false);
+        const benignSummary = buildGenericToolSummary(benignAnswer);
+        // The benign answer still surfaces normally via the non-minimal path; here we
+        // only assert the unavailable-card guard does NOT mis-fire on it.
+        expect(benignSummary).toBeDefined();
+    });
+
     it('renders Codex-sourced generic / unknown / resource tools inline (S2 forward fix; Cycle 7 M5 #17 chip-only gate)', () => {
         // Cycle 7 (M5 #17): MCP-namespace tools (mcp__* and functions.list_mcp_*)
         // now render chip-only unless a specialized view exists. The two assertions
