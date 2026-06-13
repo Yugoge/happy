@@ -59,10 +59,21 @@ describe('AC5#1 adaptive sizing (no oversized fixed container)', () => {
         expect(attachmentSrc).not.toMatch(/height:\s*undefined/);
     });
 
-    it('contain-fits the natural dimensions inside the cap (small images stay small — codex review #2)', () => {
-        // The dimension-aware branch scales by min(1, cap/w, cap/h) so a small image
-        // is never upscaled past its natural size.
-        expect(attachmentSrc).toMatch(/Math\.min\(1,/);
+    it('FILLS the full card width at the true aspect ratio — no 360px width cap, no no-upscale clamp, no left anchor (whitespace fix, revert-sensitive)', () => {
+        // The whitespace bug was a 360px width cap (`maxWidth` capped at 360 via
+        // `Math.min(1, 360/w, 360/h)`) plus a `alignSelf: 'flex-start'` left anchor.
+        // Restoring ANY of those re-creates the right-side whitespace → these fail.
+        //
+        // 1. No width cap of 360 in any form (constant or literal).
+        expect(attachmentSrc).not.toMatch(/PREVIEW_MAX_WIDTH/);
+        expect(attachmentSrc).not.toMatch(/maxWidth:\s*360/);
+        // 2. No no-upscale contain-fit clamp.
+        expect(attachmentSrc).not.toMatch(/Math\.min\(1,/);
+        // 3. No left anchor — a flex-start alignSelf pins the image left, leaving
+        //    whitespace on the right even at full intrinsic size.
+        expect(attachmentSrc).not.toMatch(/alignSelf:\s*'flex-start'/);
+        // 4. The preview style drives width to fill the card.
+        expect(attachmentSrc).toMatch(/width:\s*'100%'/);
     });
 
     it('parses a "W×H" dimensions string into numeric width/height (behavioral)', () => {
@@ -78,15 +89,20 @@ describe('AC5#1 adaptive sizing (no oversized fixed container)', () => {
         expect(parseDimensions('wide')).toBeNull();
     });
 
-    it('contain-fit never upscales a small image and respects the 360 cap for a large one (behavioral)', () => {
-        const cap = 360;
-        const fit = (w: number, h: number) => {
-            const scale = Math.min(1, cap / w, cap / h);
-            return Math.round(w * scale);
-        };
-        expect(fit(32, 32)).toBe(32);        // small → unchanged (no blow-up to 360)
-        expect(fit(1024, 1024)).toBe(360);   // large square → capped at 360
-        expect(fit(1000, 500)).toBe(360);    // wide → width capped, height follows ratio
+    it('width:100% + aspectRatio fills the card at the true ratio for any image size (behavioral)', () => {
+        // The new model: width tracks the card (modelled as 100% here) and height is
+        // derived purely from the natural aspectRatio — independent of the image's
+        // absolute pixel size, so there is never a fixed 360px ceiling that would leave
+        // right-side whitespace on a wide image. heightAtFullWidth(cardWidth, w, h) is the
+        // rendered height the RN aspectRatio layout produces from `width:'100%'`.
+        const heightAtFullWidth = (cardWidth: number, w: number, h: number) => cardWidth * (h / w);
+        // Desktop card (~640px): a wide 1000×500 image fills 640px wide, 320px tall.
+        expect(heightAtFullWidth(640, 1000, 500)).toBe(320);
+        // Mobile card (390px viewport): the SAME image still fills the full 390px width.
+        expect(heightAtFullWidth(390, 1000, 500)).toBe(195);
+        // A small 32×32 image also fills the full card width (it is upscaled to fit, no
+        // 360px cap / no-upscale clamp pinning it small with whitespace beside it).
+        expect(heightAtFullWidth(390, 32, 32)).toBe(390);
     });
 });
 
@@ -214,9 +230,18 @@ describe('AC4 square fallback is no longer the terminal value for a loaded image
     });
 });
 
-describe('AC3 known-dimensions contain-fit not regressed (revert-sensitive)', () => {
-    it('still contain-fits known dimensions inside the 360 cap via Math.min(1, ...)', () => {
-        expect(attachmentSrc).toMatch(/Math\.min\(1,\s*PREVIEW_MAX_WIDTH/);
+describe('AC3 known-dimensions render at full width + true ratio (revert-sensitive)', () => {
+    it('drives known dimensions to full card width via aspectRatio = w/h (no 360 cap)', () => {
+        // The dimension-aware branch sets the real aspectRatio and lets width fill the
+        // card; it must NOT reintroduce the old `Math.min(1, PREVIEW_MAX_WIDTH ...)` cap.
+        expect(attachmentSrc).toMatch(/aspectRatio:\s*dims\.width\s*\/\s*dims\.height/);
+        expect(attachmentSrc).not.toMatch(/Math\.min\(1,\s*PREVIEW_MAX_WIDTH/);
+    });
+    it('keeps a HEIGHT-only ceiling for extreme-tall ratios (maxHeight, never maxWidth)', () => {
+        // A maxHeight guard clamps height only — it can never reintroduce horizontal
+        // whitespace because width stays 100%. A maxWidth cap is what caused the bug.
+        expect(attachmentSrc).toMatch(/maxHeight:\s*PREVIEW_MAX_HEIGHT/);
+        expect(attachmentSrc).not.toMatch(/maxWidth/);
     });
     it('keeps contentFit="contain" on the inline image', () => {
         expect(attachmentSrc).toMatch(/contentFit="contain"/);

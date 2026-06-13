@@ -8,11 +8,19 @@ import { extractAttachmentSummary } from '@/utils/codexToolRendering';
 import { t } from '@/text';
 
 // R5/§5.14#1 (AC5): adaptive sizing. The previous fixed 720×260 box forced every
-// image into one oversized container regardless of its real dimensions. We now let
-// the inline preview ADAPT to the image's own dimensions: when the natural W×H is
-// known we contain-fit it inside a 360×360 cap (so a small 32×32 image stays small
-// and a tall image is not given a wide box with whitespace), driving height via the
-// real aspectRatio.
+// image into one oversized container regardless of its real dimensions. The inline
+// preview ADAPTS to the image's own aspect ratio, driving height via the real
+// aspectRatio.
+//
+// whitespace fix (2026-06): the image must FILL the full card content width at its
+// true aspect ratio — no right-side whitespace, no oversized empty body. The earlier
+// design capped width at 360px (via a no-upscale contain-fit clamp) and pinned the image
+// to the left with a flex-start anchor, leaving dead whitespace on the right of the card.
+// We now drive `width: '100%'` so the image tracks the card's content width on desktop
+// AND a 390px mobile viewport, with the natural aspectRatio governing height. There is NO
+// horizontal cap and NO left anchor — the only guard is a max-HEIGHT ceiling for
+// extreme-tall ratios, which clamps the rendered height (with width still 100%) and
+// therefore can never reintroduce horizontal whitespace.
 //
 // spec-20260607-124814 Item 3+4 (L4): producer dimensions are KNOWN only when the
 // payload carries explicit width/height. Browser screenshots and generated images
@@ -23,8 +31,7 @@ import { t } from '@/text';
 // square fallback, so the unknown-dimensions path resolves to the true ratio at runtime.
 // The square fallback survives ONLY as a pre-load transient (no collapse on native
 // before the first onLoad fires).
-const PREVIEW_MAX_WIDTH = 360;
-const PREVIEW_MAX_HEIGHT = 360;
+const PREVIEW_MAX_HEIGHT = 480; // ceiling for extreme-tall ratios; clamps HEIGHT only — width stays 100%, so no horizontal whitespace
 const FALLBACK_ASPECT_RATIO = 1; // square — pre-load transient ONLY (producer dims absent AND natural size not yet loaded)
 
 function parseDimensions(dimensions: string | null): { width: number; height: number } | null {
@@ -47,16 +54,18 @@ export function aspectRatioFromSize(size: { width: number; height: number } | nu
 }
 
 const adaptivePreviewStyle = (dims: { width: number; height: number } | null) => {
+    // Always FILL the card content width (`width: '100%'`) — no horizontal cap, no
+    // left anchor — so a wide image leaves no right-side whitespace and tracks the card
+    // width responsively on desktop AND a 390px mobile viewport. The natural aspectRatio
+    // governs height; the only ceiling is maxHeight (HEIGHT-only) for extreme-tall ratios,
+    // which can never reintroduce horizontal whitespace because the width stays 100%.
     if (dims) {
-        // Contain-fit the natural size inside the cap; never upscale past natural.
-        const scale = Math.min(1, PREVIEW_MAX_WIDTH / dims.width, PREVIEW_MAX_HEIGHT / dims.height);
         return {
             width: '100%' as const,
-            maxWidth: Math.round(dims.width * scale),
             aspectRatio: dims.width / dims.height,
+            maxHeight: PREVIEW_MAX_HEIGHT,
             borderRadius: 8,
             marginVertical: 8,
-            alignSelf: 'flex-start' as const,
         };
     }
     // Neither producer dims NOR a loaded natural size yet: a concrete square
@@ -64,11 +73,10 @@ const adaptivePreviewStyle = (dims: { width: number; height: number } | null) =>
     // onLoad replaces it with the true ratio as soon as the image reports its size.
     return {
         width: '100%' as const,
-        maxWidth: PREVIEW_MAX_WIDTH,
         aspectRatio: FALLBACK_ASPECT_RATIO,
+        maxHeight: PREVIEW_MAX_HEIGHT,
         borderRadius: 8,
         marginVertical: 8,
-        alignSelf: 'flex-start' as const,
     };
 };
 

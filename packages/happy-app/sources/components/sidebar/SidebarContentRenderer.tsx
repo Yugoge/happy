@@ -6,7 +6,7 @@ import { SidebarFileView } from './SidebarFileView';
 import { SidebarBashView } from './SidebarBashView';
 import { SidebarGenericView } from './SidebarGenericView';
 import { SidebarTodoView } from './SidebarTodoView';
-import { ImageToolFullView } from '@/components/tools/views/ImageToolFullView';
+import { CodexAttachmentView } from '@/components/tools/views/CodexAttachmentView';
 import { IMAGE_DETAIL_TOOLS } from '@/components/tools/views/imageToolDetail';
 import { CodexParallelView } from '@/components/tools/views/CodexParallelView';
 import { CodexPlanView } from '@/components/tools/views/CodexPlanView';
@@ -23,14 +23,14 @@ const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'CodexPatch', 'CodexDi
 const BASH_TOOLS = new Set(['Bash', 'CodexBash', 'execute', 'shell']);
 const TODO_TOOLS = new Set(['TodoWrite']);
 const PLAN_TOOLS = new Set(['functions.update_plan']);
-// Wave-1 Item 1 (spec-20260607-124814): the DESKTOP detail surface (this right-sidebar
-// renderer) routes the image tools to the NEW text-only ImageToolFullView — Description →
-// Input Params (JSON, base64 stripped) → Output (path/dimensions/type) — instead of the
-// image-rendering CodexAttachmentView. Predecessor cycles routed detail to the image
-// renderer (conflating inline card with detail page); this removes any image-render path
-// from desktop detail and prevents a fall-through to the raw-JSON/base64 SidebarGenericView.
-// Names come from the shared IMAGE_DETAIL_TOOLS source-of-truth (mobile registry +
-// ToolFullView payload-ownership gate read the same set; a parity test pins them together).
+// DESKTOP right-sidebar detail for image tools MUST show the IMAGE only (no structured text).
+// Per the authoritative user requirement (overrides the Wave-1 spec wording): clicking an image
+// tool on desktop opens the rendered image via CodexAttachmentView, not a text-only view. Wave-1
+// wrongly routed these here to the text-only ImageToolFullView — that was a misinterpretation and
+// is reverted FOR THE DESKTOP SIDEBAR ONLY. The mobile full-detail page (toolFullViewRegistry in
+// _all.tsx / ToolFullView.tsx) stays text-only and is intentionally left untouched. Names come
+// from the shared IMAGE_DETAIL_TOOLS source-of-truth (imageToolDetail.ts) so the set remains the
+// single source of truth across surfaces.
 const PARALLEL_TOOLS = new Set(['multi_tool_use.parallel']);
 
 export const SidebarContentRenderer = React.memo<SidebarContentProps>(({ tool, messages, metadata, sessionId }) => {
@@ -50,7 +50,7 @@ export const SidebarContentRenderer = React.memo<SidebarContentProps>(({ tool, m
         return <CodexPlanView tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />;
     }
     if (IMAGE_DETAIL_TOOLS.has(tool.name)) {
-        return <ImageToolFullView tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />;
+        return <CodexAttachmentView tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />;
     }
     if (PARALLEL_TOOLS.has(tool.name)) {
         return <CodexParallelView tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />;

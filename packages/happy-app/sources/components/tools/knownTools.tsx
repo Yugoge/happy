@@ -103,7 +103,16 @@ export const knownTools = {
             return t('tools.names.terminal');
         },
         icon: ICON_TERMINAL,
-        minimal: true,
+        // Mirror CodexBash: a normal Bash command renders its inline body
+        // (BashView → `$ command` + stdout/stderr + "+N more lines") instead of a
+        // title-only header. Claude Bash carries no parsed_cmd, so fall back to the
+        // CodexBash raw-command branch: render inline whenever a command exists.
+        minimal: (opts: { tool: ToolCall }) => {
+            const command = opts.tool.input?.command;
+            if (typeof command === 'string' && command.trim().length > 0) return false;
+            // No command available: keep the compact header-only form.
+            return true;
+        },
         hideDefaultError: true,
         isMutable: true,
         input: z.object({

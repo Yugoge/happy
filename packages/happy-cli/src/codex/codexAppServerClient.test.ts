@@ -842,6 +842,245 @@ describe('CodexAppServerClient sandbox integration', () => {
         await client.disconnect();
     });
 
+    // Regression (codex-render): the app patch readers
+    // (CodexPatchView.getPatchTexts and SidebarFileView.CodexPatchContent) read
+    // the per-file body from change.add.content / change.delete.content /
+    // change.unified_diff. The normalizer previously forwarded ONLY the legacy
+    // `diff` field, so multi-file ADD and multi-file UPDATE patches rendered the
+    // paths with an empty body. These two tests assert each normalized entry now
+    // carries the body in the exact key those readers consume.
+    it('maps a multi-file ADD patch so every entry carries add.content', async () => {
+        const proc = createMockProcess({
+            pid: 3013,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-add', path: '/tmp/thread-add' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                turn: { id: 'turn-add', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'turn/started',
+                            params: {
+                                threadId: 'thread-add',
+                                turn: { id: 'turn-add', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: 'thread-add',
+                                turnId: 'turn-add',
+                                item: {
+                                    type: 'fileChange',
+                                    id: 'patch-add',
+                                    status: 'inProgress',
+                                    changes: [
+                                        {
+                                            path: 'src/alpha.ts',
+                                            kind: { type: 'add', move_path: null },
+                                            content: 'export const alpha = 1;\n',
+                                        },
+                                        {
+                                            path: 'src/beta.ts',
+                                            kind: { type: 'add', move_path: null },
+                                            content: 'export const beta = 2;\n',
+                                        },
+                                    ],
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'thread-add',
+                                turnId: 'turn-add',
+                                item: {
+                                    type: 'agentMessage',
+                                    id: 'msg-add',
+                                    text: 'added',
+                                    phase: 'final_answer',
+                                },
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const events: Array<Record<string, unknown>> = [];
+        client.setEventHandler((msg) => {
+            events.push(msg as Record<string, unknown>);
+        });
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+
+        await expect(client.sendTurnAndWait('add two files')).resolves.toEqual({ aborted: false });
+
+        const begin = events.find((event) => event.type === 'patch_apply_begin') as
+            | { changes?: Record<string, any> }
+            | undefined;
+        expect(begin).toBeDefined();
+        const changes = begin!.changes!;
+        // Both files present, each carrying the body in the key the app readers
+        // consume (change.add.content) — NOT just the path.
+        expect(changes['src/alpha.ts']).toEqual({
+            add: { content: 'export const alpha = 1;\n' },
+            kind: { type: 'add', move_path: null },
+        });
+        expect(changes['src/beta.ts']).toEqual({
+            add: { content: 'export const beta = 2;\n' },
+            kind: { type: 'add', move_path: null },
+        });
+
+        await client.disconnect();
+    });
+
+    it('maps a multi-file UPDATE patch so every entry carries unified_diff', async () => {
+        const proc = createMockProcess({
+            pid: 3014,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-upd', path: '/tmp/thread-upd' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                turn: { id: 'turn-upd', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'turn/started',
+                            params: {
+                                threadId: 'thread-upd',
+                                turn: { id: 'turn-upd', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: 'thread-upd',
+                                turnId: 'turn-upd',
+                                item: {
+                                    type: 'fileChange',
+                                    id: 'patch-upd',
+                                    status: 'inProgress',
+                                    changes: [
+                                        {
+                                            path: 'src/one.ts',
+                                            kind: { type: 'update', move_path: null },
+                                            unified_diff: '@@ -1 +1 @@\n-const one = 0;\n+const one = 1;\n',
+                                        },
+                                        {
+                                            path: 'src/two.ts',
+                                            kind: { type: 'update', move_path: null },
+                                            unified_diff: '@@ -1 +1 @@\n-const two = 0;\n+const two = 2;\n',
+                                        },
+                                    ],
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: 'thread-upd',
+                                turnId: 'turn-upd',
+                                item: {
+                                    type: 'agentMessage',
+                                    id: 'msg-upd',
+                                    text: 'updated',
+                                    phase: 'final_answer',
+                                },
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const events: Array<Record<string, unknown>> = [];
+        client.setEventHandler((msg) => {
+            events.push(msg as Record<string, unknown>);
+        });
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+
+        await expect(client.sendTurnAndWait('update two files')).resolves.toEqual({ aborted: false });
+
+        const begin = events.find((event) => event.type === 'patch_apply_begin') as
+            | { changes?: Record<string, any> }
+            | undefined;
+        expect(begin).toBeDefined();
+        const changes = begin!.changes!;
+        // Both files present, each carrying the unified diff in the key the app
+        // readers consume (change.unified_diff) — NOT just the path.
+        expect(changes['src/one.ts']).toEqual({
+            unified_diff: '@@ -1 +1 @@\n-const one = 0;\n+const one = 1;\n',
+            kind: { type: 'update', move_path: null },
+        });
+        expect(changes['src/two.ts']).toEqual({
+            unified_diff: '@@ -1 +1 @@\n-const two = 0;\n+const two = 2;\n',
+            kind: { type: 'update', move_path: null },
+        });
+
+        await client.disconnect();
+    });
+
     it('hydrates v2 file change approvals from raw item metadata', async () => {
         const approvals: Array<Record<string, unknown>> = [];
         const proc = createMockProcess({

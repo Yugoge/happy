@@ -627,12 +627,12 @@ function ResumeCommandLines({ lines }: { lines: string[] }) {
 
 // Resume / inactive-archived hints share the conversation column geometry (M5):
 // the same shared chat-content width as the header, message column and composer,
-// LEFT-anchored with no outer horizontal padding, so the hint edge coincides
-// with the message column edge instead of being centered + statically capped.
+// CENTERED with no outer horizontal padding, so the hint shares the centered
+// reading column geometry instead of being left-anchored / full-bleed.
 function CenteredInputWidth(props: { children: React.ReactNode }) {
     const chatContentMaxWidth = useChatContentWidth();
     return (
-        <View style={{ width: '100%', alignItems: 'flex-start' }}>
+        <View style={{ width: '100%', alignItems: 'center' }}>
             <View style={{ width: '100%', maxWidth: chatContentMaxWidth }}>{props.children}</View>
         </View>
     );

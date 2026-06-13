@@ -5,6 +5,7 @@ import { useIsTablet } from '@/utils/responsive';
 import { useLocalSetting } from '@/sync/storage';
 import { useRightSidebar } from '@/stores/rightSidebarStore';
 import { computeChatContentWidth, ChatContentWidthInputs } from '@/hooks/chatContentWidth';
+import { layout } from '@/components/layout';
 
 // The pure width math lives in the dependency-free `chatContentWidth.ts` module
 // so the node-env Vitest (AC7a) can import it without React / react-native.
@@ -17,9 +18,13 @@ export type { ChatContentWidthInputs } from '@/hooks/chatContentWidth';
  * SINGLE shared "chat content width" source consumed by the chat header
  * (ChatHeaderView), the message column (MessageView) and the composer
  * (AgentInput + SessionView CenteredInputWidth). Returning ONE scalar for all
- * three surfaces is what guarantees equal width; LEFT-anchoring those surfaces
- * (alignItems/justifyContent 'flex-start') is what turns equal width into
- * coincident left+right edges. See spec-20260607-124814.md §0 #7 / Item 7.
+ * three surfaces is what guarantees equal width; CENTERING those surfaces
+ * (alignItems 'center') is what turns equal width into a comfortable, centered
+ * reading column (Claude.ai / ChatGPT style) with the leftover wide-window space
+ * split into symmetric side margin. The scalar is capped at the reading-column
+ * max (layout.maxWidth) so wide windows do NOT go full-bleed; the right sidebar
+ * is subtracted before the cap so opening it never enlarges the column. See
+ * Item 7 (centered reading column restoration).
  *
  * Coordinate model (codex-verified — do NOT re-introduce a double subtraction):
  *   - The chat HEADER is rendered position:'absolute' top/left/right:0 inside
@@ -47,11 +52,17 @@ export function useChatContentWidth(): number {
     const sidebarCollapsed = useLocalSetting('sidebarCollapsed' as any);
     const { width: windowWidth } = useWindowDimensions();
     const rightSidebarOpen = useRightSidebar((s) => s.isOpen);
+    // Reading-column cap (= the pre-Wave-1 `layout.maxWidth`): ~800 web/tablet,
+    // 1400 Mac, full-screen on phone. layout.maxWidth is platform-derived once at
+    // module load; passing it into the pure formula keeps that module
+    // react-native-free while restoring the centered reading column.
+    const readingColumnMaxWidth = layout.maxWidth;
     return React.useMemo(() => computeChatContentWidth({
         windowWidth,
         isAuthenticated: auth.isAuthenticated,
         isTablet,
         sidebarCollapsed: !!sidebarCollapsed,
         rightSidebarOpen,
-    }), [auth.isAuthenticated, isTablet, sidebarCollapsed, windowWidth, rightSidebarOpen]);
+        readingColumnMaxWidth,
+    }), [auth.isAuthenticated, isTablet, sidebarCollapsed, windowWidth, rightSidebarOpen, readingColumnMaxWidth]);
 }

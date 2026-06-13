@@ -105,6 +105,12 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     'mcp__image_gen__imagegen': ImageToolFullView,
     'functions.image_generation': ImageToolFullView,
     'multi_tool_use.parallel': CodexParallelView,
+    // Restore the specialized DETAIL/full views dropped by a later commit
+    // (Bash mapping existed in 58421098, 2026-04-20). Without these, the
+    // ToolFullView path (desktop inline detail + mobile route) fell through to
+    // the generic raw-JSON view instead of the terminal Bash / structured Edit views.
+    Bash: BashViewFull,
+    Edit: EditViewFull,
     MultiEdit: MultiEditViewFull,
     // CONSTRAINT-2: reducer synthetic grouping — spawn_agent (no prefix) → AgentFullView
     spawn_agent: AgentFullView,

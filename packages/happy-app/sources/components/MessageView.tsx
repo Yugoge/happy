@@ -205,12 +205,12 @@ function ToolCallBlock(props: {
 const styles = StyleSheet.create((theme) => ({
   messageContainer: {
     flexDirection: 'row',
-    // LEFT-anchor (M3): share the same origin as the header + composer so equal
-    // width yields coincident edges. The inline maxWidth (useChatContentWidth)
-    // is the single shared width source; the prior static `maxWidth:
-    // layout.maxWidth` cap was removed so the 800 web/tablet clamp can never
-    // resurface.
-    justifyContent: 'flex-start',
+    // CENTER (M3): share the same centered reading column as the header +
+    // composer so equal width yields a coincident centered band. The inline
+    // maxWidth (useChatContentWidth) is the single shared width source and is now
+    // capped at the reading-column max (layout.maxWidth), so wide windows get
+    // symmetric side margin instead of the full-bleed clamp.
+    justifyContent: 'center',
   },
   messageContent: {
     minWidth: 0,

@@ -85,12 +85,12 @@ interface AgentInputProps {
 
 const stylesheet = StyleSheet.create((theme, runtime) => ({
     container: {
-        // LEFT-anchor (M4): share the message column's origin so the composer's
-        // post-padding inner edge coincides with the message-column edge. The
-        // outer horizontal padding is compensated to 0 at the call site (it used
-        // to inset the band away from the message edge); the unifiedPanel keeps
-        // the internal breathing room.
-        alignItems: 'flex-start',
+        // CENTER (M4): share the message column's centered reading column so the
+        // composer's post-padding inner box coincides with the message-column
+        // band. The outer horizontal padding is compensated to 0 at the call site
+        // (it used to inset the band); the unifiedPanel keeps the internal
+        // breathing room.
+        alignItems: 'center',
         paddingBottom: 8,
         paddingTop: 8,
     },

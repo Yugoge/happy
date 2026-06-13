@@ -121,9 +121,38 @@ function normalizeRawFileChangeList(changes: unknown): LegacyPatchChanges | unde
         }
 
         const entry: Record<string, unknown> = {};
+
+        // Forward the per-file body in EXACTLY the shape the app's patch readers
+        // already consume (CodexPatchView.getPatchTexts :47-81 and
+        // SidebarFileView.CodexPatchContent :176-187), across all three raw
+        // Codex FileChange shapes (codexAppServerTypes FileChange union :169-172):
+        //   - legacy flattened `diff` (string)        → entry.diff      (readers read change.diff)
+        //   - updated file `unified_diff` (string)     → entry.unified_diff (readers read change.unified_diff)
+        //   - added file `content` (string, kind add)  → entry.add.content  (readers read change.add.content)
+        //   - deleted file `content` (string, kind del)→ entry.delete.content (readers read change.delete.content)
+        // Before this fix only `diff` was forwarded, so post-protocol-evolution
+        // add/delete/update bodies were dropped: paths rendered, diff stayed empty.
+        const kindType = (change.kind && typeof change.kind === 'object' && !Array.isArray(change.kind))
+            ? change.kind.type
+            : undefined;
+
         if (typeof change.diff === 'string') {
             entry.diff = change.diff;
         }
+        if (typeof change.unified_diff === 'string') {
+            entry.unified_diff = change.unified_diff;
+        }
+        // Added/deleted files carry their full body under `content`; route it to
+        // the kind-specific nested key the readers branch on. kindType is the
+        // authority; fall back to presence of the matching body when kind is absent.
+        if (typeof change.content === 'string') {
+            if (kindType === 'add') {
+                entry.add = { content: change.content };
+            } else if (kindType === 'delete') {
+                entry.delete = { content: change.content };
+            }
+        }
+
         if (change.kind && typeof change.kind === 'object' && !Array.isArray(change.kind)) {
             entry.kind = change.kind;
         }

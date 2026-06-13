@@ -212,10 +212,11 @@ const styles = StyleSheet.create({
     },
     contentWrapper: {
         width: '100%',
-        // LEFT-anchor (M2): equal width with the message column + composer
-        // yields coincident left+right edges, and opening the right sidebar
-        // moves only the right edge inward (no symmetric "narrowing").
-        alignItems: 'flex-start',
+        // CENTER (M2): equal width with the message column + composer yields a
+        // shared centered reading column. The capped width (useChatContentWidth)
+        // is centered so wide windows get symmetric side margin; the header
+        // content shares the SAME width + left edge as the message column.
+        alignItems: 'center',
     },
     content: {
         flexDirection: 'row',
