@@ -472,13 +472,15 @@ A subagent that changes daemon code MUST pick exactly one of:
    ```
    Verify the change against the sandbox daemon. The live `happy-daemon-dev.service` is untouched.
 
-2. **PAUSE-PENDING-USER**: output a REQUEST naming the SOP command (`/root/bin/safe-daemon-restart.sh dev --reason "<text>"`) and stop. User runs it.
+2. **PAUSE-PENDING-USER**: output a REQUEST naming the SOP command (`/root/bin/happy-restart.sh --target dev`) and stop. User runs it.
 
 **Forbidden** for subagents (in any cycle): direct `systemctl restart happy-daemon-*`, daemon HTTP `POST /stop`, `kill` against `happy-cli` PIDs, writing the restart command into a `/tmp/*.sh` to bypass the bash-safety hook.
 
-### safe-daemon-restart SOP (user-only entry point)
+### Daemon restart SOP (user-only entry point)
 
-`/root/bin/safe-daemon-restart.sh <dev|default|jade> [--reason <text>] [--no-confirm] [--prod-acknowledged]` is the only sanctioned daemon restart path. It runs pre-flight save → confirmation gate → graceful stop → start → post-flight recover + audit log. Subagents must never invoke it directly; they output a REQUEST and let the user run it from a TTY.
+`/root/bin/happy-restart.sh --target dev` is the only sanctioned daemon restart path for the dev daemon. It runs pre-flight save → graceful stop → start → post-flight recover + audit log. Subagents must never invoke it directly; they output a REQUEST and let the user run it from a TTY.
+
+Note: `safe-daemon-restart.sh` does NOT exist — this was a phantom reference. The actual script is `happy-restart.sh`.
 
 ### Hook bypass — project-specific consequences
 
