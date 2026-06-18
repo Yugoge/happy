@@ -7,9 +7,33 @@ import { t } from '@/text';
 import type { ToolCall, Message } from '@/sync/typesMessage';
 import type { Metadata } from '@/sync/storageTypes';
 import { SidebarContentRenderer } from './sidebar/SidebarContentRenderer';
+import { knownTools } from '@/components/tools/knownTools';
+import { formatMCPTitle } from '@/components/tools/views/MCPToolView';
 
 const SIDEBAR_WIDTH = 450;
 const DESKTOP_MIN_WIDTH = 901;
+
+/**
+ * Resolves the human-friendly tool title for the sidebar header, mirroring
+ * ToolView.resolveTitle: (1) knownTools[name].title (string or fn({tool, metadata})),
+ * (2) formatMCPTitle for mcp__ names, (3) raw tool.name. Returns empty string only
+ * when no friendly title resolves, so callers can fall back to a generic label.
+ */
+function resolveToolTitle(tool: ToolCall, metadata: Metadata | null): string {
+    const knownTool = (knownTools as Record<string, { title?: string | ((args: { tool: ToolCall; metadata: Metadata | null }) => string) }>)[tool.name];
+    if (knownTool?.title) {
+        const title = typeof knownTool.title === 'function'
+            ? knownTool.title({ tool, metadata })
+            : knownTool.title;
+        if (title) {
+            return title;
+        }
+    }
+    if (tool.name.startsWith('mcp__')) {
+        return formatMCPTitle(tool.name);
+    }
+    return tool.name;
+}
 
 /**
  * Hook to close sidebar on Escape key press (web only)
@@ -62,8 +86,9 @@ function SidebarBackButton({ onBack }: { onBack: () => void }) {
     );
 }
 
-function SidebarHeader({ tool, onClose, hasHistory, onBack }: { tool: ToolCall; onClose: () => void; hasHistory: boolean; onBack: () => void }) {
+function SidebarHeader({ tool, metadata, onClose, hasHistory, onBack }: { tool: ToolCall; metadata: Metadata | null; onClose: () => void; hasHistory: boolean; onBack: () => void }) {
     const { theme } = useUnistyles();
+    const title = resolveToolTitle(tool, metadata) || t('sidebar.toolDetail');
     return (
         <View style={{
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -72,7 +97,7 @@ function SidebarHeader({ tool, onClose, hasHistory, onBack }: { tool: ToolCall; 
         }}>
             {hasHistory && <SidebarBackButton onBack={onBack} />}
             <Text style={{ fontSize: 15, fontWeight: '600', color: theme.colors.text, flex: 1 }} numberOfLines={1}>
-                {tool.name || t('sidebar.toolDetail')}
+                {title}
             </Text>
             <SidebarCloseButton onClose={onClose} />
         </View>
@@ -122,7 +147,7 @@ function MobileSidebar({ tool, messages, metadata, sessionId, onClose, hasHistor
     return (
         <RNModal visible={true} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: theme.colors.surface }}>
-                <SidebarHeader tool={tool} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
+                <SidebarHeader tool={tool} metadata={metadata} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
                 <SidebarContentStack history={history} current={current} />
             </View>
         </RNModal>
@@ -137,7 +162,7 @@ function DesktopSidebar({ tool, messages, metadata, sessionId, onClose, hasHisto
             width: SIDEBAR_WIDTH, borderLeftWidth: 1,
             borderLeftColor: theme.colors.divider, backgroundColor: theme.colors.surface,
         }}>
-            <SidebarHeader tool={tool} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
+            <SidebarHeader tool={tool} metadata={metadata} onClose={onClose} hasHistory={hasHistory} onBack={onBack} />
             <SidebarContentStack history={history} current={current} />
         </View>
     );

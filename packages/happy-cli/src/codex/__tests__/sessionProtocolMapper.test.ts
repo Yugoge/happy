@@ -129,16 +129,18 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
         );
 
         expect(child.currentTurnId).toBe('turn-1');
+        // #1 / OBJ-5 (AC-A1): the subagent FINAL answer is single-sourced in the lifecycle Result, so the
+        // visible child {t:'text'} envelope is now OMITTED when a lifecycle entry exists (this spawn created
+        // one). The sequence drops the 'text' that used to appear between 'start' and 'stop'. The summary is
+        // instead buffered onto the lifecycle entry (asserted below) and surfaced by flush/close as Result.
         expect(child.envelopes.map((envelope) => envelope.ev.t)).toEqual([
             'start',
-            'text',
             'stop',
             'tool-call-end',
         ]);
-        // Cycle 7 (M1): child transcript items route to the lifecycle's ssn (child-thread bound to ssn
-        // at spawn-begin), not to the spawn card's provider call_id.
-        expect(child.envelopes[1].subagent).toBe(ssn);
-        expect(child.envelopes[1].turn).toBe('child-turn');
+        // The omitted final-answer text is buffered onto the lifecycle entry with authoritative provenance.
+        expect(child.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('child final');
+        expect(child.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
         expect(child.envelopes.some((envelope) => envelope.ev.t === 'turn-end')).toBe(false);
 
         const endAfterFinal = mapCodexMcpMessageToSessionEnvelopes(
@@ -518,6 +520,235 @@ describe('mapCodexMcpMessageToSessionEnvelopes', () => {
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }
+    });
+
+    // PRODUCER fix: mcp__playwright__browser_take_screenshot — synthesize preview_uri from the SAVED
+    // file (markdown link / input filename resolved against the session cwd), ignoring the corrupt
+    // inline base64 (Codex output-bounding U+2026 elision); keep preview_unavailable_reason on failure.
+    describe('playwright browser_take_screenshot file-based preview', () => {
+        const PNG_BYTES = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+        // A doubly-encoded JSON text wrapper whose inline base64 has been elided with a U+2026 ellipsis —
+        // exactly the corrupted shape Codex delivers. Must never be used as the preview.
+        const CORRUPT_INLINE = `iVBORw0KGgoAAAANSUhEUgAAA…`;
+
+        it('uses the markdown-link file (relative, resolved against sessionCwd) and ignores corrupt inline base64', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-link-'));
+            const relName = 'wave1-happy-session-desktop.png';
+            writeFileSync(join(dir, relName), PNG_BYTES);
+            try {
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-link',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        // The result text carries the saved-file markdown link AND the corrupt inline base64.
+                        content: `### Result\n- [Screenshot of viewport](${relName})\n\ndata:image/png;base64,${CORRUPT_INLINE}`,
+                        contentItems: [{ type: 'image', data: CORRUPT_INLINE, mimeType: 'image/png' }],
+                    },
+                    { currentTurnId: 'turn-1', sessionCwd: dir }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.path).toBe(relName);
+                    expect(r.size).toBe(PNG_BYTES.length);
+                    // preview synthesized from the real file bytes — NOT the corrupt inline ellipsis base64.
+                    expect(r.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+                    expect(r.preview_uri).not.toContain('…');
+                    expect(r.preview_unavailable_reason).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('reaches the markdown link in the REAL LIVE doubly-encoded result shape and ignores corrupt inline base64', () => {
+            // The exact live result shape: result.content[0].text is a JSON STRING whose parse yields
+            // { content: [ { type:'text', text:'### Result\n- [Screenshot of viewport](<rel>)' },
+            //              { type:'image', data:'<corrupt…base64>', mimeType:'image/png' } ] }.
+            // The markdown link lives at content[0].text -> JSON.parse -> .content[0].text — collectResultText
+            // must recurse into content[] AND unwrap the doubly-encoded JSON-string wrapper to find it.
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-live-'));
+            const relName = 'wave1-happy-session-desktop.png';
+            writeFileSync(join(dir, relName), PNG_BYTES);
+            try {
+                const innerWrapper = JSON.stringify({
+                    content: [
+                        { type: 'text', text: `### Result\n- [Screenshot of viewport](${relName}) saved.` },
+                        { type: 'image', data: CORRUPT_INLINE, mimeType: 'image/png' },
+                    ],
+                });
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-live',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        // Top-level MCP envelope: content[0].text is the doubly-encoded JSON string wrapper.
+                        content: [{ type: 'text', text: innerWrapper }],
+                        structuredContent: null,
+                        _meta: null,
+                        preview_unavailable_reason: 'inline image elided by output bounding',
+                    },
+                    { currentTurnId: 'turn-1', sessionCwd: dir }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.path).toBe(relName);
+                    expect(r.size).toBe(PNG_BYTES.length);
+                    // Synthesized from the real file bytes — the corrupt inline ellipsis base64 is never used.
+                    expect(r.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+                    expect(r.preview_uri).not.toContain('…');
+                    expect(r.preview_unavailable_reason).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('resolves a screenshot filename containing spaces and inner parens from the markdown link', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-spaces-'));
+            const relName = 'wave1 happy session (desktop).png';
+            writeFileSync(join(dir, relName), PNG_BYTES);
+            try {
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-spaces',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        // Spaces AND inner parens in the link target; corrupt inline base64 also present.
+                        content: `### Result\n- [Screenshot of viewport](${relName})\n\ndata:image/png;base64,${CORRUPT_INLINE}`,
+                    },
+                    { currentTurnId: 'turn-1', sessionCwd: dir }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.path).toBe(relName);
+                    expect(r.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+                    expect(r.preview_unavailable_reason).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('percent-decodes a screenshot link target to the on-disk filename', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-pct-'));
+            const onDisk = 'shot 1.png';
+            writeFileSync(join(dir, onDisk), PNG_BYTES);
+            try {
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-pct',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        content: `- [Screenshot of viewport](shot%201.png)`,
+                    },
+                    { currentTurnId: 'turn-1', sessionCwd: dir }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.path).toBe(onDisk);
+                    expect(r.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+                    expect(r.preview_unavailable_reason).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('resolves a file:// URL on a DIRECT path field to the absolute filesystem path', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-fileurl-'));
+            const abs = join(dir, 'direct-shot.png');
+            writeFileSync(abs, PNG_BYTES);
+            try {
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-fileurl',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        // No markdown link, no filename input — only a direct file:// path field.
+                        path: `file://${abs}`,
+                    },
+                    { currentTurnId: 'turn-1' }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+                    expect(r.preview_unavailable_reason).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('falls back to the tool input filename when no markdown link is present', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-filename-'));
+            const relName = 'shot-from-input.png';
+            writeFileSync(join(dir, relName), PNG_BYTES);
+            try {
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-fn',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        arguments: { filename: relName },
+                        // No usable file link in the text — only the corrupt inline payload.
+                        content: `Captured. data:image/png;base64,${CORRUPT_INLINE}`,
+                    },
+                    { currentTurnId: 'turn-1', sessionCwd: dir }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.path).toBe(relName);
+                    expect(r.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+                    expect(r.preview_unavailable_reason).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('keeps preview_unavailable_reason when the saved screenshot file is missing', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'happy-shot-missing-'));
+            try {
+                const result = mapCodexMcpMessageToSessionEnvelopes(
+                    {
+                        type: 'mcp_tool_call_end',
+                        call_id: 'shot-missing',
+                        server: 'playwright',
+                        tool: 'browser_take_screenshot',
+                        content: `- [Screenshot of viewport](does-not-exist.png)\n\ndata:image/png;base64,${CORRUPT_INLINE}`,
+                    },
+                    { currentTurnId: 'turn-1', sessionCwd: dir }
+                );
+                const ev = result.envelopes[0].ev;
+                expect(ev.t).toBe('tool-call-end');
+                if (ev.t === 'tool-call-end') {
+                    const r = ev.result as any;
+                    expect(r.preview_unavailable_reason).toBe('image file unavailable');
+                    expect(r.preview_uri).toBeUndefined();
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
     });
 
     it('derives image previews from MCP image data and path-like string outputs', () => {
@@ -1029,6 +1260,85 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         expect(closeEnd.subagentLifecycles.get(ssn)?.state).toBe('completed');
     });
 
+    // Bug fix (live-confirmed via React-fiber inspection on dev): a subagent that completes WITHOUT an
+    // explicit close_agent (spawn → wait → work tool → final agent_message, NO close_agent) is terminated
+    // by the end-of-turn flush path. Before the fix flushOpenLifecycles emitted a bare
+    // { status, lifecycle_state } result with NO final_summary — the subagent's actual final answer arrived
+    // as an agent_message and was only rendered as child agent-text, never stored on the lifecycle — so the
+    // app's "Result" section never appeared for these subagents. This replays the EXACT failing sequence and
+    // asserts the flush-emitted functions.subagent_lifecycle terminal carries final_summary == the answer.
+    it('AC-flush-summary: no-close subagent — final agent_message answer buffers onto lifecycle and flush emits final_summary', () => {
+        // 1. spawn-begin (empty rcv) + 2. spawn-end (binds child-flush -> ssn). spawnState mirrors the
+        //    real two-arm production shape per event_mapping.rs:75-86 / :104-114.
+        const begin = spawnState('spawn-flush', 'child-flush', 'inspect with no close');
+        const ssn = ssnOf(begin);
+        expect(begin.subagentLifecycles.get(ssn)?.state).toBe('started');
+
+        // 3. wait-begin + wait-end whose agentsStates has NO usable message (message: null) — so the
+        //    bufferedFinalSummary is NOT populated by the wait path (the failing precondition).
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-flush', tool: 'wait', receiverThreadIds: ['child-flush'] }, begin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-flush', tool: 'wait', status: 'completed',
+            receiverThreadIds: ['child-flush'],
+            agentsStates: { 'child-flush': { status: 'running', message: null } },
+        }, waitBegin);
+        // Precondition: wait did NOT buffer a usable summary (message was null).
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummary == null).toBe(true);
+
+        // 4. a work tool executed by the subagent (exec_command begin/end carrying the child threadId).
+        const execBegin = step({ type: 'exec_command_begin', call_id: 'exec-flush', command: ['ls', '-la'], threadId: 'child-flush' }, waitEnd);
+        const execEnd = step({ type: 'exec_command_end', call_id: 'exec-flush', exit_code: 0, stdout: 'files', threadId: 'child-flush' }, execBegin);
+
+        // 5. the subagent's FINAL ANSWER arrives as an agent_message (phase final_answer) carrying the
+        //    child threadId so resolveSessionSubagent maps it to ssn. The handler must buffer the text.
+        const finalMsg = step({ type: 'agent_message', message: 'the subagent final answer', phase: 'final_answer', threadId: 'child-flush' }, execEnd);
+        expect(finalMsg.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('the subagent final answer');
+
+        // 6. task_complete triggers flushOpenLifecycles — NO close_agent ever fired. The flush-emitted
+        //    lifecycle terminal MUST carry final_summary equal to the agent_message answer text.
+        const done = step({ type: 'task_complete' }, finalMsg);
+        const lifecycleEnd = done.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            expect(lifecycleEnd.ev.result).toMatchObject({ status: 'completed', final_summary: 'the subagent final answer', lifecycle_state: 'completed' });
+        }
+    });
+
+    // No-regression companion: when a no-close subagent NEVER produced a usable final answer (no
+    // final_answer agent_message, wait message null), the flush terminal must still emit WITHOUT a
+    // final_summary key — mirroring emitLifecycleEnd's conditional inclusion (graceful degradation).
+    it('AC-flush-summary (no-reg): flush without any buffered summary omits final_summary', () => {
+        const begin = spawnState('spawn-flush-2', 'child-flush-2', 'no answer task');
+        const ssn = ssnOf(begin);
+        const done = step({ type: 'task_complete' }, begin);
+        const lifecycleEnd = done.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            expect(lifecycleEnd.ev.result).toMatchObject({ status: 'completed', lifecycle_state: 'completed' });
+            expect((lifecycleEnd.ev.result as Record<string, unknown>).final_summary).toBeUndefined();
+        }
+    });
+
+    // No-regression: the explicit close_agent path still attaches final_summary (the wait-buffered summary
+    // is inherited by the close terminal — exactly the case-a behavior, re-asserted here against this fix).
+    it('AC-flush-summary (no-reg): close_agent path still carries final_summary (no regression)', () => {
+        const begin = spawnState('spawn-flush-3', 'child-flush-3', 'closes explicitly');
+        const ssn = ssnOf(begin);
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-flush-3', tool: 'wait', receiverThreadIds: ['child-flush-3'] }, begin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-flush-3', tool: 'wait', status: 'completed',
+            receiverThreadIds: ['child-flush-3'],
+            agentsStates: { 'child-flush-3': { status: 'completed', message: 'closed summary' } },
+        }, waitBegin);
+        const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-flush-3', tool: 'closeAgent', receiverThreadIds: ['child-flush-3'] }, waitEnd);
+        const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-flush-3', tool: 'closeAgent', status: 'completed', receiverThreadIds: ['child-flush-3'] }, closeBegin);
+        const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            expect(lifecycleEnd.ev.result).toMatchObject({ status: 'completed', final_summary: 'closed summary', lifecycle_state: 'completed' });
+        }
+    });
+
     // Cycle 6 AC-C6-1 (S1): non-spawn verb with no receiverThreadId resolves sessionSubagent
     // from the single active lifecycle in the map (M1 fallback path).
     it('S1 (AC-C6-1): send_input with no receiverThreadId carries sessionSubagent via single-active-lifecycle fallback', () => {
@@ -1187,6 +1497,299 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         expect((child as any).subagent).toBe(ssn);
         expect((child as any).ev.call).not.toBe(ssn);                 // INV-1
         expect((child as any).ev.args.sessionSubagent).toBeUndefined(); // INV-2
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────────
+    // #1 / OBJ-5 (AC-A1) — duplicate final-answer suppression + source-tagged buffer precedence.
+    // ─────────────────────────────────────────────────────────────────────────────────────────────
+    function agentMessage(message: any, prior: any, opts?: { phase?: string }) {
+        return step({ type: 'agent_message', message, phase: opts?.phase, threadId: 'child-A', turnId: 'child-turn' }, prior);
+    }
+
+    it('AC-A1 (case 1): subagent final_answer with lifecycle emits NO child text duplicate, buffers final_summary; intermediate still emits text', () => {
+        // Bind child-A to the spawn ssn so agent_message resolves to the subagent.
+        const begin = spawnState('spawn-a1-1', 'child-A', 'inspect alpha');
+        const ssn = ssnOf(begin);
+        // Intermediate (non-final) subagent message STILL emits a visible text envelope.
+        const inter = agentMessage('working on it', begin);
+        expect(inter.envelopes.filter(e => e.ev.t === 'text')).toHaveLength(1);
+        // final_answer with a lifecycle entry → NO child text duplicate (omission), but buffered for Result.
+        const fin = agentMessage('the final answer', inter, { phase: 'final_answer' });
+        expect(fin.envelopes.filter(e => e.ev.t === 'text')).toHaveLength(0);
+        // No NEW session-protocol envelope shape introduced (codex#4): only known kinds present.
+        for (const e of fin.envelopes) {
+            expect(['text', 'tool-call-start', 'tool-call-end', 'start', 'stop', 'turn-start', 'turn-end']).toContain(e.ev.t);
+        }
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('the final answer');
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
+    });
+
+    it('AC-A1 (case 2): final_answer buffered THEN later intermediate text → buffer still equals the final_answer', () => {
+        const begin = spawnState('spawn-a1-2', 'child-A', 'inspect beta');
+        const ssn = ssnOf(begin);
+        const fin = agentMessage('AUTHORITATIVE final', begin, { phase: 'final_answer' });
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('AUTHORITATIVE final');
+        // A later non-final intermediate message must NOT clobber the authoritative final_answer.
+        const later = agentMessage('stray late chatter', fin);
+        expect(later.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('AUTHORITATIVE final');
+        expect(later.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
+        // The intermediate text still renders (only finals are suppressed).
+        expect(later.envelopes.filter(e => e.ev.t === 'text')).toHaveLength(1);
+    });
+
+    it('AC-A1 (case 3): intermediate-only + flush WITHOUT final_answer → NO Result section (no false summary from intermediate)', () => {
+        const begin = spawnState('spawn-a1-3', 'child-A', 'inspect gamma');
+        const ssn = ssnOf(begin);
+        // Only intermediate chatter, no final_answer, no authoritative agentsStates.message.
+        const inter = agentMessage('intermediate chatter', begin);
+        expect(inter.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('intermediate');
+        const done = step({ type: 'task_complete' }, inter);
+        const lifecycleEnd = done.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            // Intermediate chatter must NOT surface as a Result final_summary.
+            expect((lifecycleEnd.ev.result as Record<string, unknown>).final_summary).toBeUndefined();
+        }
+    });
+
+    it('AC-A1 (case 4): a wait_agent end with message:null after a real final_answer was buffered → the real final_answer is NOT erased', () => {
+        const begin = spawnState('spawn-a1-4', 'child-A', 'inspect delta');
+        const ssn = ssnOf(begin);
+        const fin = agentMessage('REAL final answer', begin, { phase: 'final_answer' });
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('REAL final answer');
+        // A later wait_agent end with message:null must NOT erase the buffered authoritative summary.
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-a1-4', tool: 'wait', receiverThreadIds: ['child-A'] }, fin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-a1-4', tool: 'wait', status: 'completed',
+            receiverThreadIds: ['child-A'], agentsStates: { 'child-A': { status: 'completed', message: null } },
+        }, waitBegin);
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('REAL final answer');
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
+    });
+
+    it('AC-A1 (case 5, MIN-4): whitespace-only final_answer → no buffer, no Result section', () => {
+        const begin = spawnState('spawn-a1-5', 'child-A', 'inspect epsilon');
+        const ssn = ssnOf(begin);
+        const fin = agentMessage('   ', begin, { phase: 'final_answer' });
+        // Whitespace-only final answer (trim().length===0) does NOT populate the buffer.
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBeUndefined();
+        // It is still suppressed as a child text (final_answer + lifecycle) — no duplicate, no Result.
+        expect(fin.envelopes.filter(e => e.ev.t === 'text')).toHaveLength(0);
+        const done = step({ type: 'task_complete' }, fin);
+        const lifecycleEnd = done.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            expect((lifecycleEnd.ev.result as Record<string, unknown>).final_summary).toBeUndefined();
+        }
+    });
+
+    it('AC-A1 (case 6, MIN-4): whitespace-only agentsStates.message does NOT populate or erase the authoritative summary', () => {
+        const begin = spawnState('spawn-a1-6', 'child-A', 'inspect zeta');
+        const ssn = ssnOf(begin);
+        const fin = agentMessage('the kept answer', begin, { phase: 'final_answer' });
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-a1-6', tool: 'wait', receiverThreadIds: ['child-A'] }, fin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-a1-6', tool: 'wait', status: 'completed',
+            receiverThreadIds: ['child-A'], agentsStates: { 'child-A': { status: 'completed', message: '   ' } },
+        }, waitBegin);
+        // Whitespace agentsStates.message neither populates nor erases the authoritative final_answer.
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('the kept answer');
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
+    });
+
+    it('AC-A1 (codex#1): close_agent must NOT surface intermediate chatter as final_summary; a close-time agentsStates.message wins over an intermediate buffer', () => {
+        const begin = spawnState('spawn-a1-7', 'child-A', 'inspect eta');
+        const ssn = ssnOf(begin);
+        // Only intermediate chatter buffered (provenance 'intermediate', NOT authoritative).
+        const inter = agentMessage('intermediate progress note', begin);
+        expect(inter.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('intermediate');
+        // close_agent carries a real agentsStates.message — it must WIN over the intermediate buffer.
+        const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-a1-7', tool: 'closeAgent', receiverThreadIds: ['child-A'] }, inter);
+        const closeEnd = step({
+            type: 'collab_agent_call_end', call_id: 'close-a1-7', tool: 'closeAgent', status: 'completed',
+            receiverThreadIds: ['child-A'], agentsStates: { 'child-A': { status: 'completed', message: 'the authoritative close summary' } },
+        }, closeBegin);
+        const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            // The intermediate chatter must NOT be the Result; the close agentsStates.message is.
+            expect(lifecycleEnd.ev.result).toMatchObject({ final_summary: 'the authoritative close summary' });
+        }
+    });
+
+    it('AC-A1 (codex#1, no-close-message): close_agent with NO agentsStates.message + only an intermediate buffer → NO Result final_summary', () => {
+        const begin = spawnState('spawn-a1-8', 'child-A', 'inspect theta');
+        const ssn = ssnOf(begin);
+        const inter = agentMessage('just intermediate text', begin);
+        const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-a1-8', tool: 'closeAgent', receiverThreadIds: ['child-A'] }, inter);
+        const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-a1-8', tool: 'closeAgent', status: 'completed', receiverThreadIds: ['child-A'] }, closeBegin);
+        const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            // An intermediate buffer is NOT authoritative — close emits no final_summary.
+            expect((lifecycleEnd.ev.result as Record<string, unknown>).final_summary).toBeUndefined();
+        }
+    });
+
+    it('AC-A1 (no-lifecycle): a final_answer with NO lifecycle entry is NOT suppressed (preserve text, no data loss)', () => {
+        // No spawn → no lifecycle entry → the subagent agent_message text must still emit (no suppression).
+        const res = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'agent_message', message: 'orphan final', phase: 'final_answer' },
+            { currentTurnId: 'turn-orphan' }
+        );
+        expect(res.envelopes.filter(e => e.ev.t === 'text')).toHaveLength(1);
+    });
+
+    it('AC-A1 (iter-2 BUG 1): a real final_answer is NOT overwritten by a LATER wait agentsStates.message that differs (the real answer survives in the Result)', () => {
+        // The final-answer child text was OMITTED (#1 suppression), so the buffer is the ONLY carrier of the
+        // real answer. A later wait with a DIVERGENT non-empty agentsStates.message must NOT clobber it, or
+        // the real answer would be rendered nowhere.
+        const begin = spawnState('spawn-bug1', 'child-A', 'inspect iota');
+        const ssn = ssnOf(begin);
+        const fin = agentMessage('THE REAL FINAL ANSWER', begin, { phase: 'final_answer' });
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('THE REAL FINAL ANSWER');
+        expect(fin.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
+        // A later wait_agent end carries a DIFFERENT non-empty agentsStates.message — must NOT overwrite.
+        const waitBegin = step({ type: 'collab_agent_call_begin', call_id: 'wait-bug1', tool: 'wait', receiverThreadIds: ['child-A'] }, fin);
+        const waitEnd = step({
+            type: 'collab_agent_call_end', call_id: 'wait-bug1', tool: 'wait', status: 'completed',
+            receiverThreadIds: ['child-A'], agentsStates: { 'child-A': { status: 'completed', message: 'a divergent wait status line' } },
+        }, waitBegin);
+        // The authoritative final_answer is preserved (provenance unchanged), NOT the wait message.
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummary).toBe('THE REAL FINAL ANSWER');
+        expect(waitEnd.subagentLifecycles.get(ssn)?.bufferedFinalSummarySource).toBe('final_answer');
+        // And the terminal Result (close) inherits the real final_answer, not the divergent wait message.
+        const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-bug1', tool: 'closeAgent', receiverThreadIds: ['child-A'] }, waitEnd);
+        const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-bug1', tool: 'closeAgent', status: 'completed', receiverThreadIds: ['child-A'] }, closeBegin);
+        const lifecycleEnd = closeEnd.envelopes.find(e => e.ev.t === 'tool-call-end' && (e.ev as any).call === `lifecycle:${ssn}`);
+        expect(lifecycleEnd).toBeDefined();
+        if (lifecycleEnd && lifecycleEnd.ev.t === 'tool-call-end') {
+            expect(lifecycleEnd.ev.result).toMatchObject({ final_summary: 'THE REAL FINAL ANSWER' });
+        }
+    });
+
+    it('AC-A1 (iter-2 BUG 2): a final_answer arriving AFTER the lifecycle terminal is rendered as a child text (NOT suppressed into the void)', () => {
+        // Terminate the lifecycle via close_agent (emitLifecycleEnd marks the entry completed). A LATE
+        // final_answer then arrives: suppressing its child text would render it nowhere (flushOpenLifecycles
+        // skips terminal entries), so for a terminal entry the child text MUST be emitted.
+        const begin = spawnState('spawn-bug2', 'child-A', 'inspect kappa');
+        const ssn = ssnOf(begin);
+        // close_agent terminates the lifecycle (no final answer yet).
+        const closeBegin = step({ type: 'collab_agent_call_begin', call_id: 'close-bug2', tool: 'closeAgent', receiverThreadIds: ['child-A'] }, begin);
+        const closeEnd = step({ type: 'collab_agent_call_end', call_id: 'close-bug2', tool: 'closeAgent', status: 'completed', receiverThreadIds: ['child-A'] }, closeBegin);
+        expect(['completed', 'errored']).toContain(closeEnd.subagentLifecycles.get(ssn)?.state);
+        // A LATE final_answer arrives after the terminal — it must render as a visible child text envelope.
+        const lateFinal = agentMessage('the late final answer', closeEnd, { phase: 'final_answer' });
+        const texts = lateFinal.envelopes.filter(e => e.ev.t === 'text');
+        expect(texts).toHaveLength(1);
+        expect((texts[0].ev as any).text).toBe('the late final answer');
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────────
+    // #6a / OBJ-6 (AC-A3) — live no-nickname spawn synthesizes a concise 'Subagent N' label; real wins.
+    // ─────────────────────────────────────────────────────────────────────────────────────────────
+    it('AC-A3 (T1, LIVE-shape): a live spawn WITHOUT agentNickname yields args.agentNickname == the synthesized concise label (not null, not the prompt)', () => {
+        // The LIVE collab_agent_call_begin carries no agentNickname (codex 0.130 collabAgentToolCall has no
+        // nickname field). The producer must synthesize a concise prompt-free label, NOT fall to the prompt.
+        const res = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'live-spawn-1', tool: 'spawnAgent', prompt: 'a very long raw prompt that must NOT become the card title', receiverThreadIds: [], agentsStates: {} },
+            { currentTurnId: 'turn-live' }
+        );
+        const lifecycle = res.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle');
+        expect(lifecycle).toBeDefined();
+        const nickname = (lifecycle!.ev as any).args.agentNickname;
+        expect(nickname).toBe('Subagent 1');
+        expect(nickname).not.toBeNull();
+        expect(nickname).not.toContain('raw prompt');
+    });
+
+    it('AC-A3 (T2, real wins via live message.agentNickname): a spawn WITH a real provider nickname keeps that nickname', () => {
+        const res = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'live-spawn-2', tool: 'spawnAgent', prompt: 'inspect', agentNickname: 'Architect', receiverThreadIds: [], agentsStates: {} },
+            { currentTurnId: 'turn-live' }
+        );
+        const lifecycle = res.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle');
+        expect((lifecycle!.ev as any).args.agentNickname).toBe('Architect');
+    });
+
+    it('AC-A3 (T2, real wins via replay spawn-end OUTPUT nickname): an empty-rcv spawn whose END carries a real nickname promotes it onto the lifecycle (real > synthesized ordinal)', () => {
+        // Real Codex stores the spawn nickname in the function_call_output, forwarded onto the spawn-END as
+        // message.agentNickname. The lifecycle was created at begin with the synthesized 'Subagent 1' label;
+        // the END must promote the real nickname so the real provider nickname wins over the ordinal.
+        const begin = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'replay-spawn-3', tool: 'spawnAgent', prompt: 'inspect', receiverThreadIds: [], agentsStates: {} },
+            { currentTurnId: 'turn-replay' }
+        );
+        const ssn = ssnOf(begin);
+        expect(begin.subagentLifecycles.get(ssn)?.agentNickname).toBe('Subagent 1'); // synthesized at begin
+        const end = step({ type: 'collab_agent_call_end', call_id: 'replay-spawn-3', tool: 'spawnAgent', status: 'completed', agentNickname: 'Reviewer', receiverThreadIds: ['child-rep-3'], agentsStates: { 'child-rep-3': { status: 'running', message: null } } }, begin);
+        expect(end.subagentLifecycles.get(ssn)?.agentNickname).toBe('Reviewer'); // real provider nickname wins
+    });
+
+    it('AC-A3 (T3): two sequential live spawns WITHOUT nicknames → distinct ordinals (Subagent 1 then Subagent 2)', () => {
+        const begin1 = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'live-spawn-4a', tool: 'spawnAgent', prompt: 'first', receiverThreadIds: [], agentsStates: {} },
+            { currentTurnId: 'turn-seq' }
+        );
+        const n1 = (begin1.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle')!.ev as any).args.agentNickname;
+        const begin2 = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'collab_agent_call_begin', call_id: 'live-spawn-4b', tool: 'spawnAgent', prompt: 'second', receiverThreadIds: [], agentsStates: {} },
+            { currentTurnId: 'turn-seq', startedSubagents: begin1.startedSubagents, activeSubagents: begin1.activeSubagents, providerSubagentToSessionSubagent: begin1.providerSubagentToSessionSubagent, subagentLifecycles: begin1.subagentLifecycles }
+        );
+        const n2 = (begin2.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle')!.ev as any).args.agentNickname;
+        expect(n1).toBe('Subagent 1');
+        expect(n2).toBe('Subagent 2');
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────────
+    // #3 / OBJ-7 (AC-A5 LIVE) — live mcp screenshot begin filename reaches the args-less end.
+    // ─────────────────────────────────────────────────────────────────────────────────────────────
+    it('AC-A5 (LIVE begin→end): a live mcp_tool_call_begin with arguments.filename (relative) + an args-less mcp_tool_call_end WITHOUT a markdown link resolves the saved file via the threaded begin args', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'happy-live-shot-'));
+        const relName = 'live-screenshot.png';
+        const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+        writeFileSync(join(dir, relName), PNG);
+        try {
+            // 1. LIVE begin carries arguments.filename; persisted in the threaded toolArgsByCallId map.
+            const begin = mapCodexMcpMessageToSessionEnvelopes(
+                { type: 'mcp_tool_call_begin', call_id: 'live-shot-1', server: 'playwright', tool: 'browser_take_screenshot', arguments: { filename: relName } },
+                { currentTurnId: 'turn-live-shot', sessionCwd: dir }
+            );
+            // 2. LIVE end carries NO arguments and NO markdown link — the threaded begin args supply filename.
+            const end = mapCodexMcpMessageToSessionEnvelopes(
+                { type: 'mcp_tool_call_end', call_id: 'live-shot-1', server: 'playwright', tool: 'browser_take_screenshot', content: 'Captured.' },
+                { currentTurnId: 'turn-live-shot', sessionCwd: dir, toolArgsByCallId: begin.toolArgsByCallId }
+            );
+            const ev = end.envelopes[0].ev;
+            expect(ev.t).toBe('tool-call-end');
+            if (ev.t === 'tool-call-end') {
+                const r = ev.result as any;
+                expect(r.path).toBe(relName);
+                expect(r.preview_uri).toBe(`data:image/png;base64,${PNG.toString('base64')}`);
+                expect(r.preview_unavailable_reason).toBeUndefined();
+            }
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('AC-A5 (codex#3, live byte-equality): a NON-screenshot live mcp end with a prior begin is byte-equal to the no-begin baseline (begin args are NOT merged for non-screenshot tools)', () => {
+        const endMsg = { type: 'mcp_tool_call_end', call_id: 'mcp-nonshot', server: 'github', tool: 'list_issues', output: 'issue list text' } as const;
+        // Baseline: the SAME end with NO prior begin args (no toolArgsByCallId threaded).
+        const baseline = mapCodexMcpMessageToSessionEnvelopes({ ...endMsg }, { currentTurnId: 'turn-be' });
+        // With a prior begin carrying args for this call_id: the live merge MUST be a no-op for non-screenshot
+        // tools (the begin-arg merge is gated to the Playwright screenshot tool — codex#3 regression guard).
+        const begin = mapCodexMcpMessageToSessionEnvelopes(
+            { type: 'mcp_tool_call_begin', call_id: 'mcp-nonshot', server: 'github', tool: 'list_issues', arguments: { repo: 'acme/widgets' } },
+            { currentTurnId: 'turn-be' }
+        );
+        const end = mapCodexMcpMessageToSessionEnvelopes({ ...endMsg }, { currentTurnId: 'turn-be', toolArgsByCallId: begin.toolArgsByCallId });
+        const ev = end.envelopes[0].ev;
+        const baseEv = baseline.envelopes[0].ev;
+        expect(ev.t).toBe('tool-call-end');
+        if (ev.t === 'tool-call-end' && baseEv.t === 'tool-call-end') {
+            // Byte-equal to the no-begin baseline: the merged repo arg never leaks into the output.
+            expect(ev.output).toBe(baseEv.output);
+            expect(ev.output).not.toContain('acme/widgets');
+        }
     });
 });
 

@@ -19,6 +19,8 @@ import {
     attachmentHasRenderableImagePreview,
     readImagePreviewUri,
     extractRequestUserInputUnavailableReason,
+    extractRequestUserInputSummary,
+    buildRequestUserInputFailureLineFromResult,
     CODEX_LIFECYCLE_TOOL,
 } from './codexToolRendering';
 import { normalizeRawMessage } from '@/sync/typesRaw';
@@ -250,6 +252,49 @@ describe('codex rendering helpers', () => {
         expect(replayText.previewUri).toBeNull();
     });
 
+    // Doubly-encoded MCP screenshot shape (mcp__playwright__browser_take_screenshot):
+    // result.content[0] is { type:'text', text:<a JSON STRING> }; that inner string,
+    // when parsed, is { content:[ {type:'text',text:'x'}, {type:'image',data,mimeType} ] }.
+    // The image lives behind a stringified-JSON wrapper, so the flat readValue + the
+    // plain contentItems recursion both miss it. extractAttachmentSummary must parse
+    // the wrapper and surface a non-empty previewUri (otherwise CodexAttachmentView
+    // shows "image preview data unavailable" even though the PNG bytes are present).
+    // Revert-sensitive: removing the JSON-string parse path in findNestedImageDataUri
+    // makes previewUri null and this fails.
+    it('recognizes an image inside a stringified-JSON wrapper (MCP screenshot shape)', () => {
+        const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFBQIAHl6u2QAAAABJRU5ErkJggg==';
+        const screenshotResult = {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify({
+                        content: [
+                            { type: 'text', text: 'x' },
+                            { type: 'image', data: png, mimeType: 'image/png' },
+                        ],
+                    }),
+                },
+            ],
+        };
+        const summary = extractAttachmentSummary({}, screenshotResult);
+        expect(summary.previewUri).toBe(`data:image/png;base64,${png}`);
+        expect(attachmentHasRenderableImagePreview(summary)).toBe(true);
+
+        // Negative control: the same wrapper carrying only a text item must NOT
+        // synthesize a preview (the JSON-parse path must not false-positive).
+        const textOnly = extractAttachmentSummary({}, {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify({
+                        content: [{ type: 'text', text: 'just a note' }],
+                    }),
+                },
+            ],
+        });
+        expect(textOnly.previewUri).toBeNull();
+    });
+
     // AC-B12-1 (fixture honesty): the honest image_gen fixture's preview_uri MUST be
     // derived from its own contentItems base64. A disconnected placeholder preview_uri
     // unrelated to the contentItems bytes must NOT be the rendered preview — this test
@@ -333,14 +378,16 @@ describe('codex rendering helpers', () => {
     });
 
     // AC1/AC7 (sidebar routing) — RECONCILED for Wave-1 Item 1 (spec-20260607-124814):
-    // the predecessor cycles routed the desktop right-sidebar detail of the image_gen aliases
-    // to CodexAttachmentView (rendered the image on the detail surface). Wave-1 INTENTIONALLY
-    // reversed this: the desktop detail is now the text-only ImageToolFullView, gated by the
-    // shared IMAGE_DETAIL_TOOLS Set (imageToolDetail.ts) — never CodexAttachmentView (image),
-    // never the SidebarGenericView JSON/base64 fallback. The old ATTACHMENT_TOOLS Set was
-    // removed. Registry-derived from the actual SidebarContentRenderer.tsx + imageToolDetail.ts
-    // source so it FAILS if a revert re-introduces an image-render path on detail.
-    it('routes both image_gen aliases to the text-only ImageToolFullView on desktop detail (not CodexAttachmentView, not SidebarGenericView) — AC1/AC7', () => {
+    // The user's binding decision: clicking an image tool opens the RENDERED IMAGE on the desktop
+    // right-sidebar detail (CodexAttachmentView). An earlier cycle wrongly re-pointed this to the
+    // text-only ImageToolFullView; that was a misinterpretation and was reversed back to
+    // CodexAttachmentView, gated by the shared IMAGE_DETAIL_TOOLS Set (imageToolDetail.ts) — never
+    // the text-only ImageToolFullView, never the SidebarGenericView JSON/base64 fallback. The old
+    // ATTACHMENT_TOOLS Set was removed. Registry-derived from the actual SidebarContentRenderer.tsx
+    // + imageToolDetail.ts source so it FAILS if a revert re-introduces the text-only path on the
+    // desktop sidebar. (The MOBILE full-detail registry stays ImageToolFullView by design — see the
+    // AC4 test above and _all.test.ts; the two surfaces diverge intentionally.)
+    it('routes both image_gen aliases to the image-rendering CodexAttachmentView on desktop detail (not text-only ImageToolFullView, not SidebarGenericView) — AC1/AC7', () => {
         const sidebarSrc = readFileSync(resolve(__dirname, '../components/sidebar/SidebarContentRenderer.tsx'), 'utf8');
         const imageDetailSrc = readFileSync(resolve(__dirname, '../components/tools/views/imageToolDetail.ts'), 'utf8');
         // The aliases live in the shared IMAGE_DETAIL_TOOLS source-of-truth Set.
@@ -349,10 +396,10 @@ describe('codex rendering helpers', () => {
         const members = setMatch![1];
         expect(members).toContain("'mcp__image_gen__imagegen'");
         expect(members).toContain("'image_gen.imagegen'");
-        // The desktop sidebar routes IMAGE_DETAIL_TOOLS members to the text-only ImageToolFullView.
-        expect(/if \(IMAGE_DETAIL_TOOLS\.has\(tool\.name\)\)\s*\{\s*return <ImageToolFullView/.test(sidebarSrc)).toBe(true);
-        // The old image-render path is gone: no CodexAttachmentView branch / import remains.
-        expect(sidebarSrc).not.toMatch(/<CodexAttachmentView/);
+        // The desktop sidebar routes IMAGE_DETAIL_TOOLS members to the image-rendering CodexAttachmentView.
+        expect(/if \(IMAGE_DETAIL_TOOLS\.has\(tool\.name\)\)\s*\{\s*return <CodexAttachmentView/.test(sidebarSrc)).toBe(true);
+        // Revert guard: the text-only ImageToolFullView is NOT used on the desktop sidebar.
+        expect(sidebarSrc).not.toMatch(/<ImageToolFullView/);
         expect(sidebarSrc).not.toMatch(/ATTACHMENT_TOOLS\b/);
     });
 
@@ -674,6 +721,161 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(unknownNonCodex, false, false)).toBe(false);
         const claudeMcp = makeToolCall('mcp__resources__read', { uri: 'file://fixture.md' }, { resources: [] });
         expect(shouldRenderToolContent(claudeMcp, false, true)).toBe(false);
+    });
+
+    // #5 (Cluster C / AC-C4): the structured extractor for the read-only view.
+    it('AC-C4: extractRequestUserInputSummary surfaces prompt / questions / options / answer', () => {
+        // prompt-only input (no completed answer).
+        const promptOnly = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', { prompt: 'What is your name?' }, undefined, 'running'),
+        );
+        expect(promptOnly.prompt).toBe('What is your name?');
+        expect(promptOnly.questions).toEqual([]);
+        expect(promptOnly.answer).toBeNull();
+
+        // questions[] with options (label + optional description preserved — codex#4).
+        const structured = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', {
+                questions: [{
+                    header: 'Render', question: 'Pick a renderer',
+                    options: [{ label: 'WebGL', description: 'GPU accelerated' }, { label: 'Canvas' }, 'SVG'],
+                }],
+            }, undefined, 'running'),
+        );
+        expect(structured.questions).toHaveLength(1);
+        expect(structured.questions[0]).toMatchObject({ header: 'Render', question: 'Pick a renderer' });
+        expect(structured.questions[0].options).toEqual([
+            { label: 'WebGL', description: 'GPU accelerated' },
+            { label: 'Canvas', description: null },
+            { label: 'SVG', description: null },
+        ]);
+
+        // completed { answers: {...} } object → flattened lines.
+        const answersObj = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', { prompt: 'Q' },
+                { answers: { Render: 'WebGL', Theme: 'Dark' } }, 'completed'),
+        );
+        expect(answersObj.answer).toBe('Render: WebGL\nTheme: Dark');
+
+        // codex#2: a nested answers value ({ answers: [...] } or object) must be
+        // flattened to its selected text, NOT raw-JSON stringified.
+        const nestedAnswers = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', { prompt: 'Q' },
+                { answers: { Render: { answers: ['WebGL', 'Canvas'] }, Theme: { label: 'Dark' } } }, 'completed'),
+        );
+        expect(nestedAnswers.answer).toBe('Render: WebGL, Canvas\nTheme: Dark');
+        expect(nestedAnswers.answer).not.toContain('{');
+
+        // completed bare string output.
+        const stringOut = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', { prompt: 'Q' }, 'Friday works best', 'completed'),
+        );
+        expect(stringOut.answer).toBe('Friday works best');
+
+        // completed object with answer/response/output/message precedence.
+        const responseField = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', { prompt: 'Q' }, { response: 'Yes please' }, 'completed'),
+        );
+        expect(responseField.answer).toBe('Yes please');
+
+        // answer is NOT read from a still-running call (no premature answer).
+        const running = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', { prompt: 'Q' }, { answer: 'leaked' }, 'running'),
+        );
+        expect(running.answer).toBeNull();
+    });
+
+    // #5 (Cluster C / AC-C2 + AC-C4 / OBJ-3 B11): the view-facing failure helper
+    // parses internally so a RAW tool.result (string OR object) reuses the B11
+    // failure logic the GenericToolPreview no longer applies once the view is
+    // registered.
+    it('AC-C2/B11: buildRequestUserInputFailureLineFromResult strips tags + applies object precedence on a RAW result', () => {
+        // string <tool_use_error> payload (raw, unparsed) — tag stripped, body kept.
+        expect(buildRequestUserInputFailureLineFromResult(
+            '<tool_use_error>request_user_input is unavailable in Default mode</tool_use_error>',
+        )).toContain('request_user_input is unavailable in Default mode');
+        expect(buildRequestUserInputFailureLineFromResult(
+            '<tool_use_error>request_user_input is unavailable in Default mode</tool_use_error>',
+        )).not.toContain('<tool_use_error>');
+
+        // object { error: '<tool_use_error>...' } payload — tag stripped via object precedence.
+        const objLine = buildRequestUserInputFailureLineFromResult({ error: '<tool_use_error>stderr boom</tool_use_error>' });
+        expect(objLine).toContain('stderr boom');
+        expect(objLine).not.toContain('<tool_use_error>');
+
+        // RAW JSON STRING object payload — parses internally then applies precedence (codex#6).
+        const jsonString = buildRequestUserInputFailureLineFromResult(
+            JSON.stringify({ stderr: 'from-stderr', error: 'from-error' }),
+        );
+        expect(jsonString).toContain('from-stderr');
+
+        // multi-line failure keeps its line breaks (not collapsed to one summary line).
+        expect(buildRequestUserInputFailureLineFromResult(
+            '<tool_use_error>line one\nline two\nline three</tool_use_error>',
+        )).toContain('line one\nline two\nline three');
+
+        // errorless failure → non-empty fallback (never a blank body).
+        expect(buildRequestUserInputFailureLineFromResult(null)).toContain('Request user input failed with no error output');
+
+        // codex#1 (view precedence): an ERROR payload that ALSO matches the
+        // 'unavailable in Default mode' phrasing must still be tag-stripped. The
+        // view uses this helper (not extractRequestUserInputUnavailableReason) for
+        // state==='error', so the tags never leak. (extractRequestUserInputUnavailableReason
+        // returns the RAW tagged string here — the helper is the safe one.)
+        const taggedUnavailable = '<tool_use_error>request_user_input is unavailable in Default mode</tool_use_error>';
+        expect(buildRequestUserInputFailureLineFromResult(taggedUnavailable))
+            .toContain('request_user_input is unavailable in Default mode');
+        expect(buildRequestUserInputFailureLineFromResult(taggedUnavailable)).not.toContain('<tool_use_error>');
+        // Proof the raw extractor would leak (justifies the view's error-first precedence).
+        expect(extractRequestUserInputUnavailableReason(taggedUnavailable)).toContain('<tool_use_error>');
+    });
+
+    // #5 (Cluster C / AC-C1): once the read-only view is registered
+    // (hasSpecializedView=true), a COMPLETED answer renders the card and a still-
+    // RUNNING request stays header-only; the error/unavailable pre-minimal
+    // exceptions remain intact regardless of minimal:true.
+    it('AC-C1: request_user_input content gating with a registered view (running header-only, completed card)', () => {
+        // RUNNING + registered view → header-only (false) so no padded empty content wrapper.
+        const running = makeToolCall('functions.request_user_input', { prompt: 'Q' }, undefined, 'running');
+        expect(shouldRenderToolContent(running, true, true)).toBe(false);
+
+        // COMPLETED answer + registered view → card renders (true) despite minimal:true.
+        const completed = makeToolCall('functions.request_user_input', {}, { answer: 'ok' }, 'completed');
+        expect(shouldRenderToolContent(completed, true, true)).toBe(true);
+
+        // FAILED → renders inline via the :222 pre-minimal exception (unaffected by the flag/view).
+        const failed = makeToolCall('functions.request_user_input', {}, '<tool_use_error>x</tool_use_error>', 'error');
+        expect(shouldRenderToolContent(failed, true, true)).toBe(true);
+
+        // Completed-unavailable → renders via the :227 exception (unaffected).
+        const unavailable = makeToolCall('functions.request_user_input', { question: 'q' },
+            'request_user_input is unavailable in Default mode', 'completed');
+        expect(shouldRenderToolContent(unavailable, true, true)).toBe(true);
+
+        // No-view legacy path is unchanged: running stays header-only via the minimal gate.
+        expect(shouldRenderToolContent(running, false, true)).toBe(false);
+        // No-view legacy completed answer stays header-only (the registry-flag is load-bearing).
+        expect(shouldRenderToolContent(completed, false, true)).toBe(false);
+    });
+
+    // #5 (Cluster C / AC-C3): the registry wiring resolves request_user_input to
+    // the specialized view on all three surfaces and suppresses the generic raw-JSON
+    // dump on the full-detail route. Source-derived so a revert fails the test.
+    it('AC-C3: request_user_input registered on inline + full-detail + desktop sidebar (raw JSON suppressed)', () => {
+        const allSrc = readFileSync(resolve(__dirname, '../components/tools/views/_all.tsx'), 'utf8');
+        const inlineBlock = /export const toolViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
+        const fullBlock = /export const toolFullViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
+        expect(/'functions\.request_user_input':\s*RequestUserInputView/.test(inlineBlock)).toBe(true);
+        expect(/'functions\.request_user_input':\s*RequestUserInputView/.test(fullBlock)).toBe(true);
+
+        // SPECIALIZED_FULL_PAYLOAD_TOOLS membership suppresses the generic Input/Output/Error dump.
+        const fullViewSrc = readFileSync(resolve(__dirname, '../components/tools/ToolFullView.tsx'), 'utf8');
+        const payloadSet = /SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set\(\[([\s\S]*?)\]\)/.exec(fullViewSrc)?.[1] ?? '';
+        expect(payloadSet).toContain("'functions.request_user_input'");
+
+        // Desktop sidebar routes to the specialized view BEFORE the SidebarGenericView fallback.
+        const sidebarSrc = readFileSync(resolve(__dirname, '../components/sidebar/SidebarContentRenderer.tsx'), 'utf8');
+        expect(/REQUEST_USER_INPUT_TOOLS\.has\(tool\.name\)\)\s*\{\s*return <RequestUserInputView/.test(sidebarSrc)).toBe(true);
     });
 });
 

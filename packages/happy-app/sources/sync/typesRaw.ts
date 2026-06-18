@@ -592,18 +592,18 @@ function normalizeSessionEnvelope(
             return null;
         }
 
+        // AC-D2 (MIN-5): the RAW service envelope stays role:'agent' (the only
+        // valid raw envelope role per the z.enum(['user','agent']) schema), but
+        // the NORMALIZED output is role:'event' with a message AgentEvent so
+        // MessageView renders it gray (e.g. the resumed-Codex-thread notice),
+        // not as normal assistant content.
         return {
             id: messageId,
             localId,
             createdAt: messageCreatedAt,
-            role: 'agent',
+            role: 'event',
             isSidechain: false,
-            content: [{
-                type: 'text',
-                text: envelope.ev.text,
-                uuid: contentUUID,
-                parentUUID
-            }],
+            content: { type: 'message', message: envelope.ev.text } as AgentEvent,
             meta
         } satisfies NormalizedMessage;
     }

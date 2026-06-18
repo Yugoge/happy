@@ -33,7 +33,7 @@ describe('resumeExistingThread', () => {
         const metadataHandlers: Array<(metadata: any) => any> = [];
         const session = {
             updateMetadata: vi.fn((handler) => metadataHandlers.push(handler)),
-            sendSessionEvent: vi.fn(),
+            sendSessionProtocolMessage: vi.fn(),
         };
         const messageBuffer = {
             addMessage: vi.fn(),
@@ -63,10 +63,17 @@ describe('resumeExistingThread', () => {
             codexThreadId: '019ccca2-1a77-7481-9873-de72f3464372',
         });
         expect(messageBuffer.addMessage).toHaveBeenCalledWith(expect.stringContaining('Resumed thread'), 'status');
-        expect(session.sendSessionEvent).toHaveBeenCalledWith({
-            type: 'message',
-            message: 'Resumed Codex thread 019ccca2-1a77-7481-9873-de72f3464372',
+        // AC-D1 (codex#7): exactly ONE app-visible notice, a real t:'service'
+        // envelope (role 'agent' per sessionProtocol.ts:120) — not the legacy
+        // {type:'message'} event, and not both.
+        expect(session.sendSessionProtocolMessage).toHaveBeenCalledTimes(1);
+        const emitted = session.sendSessionProtocolMessage.mock.calls[0][0];
+        expect(emitted.role).toBe('agent');
+        expect(emitted.ev).toMatchObject({
+            t: 'service',
+            text: 'Resumed Codex thread 019ccca2-1a77-7481-9873-de72f3464372',
         });
+        expect((session as Record<string, unknown>).sendSessionEvent).toBeUndefined();
     });
 
     it('AC2: fires M1 daemon re-notify with the RESULT tid (not the requested tid)', async () => {
@@ -80,7 +87,7 @@ describe('resumeExistingThread', () => {
         const session = {
             sessionId: 'happy-session-xyz',
             updateMetadata: vi.fn((handler) => handler({ existing: true })),
-            sendSessionEvent: vi.fn(),
+            sendSessionProtocolMessage: vi.fn(),
         };
         const messageBuffer = { addMessage: vi.fn() };
         await resumeExistingThread({
@@ -104,7 +111,7 @@ describe('resumeExistingThread', () => {
         };
         const session = {
             updateMetadata: vi.fn((handler) => handler({})),
-            sendSessionEvent: vi.fn(),
+            sendSessionProtocolMessage: vi.fn(),
         };
         await resumeExistingThread({
             client,
@@ -125,7 +132,7 @@ describe('resumeExistingThread', () => {
         const session = {
             sessionId: 'happy-resume-session',
             updateMetadata: vi.fn((handler) => handler({ existing: true })),
-            sendSessionEvent: vi.fn(),
+            sendSessionProtocolMessage: vi.fn(),
         };
         await resumeExistingThread({
             client,
@@ -149,7 +156,7 @@ describe('resumeExistingThread', () => {
         };
         const session = {
             updateMetadata: vi.fn(),
-            sendSessionEvent: vi.fn(),
+            sendSessionProtocolMessage: vi.fn(),
         };
         const messageBuffer = {
             addMessage: vi.fn(),

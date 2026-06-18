@@ -541,6 +541,12 @@ export const en: TranslationStructure = {
             otherDescription: 'Type your own answer',
             otherPlaceholder: 'Type your answer...',
         },
+        requestUserInput: {
+            options: 'Options',
+            answer: 'Answer',
+            response: 'Response',
+            noAnswer: 'No answer provided',
+        },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Terminal(cmd: ${cmd})`,
             searchPattern: ({ pattern }: { pattern: string }) => `Search(pattern: ${pattern})`,

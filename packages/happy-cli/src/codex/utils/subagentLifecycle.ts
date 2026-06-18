@@ -21,7 +21,31 @@ export type LifecycleState = {
     // on `wait_agent` end (per Codex TUI wait_complete_lines surface point).
     // Inherited by `close_agent` end's lifecycle terminal envelope.
     bufferedFinalSummary?: string | null;
+    // OBJ-5 (AC-A1 source-tagged buffer precedence): the PROVENANCE of bufferedFinalSummary.
+    //   'final_answer' = an authoritative phase==='final_answer' agent_message text;
+    //   'agentsStates' = an authoritative non-empty wait_agent/close_agent agentsStates.message;
+    //   'intermediate' = a non-final agent_message kept for diagnostics ONLY (never surfaced as Result);
+    //   undefined      = nothing buffered yet.
+    // flush/close emit final_summary ONLY when the provenance is authoritative ('final_answer' |
+    // 'agentsStates') AND the value is non-empty (trim().length > 0). This prevents intermediate
+    // chatter from becoming a false Result and a null/empty agentsStates.message from erasing a real one.
+    bufferedFinalSummarySource?: 'final_answer' | 'agentsStates' | 'intermediate';
 };
+
+// MIN-4 (AC-A1): the SINGLE non-empty definition shared across all buffer writes, the flush gate, and
+// (via the same trim() semantics) AC-B1's renderer equality guard. A whitespace-only summary ('   ')
+// is treated as empty so it never creates a Result and never erases an authoritative summary.
+export function isNonEmptyFinalSummary(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+// AC-A1: a buffered summary is surfaced as the lifecycle Result ONLY when its provenance is authoritative
+// (a real final_answer or a real wait/close agentsStates.message) AND the value is non-empty. Intermediate
+// agent_message text (kept on the entry for diagnostics) is authoritative=false and is never a Result.
+export function isAuthoritativeFinalSummary(entry: Pick<LifecycleState, 'bufferedFinalSummary' | 'bufferedFinalSummarySource'>): boolean {
+    if (entry.bufferedFinalSummarySource !== 'final_answer' && entry.bufferedFinalSummarySource !== 'agentsStates') return false;
+    return isNonEmptyFinalSummary(entry.bufferedFinalSummary);
+}
 
 export const LIFECYCLE_ENVELOPE_NAME = 'functions.subagent_lifecycle';
 
@@ -47,6 +71,18 @@ function lifecycleDescription(prompt: string, sessionSubagent: string): string {
     return prompt || sessionSubagent;
 }
 
+// OBJ-6 (AC-A3 — LIVE no-op FIX): the live collab_agent_call_begin carries NO agentNickname (codex 0.130
+// collabAgentToolCall ThreadItem has no nickname field), so message.agentNickname resolves to null on the
+// live path and the app title fallback (knownTools.tsx agentNickname.trim() -> prompt firstLine) shows the
+// RAW PROMPT — the exact #6a defect. A real provider nickname (replay function_call_output nickname, or a
+// future live message.agentNickname) is authoritative and WINS; only when it is absent does the producer
+// SYNTHESIZE a concise prompt-free label from a DETERMINISTIC per-session signal: the spawn ordinal =
+// subagentLifecycles.size at spawn time (a stable counter), so the Nth spawn becomes 'Subagent N'.
+function resolveAgentNickname(providerNickname: string | null, subagentLifecycles: Map<string, LifecycleState>): string {
+    if (typeof providerNickname === 'string' && providerNickname.trim().length > 0) return providerNickname;
+    return `Subagent ${subagentLifecycles.size + 1}`;
+}
+
 export function emitLifecycleStart(
     sessionSubagent: string,
     spawnCallId: string,
@@ -57,13 +93,15 @@ export function emitLifecycleStart(
     envelopes: SessionEnvelope[],
 ): void {
     if (subagentLifecycles.has(sessionSubagent)) return;
+    // OBJ-6: resolve BEFORE the entry is inserted so the ordinal counts prior spawns only (1-based label).
+    const resolvedNickname = resolveAgentNickname(agentNickname, subagentLifecycles);
     const lifecycleEnvelopeCall = lifecycleCallId(sessionSubagent);
     subagentLifecycles.set(sessionSubagent, {
         spawnCallId,
         lifecycleEnvelopeCall,
         state: 'started',
         prompt,
-        agentNickname,
+        agentNickname: resolvedNickname,
         sessionSubagent,
     });
     envelopes.push(createEnvelope('agent', {
@@ -72,8 +110,25 @@ export function emitLifecycleStart(
         name: LIFECYCLE_ENVELOPE_NAME,
         title: 'Subagent',
         description: lifecycleDescription(prompt, sessionSubagent),
-        args: buildLifecycleStartArgs(sessionSubagent, prompt, agentNickname),
+        args: buildLifecycleStartArgs(sessionSubagent, prompt, resolvedNickname),
     }, opts));
+}
+
+// OBJ-6 / MIN-7 (AC-A3 T2): a REAL provider nickname WINS over the synthesized 'Subagent N' label even
+// when it arrives AFTER the lifecycle was created. Real Codex stores the spawn nickname in the
+// function_call_output ({agent_id, nickname}), which the replay path forwards onto the spawn-END; at that
+// point the lifecycle already exists (created at spawn-begin with the synthesized ordinal label), so the
+// begin-time emitLifecycleStart cannot have seen it. Promote the real nickname onto the existing entry.
+// Only a genuine non-empty provider nickname promotes; a null/empty/missing nickname leaves the
+// synthesized label intact (no regression for the live no-nickname path).
+export function promoteRealAgentNickname(
+    sessionSubagent: string,
+    providerNickname: unknown,
+    subagentLifecycles: Map<string, LifecycleState>,
+): void {
+    if (typeof providerNickname !== 'string' || providerNickname.trim().length === 0) return;
+    const entry = subagentLifecycles.get(sessionSubagent);
+    if (entry) entry.agentNickname = providerNickname;
 }
 
 export function emitLifecycleEnd(
@@ -126,10 +181,22 @@ export function flushOpenLifecycles(
     for (const entry of subagentLifecycles.values()) {
         if (entry.state === 'completed' || entry.state === 'errored') continue;
         entry.state = terminalState;
+        // Bug fix (live-confirmed): a subagent terminated by the end-of-turn flush path WITHOUT an
+        // explicit close_agent never inherited its final answer — the bare { status, lifecycle_state }
+        // result lacked final_summary, so the app's "Result" section never appeared. Capture the summary
+        // onto bufferedFinalSummary so it is available at terminal time. OBJ-5/MIN-4 (AC-A1): the bare
+        // length>0 gate was necessary-not-sufficient — it would surface INTERMEDIATE chatter as a false
+        // Result. Now emit final_summary ONLY when the provenance is AUTHORITATIVE (a real final_answer or
+        // a real wait/close agentsStates.message) AND non-empty under the shared trim() definition, so a
+        // whitespace-only final answer and a flush-without-final_answer both correctly produce NO Result.
         envelopes.push(createEnvelope('agent', {
             t: 'tool-call-end',
             call: entry.lifecycleEnvelopeCall,
-            result: { status: statusValue, lifecycle_state: terminalState },
+            result: {
+                status: statusValue,
+                ...(isAuthoritativeFinalSummary(entry) ? { final_summary: entry.bufferedFinalSummary } : {}),
+                lifecycle_state: terminalState,
+            },
         }, opts));
     }
 }

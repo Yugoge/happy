@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { transformSync } from 'esbuild';
+import { parseUnifiedDiff } from '@/utils/codexUnifiedDiff';
 
 // Wave 1 / Item 9 (spec-20260607-124814 §2) — Codex apply_patch/diff render parity.
 //
@@ -117,5 +119,106 @@ describe('AC4 — CodexDiffView is and stays icon-free (revert guard)', () => {
         expect(diffSrc).not.toMatch(/@expo\/vector-icons/);
         expect(diffSrc).not.toMatch(/\bOcticons\b/);
         expect(diffSrc).not.toMatch(/name="file-diff"/);
+    });
+});
+
+// AC5 (apply_patch ADDED-file diff body) — the producer sends each added file as
+//   change = { diff: '<raw full file content>', kind: { type: 'add' } }
+// i.e. content lives in `change.diff` and is the RAW file body, NOT a unified diff with
+// @@/+/- markers. The bug: getPatchTexts fell through to parseUnifiedDiff(change.diff) on
+// raw content -> empty oldText/newText -> multi-file hasDiff (oldText||newText>0) false ->
+// only the file header rendered, no diff body; single-file rendered an empty ToolDiffView.
+// The fix adds kind-based add/delete raw-content handling BEFORE the parseUnifiedDiff
+// fallback, so an ADD's raw content becomes newText (renders as an all-added file).
+//
+// CodexPatchView.tsx transitively imports react-native (cannot load in node-env vitest),
+// so getPatchTexts is not directly importable. We extract its EXACT source from the file
+// and execute it in a sandbox with the REAL parseUnifiedDiff injected. This is a GENUINE
+// behavioral test of the shipped logic — it FAILS if the add/delete kind branches are
+// reverted (the function would return empty newText again).
+const getPatchTexts = (() => {
+    const start = patchSrc.indexOf('function getPatchTexts');
+    expect(start, 'getPatchTexts function not found in source').toBeGreaterThanOrEqual(0);
+    // The function BODY opens at the brace immediately preceding its first statement
+    // `if (change.modify)`. Anchoring here skips the return-TYPE annotation's own braces
+    // (`: { oldText: string; newText: string }`), which would otherwise be brace-matched
+    // as a (wrong, self-closing) body and yield an empty extraction.
+    const firstStmt = patchSrc.indexOf('if (change.modify)', start);
+    expect(firstStmt, 'getPatchTexts first statement anchor not found').toBeGreaterThan(start);
+    const bodyOpen = patchSrc.lastIndexOf('{', firstStmt);
+    expect(bodyOpen, 'getPatchTexts body-open brace not found').toBeGreaterThan(start);
+    // Balance braces from the body open to its matching close.
+    let depth = 0;
+    let end = -1;
+    for (let i = bodyOpen; i < patchSrc.length; i++) {
+        const c = patchSrc[i];
+        if (c === '{') depth++;
+        else if (c === '}') {
+            depth--;
+            if (depth === 0) { end = i + 1; break; }
+        }
+    }
+    expect(end, 'getPatchTexts closing brace not found').toBeGreaterThan(bodyOpen);
+    // Reconstruct as a plain (untyped) function declaration around the extracted body.
+    const fnSource = `function getPatchTexts(change) ${patchSrc.slice(bodyOpen, end)}`;
+    // Strip any remaining TS syntax so the body can be eval'd as plain JS.
+    const js = transformSync(fnSource, { loader: 'ts' }).code;
+    // Provide the real parseUnifiedDiff so the unified-diff fallback is exercised faithfully.
+    // eslint-disable-next-line no-new-func
+    const factory = new Function('parseUnifiedDiff', `${js}\nreturn getPatchTexts;`);
+    return factory(parseUnifiedDiff) as (change: any) => { oldText: string; newText: string } | null;
+})();
+
+describe('AC5 — getPatchTexts handles kind-based add/delete raw-content (behavioral)', () => {
+    it('add: raw content in change.diff becomes newText, oldText empty', () => {
+        const result = getPatchTexts({ diff: 'line1\nline2\n', kind: { type: 'add' } });
+        expect(result).toEqual({ oldText: '', newText: 'line1\nline2\n' });
+    });
+
+    it('add: raw content is NOT routed through parseUnifiedDiff (no markers stripped)', () => {
+        // A leading '-' on a raw line would be eaten by parseUnifiedDiff; here it must survive.
+        const raw = '-- a SQL comment\nSELECT 1;\n';
+        const result = getPatchTexts({ diff: raw, kind: { type: 'add' } });
+        expect(result).toEqual({ oldText: '', newText: raw });
+    });
+
+    it('delete: raw content in change.diff becomes oldText, newText empty', () => {
+        const result = getPatchTexts({ diff: 'gone1\ngone2\n', kind: { type: 'delete' } });
+        expect(result).toEqual({ oldText: 'gone1\ngone2\n', newText: '' });
+    });
+
+    it('multi-file map of two add entries yields non-empty newText for each (hasDiff true)', () => {
+        const changes: Record<string, any> = {
+            'src/a.ts': { diff: 'export const a = 1;\n', kind: { type: 'add' } },
+            'src/b.ts': { diff: 'export const b = 2;\n', kind: { type: 'add' } },
+        };
+        for (const change of Object.values(changes)) {
+            const texts = getPatchTexts(change);
+            expect(texts).not.toBeNull();
+            // Mirrors CodexPatchView's hasDiff = oldText.length>0 || newText.length>0.
+            const hasDiff = !!texts && (texts.oldText.length > 0 || texts.newText.length > 0);
+            expect(hasDiff).toBe(true);
+            expect(texts!.newText.length).toBeGreaterThan(0);
+        }
+    });
+
+    it('object branches still take precedence over kind-based handling (nested-shape variant)', () => {
+        // When content arrives under change.add, that wins over the kind/diff path.
+        const result = getPatchTexts({
+            kind: { type: 'add' },
+            diff: 'RAW BODY',
+            add: { content: 'NESTED BODY' },
+        });
+        expect(result).toEqual({ oldText: '', newText: 'NESTED BODY' });
+    });
+
+    it('update with a real unified diff still flows through parseUnifiedDiff', () => {
+        const unified = '@@ -1,2 +1,2 @@\n old\n-removed\n+added\n';
+        const result = getPatchTexts({ diff: unified, kind: { type: 'update' } });
+        // parseUnifiedDiff splits context/removed into oldText and context/added into newText.
+        expect(result).not.toBeNull();
+        expect(result!.oldText).toContain('removed');
+        expect(result!.newText).toContain('added');
+        expect(result!.newText).not.toContain('removed');
     });
 });

@@ -10,6 +10,7 @@ import { CodexAttachmentView } from '@/components/tools/views/CodexAttachmentVie
 import { IMAGE_DETAIL_TOOLS } from '@/components/tools/views/imageToolDetail';
 import { CodexParallelView } from '@/components/tools/views/CodexParallelView';
 import { CodexPlanView } from '@/components/tools/views/CodexPlanView';
+import { RequestUserInputView } from '@/components/tools/views/RequestUserInputView';
 
 interface SidebarContentProps {
     tool: ToolCall;
@@ -32,6 +33,11 @@ const PLAN_TOOLS = new Set(['functions.update_plan']);
 // from the shared IMAGE_DETAIL_TOOLS source-of-truth (imageToolDetail.ts) so the set remains the
 // single source of truth across surfaces.
 const PARALLEL_TOOLS = new Set(['multi_tool_use.parallel']);
+// #5 (Cluster C / MIN-2): the desktop right-sidebar uses this SEPARATE renderer
+// whose hardcoded Sets fall through to SidebarGenericView for unregistered tools.
+// Route request_user_input to the specialized read-only view before that fallback
+// so the desktop sidebar detail does not render the generic JSON view.
+const REQUEST_USER_INPUT_TOOLS = new Set(['functions.request_user_input']);
 
 export const SidebarContentRenderer = React.memo<SidebarContentProps>(({ tool, messages, metadata, sessionId }) => {
     if (AGENT_TOOLS.has(tool.name)) {
@@ -54,6 +60,9 @@ export const SidebarContentRenderer = React.memo<SidebarContentProps>(({ tool, m
     }
     if (PARALLEL_TOOLS.has(tool.name)) {
         return <CodexParallelView tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />;
+    }
+    if (REQUEST_USER_INPUT_TOOLS.has(tool.name)) {
+        return <RequestUserInputView tool={tool} messages={messages} metadata={metadata} sessionId={sessionId} />;
     }
     return <SidebarGenericView tool={tool} />;
 });

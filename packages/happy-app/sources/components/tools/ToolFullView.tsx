@@ -29,6 +29,11 @@ const SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set([
     // renders structured Prompt + Tool Calls + Result/final_summary itself, so
     // suppress the raw Input/Output JSON dump that would otherwise duplicate it.
     'functions.subagent_lifecycle',
+    // #5 (Cluster C / MIN-2): RequestUserInputView renders the structured
+    // question/options/answer (+ error reason) itself on the full-detail route,
+    // so suppress the generic Input/Output/Error JSON dump that would otherwise
+    // duplicate it and re-leak the raw failure payload.
+    'functions.request_user_input',
     // Wave-1 Item 1 (spec-20260607-124814): every image-tool detail is now fully owned
     // by ImageToolFullView (view_image / screenshot / image_generation / file / aliases),
     // so the generic Input/Output/Error/Description/RawJson dumps are all suppressed —

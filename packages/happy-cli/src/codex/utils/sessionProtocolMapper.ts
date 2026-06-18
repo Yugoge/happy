@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
+import { isAbsolute, resolve as resolvePath } from 'node:path';
 import { createId } from '@paralleldrive/cuid2';
 import type { ReasoningOutput } from './reasoningProcessor';
 import type { DiffToolCall, DiffToolResult } from './diffProcessor';
@@ -9,7 +10,10 @@ import {
     emitLifecycleStart,
     flushOpenLifecycles,
     getSubagentLifecycles,
+    isAuthoritativeFinalSummary,
+    isNonEmptyFinalSummary,
     LIFECYCLE_ENVELOPE_NAME,
+    promoteRealAgentNickname,
     readAgentsStatesMessage,
     type LifecycleState,
 } from './subagentLifecycle';
@@ -42,6 +46,22 @@ export type CodexTurnState = {
     // (rolloutHistoryReplay.ts); the live/A1 caller (runCodex.ts) never sets it, so the live path stays
     // byte-equal to baseline — multi-target waits collapse to a single begin/end via firstReceiverThreadId.
     replay?: boolean;
+    // Codex Playwright-screenshot fix: the Codex SESSION/THREAD working directory (the cwd the codex run
+    // was started with). The Playwright MCP `browser_take_screenshot` tool saves its PNG relative to THIS
+    // dir and reports a RELATIVE path in the result markdown link / input filename, so a relative path
+    // must be resolved against this base before reading the saved file off disk. Both callers pass
+    // `process.cwd()` (runCodex starts the thread with cwd: process.cwd(); replay runs in the same cwd).
+    // When absent, the producer falls back to process.cwd() at read time.
+    sessionCwd?: string;
+    // OBJ-7 / MIN-1 LIVE (AC-A5): the LIVE mcp_tool_call_end event (codexAppServerClient.ts:639-651) does
+    // NOT forward item.arguments, so a relative Playwright-screenshot `filename` captured at
+    // mcp_tool_call_begin is otherwise discarded by the time the END is mapped — the live filename-only
+    // screenshot case silently no-ops. The mapper is STATELESS across calls (cross-message state lives in
+    // runCodex.ts locals and is threaded in via this state object and read back from the mapper result),
+    // so begin-args must be persisted here keyed by call_id and merged into the END message. Mirrors the
+    // emittedCollabBeginCallIds / waitTargetsByCallId threading: seeded by the caller, returned by the
+    // begin/end handlers, read back by the caller. Cleared on every parent turn boundary.
+    toolArgsByCallId?: Map<string, Record<string, unknown>>;
 };
 
 type CodexMapperResult = {
@@ -53,6 +73,7 @@ type CodexMapperResult = {
     envelopes: SessionEnvelope[];
     emittedCollabBeginCallIds?: Set<string>;
     waitTargetsByCallId?: Map<string, string[]>;
+    toolArgsByCallId?: Map<string, Record<string, unknown>>;
 };
 
 type LegacyToolLikeMessage = {
@@ -118,7 +139,11 @@ const IMAGE_URI_KEYS = new Set(['previewUri', 'preview_uri', 'url', 'uri']);
 const IMAGE_PATH_KEYS = new Set(['path', 'filePath', 'file_path', 'outputPath', 'output_path']);
 const IMAGE_BASE64_KEYS = new Set(['base64', 'imageBase64', 'image_base64', 'b64_json', 'data']);
 const IMAGE_MIME_KEYS = new Set(['mimeType', 'mime_type', 'mediaType', 'media_type']);
-const MARKDOWN_LINK_TARGET_REGEX = /!?\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+// Locator for the start of a markdown link target — `](` (optionally image-prefixed `![..](`). The
+// actual target is then read by a balanced-paren scanner (markdownLinkTargets) rather than a regex, so
+// a target containing SPACES (`shot 1.png`) or inner PARENTHESES (`shot (1).png`) is captured whole
+// instead of being truncated at the first space/`)`.
+const MARKDOWN_LINK_OPEN_REGEX = /!?\[[^\]]*]\(/g;
 const IMAGE_PATH_IN_TEXT_REGEX = /(?:file:\/\/)?(?:\/[^\s"'<>()[\]]+|[A-Za-z]:[\\/][^\s"'<>()[\]]+|[^\s"'<>()[\]]+)\.(?:png|jpe?g|gif|webp|svg)\b/gi;
 
 function getStartedSubagents(state: CodexTurnState): Set<string> {
@@ -143,6 +168,14 @@ function getEmittedCollabBeginCallIds(state: CodexTurnState): Set<string> {
 // Cycle 9 (A2-M1): lazily materialize the per-turn map of multi-target wait BEGIN target lists.
 function getWaitTargetsByCallId(state: CodexTurnState): Map<string, string[]> {
     return state.waitTargetsByCallId ?? new Map<string, string[]>();
+}
+
+// OBJ-7 / MIN-1 LIVE (AC-A5): lazily materialize the per-turn map of LIVE tool BEGIN args keyed by
+// call_id, so a relative Playwright-screenshot `filename` captured at mcp_tool_call_begin survives into
+// the args-less mcp_tool_call_end. Returns the existing map when present so begins recorded earlier in
+// the turn survive into the end handler (the live caller threads it via state and reads it back).
+function getToolArgsByCallId(state: CodexTurnState): Map<string, Record<string, unknown>> {
+    return state.toolArgsByCallId ?? new Map<string, Record<string, unknown>>();
 }
 
 // Cycle 9 (A2-M1): all receiver thread ids from a collab message (NOT just the first), filtered to
@@ -506,11 +539,46 @@ function pathFromImageString(value: unknown): string | null {
     return null;
 }
 
+// Percent-decode a captured path (e.g. `shot%201.png` -> `shot 1.png`) when it is valid percent-encoding;
+// otherwise return it unchanged (a literal `%` that is not an escape must not throw / drop the path).
+function percentDecode(path: string): string {
+    try {
+        return decodeURIComponent(path);
+    } catch {
+        return path;
+    }
+}
+
+// Scan `text` for markdown link targets, reading each target with a balanced-paren scanner so a target
+// containing spaces or inner parentheses is captured in full. After the opening `](`, read characters
+// until the closing `)` that balances the link's own parens (depth tracking), then strip an optional
+// trailing ` "title"` segment. Yields each raw target (already trimmed).
+function* markdownLinkTargets(text: string): Generator<string> {
+    MARKDOWN_LINK_OPEN_REGEX.lastIndex = 0;
+    let open: RegExpExecArray | null;
+    while ((open = MARKDOWN_LINK_OPEN_REGEX.exec(text)) !== null) {
+        let depth = 1;
+        let i = open.index + open[0].length;
+        const start = i;
+        for (; i < text.length && depth > 0; i++) {
+            const ch = text[i];
+            if (ch === '(') depth++;
+            else if (ch === ')') depth--;
+        }
+        if (depth !== 0) continue; // unterminated link — skip
+        let target = text.slice(start, i - 1).trim();
+        const titleMatch = target.match(/\s+"[^"]*"$/);
+        if (titleMatch) target = target.slice(0, target.length - titleMatch[0].length).trim();
+        if (target.length > 0) yield target;
+    }
+}
+
 function firstImagePathFromText(value: unknown): string | null {
     if (typeof value !== 'string') return null;
 
-    for (const match of value.matchAll(MARKDOWN_LINK_TARGET_REGEX)) {
-        const path = pathFromImageString(match[1]);
+    for (const target of markdownLinkTargets(value)) {
+        // Percent-decode first so `shot%201.png` resolves to the on-disk `shot 1.png`.
+        const path = pathFromImageString(percentDecode(target));
         if (path) return path;
     }
 
@@ -522,16 +590,31 @@ function firstImagePathFromText(value: unknown): string | null {
     return null;
 }
 
-function buildPathImagePreview(path: string): Record<string, unknown> {
+// Resolve a possibly-relative image path against the Codex session/thread cwd. A `file://` URL (which
+// may arrive on a DIRECT path field like `{ path: 'file:///tmp/shot.png' }`, not only inside a markdown
+// link) is converted to its absolute filesystem path first; absolute paths are returned as-is; a
+// relative path is joined onto `baseDir` (the session cwd, falling back to process.cwd() when the caller
+// did not thread one). The Playwright MCP screenshot tool saves its PNG relative to the session cwd and
+// reports a RELATIVE path, so this is the only sound base dir.
+function resolveImagePath(path: string, baseDir?: string): string {
+    if (path.startsWith('file://')) {
+        return pathFromImageString(path) ?? path;
+    }
+    if (isAbsolute(path)) return path;
+    return resolvePath(baseDir ?? process.cwd(), path);
+}
+
+function buildPathImagePreview(path: string, baseDir?: string): Record<string, unknown> {
     const mime = imageMimeForPath(path);
     if (!mime) return { path, preview_unavailable_reason: 'unsupported image type' };
+    const resolved = resolveImagePath(path, baseDir);
     try {
-        const stat = statSync(path);
+        const stat = statSync(resolved);
         if (!stat.isFile()) return { path, preview_unavailable_reason: 'image path is not a file' };
         if (stat.size > IMAGE_PREVIEW_MAX_BYTES) {
             return { path, size: stat.size, preview_unavailable_reason: 'image file is too large to preview inline' };
         }
-        const base64 = readFileSync(path).toString('base64');
+        const base64 = readFileSync(resolved).toString('base64');
         return { path, size: stat.size, preview_uri: `data:${mime};base64,${base64}` };
     } catch {
         return { path, preview_unavailable_reason: 'image file unavailable' };
@@ -542,11 +625,149 @@ function buildBase64ImagePreview(value: string, mime: string): Record<string, un
     return { preview_uri: browserLoadableImageUri(value) ? value : `data:${mime};base64,${value}` };
 }
 
-function buildImageToolResult(message: Record<string, unknown>): Record<string, unknown> | undefined {
+// The Playwright MCP screenshot tool. Live name is `mcp__playwright__browser_take_screenshot`, which
+// the codex app-server forwards as a mcp_tool_call_end with server='playwright' tool='browser_take_screenshot'.
+function isPlaywrightScreenshotTool(message: Record<string, unknown>): boolean {
+    return message.server === 'playwright' && message.tool === 'browser_take_screenshot';
+}
+
+// Bound on how deep the result-text harvest recurses through nested MCP content[] arrays and
+// doubly-encoded JSON-string wrappers, so a pathological/cyclic payload cannot blow the stack.
+const RESULT_TEXT_MAX_DEPTH = 6;
+
+// Recursively harvest every plausibly-text field of a tool result that might carry the saved-file
+// markdown link `- [Screenshot of viewport](<path>)`. The LIVE Playwright-screenshot shape is deeply
+// nested AND doubly JSON-encoded:
+//   result.content[0].text === JSON.stringify({ content: [ { type:'text', text:'### Result\n- [..](path)' },
+//                                                          { type:'image', data:'<corrupt…b64>' } ] })
+// so the link lives at result.content[0].text -> JSON.parse -> .content[0].text. A flat read of the
+// top-level content/result/output strings (the old behavior) never reaches it. This walker therefore:
+//   (a) recurses into MCP `content[]` / `result.content[]` / `contentItems[]` arrays, reading each
+//       { type:'text', text } / { content } item; AND
+//   (b) when a collected string is itself JSON (trimmed starts with `{` or `[`), JSON.parse it
+//       (try/catch) and recurse to harvest the inner content[].text — unwrapping the doubly-encoded
+//       wrapper. Bounded by RESULT_TEXT_MAX_DEPTH so huge/cyclic payloads can't loop forever, and only
+//       brace/bracket-leading strings are parsed so ordinary text is never JSON.parsed.
+function collectResultText(message: Record<string, unknown>): string[] {
+    const texts: string[] = [];
+    const visit = (value: unknown, depth: number): void => {
+        if (depth > RESULT_TEXT_MAX_DEPTH) return;
+        if (typeof value === 'string') {
+            if (value.length === 0) return;
+            texts.push(value);
+            // The string may itself be a JSON-encoded MCP result wrapper — unwrap and recurse.
+            const trimmed = value.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                try {
+                    visit(JSON.parse(trimmed), depth + 1);
+                } catch {
+                    // not JSON — already harvested the raw string above.
+                }
+            }
+            return;
+        }
+        if (Array.isArray(value)) {
+            for (const item of value) visit(item, depth + 1);
+            return;
+        }
+        if (isRecord(value)) {
+            visit(value.text, depth + 1);
+            visit(value.content, depth + 1);
+        }
+    };
+    visit(message.content, 0);
+    visit(message.result, 0);
+    visit(message.output, 0);
+    visit(message.contentItems, 0);
+    return texts;
+}
+
+// Read the tool INPUT filename (priority b) from a Playwright-screenshot result message. The codex
+// app-server forwards screenshot input args under `arguments`/`input` (when present) — fall back to a
+// top-level `filename` field. Only a non-empty string is returned.
+function screenshotInputFilename(message: Record<string, unknown>): string | null {
+    const candidates: unknown[] = [message.filename];
+    for (const key of ['arguments', 'input']) {
+        const args = parseRecord(message[key]);
+        if (args) candidates.push(args.filename);
+    }
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim();
+    }
+    return null;
+}
+
+// PRODUCER fix for `mcp__playwright__browser_take_screenshot`: Codex's tool-output bounding layer
+// elides the doubly-encoded inline PNG base64 with a U+2026 '…' at ~512KB, so the inline base64 the
+// generic image extractor would pick up is irreversibly corrupted. Instead resolve the SAVED file off
+// disk and synthesize a clean preview_uri (the same shape view_image/image_generation produce). Path
+// resolution priority:
+//   (a) the markdown link `- [Screenshot of viewport](<path>)` parsed out of the result text;
+//   (b) else the tool input `filename`;
+//   (c) else a direct path field / path-shaped result/output string (legacy artifact shape).
+// Relative paths resolve against the Codex session cwd. On success -> { path, size, preview_uri };
+// on any failure (not found / unsupported / too big / unreadable) -> the existing
+// preview_unavailable_reason fallback. The corrupt inline base64 is NEVER used.
+function resolveScreenshotPath(message: Record<string, unknown>): string | null {
+    for (const text of collectResultText(message)) {
+        const fromLink = firstImagePathFromText(text);
+        if (fromLink) return fromLink;
+    }
+    const filename = screenshotInputFilename(message);
+    if (filename) return pathFromImageString(filename) ?? filename;
+    return readStringByKey(message, IMAGE_PATH_KEYS)
+        ?? pathFromImageString(message.result)
+        ?? pathFromImageString(message.output);
+}
+
+function buildScreenshotFileResult(message: Record<string, unknown>, baseDir?: string): Record<string, unknown> {
+    const path = resolveScreenshotPath(message);
+    if (!path) return { preview_unavailable_reason: 'screenshot file path unavailable' };
+    return buildPathImagePreview(path, baseDir);
+}
+
+// Shared image_generation_end normalizer (used by the live/replay mapper handler AND the replay child-merge
+// path, codex#6). codex finding 6: `result` is a RAW base64 PNG (not a path/uri), and the generic image
+// extraction (buildImageToolResult/IMAGE_BASE64_KEYS) does NOT treat `result` as base64 — so normalize it
+// into a browser-loadable data:image/png;base64 preview_uri here (idempotent if it already arrives as a
+// data:/http(s) URI). The multi-MB raw `result` is dropped once normalized so it is not re-serialized into
+// both `output` and `result`. A result-less completion falls back to the on-disk `savedPath` (codex
+// finding 1) so the image still renders via the path-based preview. Also stamps `type:'image_generation_end'`
+// so buildImageToolResult's image guard accepts it on the child path.
+export function normalizeImageGenerationEnd(message: Record<string, unknown>): Record<string, unknown> {
+    const rawResult = typeof message.result === 'string' ? message.result.trim() : '';
+    const savedPath = typeof message.savedPath === 'string' ? message.savedPath.trim() : '';
+    const normalized: Record<string, unknown> = { ...message, type: 'image_generation_end' };
+    if (rawResult.length > 0) {
+        normalized.preview_uri = browserLoadableImageUri(rawResult) ? rawResult : `data:image/png;base64,${rawResult}`;
+        delete normalized.result;
+    } else if (savedPath.length > 0) {
+        normalized.path = savedPath;
+    }
+    return normalized;
+}
+
+// Exported for the replay child-merge path (AC-A5): child rollout image/mcp tool ENDs are synthesized
+// outside the mapper (buildChildEndEnvelope), so they must call the same image-preview synthesis directly
+// to reconstruct preview_uri from the on-disk saved file (relative paths resolve against `baseDir`, the
+// child rollout's session_meta cwd). Returns the image result record, or undefined for a non-image tool.
+export function buildImageToolResult(message: Record<string, unknown>, baseDir?: string): Record<string, unknown> | undefined {
     const type = typeof message.type === 'string' ? message.type : '';
     const name = `${type} ${message.server ?? ''} ${message.namespace ?? ''} ${message.tool ?? ''}`.toLowerCase();
     if (type !== 'image_view_end' && !/(screenshot|image)/.test(name)) return undefined;
     const source = parseRecord(message.result) ?? parseRecord(message.output) ?? message;
+    // Playwright-screenshot-specific path: the inline base64 is corrupted by Codex's output bounding
+    // (U+2026 elision), so prefer the SAVED file on disk and ignore the inline base64 entirely. Strictly
+    // scoped to mcp__playwright__browser_take_screenshot — every other tool keeps the generic path below.
+    if (isPlaywrightScreenshotTool(message)) {
+        const fileResult = buildScreenshotFileResult(message, baseDir);
+        // The file-based result is AUTHORITATIVE: drop any stale preview_uri / preview_unavailable_reason
+        // carried on the source message (the live shape ships a top-level preview_unavailable_reason AND a
+        // corrupt inline payload) so success yields ONLY a clean preview_uri and failure yields ONLY a
+        // preview_unavailable_reason — never both, and never the corrupt inline base64.
+        const { preview_uri: _staleUri, preview_unavailable_reason: _staleReason, ...sourceRest } = source;
+        return { ...sourceRest, ...fileResult };
+    }
     const resultUri = typeof message.result === 'string' && browserLoadableImageUri(message.result) ? message.result : null;
     const outputUri = typeof message.output === 'string' && browserLoadableImageUri(message.output) ? message.output : null;
     const uri = readStringByKey(source, IMAGE_URI_KEYS) ?? readStringByKey(message, IMAGE_URI_KEYS)
@@ -562,18 +783,38 @@ function buildImageToolResult(message: Record<string, unknown>): Record<string, 
     const mime = readStringByKey(source, IMAGE_MIME_KEYS) ?? (path ? imageMimeForPath(path) : null) ?? 'image/png';
     const preview = uri && browserLoadableImageUri(uri) ? { preview_uri: uri }
         : base64 ? buildBase64ImagePreview(base64, mime)
-            : path ? buildPathImagePreview(path)
+            : path ? buildPathImagePreview(path, baseDir)
                 : { preview_unavailable_reason: 'image preview data unavailable' };
     return { ...source, ...preview };
+}
+
+// OBJ-7 / MIN-1 LIVE (AC-A5): merge persisted tool BEGIN args into the args-less END message so a relative
+// screenshot `filename` (captured at mcp_tool_call_begin) reaches screenshotInputFilename. The END's OWN
+// fields are AUTHORITATIVE and win — begin args only fill gaps (codex#2): the top-level `filename` is
+// back-filled ONLY when neither the END's top-level `filename` NOR its parsed `arguments.filename` is
+// present (those are the two places screenshotInputFilename reads), and `arguments` is merged with the
+// END's own keys overriding the begin args. This helper is called ONLY for the Playwright screenshot tool
+// (codex#3 — see the call site gate), so it never alters a non-screenshot MCP end's serialized output.
+function mergeBeginArgsIntoEnd(message: Record<string, unknown>, beginArgs: Record<string, unknown>): Record<string, unknown> {
+    const endArgs = parseRecord(message.arguments);
+    const mergedArgs = { ...beginArgs, ...(endArgs ?? {}) };
+    const merged: Record<string, unknown> = { ...message, arguments: mergedArgs };
+    const endHasFilename = typeof message.filename === 'string' && message.filename.trim().length > 0;
+    const endArgsHasFilename = typeof endArgs?.filename === 'string' && (endArgs.filename as string).trim().length > 0;
+    if (!endHasFilename && !endArgsHasFilename && typeof beginArgs.filename === 'string') {
+        merged.filename = beginArgs.filename;
+    }
+    return merged;
 }
 
 function toolEndEnvelope(
     call: string,
     message: Record<string, unknown>,
     opts: CreateEnvelopeOptions,
+    baseDir?: string,
 ): SessionEnvelope {
     const output = buildToolEndOutput(message);
-    const result = buildCodexCommandResult(message) ?? buildImageToolResult(message);
+    const result = buildCodexCommandResult(message) ?? buildImageToolResult(message, baseDir);
     return createEnvelope('agent', {
         t: 'tool-call-end',
         call,
@@ -590,6 +831,10 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
     const subagentLifecycles = getSubagentLifecycles(state);
     const emittedCollabBeginCallIds = getEmittedCollabBeginCallIds(state);
     const waitTargetsByCallId = getWaitTargetsByCallId(state);
+    const toolArgsByCallId = getToolArgsByCallId(state);
+    // Codex session/thread cwd — the base dir for resolving a relative saved-screenshot path. Both
+    // callers thread process.cwd(); buildPathImagePreview falls back to process.cwd() when absent.
+    const sessionCwd = state.sessionCwd;
 
     if (type === 'task_started') {
         const turnId = pickWrapperTurnId(message) ?? createId();
@@ -603,12 +848,13 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // greenwash an end in this turn).
         emittedCollabBeginCallIds.clear();
         waitTargetsByCallId.clear();
-        return { currentTurnId: turnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes: [turnStart] };
+        toolArgsByCallId.clear();
+        return { currentTurnId: turnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, toolArgsByCallId, envelopes: [turnStart] };
     }
 
     if (type === 'task_complete' || type === 'turn_aborted') {
         if (!state.currentTurnId) {
-            return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes: [] };
+            return { currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, toolArgsByCallId, envelopes: [] };
         }
         // Cycle 7 (M2.a): lifecycle-END / turn-end for a close/abort record inherit THIS record's time.
         const lifecycleOpts = { turn: state.currentTurnId, ...(typeof state.recordTime === 'number' && Number.isFinite(state.recordTime) ? { time: state.recordTime } : {}) } satisfies CreateEnvelopeOptions;
@@ -620,8 +866,9 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // Cycle 8 (M5): the parent turn ended — drop the emitted-begin Set so the next turn starts clean.
         emittedCollabBeginCallIds.clear();
         waitTargetsByCallId.clear();
+        toolArgsByCallId.clear();
         return {
-            currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId,
+            currentTurnId: null, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, toolArgsByCallId,
             envelopes: [
                 ...lifecycleEnvelopes,
                 ...emitSubagentStops(lifecycleOpts, startedSubagents, activeSubagents),
@@ -644,7 +891,50 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
 
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(createEnvelope('agent', { t: 'text', text: message.message }, opts));
+
+        // #1 / OBJ-5 (AC-A1): a subagent's FINAL answer is single-sourced in the lifecycle Result, so OMIT
+        // the visible child {t:'text'} envelope for it when a lifecycle entry exists (the fix is OMISSION,
+        // not replacement — codex#4: no new session-protocol shape). Intermediate (non-final) subagent text
+        // STILL emits as visible text; a final answer with NO lifecycle entry is NOT suppressed (preserve
+        // text, no data loss); non-subagent finals are unchanged.
+        const lifecycleEntry = subagent ? subagentLifecycles.get(subagent) : undefined;
+        const isFinalAnswer = message.phase === 'final_answer';
+        // iter-2 BUG 2: only suppress the final-answer child for a NON-TERMINAL lifecycle entry. If the
+        // lifecycle is already terminal (completed/errored — its Result was already emitted by
+        // emitLifecycleEnd/flushOpenLifecycles, and flushOpenLifecycles SKIPS terminal entries), a LATE
+        // final_answer arriving after the terminal would be suppressed AND never re-buffered into a Result —
+        // i.e. rendered NOWHERE. So for a terminal entry, emit the child text envelope normally; Cluster B's
+        // app-side equality guard drops it only if the Result already contains the same text (no duplicate),
+        // but it can never vanish.
+        const lifecycleIsTerminal = lifecycleEntry?.state === 'completed' || lifecycleEntry?.state === 'errored';
+        const suppressFinalChildText = !!lifecycleEntry && isFinalAnswer && !lifecycleIsTerminal;
+        if (!suppressFinalChildText) {
+            envelopes.push(createEnvelope('agent', { t: 'text', text: message.message }, opts));
+        }
+
+        // OBJ-5 / MIN-4 (AC-A1 source-tagged buffer precedence): bufferedFinalSummary feeds the lifecycle
+        // Result via flush/close. Provenance rules so intermediate chatter never becomes a false Result and
+        // a real final_answer is authoritative:
+        //   - a NON-EMPTY phase==='final_answer' agent_message → authoritative ('final_answer');
+        //   - a non-final agent_message → kept on the entry as 'intermediate' (diagnostics only) but ONLY
+        //     when nothing authoritative is already buffered (never clobber a real final_answer with later
+        //     intermediate chatter), and NEVER promoted to the Result (isAuthoritativeFinalSummary gates it);
+        //   - a whitespace-only final_answer does NOT populate the summary (trim().length>0).
+        if (lifecycleEntry) {
+            if (isFinalAnswer) {
+                if (isNonEmptyFinalSummary(message.message)) {
+                    lifecycleEntry.bufferedFinalSummary = message.message;
+                    lifecycleEntry.bufferedFinalSummarySource = 'final_answer';
+                }
+            } else if (lifecycleEntry.bufferedFinalSummarySource !== 'final_answer' && lifecycleEntry.bufferedFinalSummarySource !== 'agentsStates') {
+                // Non-authoritative intermediate text — retain the latest for diagnostics, but never erase
+                // a non-empty value with an empty one, and never mark it authoritative.
+                if (isNonEmptyFinalSummary(message.message)) {
+                    lifecycleEntry.bufferedFinalSummary = message.message;
+                    lifecycleEntry.bufferedFinalSummarySource = 'intermediate';
+                }
+            }
+        }
         if (subagent && message.phase === 'final_answer') {
             maybeEmitSubagentStop(subagent, opts, activeSubagents, envelopes);
             envelopes.push(createEnvelope('agent', {
@@ -893,7 +1183,18 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
                 const entry = targetSsn ? subagentLifecycles.get(targetSsn) : undefined;
                 if (entry && isRecord(own)) {
                     const msg = own.message;
-                    if (typeof msg === 'string' || msg === null) entry.bufferedFinalSummary = msg;
+                    // OBJ-5 (AC-A1): only a NON-EMPTY agentsStates.message is authoritative; a null/empty
+                    // message MUST NOT erase an existing authoritative summary (the prior code overwrote
+                    // with null here, clobbering a real final answer).
+                    // iter-2 BUG 1: a real phase==='final_answer' is authoritative and MUST NOT be overwritten
+                    // by a LATER wait agentsStates.message — because the final-answer child text envelope was
+                    // OMITTED (the #1 suppression), letting a divergent wait message clobber it would zero-render
+                    // the real answer (it lives ONLY in the buffer). So a wait write is gated to entries whose
+                    // buffer is NOT already an authoritative 'final_answer'.
+                    if (isNonEmptyFinalSummary(msg) && entry.bufferedFinalSummarySource !== 'final_answer') {
+                        entry.bufferedFinalSummary = msg;
+                        entry.bufferedFinalSummarySource = 'agentsStates';
+                    }
                 }
             });
             waitTargetsByCallId.delete(call);
@@ -914,6 +1215,12 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // Cycle 7 (M1.c): retro-emit lifecycle-start BEFORE the control-verb child end so `ssn` is
         // registered as a parent-id before the child links to it (idempotent — subagentLifecycle.ts:59).
         if (verb === 'spawn_agent' && ssn && !subagentLifecycles.has(ssn)) emitLifecycleStart(ssn, call, typeof message.prompt === 'string' ? message.prompt : '', typeof message.agentNickname === 'string' ? message.agentNickname : null, opts, subagentLifecycles, envelopes);
+        // OBJ-6 / MIN-7 (AC-A3 T2): the REAL provider nickname lives in the spawn function_call_output
+        // ({agent_id, nickname}); the replay path forwards it onto this spawn-END as message.agentNickname.
+        // The lifecycle was created at spawn-BEGIN with the synthesized 'Subagent N' ordinal label (the
+        // begin had no nickname), so promote the real nickname onto the entry now — a real provider nickname
+        // WINS over the synthesized label. A null/empty/missing nickname leaves the synthesized label intact.
+        if (verb === 'spawn_agent' && ssn) promoteRealAgentNickname(ssn, message.agentNickname, subagentLifecycles);
         // Cycle 7 (M1/M1.a/M1.b): emit the control-verb tool-call-END as a recursion-safe sidechain CHILD
         // (matching the begin: call = provider call_id (never ssn), opts.subagent = ssn) so begin/end pair
         // under the same sidechain parent. END carries no args, so M1.b (omit sessionSubagent) is automatic.
@@ -931,15 +1238,26 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             envelopes.push(toolEndEnvelope(call, message, childEndOpts));
         }
         // Cycle 7 §5.3.D.5: real path event.agentsStates[id].message; wait buffers, close emits.
+        // OBJ-5 (AC-A1): only a NON-EMPTY agentsStates.message is authoritative; a null/empty fromAS MUST
+        // NOT erase an existing authoritative summary (the prior code overwrote with a null fromAS here).
         const entry = ssn ? subagentLifecycles.get(ssn) : undefined;
         const fromAS = (verb === 'wait_agent' || verb === 'close_agent') ? readAgentsStatesMessage(message) : undefined;
-        if (verb === 'wait_agent' && entry && fromAS !== undefined) entry.bufferedFinalSummary = fromAS;
-        else if (verb === 'close_agent' && ssn) {
+        if (verb === 'wait_agent' && entry && isNonEmptyFinalSummary(fromAS) && entry.bufferedFinalSummarySource !== 'final_answer') {
+            // iter-2 BUG 1: an authoritative 'final_answer' is NOT overwritten by a later wait message (the
+            // final-answer child text is OMITTED, so the buffer is the only carrier — clobbering it with a
+            // divergent wait message would zero-render the real answer). null/empty still never erases.
+            entry.bufferedFinalSummary = fromAS;
+            entry.bufferedFinalSummarySource = 'agentsStates';
+        } else if (verb === 'close_agent' && ssn) {
             const status = typeof message.status === 'string' ? message.status : 'completed';
-            const buf = entry?.bufferedFinalSummary;
-            const finalSummary = (buf !== undefined && buf !== null) ? buf : (fromAS ?? undefined);
+            // Precedence (codex#1): the existing AUTHORITATIVE buffer first (a real final_answer / earlier
+            // wait agentsStates.message — NOT intermediate chatter), then this close's own non-empty
+            // agentsStates.message (itself authoritative). isAuthoritativeFinalSummary gates provenance so an
+            // 'intermediate'-sourced buffer can never win over the close-time agentsStates.message.
+            const buf = entry && isAuthoritativeFinalSummary(entry) ? entry.bufferedFinalSummary : undefined;
+            const finalSummary = buf ?? (isNonEmptyFinalSummary(fromAS) ? fromAS : undefined);
             const terminal = (status === 'completed') ? 'completed' : 'errored';
-            emitLifecycleEnd(ssn, terminal, { status, ...(finalSummary !== undefined && finalSummary !== null ? { final_summary: finalSummary } : {}), lifecycle_state: terminal }, opts, subagentLifecycles, envelopes);
+            emitLifecycleEnd(ssn, terminal, { status, ...(isNonEmptyFinalSummary(finalSummary) ? { final_summary: finalSummary } : {}), lifecycle_state: terminal }, opts, subagentLifecycles, envelopes);
         }
         return { currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, envelopes };
     }
@@ -978,7 +1296,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
         // Item 2: normalize an unavailable functions.request_user_input into an error
         // shape the existing app reducer flags as state:'error' (no-op for every other tool).
-        envelopes.push(toolEndEnvelope(call, normalizeRequestUserInputUnavailable(message), opts));
+        envelopes.push(toolEndEnvelope(call, normalizeRequestUserInputUnavailable(message), opts, sessionCwd));
         return {
             currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
         };
@@ -996,6 +1314,11 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             : {};
         const title = server.length > 0 ? `MCP: ${server}.${tool}` : `MCP: ${tool}`;
 
+        // OBJ-7 / MIN-1 LIVE (AC-A5): persist the LIVE begin args (notably a relative screenshot `filename`)
+        // keyed by call_id so the args-less mcp_tool_call_end can recover them — the live end event does NOT
+        // forward item.arguments, so without this the live filename-only screenshot case cannot resolve.
+        if (Object.keys(args).length > 0) toolArgsByCallId.set(call, args);
+
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
         envelopes.push(
@@ -1009,7 +1332,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
             }, opts)
         );
         return {
-            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
+            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, toolArgsByCallId, envelopes,
         };
     }
 
@@ -1017,9 +1340,18 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(toolEndEnvelope(call, message, opts));
+        // OBJ-7 / MIN-1 LIVE (AC-A5): merge the persisted begin args into the args-less live END so a
+        // relative screenshot `filename` reaches screenshotInputFilename when the markdown link is absent.
+        // SCOPED to the Playwright screenshot tool ONLY (codex#3): merging `arguments` into a non-screenshot
+        // MCP end would flip buildToolEndOutput from a plain `output` string to JSON — a live-path regression.
+        // The END's own fields win over the begin args (begin args only FILL gaps the end lacks).
+        const beginArgs = toolArgsByCallId.get(call);
+        const endMessage = (beginArgs && isPlaywrightScreenshotTool(message)) ? mergeBeginArgsIntoEnd(message, beginArgs) : message;
+        // sessionCwd resolves a relative saved-screenshot path (mcp__playwright__browser_take_screenshot).
+        envelopes.push(toolEndEnvelope(call, endMessage, opts, sessionCwd));
+        toolArgsByCallId.delete(call);
         return {
-            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
+            currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, emittedCollabBeginCallIds, waitTargetsByCallId, toolArgsByCallId, envelopes,
         };
     }
 
@@ -1086,7 +1418,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const call = pickCallId(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(toolEndEnvelope(call, message, opts));
+        envelopes.push(toolEndEnvelope(call, message, opts, sessionCwd));
         return {
             currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
         };
@@ -1164,32 +1496,10 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
 
     if (type === 'image_generation_end') {
         const call = pickCallId(message);
-        // codex finding 6: `result` is a RAW base64 PNG (not a path/uri). The
-        // existing image preview extraction (buildImageToolResult/IMAGE_BASE64_KEYS)
-        // does NOT treat `result` as base64, so normalize it into a browser-loadable
-        // data:image/png;base64 preview_uri here (idempotent if it already arrives
-        // as a data:/http(s) URI) before toolEndEnvelope builds the image result.
-        const rawResult = typeof message.result === 'string' ? message.result.trim() : '';
-        const savedPath = typeof message.savedPath === 'string' ? message.savedPath.trim() : '';
-        const normalized: Record<string, unknown> = { ...message };
-        if (rawResult.length > 0) {
-            normalized.preview_uri = browserLoadableImageUri(rawResult)
-                ? rawResult
-                : `data:image/png;base64,${rawResult}`;
-            // The raw `result` is a multi-MB base64 PNG. Once normalized into
-            // preview_uri, drop it so buildToolEndOutput / buildImageToolResult do
-            // NOT re-serialize the megabyte payload into both `output` and `result`
-            // (codex finding 6 — would ~triple per-envelope memory and threaten
-            // inline rendering / persistence).
-            delete normalized.result;
-        } else if (savedPath.length > 0) {
-            // result-less completion: fall back to the on-disk savedPath so the
-            // image still renders inline via the path-based preview (codex finding 1).
-            normalized.path = savedPath;
-        }
+        const normalized = normalizeImageGenerationEnd(message);
         const envelopes: SessionEnvelope[] = [];
         maybeEmitSubagentStart(subagent, opts, startedSubagents, activeSubagents, envelopes);
-        envelopes.push(toolEndEnvelope(call, normalized, opts));
+        envelopes.push(toolEndEnvelope(call, normalized, opts, sessionCwd));
         return {
             currentTurnId: state.currentTurnId, startedSubagents, activeSubagents, providerSubagentToSessionSubagent, subagentLifecycles, envelopes,
         };

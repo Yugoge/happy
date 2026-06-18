@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { createEnvelope, type CreateEnvelopeOptions, type SessionEnvelope } from '@slopus/happy-wire';
 import { logger } from '@/ui/logger';
 import {
+    buildImageToolResult,
     mapCodexMcpMessageToSessionEnvelopes,
+    normalizeImageGenerationEnd,
     type CodexTurnState,
 } from './utils/sessionProtocolMapper';
 import { flushOpenLifecycles, lifecycleCallId, type LifecycleState } from './utils/subagentLifecycle';
@@ -54,11 +56,28 @@ export type CodexRolloutHistoryReplayResult = {
 type ReplayState = {
     mapper: CodexTurnState;
     toolNamesByCallId: Map<string, string>;
+    // MIN-1 (AC-A4): the PARENT replay persists ONLY the tool name (toolNamesByCallId) at function_call
+    // begin, discarding the parsed begin arguments by the time the function_call_output (END) is synthesized.
+    // A relative Playwright-screenshot `filename` therefore cannot be resolved on the synthesized END.
+    // Persist the begin args keyed by call_id here so the END synthesis can thread them (notably `filename`)
+    // into the image/mcp end record, mirroring the live mapper's toolArgsByCallId.
+    toolArgsByCallId: Map<string, Record<string, unknown>>;
     // Cycle 8 (M2): agent_id -> {ssn, parentTurnId} bindings captured at parent spawn-output time,
     // stored on the replay state (OUTSIDE the mapper's CodexTurnState) so they survive the parent's
     // task_complete map-clears. Consumed by the child-merge pass after the parent replay finishes.
     childSpawnBindings: Map<string, ChildSpawnBinding>;
 };
+
+// MIN-1 (AC-A4/A5): replayed image tools must route through the mapper's image-preview synthesis paths
+// (image_view_* / image_generation_* / mcp screenshot) instead of the generic dynamic path which produces
+// NO preview_uri. Detect the two non-mcp image tool families by name (mcp screenshot tools already route
+// through mcp_tool_call_begin/end via mcpPartsFromName). `view_image` reports a `path`; `image_generation`
+// (camel or snake) reports a generated result/savedPath.
+function imageToolKind(name: string): 'view_image' | 'image_generation' | null {
+    if (name === 'view_image') return 'view_image';
+    if (name === 'image_generation' || name === 'imageGeneration') return 'image_generation';
+    return null;
+}
 
 function codexHome(explicitHome?: string): string {
     return explicitHome ?? process.env.CODEX_HOME ?? join(homedir(), '.codex');
@@ -240,8 +259,14 @@ function createReplayState(): ReplayState {
             // Cycle 9 (A2-M1): seed the multi-target wait BEGIN target map on the REPLAY path so the
             // per-target END enumeration finds the persisted begin list (replay-only; live A1 leaves unset).
             waitTargetsByCallId: new Map<string, string[]>(),
+            // Codex Playwright-screenshot fix: resolve a relative saved-screenshot path against the codex
+            // session cwd (replay runs in the same cwd the thread was started with). Preserved in mapWithState.
+            sessionCwd: process.cwd(),
         },
         toolNamesByCallId: new Map<string, string>(),
+        // MIN-1 (AC-A4): persist parent begin args by call_id so the synthesized END resolves a relative
+        // screenshot filename (the function_call_output carries no begin args).
+        toolArgsByCallId: new Map<string, Record<string, unknown>>(),
         childSpawnBindings: new Map<string, ChildSpawnBinding>(),
     };
 }
@@ -266,6 +291,12 @@ function mapWithState(message: Record<string, unknown>, state: ReplayState): Ses
         // Cycle 9 (A2-M1): preserve the multi-target wait BEGIN target list (keyed by call_id) across the
         // rebuild so the per-target END enumeration reuses the begin list (it arrives in a later call).
         waitTargetsByCallId: mapped.waitTargetsByCallId ?? state.mapper.waitTargetsByCallId,
+        // OBJ-7 (AC-A5, codex#4): preserve the live mcp BEGIN-arg map across the rebuild so a replayed
+        // event_msg mcp screenshot begin (routed through the mapper, not the response_item synthesis) can
+        // feed its args-less end. Without this, an event_msg-shaped screenshot begin/end loses the filename.
+        toolArgsByCallId: mapped.toolArgsByCallId ?? state.mapper.toolArgsByCallId,
+        // Codex Playwright-screenshot fix: the mapper result omits sessionCwd; preserve it across the rebuild.
+        sessionCwd: state.mapper.sessionCwd,
     };
     return mapped.envelopes;
 }
@@ -303,6 +334,29 @@ function mapFunctionCall(payload: Record<string, unknown>, state: ReplayState): 
     const name = normalizeToolName(payload.name);
     const args = parseArguments(payload.arguments);
     state.toolNamesByCallId.set(callId, name);
+    // MIN-1 (AC-A4): persist the begin args so the synthesized END (function_call_output) can thread them
+    // (notably a relative screenshot `filename`) into the image/mcp end record.
+    if (Object.keys(args).length > 0) state.toolArgsByCallId.set(callId, args);
+
+    // MIN-1 (AC-A4): route replayed image tools through the mapper's image-preview synthesis paths instead
+    // of the generic dynamic_tool_call_* (which yields no preview_uri). view_image -> image_view_begin so
+    // the mapper image_view handler runs; image_generation -> image_generation_begin so the mapper
+    // image_generation handler runs. mcp screenshot tools already route via mcpPartsFromName below.
+    const imageKind = imageToolKind(name);
+    if (imageKind === 'view_image') {
+        return mapWithState({
+            type: 'image_view_begin',
+            call_id: callId,
+            path: typeof args.path === 'string' ? args.path : '',
+        }, state);
+    }
+    if (imageKind === 'image_generation') {
+        return mapWithState({
+            type: 'image_generation_begin',
+            call_id: callId,
+            revisedPrompt: typeof args.revisedPrompt === 'string' ? args.revisedPrompt : (typeof args.prompt === 'string' ? args.prompt : ''),
+        }, state);
+    }
 
     if (name === 'exec_command') {
         return mapWithState({
@@ -377,6 +431,9 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
 
     const name = state.toolNamesByCallId.get(callId) ?? 'unknown';
     const output = outputText(payload.output);
+    // MIN-1 (AC-A4): recover the begin args persisted at function_call time (the output record carries none).
+    const beginArgs = state.toolArgsByCallId.get(callId);
+    state.toolArgsByCallId.delete(callId);
 
     if (name === 'exec_command') {
         return mapWithState({
@@ -396,6 +453,31 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
         }, state);
     }
 
+    // MIN-1 (AC-A4): route replayed image-tool ends through the mapper image-preview synthesis paths so
+    // result.preview_uri is reconstructed from the on-disk saved file (graceful fallback when it is gone).
+    const imageKind = imageToolKind(name);
+    if (imageKind === 'view_image') {
+        return mapWithState({
+            type: 'image_view_end',
+            call_id: callId,
+            // view_image reports the viewed file path in the begin args; thread it onto the END so the
+            // mapper's buildImageToolResult resolves the saved file (relative -> session cwd).
+            ...(beginArgs && typeof beginArgs.path === 'string' ? { path: beginArgs.path } : {}),
+            output,
+            result: payload.output,
+            status: 'completed',
+        }, state);
+    }
+    if (imageKind === 'image_generation') {
+        return mapWithState({
+            type: 'image_generation_end',
+            call_id: callId,
+            output,
+            result: payload.output,
+            status: 'completed',
+        }, state);
+    }
+
     const mcpParts = mcpPartsFromName(name);
     if (mcpParts) {
         return mapWithState({
@@ -403,6 +485,10 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
             call_id: callId,
             server: mcpParts.server,
             tool: mcpParts.tool,
+            // MIN-1 (AC-A4): thread the stored begin args (notably a relative screenshot `filename`) onto
+            // the synthesized mcp END so screenshotInputFilename resolves the saved file when the result
+            // text has no markdown link (the filename-only path, distinct from the markdown-link path).
+            ...(beginArgs ? { arguments: beginArgs } : {}),
             output,
             result: payload.output,
             status: 'completed',
@@ -438,6 +524,15 @@ function mapFunctionCallOutput(payload: Record<string, unknown>, state: ReplaySt
                 : (typeof parsedRecord.status === 'string' ? parsedRecord.status : 'completed'),
             receiverThreadIds: endReceiverIds,
             agentsStates: isRecord(parsedRecord.agentsStates) ? parsedRecord.agentsStates : {},
+            // OBJ-6 / MIN-7 (AC-A3 T2, codex#5): real Codex stores the spawn nickname in the
+            // function_call_output ({agent_id, nickname}), NOT the begin args. Forward it onto the synthesized
+            // spawn-END so the mapper's promoteRealAgentNickname promotes it onto the lifecycle (real provider
+            // nickname WINS over the synthesized 'Subagent N' label). Absent → the synthesized label stays.
+            ...(typeof parsedRecord.nickname === 'string' && parsedRecord.nickname.length > 0
+                ? { agentNickname: parsedRecord.nickname }
+                : (typeof parsedRecord.agentNickname === 'string' && parsedRecord.agentNickname.length > 0
+                    ? { agentNickname: parsedRecord.agentNickname }
+                    : {})),
         }, state);
         // Cycle 8 (M2): capture the agent_id -> ssn binding at this spawn-output time. The mapper's
         // collab spawn-end handler binds `agent_id` (the receiverThreadId) to its lifecycle ssn in
@@ -519,6 +614,18 @@ function mapRolloutRecord(record: Record<string, unknown>, state: ReplayState): 
     // lifecycle-end, user text, turn-end) inherits it via createEnvelope's opts.time. The lifecycle-END
     // for a close/abort record correctly uses the close record's own time. A finite value or undefined.
     state.mapper.recordTime = parseRecordTime(record);
+
+    // Codex Playwright-screenshot fix (replay cwd safety): the rollout's first record is a `session_meta`
+    // carrying the ORIGINAL session `cwd`. Adopt it as the base dir for resolving relative saved-screenshot
+    // paths instead of the replay process's cwd — which may differ from the recording session's cwd and
+    // would otherwise resolve a relative `shot.png` against the wrong directory (rendering a wrong same-named
+    // image, or none). session_meta precedes every screenshot record in the file, so this is set in time.
+    // If session_meta is missing/lacks cwd, the createReplayState() process.cwd() seed remains as best-effort;
+    // a non-existent resolved file then yields preview_unavailable_reason (never a silent wrong file).
+    if (record.type === 'session_meta' && typeof payload.cwd === 'string' && payload.cwd.length > 0) {
+        state.mapper.sessionCwd = payload.cwd;
+        return [];
+    }
 
     if (record.type === 'event_msg') {
         return mapEventMsg(payload, state);
@@ -645,6 +752,14 @@ async function mergeChildRollout(
     // share the same namespaced id so the pair stays matched.
     const emittedCallId = (rawCallId: string): string => depth >= 2 ? `gc:${binding.agentId}:${rawCallId}` : rawCallId;
     const toolNamesByCallId = new Map<string, string>();
+    // MIN-1 CHILD (AC-A5): the child END (buildChildEndEnvelope) likewise discards begin args, so persist
+    // them by call_id here and thread them into the synthesized child image/mcp END record.
+    const childToolArgsByCallId = new Map<string, Record<string, unknown>>();
+    // AC-A5: track THIS child rollout's session_meta cwd so a relative screenshot path resolves against the
+    // recording child session's cwd (mergeChildRollout previously skipped child session_meta entirely, so a
+    // relative path would resolve against the parent/process cwd — the wrong directory). Best-effort: when
+    // absent, buildImageToolResult falls back to process.cwd() and a missing file yields the graceful reason.
+    let childCwd: string | undefined;
     const childEnvelopes: SessionEnvelope[] = [];
     // A1-M3: grandchild spawn bindings discovered in THIS child's replay (callId -> spawn-call metadata),
     // resolved at the spawn's function_call_output into agent_id and recursively merged after this file
@@ -663,6 +778,16 @@ async function mergeChildRollout(
             const record = parseJsonLine(line);
             if (!record) {
                 continue; // S2: malformed JSON line -> skip.
+            }
+            // AC-A5: capture the child session_meta cwd for relative screenshot resolution, but DO NOT emit
+            // any envelope for it (no stray turns / no parent-state feed — M3 is preserved for all other
+            // non-response_item records).
+            if (record.type === 'session_meta') {
+                const metaPayload = isRecord(record.payload) ? record.payload : null;
+                if (metaPayload && typeof metaPayload.cwd === 'string' && metaPayload.cwd.length > 0) {
+                    childCwd = metaPayload.cwd;
+                }
+                continue;
             }
             // M3: child turn boundaries / metadata are NOT mapped (no parent-state feed, no stray turns).
             if (record.type !== 'response_item') {
@@ -693,6 +818,10 @@ async function mergeChildRollout(
                     continue;
                 }
                 toolNamesByCallId.set(callId, toolName);
+                // MIN-1 CHILD (AC-A5): persist child begin args so the END synthesis threads them (notably a
+                // relative screenshot `filename`) into the image/mcp end record.
+                const childBeginArgs = parseArguments(payload.arguments);
+                if (Object.keys(childBeginArgs).length > 0) childToolArgsByCallId.set(callId, childBeginArgs);
                 const envelope = buildChildBeginEnvelope(toolName, emittedCallId(callId), payload, ssn, recordOpts);
                 // M6 postcondition guard: drop any begin that would violate INV-1 (call === ssn) or
                 // INV-2 (args.sessionSubagent present). The producer above never injects these, but the
@@ -724,8 +853,11 @@ async function mergeChildRollout(
                 const toolName = toolNamesByCallId.get(callId);
                 // Only emit an end for a tool whose begin we merged (skips collab/grandchild ends).
                 if (!toolName) continue;
+                // MIN-1 CHILD (AC-A5): recover the persisted child begin args for this END.
+                const childBeginArgs = childToolArgsByCallId.get(callId);
+                childToolArgsByCallId.delete(callId);
                 // Codex finding #1: end uses the SAME namespaced emitted id as its begin (depth>=2).
-                const envelope = buildChildEndEnvelope(toolName, emittedCallId(callId), payload, ssn, recordOpts);
+                const envelope = buildChildEndEnvelope(toolName, emittedCallId(callId), payload, ssn, recordOpts, childBeginArgs, childCwd);
                 if (envelope) {
                     childEnvelopes.push(envelope);
                 }
@@ -820,18 +952,75 @@ function buildChildBeginEnvelope(
 }
 
 // Cycle 8 (M1): synthesize a child tool-call-END envelope. END carries no args, so INV-2 is automatic.
+// AC-A5: for image/mcp tools, reconstruct the image preview result from the on-disk saved file via the
+// shared buildImageToolResult so child subagent image outputs keep their inline preview (graceful fallback
+// when the saved file is gone). `beginArgs` (notably a relative screenshot `filename`) and `childCwd` (the
+// child rollout's session_meta cwd) are threaded so a relative path resolves against the recording session.
 function buildChildEndEnvelope(
     toolName: string,
     callId: string,
     payload: Record<string, unknown>,
     ssn: string,
     opts: CreateEnvelopeOptions,
+    beginArgs?: Record<string, unknown>,
+    childCwd?: string,
 ): SessionEnvelope | null {
     const output = outputText(payload.output);
+    const imageResult = buildChildImageResult(toolName, payload, beginArgs, childCwd);
     return buildChildEndToolEnvelope(ssn, callId, {
         output,
-        ...(payload.output !== undefined ? { result: payload.output } : {}),
+        ...(imageResult !== undefined ? { result: imageResult } : (payload.output !== undefined ? { result: payload.output } : {})),
     }, opts);
+}
+
+// AC-A5: synthesize the image-preview result for a child rollout image/mcp tool END by constructing the
+// shape buildImageToolResult expects and resolving the saved file against `childCwd`. Returns undefined for
+// a non-image tool (the caller then keeps the raw output as `result`). view_image -> image_view_end shape;
+// mcp screenshot -> server/tool + merged begin args (the filename-only screenshot path); other mcp/dynamic
+// image-named tools fall through the generic image extractor.
+// codex#6: parse a child image_generation function_call_output into the {result, savedPath} record the
+// normalizer expects. The rollout stores it as a JSON string; an object output is used directly; a plain
+// (non-JSON) string is treated as the raw base64 `result`.
+function parseImageGenerationOutput(output: unknown): Record<string, unknown> {
+    if (isRecord(output)) return output;
+    const text = outputText(output);
+    if (text.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(text);
+            if (isRecord(parsed)) return parsed;
+        } catch {
+            // fall through — treat as raw base64 result.
+        }
+    }
+    return { result: text };
+}
+
+function buildChildImageResult(
+    toolName: string,
+    payload: Record<string, unknown>,
+    beginArgs: Record<string, unknown> | undefined,
+    childCwd: string | undefined,
+): Record<string, unknown> | undefined {
+    const imageKind = imageToolKind(toolName);
+    const mcpParts = mcpPartsFromName(toolName);
+    if (!imageKind && !mcpParts) return undefined;
+    // codex#6: image_generation's saved image is the RAW base64/savedPath in the output, which the generic
+    // buildImageToolResult does NOT treat as base64 — run the shared image_generation normalizer first so a
+    // raw base64 result becomes a data: preview_uri and a result-less completion falls back to savedPath. The
+    // rollout function_call_output is a JSON STRING ({"result":"<base64>","savedPath":...}); parse it (or
+    // treat a non-JSON string as the raw base64 `result`) so the normalizer sees the real fields.
+    if (imageKind === 'image_generation') {
+        const rawOutput = parseImageGenerationOutput(payload.output);
+        const normalized = normalizeImageGenerationEnd(rawOutput);
+        return buildImageToolResult(normalized, childCwd);
+    }
+    const synthetic: Record<string, unknown> = {
+        ...(imageKind === 'view_image' ? { type: 'image_view_end', path: typeof beginArgs?.path === 'string' ? beginArgs.path : undefined } : {}),
+        ...(mcpParts ? { server: mcpParts.server, tool: mcpParts.tool, ...(beginArgs ? { arguments: beginArgs } : {}) } : {}),
+        result: payload.output,
+        output: outputText(payload.output),
+    };
+    return buildImageToolResult(synthetic, childCwd);
 }
 
 // Cycle 8 (M6): replay-side INV-1/INV-2 postcondition check on a merged child envelope.

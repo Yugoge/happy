@@ -527,6 +527,12 @@ export const zhHant: TranslationStructure = {
             otherDescription: '輸入您自己的答案',
             otherPlaceholder: '輸入您的答案...',
         },
+        requestUserInput: {
+            options: '選項',
+            answer: '答案',
+            response: '回應',
+            noAnswer: '未提供答案',
+        },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `終端機(命令: ${cmd})`,
             searchPattern: ({ pattern }: { pattern: string }) => `搜尋(模式: ${pattern})`,

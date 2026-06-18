@@ -556,6 +556,12 @@ export const es: TranslationStructure = {
             otherDescription: 'Escribe tu propia respuesta',
             otherPlaceholder: 'Escribe tu respuesta...',
         },
+        requestUserInput: {
+            options: 'Opciones',
+            answer: 'Respuesta',
+            response: 'Respuesta',
+            noAnswer: 'No se proporcionó respuesta',
+        },
         attachment: {
             staleAdvisory: 'Vuelve a activar en esta o una nueva sesión para ver la previsualización inline.',
         }

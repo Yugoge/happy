@@ -66,6 +66,26 @@ function getPatchTexts(change: CodexPatchEntry): { oldText: string; newText: str
         };
     }
 
+    // Kind-based shape: producer sends added/deleted files as
+    // { kind: { type: 'add' | 'delete' }, diff: '<raw full file content>' } — the
+    // `diff` value is the RAW file body, NOT a unified diff. Handle these BEFORE the
+    // generic parseUnifiedDiff fallback so the raw content becomes newText/oldText
+    // directly (an all-added / all-removed file) instead of being parsed away to empty.
+    const kindType = change.kind?.type ?? change.type;
+    if (kindType === 'add' && typeof change.diff === 'string') {
+        return {
+            oldText: '',
+            newText: change.diff,
+        };
+    }
+    if (kindType === 'delete' && typeof change.diff === 'string') {
+        return {
+            oldText: change.diff,
+            newText: '',
+        };
+    }
+
+    // 'update' (or absent kind) with a real unified diff string.
     const diff = typeof change.diff === 'string' ? change.diff
         : typeof change.unified_diff === 'string' ? change.unified_diff
         : null;

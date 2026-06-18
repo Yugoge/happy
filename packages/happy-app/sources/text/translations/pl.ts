@@ -566,6 +566,12 @@ export const pl: TranslationStructure = {
             otherDescription: 'Wpisz własną odpowiedź',
             otherPlaceholder: 'Wpisz swoją odpowiedź...',
         },
+        requestUserInput: {
+            options: 'Opcje',
+            answer: 'Odpowiedź',
+            response: 'Odpowiedź',
+            noAnswer: 'Nie podano odpowiedzi',
+        },
         attachment: {
             staleAdvisory: 'Wyzwól ponownie w tej lub nowej sesji, aby wyświetlić podgląd inline.',
         }

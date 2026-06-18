@@ -557,6 +557,12 @@ export const zhHans: TranslationStructure = {
             otherDescription: '输入您自己的答案',
             otherPlaceholder: '输入您的答案...',
         },
+        requestUserInput: {
+            options: '选项',
+            answer: '答案',
+            response: '响应',
+            noAnswer: '未提供答案',
+        },
         attachment: {
             staleAdvisory: '在此会话或新会话中再次触发以查看 inline 预览。',
         }

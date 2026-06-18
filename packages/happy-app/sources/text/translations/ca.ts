@@ -556,6 +556,12 @@ export const ca: TranslationStructure = {
             otherDescription: 'Escriu la teva pròpia resposta',
             otherPlaceholder: 'Escriu la teva resposta...',
         },
+        requestUserInput: {
+            options: 'Opcions',
+            answer: 'Resposta',
+            response: 'Resposta',
+            noAnswer: 'No s\'ha proporcionat cap resposta',
+        },
         attachment: {
             staleAdvisory: 'Torna a activar en aquesta o una nova sessió per veure la previsualització inline.',
         }

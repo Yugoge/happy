@@ -1621,7 +1621,10 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
             }
         });
 
-        it('normalizes service events to visible agent text', () => {
+        it('normalizes service events to gray event messages', () => {
+            // AC-D2 (MIN-5): raw service envelope stays role:'agent', but the
+            // normalized OUTPUT is role:'event' with a message AgentEvent so
+            // MessageView renders it gray (turn case).
             const normalized = normalizeRawMessage('db-service-1', null, 1, {
                 ...base,
                 content: {
@@ -1637,16 +1640,16 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
             });
 
             expect(normalized).toBeTruthy();
-            expect(normalized?.role).toBe('agent');
-            if (normalized && normalized.role === 'agent') {
-                expect(normalized.content[0]).toMatchObject({
-                    type: 'text',
-                    text: '**Service:** Connection restored',
-                    uuid: 'env-service-1',
-                    parentUUID: null
+            expect(normalized?.role).toBe('event');
+            if (normalized && normalized.role === 'event') {
+                expect(normalized.content).toMatchObject({
+                    type: 'message',
+                    message: '**Service:** Connection restored'
                 });
             }
 
+            // No-turn case (the shape the resume producer emits via
+            // createEnvelope('agent', {t:'service', text}) with no turn opt).
             const noTurn = normalizeRawMessage('db-service-2', null, 1, {
                 ...base,
                 content: {
@@ -1660,7 +1663,13 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
                 }
             });
             expect(noTurn).toBeTruthy();
-            expect(noTurn?.role).toBe('agent');
+            expect(noTurn?.role).toBe('event');
+            if (noTurn && noTurn.role === 'event') {
+                expect(noTurn.content).toMatchObject({
+                    type: 'message',
+                    message: 'Global service notice'
+                });
+            }
         });
 
         it('normalizes tool-call lifecycle events', () => {

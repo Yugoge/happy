@@ -299,6 +299,12 @@ export async function runCodex(opts: {
     // so live multi-target waits remain collapsed (single begin/end via firstReceiverThreadId).
     let codexEmittedCollabBeginCallIds = new Set<string>();
     let codexWaitTargetsByCallId = new Map<string, string[]>();
+    // OBJ-7 (AC-A5): persist LIVE tool BEGIN args (keyed by call_id) across mapper calls on the LIVE loop,
+    // exactly as the emittedCollabBeginCallIds / waitTargetsByCallId maps above. The mapper is stateless
+    // across calls, so a relative screenshot `filename` captured at mcp_tool_call_begin is otherwise gone
+    // by the time the args-less mcp_tool_call_end is mapped — the live filename-only screenshot would
+    // silently no-op (no preview). Threaded in via the state object below and read back from the result.
+    let codexToolArgsByCallId = new Map<string, Record<string, unknown>>();
     session.keepAlive(thinking, 'remote');
     // Periodic keep-alive; store handle so we can clear on exit
     const keepAliveInterval = setInterval(() => {
@@ -644,6 +650,13 @@ export async function runCodex(opts: {
                 // call so cross-message collab begin/end pairing + orphan-suppression survive (replay parity).
                 emittedCollabBeginCallIds: codexEmittedCollabBeginCallIds,
                 waitTargetsByCallId: codexWaitTargetsByCallId,
+                // OBJ-7 (AC-A5): thread the live tool BEGIN-arg map so a relative screenshot `filename`
+                // captured at mcp_tool_call_begin survives into the args-less mcp_tool_call_end (live path).
+                toolArgsByCallId: codexToolArgsByCallId,
+                // Codex Playwright-screenshot fix: the thread is started with cwd: process.cwd() (below), and
+                // the Playwright MCP screenshot tool saves its PNG relative to that cwd, so the producer must
+                // resolve a relative saved-screenshot path against it to read the file off disk.
+                sessionCwd: process.cwd(),
             });
             currentTurnId = mapped.currentTurnId;
             codexStartedSubagents = mapped.startedSubagents;
@@ -654,6 +667,10 @@ export async function runCodex(opts: {
             // rolloutHistoryReplay.ts:265/268 (`mapped.X ?? state.mapper.X`).
             codexEmittedCollabBeginCallIds = mapped.emittedCollabBeginCallIds ?? codexEmittedCollabBeginCallIds;
             codexWaitTargetsByCallId = mapped.waitTargetsByCallId ?? codexWaitTargetsByCallId;
+            // OBJ-7 (AC-A5): read back the live BEGIN-arg map, falling back to the existing reference when
+            // the mapper result omits it (most message types early-return without it) — mirrors the
+            // emittedCollabBeginCallIds / waitTargetsByCallId read-back above.
+            codexToolArgsByCallId = mapped.toolArgsByCallId ?? codexToolArgsByCallId;
             for (const envelope of mapped.envelopes) {
                 session.sendSessionProtocolMessage(envelope);
             }

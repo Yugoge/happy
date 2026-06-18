@@ -565,6 +565,12 @@ export const ru: TranslationStructure = {
             otherDescription: 'Введите свой ответ',
             otherPlaceholder: 'Введите ваш ответ...',
         },
+        requestUserInput: {
+            options: 'Варианты',
+            answer: 'Ответ',
+            response: 'Ответ',
+            noAnswer: 'Ответ не предоставлен',
+        },
         attachment: {
             staleAdvisory: 'Повторите запрос в этой или новой сессии, чтобы увидеть встроенный предпросмотр.',
         }

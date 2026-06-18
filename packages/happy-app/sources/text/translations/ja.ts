@@ -489,6 +489,12 @@ export const ja: TranslationStructure = {
             otherDescription: '自分の回答を入力',
             otherPlaceholder: '回答を入力...',
         },
+        requestUserInput: {
+            options: '選択肢',
+            answer: '回答',
+            response: '応答',
+            noAnswer: '回答がありません',
+        },
         multiEdit: {
             editNumber: ({ index, total }: { index: number; total: number }) => `編集 ${index}/${total}`,
             replaceAll: 'すべて置換',

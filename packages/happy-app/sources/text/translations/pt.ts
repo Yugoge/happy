@@ -555,6 +555,12 @@ export const pt: TranslationStructure = {
             otherDescription: 'Digite sua própria resposta',
             otherPlaceholder: 'Digite sua resposta...',
         },
+        requestUserInput: {
+            options: 'Opções',
+            answer: 'Resposta',
+            response: 'Resposta',
+            noAnswer: 'Nenhuma resposta fornecida',
+        },
         attachment: {
             staleAdvisory: 'Acione novamente nesta ou em uma nova sessão para ver a pré-visualização inline.',
         }

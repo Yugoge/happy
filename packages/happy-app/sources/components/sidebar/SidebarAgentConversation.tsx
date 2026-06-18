@@ -9,6 +9,48 @@ import { ToolView } from '../tools/ToolView';
 import { MarkdownView } from '../markdown/MarkdownView';
 import { extractLifecycleResultText, extractLifecycleStatusFallback, isCodexSubagentControlTool } from '@/utils/codexToolRendering';
 
+// OBJ-1 / AC-B1 (order-independent single-sourcing guard, desktop counterpart of
+// the mobile TaskViewFull guard): drop AT MOST ONE child — the LATEST non-thinking
+// direct agent-text child whose text equals the lifecycle Result final-summary —
+// so the final answer is single-sourced in the Result section whether or not
+// Cluster A's producer-side suppression has landed.
+//
+// Gated to functions.subagent_lifecycle + summary equality: NEVER matches Claude
+// Agent children (no codex lifecycle envelope) and matches nothing for new live
+// data (A omits the duplicate at the producer). Drops only the LAST matching
+// child, never all matches — app child messages carry no phase/source marker, so a
+// blanket equality drop would wrongly delete a legitimate intermediate line equal
+// to the final answer (codex#3 false-positive guard). MIN-4: trim()-based equality
+// on both sides (same definition AC-A1 pins for the producer); a whitespace-only
+// summary means "no Result to single-source" so the guard drops nothing. Pure +
+// module-local (file-disjoint: no shared helper added to Cluster C's
+// codexToolRendering.ts).
+//
+// Tied to the ACTUALLY-rendered Result: the Result section only renders on a
+// terminal state (completed||error, mirrored from isTerminal below), so the guard
+// also requires terminal — otherwise a non-terminal tool.result would drop the
+// child while Result stays hidden, vanishing the final answer. The reducer
+// co-produces tool + children in one pass (reducer.ts:1280-1287), so a new
+// tool.result always arrives with a new `messages` reference; the [messages] memo
+// keying is therefore correct (no stale-result drop).
+export function dropDuplicateFinalAnswerChild(messages: Message[], tool: ToolCall): Message[] {
+    if (tool.name !== 'functions.subagent_lifecycle') return messages;
+    if (tool.state !== 'completed' && tool.state !== 'error') return messages;
+    const summary = extractLifecycleResultText(tool.result);
+    const summaryTrimmed = summary?.trim() ?? '';
+    if (summaryTrimmed.length === 0) return messages;
+    let dropIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if (m.kind === 'agent-text' && !m.isThinking && m.text.trim() === summaryTrimmed) {
+            dropIdx = i;
+            break;
+        }
+    }
+    if (dropIdx === -1) return messages;
+    return messages.filter((_, i) => i !== dropIdx);
+}
+
 interface SidebarAgentConversationProps {
     tool: ToolCall;
     messages: Message[];
@@ -36,6 +78,8 @@ const ChildToolBlock = React.memo<{
                 metadata={metadata}
                 messages={children}
                 onPress={handlePress}
+                sessionId={sessionId}
+                messageId={message.id}
             />
         </View>
     );
@@ -184,12 +228,23 @@ export const SidebarAgentConversation = React.memo<SidebarAgentConversationProps
     // section. Name-based + lifecycle-LOCAL (mirrors CodexSubagentLifecycleView.tsx:41):
     // Claude Agent children are never named with these codex control verbs, so
     // Claude rendering is unaffected. Composed with the existing latest-TodoWrite filter.
+    // AC-B1 (OBJ-1 guard): after the control-verb filter + latest-TodoWrite filter,
+    // drop AT MOST ONE final-answer agent-text child equal to the lifecycle Result
+    // summary so the final answer is single-sourced in Result regardless of Cluster
+    // A's landing order. `tool` is read by the guard but intentionally not in the
+    // dep array (the guard only acts when a child equals the summary, and that child
+    // arrives via the same update that mutates `messages`), preserving the prior
+    // `[messages]` keying.
     const visibleMessages = React.useMemo(
-        () => filterToLatestTodoWrite(
-            messages.filter(
-                (m) => !(m.kind === 'tool-call' && isCodexSubagentControlTool(m.tool.name)),
+        () => dropDuplicateFinalAnswerChild(
+            filterToLatestTodoWrite(
+                messages.filter(
+                    (m) => !(m.kind === 'tool-call' && isCodexSubagentControlTool(m.tool.name)),
+                ),
             ),
+            tool,
         ),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [messages],
     );
 

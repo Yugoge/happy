@@ -1425,6 +1425,12 @@ export const knownTools = {
         title: 'Request user input',
         icon: ICON_QUESTION,
         minimal: true,
+        // #5 (Cluster C / AC-C2): RequestUserInputView renders the failed/unavailable
+        // reason itself (B11 contract). Suppress the default ToolError block
+        // (ToolView.tsx:306-308) for ALL failure shapes — buildToolConfig already
+        // sets hideDefaultError for a string <tool_use_error> payload, but a
+        // structured non-tool_use_error object failure would otherwise double-render.
+        hideDefaultError: true,
         input: z.object({
             prompt: z.string().optional(),
             question: z.string().optional()

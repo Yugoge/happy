@@ -180,6 +180,13 @@ const CodexPatchContent = React.memo<{ tool: ToolCall }>(({ tool }) => {
                     newText = change.add.content || '';
                 } else if (change?.delete) {
                     oldText = change.delete.content || '';
+                } else if ((change?.kind?.type ?? change?.type) === 'add' && typeof change?.diff === 'string') {
+                    // Producer sends added files as { kind:{type:'add'}, diff:'<raw full content>' }
+                    // (raw body in `diff`, NOT a unified diff). Render it as an all-added file —
+                    // mirrors CodexPatchView.getPatchTexts so the sidebar matches the inline card.
+                    newText = change.diff;
+                } else if ((change?.kind?.type ?? change?.type) === 'delete' && typeof change?.diff === 'string') {
+                    oldText = change.diff;
                 } else if (typeof change?.diff === 'string' || typeof change?.unified_diff === 'string') {
                     const parsed = parseUnifiedDiff(change.diff ?? change.unified_diff);
                     oldText = parsed.oldText;

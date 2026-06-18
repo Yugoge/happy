@@ -1,3 +1,4 @@
+import { createEnvelope, type SessionEnvelope } from '@slopus/happy-wire';
 import { trimIdent } from '@/utils/trimIdent';
 import { notifyDaemonOfCodexTid } from '@/codex/notifyDaemonOfCodexTid';
 
@@ -18,7 +19,15 @@ type ResumeThreadSession = {
      */
     sessionId?: string;
     updateMetadata: (handler: (currentMetadata: any) => any) => void;
-    sendSessionEvent: (event: { type: 'message'; message: string }) => void;
+    /**
+     * Real session-protocol channel (apiSession.ts:461), already used by the
+     * live codex loop at runCodex.ts:662. The same full session is passed to
+     * resumeExistingThread at runCodex.ts:684, so structural typing satisfies
+     * this widened type with NO runCodex.ts edit. The resume notice is emitted
+     * as a genuine t:'service' envelope so the app renders it as a gray system
+     * notification rather than a normal assistant message.
+     */
+    sendSessionProtocolMessage: (envelope: SessionEnvelope) => void;
 };
 
 type ResumeThreadMessageBuffer = {
@@ -56,10 +65,13 @@ export async function resumeExistingThread(opts: {
         });
         bindResumedTid(opts.session, resumedThread.threadId);
         opts.messageBuffer.addMessage(`Resumed thread ${trimIdent(resumedThread.threadId)}`, 'status');
-        opts.session.sendSessionEvent({
-            type: 'message',
-            message: `Resumed Codex thread ${resumedThread.threadId}`,
-        });
+        // Emit the resume notice as a genuine t:'service' envelope (role 'agent'
+        // per sessionProtocol.ts:120) so the app normalizes it to a gray system
+        // notification. REPLACES the legacy sendSessionEvent({type:'message'})
+        // emission — emitting both would render two app-visible notices.
+        opts.session.sendSessionProtocolMessage(
+            createEnvelope('agent', { t: 'service', text: `Resumed Codex thread ${resumedThread.threadId}` }),
+        );
         return resumedThread;
     } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);

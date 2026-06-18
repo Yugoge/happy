@@ -17,12 +17,27 @@ function parseUsageLimitEvent(text: string): AgentEvent | null {
     return { type: 'limit-reached', endsAt: timestamp } as AgentEvent;
 }
 
+/**
+ * AC-D3: defense-in-depth legacy fallback for already-stored plain-text resume
+ * notices ("Resumed Codex thread <id>"). The live producer now emits a real
+ * t:'service' envelope, but persisted agent text from before that change must
+ * still render gray. Narrow by design: non-space suffix only, agent text only
+ * (sidechains are skipped upstream in parseMessageAsEvent), no failure/error
+ * conversion, regex not broadened.
+ */
+function parseResumedThreadEvent(text: string): AgentEvent | null {
+    if (!/^Resumed Codex thread \S+$/.test(text)) return null;
+    return { type: 'message', message: text } as AgentEvent;
+}
+
 /** Check agent content blocks for tool calls that should become events. */
 function parseAgentMessage(msg: NormalizedMessage & { role: 'agent' }): AgentEvent | null {
     for (const block of msg.content) {
         if (block.type === 'text') {
             const evt = parseUsageLimitEvent(block.text);
             if (evt) return evt;
+            const resumed = parseResumedThreadEvent(block.text);
+            if (resumed) return resumed;
         }
         // Intercept mcp__happy__change_title tool calls and convert to service message
         if (block.type === 'tool-call' && block.name === 'mcp__happy__change_title') {

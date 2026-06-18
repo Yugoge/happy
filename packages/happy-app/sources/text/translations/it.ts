@@ -486,6 +486,12 @@ export const it: TranslationStructure = {
             otherDescription: 'Scrivi la tua risposta',
             otherPlaceholder: 'Scrivi la tua risposta...',
         },
+        requestUserInput: {
+            options: 'Opzioni',
+            answer: 'Risposta',
+            response: 'Risposta',
+            noAnswer: 'Nessuna risposta fornita',
+        },
         multiEdit: {
             editNumber: ({ index, total }: { index: number; total: number }) => `Modifica ${index} di ${total}`,
             replaceAll: 'Sostituisci tutto',

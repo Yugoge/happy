@@ -207,6 +207,139 @@ export function extractRequestUserInputUnavailableReason(result: unknown): strin
     return matchesRequestUserInputUnavailable(text) ? text : null;
 }
 
+// #5 (Cluster C / AC-C4): the read-only RequestUserInputView needs a structured
+// view of a request_user_input call. The Codex producer carries the prompt in
+// input.prompt / input.question, and may carry one or more structured questions
+// (input.questions[] — header/question/options) mirroring AskUserQuestion. The
+// completed user response, when present, lives in the result under
+// answer/answers/response/output/message (object) OR is the bare string result.
+// Pure/additive: no existing export changes.
+export type RequestUserInputOption = {
+    label: string;
+    description: string | null;
+};
+
+export type RequestUserInputQuestion = {
+    header: string | null;
+    question: string;
+    options: RequestUserInputOption[];
+};
+
+export type RequestUserInputSummary = {
+    prompt: string | null;
+    questions: RequestUserInputQuestion[];
+    answer: string | null;
+};
+
+// codex#4: Codex options may carry { label, description }. Keep both so the
+// read-only card can render the description as secondary text under each option.
+function toOption(option: unknown): RequestUserInputOption | null {
+    if (typeof option === 'string') {
+        const label = option.trim();
+        return label ? { label, description: null } : null;
+    }
+    if (isRecord(option)) {
+        const label = stringifyUnknown(option.label ?? option.value ?? option.title ?? option.text);
+        if (!label) return null;
+        return { label, description: stringifyUnknown(option.description) };
+    }
+    return null;
+}
+
+function extractRequestUserInputQuestions(input: unknown): RequestUserInputQuestion[] {
+    if (!isRecord(input)) return [];
+    const raw = input.questions;
+    if (!Array.isArray(raw)) return [];
+    const out: RequestUserInputQuestion[] = [];
+    for (const entry of raw) {
+        if (typeof entry === 'string') {
+            const text = entry.trim();
+            if (text) out.push({ header: null, question: text, options: [] });
+            continue;
+        }
+        if (!isRecord(entry)) continue;
+        const question = stringifyUnknown(entry.question ?? entry.prompt ?? entry.text ?? entry.label);
+        if (!question) continue;
+        const header = stringifyUnknown(entry.header ?? entry.title);
+        const options = (Array.isArray(entry.options) ? entry.options : [])
+            .map(toOption)
+            .filter((o): o is RequestUserInputOption => !!o);
+        out.push({ header, question, options });
+    }
+    return out;
+}
+
+// Flatten a single answer value to readable text. A value may be a plain string,
+// a list of strings, or a nested object that itself carries the selected answer(s)
+// under answer/answers/value/label (the AskUserQuestion-style shape). codex#2:
+// stringifyUnknown on a nested object would leak raw JSON, so unwrap the nested
+// answer fields first and only fall back to a string scalar.
+function flattenAnswerValue(value: unknown): string | null {
+    if (typeof value === 'string') return value.trim() || null;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) {
+        const parts = value.map(flattenAnswerValue).filter((p): p is string => !!p);
+        return parts.length > 0 ? parts.join(', ') : null;
+    }
+    if (isRecord(value)) {
+        const nested = value.answers ?? value.answer ?? value.value ?? value.label ?? value.text;
+        if (nested !== undefined && nested !== value) return flattenAnswerValue(nested);
+        return null;
+    }
+    return null;
+}
+
+// The completed response, if any: object answer/answers/response/output/message
+// or a bare string result. answers (a Record/array) is flattened to readable
+// lines so a structured multi-question answer is shown without raw JSON.
+function extractRequestUserInputAnswer(result: unknown): string | null {
+    const parsed = parseProtocolResult(result);
+    if (typeof parsed === 'string') {
+        const text = parsed.trim();
+        return text || null;
+    }
+    if (!isRecord(parsed)) return null;
+    const answers = parsed.answers;
+    if (isRecord(answers)) {
+        const lines = Object.entries(answers)
+            .map(([k, v]) => {
+                const value = flattenAnswerValue(v);
+                return value ? `${k}: ${value}` : null;
+            })
+            .filter((l): l is string => !!l);
+        if (lines.length > 0) return lines.join('\n');
+    }
+    if (Array.isArray(answers)) {
+        const lines = answers.map(flattenAnswerValue).filter((l): l is string => !!l);
+        if (lines.length > 0) return lines.join('\n');
+    }
+    return flattenAnswerValue(
+        parsed.answer ?? parsed.response ?? parsed.output ?? parsed.message,
+    );
+}
+
+export function extractRequestUserInputSummary(tool: ToolCall): RequestUserInputSummary {
+    const input = isRecord(tool.input) ? tool.input : {};
+    const prompt = stringifyUnknown(input.prompt ?? input.question);
+    const questions = extractRequestUserInputQuestions(input);
+    // The answer is meaningful only on a completed (non-error) call; a failed /
+    // unavailable call surfaces its reason through the B11 failure helper instead.
+    const answer = tool.state === 'completed' ? extractRequestUserInputAnswer(tool.result) : null;
+    return { prompt: prompt ?? null, questions, answer };
+}
+
+// AC-C2 (#5 / codex#6): RequestUserInputView reuses the EXISTING B11 failure
+// logic, but buildRequestUserInputFailureLine expects an ALREADY-PARSED result
+// (it is called after parseProtocolResult in buildGenericToolSummary). This
+// high-level wrapper parses internally so the view can pass a raw tool.result
+// (string OR object) without re-implementing the object-precedence /
+// tag-stripping rules. Strips <tool_use_error>, object precedence
+// stderr??error??message??reason, string unwrapped, preserves line breaks,
+// non-empty fallback for an errorless failure.
+export function buildRequestUserInputFailureLineFromResult(result: unknown): string | null {
+    return buildRequestUserInputFailureLine(parseProtocolResult(result));
+}
+
 // Cycle 7 (M5 #17): MCP namespace tools render chip-only unless a specialized
 // view is registered, regardless of codex source.
 export function shouldRenderToolContent(
@@ -225,6 +358,17 @@ export function shouldRenderToolContent(
     // (the live Default-mode shape is completed, not error). Scoped to the exact tool +
     // an unavailable-shaped result, so a normal completed answer stays header-only.
     if (isRequestUserInputUnavailableResult(tool)) return true;
+    // AC-C1 (#5, option b): once RequestUserInputView is registered the read-only
+    // card must render for a COMPLETED answer while a still-RUNNING request stays
+    // truly header-only (no padded empty content wrapper — the codex#5 hazard).
+    // Scoped to the exact tool + a registered view and placed BEFORE the minimal
+    // gate so minimal:true does not suppress the completed answer card; the
+    // :222/:227 error/unavailable exceptions above already cover those states.
+    // When the view is NOT registered (hasSpecializedView false) this is skipped
+    // so the legacy header-only behavior is preserved.
+    if (tool.name === 'functions.request_user_input' && hasSpecializedView) {
+        return tool.state !== 'running';
+    }
     // AC2 fix: minimal=true means header-only — suppress body regardless of specialized view.
     // CodexPatch has minimal=true AND a specialized view; without this guard its body renders
     // Octicons name="file-diff" inline, duplicating CodexDiff's file-diff icon.
@@ -645,17 +789,57 @@ function recognizeImageBase64(value: unknown, mimeHint: string | null): string |
     return null;
 }
 
+// Doubly-encoded MCP shape (e.g. mcp__playwright__browser_take_screenshot):
+// the image item is hidden inside a content-array text item whose `text` is
+// itself a STRINGIFIED JSON wrapper — { type:'text', text: JSON.stringify({
+// content: [ … , { type:'image', data, mimeType } ] }) }. A JSON-looking string
+// is parsed (once, inside try/catch) and re-walked so the nested image surfaces.
+// Bounded: only strings whose trimmed start is '{' or '[' are parsed, parse
+// failures are ignored, and the recursion shares findNestedImageDataUri's depth
+// cap so a malicious/huge/cyclic payload cannot blow up.
+function maybeParseJsonContainer(value: unknown): Record<string, unknown> | unknown[] | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (isRecord(parsed) || Array.isArray(parsed)) return parsed;
+    } catch {
+        // Not valid JSON (ordinary text that merely starts with a brace) — ignore.
+    }
+    return null;
+}
+
 // B12 AC-B12-3: recursively locate a nested image content item carrying base64
 // bytes + a mime in an MCP/replay contentItems[]/content[] array (depth-bounded
 // to avoid pathological deep payloads). Returns the recognized data:image URI
 // via the SAME recognizeImageBase64 guard (positive image-mime signal required),
 // so a non-image content block is never promoted to a preview.
+//
+// ADDITIVE (doubly-encoded MCP screenshot shape): when an item carries a
+// JSON-looking STRING (its `text` field, or a bare string entry in a content
+// array), the string is JSON-parsed and re-walked so an image nested inside a
+// stringified-JSON wrapper (the Playwright screenshot shape) is also found. The
+// flat preview_uri / data-URI / base64 / known content-array image paths are
+// unchanged.
 function findNestedImageDataUri(value: unknown, depth = 0): string | null {
-    if (depth > 4 || !isRecord(value)) return null;
+    if (depth > 6) return null;
+    if (!isRecord(value)) {
+        // A bare JSON-looking string inside a content array may itself wrap the
+        // image (the screenshot wrapper). Parse-and-recurse, depth-bounded.
+        const parsed = maybeParseJsonContainer(value);
+        return parsed ? findNestedImageDataUri(parsed, depth + 1) : null;
+    }
     for (const key of ATTACHMENT_CONTENT_ARRAY_KEYS) {
         const items = value[key];
         if (!Array.isArray(items)) continue;
         for (const item of items) {
+            // A bare string entry that looks like JSON — parse and recurse.
+            if (typeof item === 'string') {
+                const nestedFromString = findNestedImageDataUri(item, depth + 1);
+                if (nestedFromString) return nestedFromString;
+                continue;
+            }
             if (!isRecord(item)) continue;
             // codex review: only an EXACT image item type (not any 'image*'
             // prefix) backstops a missing mime — so a non-image typed block with a
@@ -665,6 +849,13 @@ function findNestedImageDataUri(value: unknown, depth = 0): string | null {
             const itemBase64 = stringifyUnknown(readValue(item, ATTACHMENT_BASE64_KEYS));
             const recognized = recognizeImageBase64(itemBase64, itemMime);
             if (recognized) return recognized;
+            // Doubly-encoded shape: a { type:'text', text:<stringified-JSON> } item
+            // whose text wraps a nested image content array. Parse-and-recurse.
+            const parsedText = maybeParseJsonContainer(item.text);
+            if (parsedText) {
+                const nestedFromText = findNestedImageDataUri(parsedText, depth + 1);
+                if (nestedFromText) return nestedFromText;
+            }
             const nested = findNestedImageDataUri(item, depth + 1);
             if (nested) return nested;
         }

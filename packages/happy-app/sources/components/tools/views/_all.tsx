@@ -24,6 +24,7 @@ import { CodexAttachmentView } from './CodexAttachmentView';
 import { ImageToolFullView } from './ImageToolFullView';
 import { ReadView } from './ReadView';
 import { AskUserQuestionView } from './AskUserQuestionView';
+import { RequestUserInputView } from './RequestUserInputView';
 import { GeminiEditView } from './GeminiEditView';
 import { GeminiExecuteView } from './GeminiExecuteView';
 
@@ -68,6 +69,10 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
     Task: TaskView,
     Agent: TaskView,
     AskUserQuestion: AskUserQuestionView,
+    // #5 (Cluster C): read-only request_user_input card (question/options/answer +
+    // unavailable/error reason). Inline registry entry; mobile full-detail + desktop
+    // sidebar routes are registered below and in SidebarContentRenderer respectively.
+    'functions.request_user_input': RequestUserInputView,
     // §5.15 Phase C — Codex subagent lifecycle verbs (DORMANT until protocol emits events)
     'functions.spawn_agent': CodexSubagentView,
     'functions.send_input': CodexSubagentView,
@@ -119,6 +124,11 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     // Lifecycle envelope is the primary visible card when protocol emits it —
     // must also get AgentFullView so sidebar renders TaskViewFull for it.
     'functions.subagent_lifecycle': AgentFullView,
+    // #5 (Cluster C / MIN-2): the mobile full-detail route (ToolFullView via
+    // toolFullViewRegistry) must use the specialized read-only view too —
+    // otherwise the generic Input/Output/Error JSON dump renders. Paired with
+    // SPECIALIZED_FULL_PAYLOAD_TOOLS membership in ToolFullView.tsx.
+    'functions.request_user_input': RequestUserInputView,
 };
 
 // Helper function to get the appropriate view component for a tool
@@ -150,5 +160,6 @@ export { TaskView } from './TaskView';
 export { TaskViewFull } from './TaskViewFull';
 export { AgentFullView } from './AgentFullView';
 export { AskUserQuestionView } from './AskUserQuestionView';
+export { RequestUserInputView } from './RequestUserInputView';
 export { GeminiEditView } from './GeminiEditView';
 export { GeminiExecuteView } from './GeminiExecuteView';
