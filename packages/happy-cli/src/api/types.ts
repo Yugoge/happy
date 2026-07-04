@@ -208,6 +208,7 @@ export const MessageMetaSchema = z.object({
   appendSystemPrompt: z.string().nullable().optional(), // Append to system prompt for this message (null = reset)
   allowedTools: z.array(z.string()).nullable().optional(), // Allowed tools for this message (null = reset)
   disallowedTools: z.array(z.string()).nullable().optional(), // Disallowed tools for this message (null = reset)
+  claudeConfigDir: z.string().nullable().optional(), // Claude account CLAUDE_CONFIG_DIR for this message (switch account mid-session; absent = keep current)
   attachments: z.array(AttachmentMetadataSchema).optional() // File/image attachments for this message
 })
 
@@ -266,6 +267,7 @@ export type Metadata = {
   // `code` = protocol value ID, `value` = human label
   models?: Array<{ code: string; value: string; description?: string | null }>,
   currentModelCode?: string,
+  currentClaudeConfigDir?: string, // Active Claude account CLAUDE_CONFIG_DIR reported by the CLI (for current-account display)
   operatingModes?: Array<{ code: string; value: string; description?: string | null }>,
   currentOperatingModeCode?: string,
   thoughtLevels?: Array<{ code: string; value: string; description?: string | null }>,
@@ -324,7 +326,11 @@ export type AgentState = {
       reason?: string,
       mode?: PermissionMode,
       decision?: 'approved' | 'approved_for_session' | 'denied' | 'abort',
-      allowTools?: string[]
+      allowTools?: string[],
+      // Free-form answers from an interactive-answer tool (codex request_user_input),
+      // keyed by question id. Persisted here so the answered card still shows the chosen
+      // answer after reload / on a second client (not just ephemeral local state).
+      answers?: Record<string, string>
     }
   }
 }

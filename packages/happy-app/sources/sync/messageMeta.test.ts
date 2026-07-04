@@ -12,6 +12,7 @@ describe('resolveMessageModeMeta', () => {
         expect(meta).toEqual({
             permissionMode: 'read-only',
             model: 'gpt-5-high',
+            claudeConfigDir: null,
         });
     });
 
@@ -27,6 +28,7 @@ describe('resolveMessageModeMeta', () => {
         expect(meta).toEqual({
             permissionMode: 'bypassPermissions',
             model: null,
+            claudeConfigDir: null,
         });
     });
 
@@ -42,6 +44,7 @@ describe('resolveMessageModeMeta', () => {
         expect(meta).toEqual({
             permissionMode: 'default',
             model: null,
+            claudeConfigDir: null,
         });
     });
 });

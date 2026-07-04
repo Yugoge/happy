@@ -3,6 +3,7 @@ import { query, type QueryOptions, type SDKMessage, type SDKSystemMessage, Abort
 import { mapToClaudeMode } from "./utils/permissionMode";
 import { claudeCheckSession } from "./utils/claudeCheckSession";
 import { join, resolve } from 'node:path';
+import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { projectPath } from "@/projectPath";
 import { parseSpecialCommand } from "@/parsers/specialCommands";
 import { logger } from "@/lib";
@@ -12,6 +13,23 @@ import { awaitFileExist } from "@/modules/watcher/awaitFileExist";
 import { systemPrompt } from "./utils/systemPrompt";
 import { PermissionResult } from "./sdk/types";
 import type { JsRuntime } from "./runClaude";
+
+/**
+ * Copy a resumable Claude session .jsonl from one account's config dir into
+ * another's, so that switching CLAUDE_CONFIG_DIR mid-session still resumes with
+ * full conversation context. The project sub-path is derived identically to
+ * getProjectPath() (only the config-dir prefix differs between accounts). The
+ * source account is the most complete at switch time (its query just ended), so
+ * the destination is overwritten. Best-effort: callers guard with try/catch.
+ */
+function migrateClaudeSessionFile(fromConfigDir: string, toConfigDir: string, workingDirectory: string, sessionId: string): void {
+    const projectId = resolve(workingDirectory).replace(/[^a-zA-Z0-9-]/g, '-');
+    const src = join(fromConfigDir, 'projects', projectId, `${sessionId}.jsonl`);
+    if (!existsSync(src)) return; // nothing to migrate (e.g. first spawn)
+    const destDir = join(toConfigDir, 'projects', projectId);
+    mkdirSync(destDir, { recursive: true });
+    copyFileSync(src, join(destDir, `${sessionId}.jsonl`));
+}
 
 export async function claudeRemote(opts: {
 
@@ -39,7 +57,9 @@ export async function claudeRemote(opts: {
     onThinkingChange?: (thinking: boolean) => void,
     onMessage: (message: SDKMessage) => void,
     onCompletionEvent?: (message: string) => void,
-    onSessionReset?: () => void
+    onSessionReset?: () => void,
+    /** Reports the active Claude account's CLAUDE_CONFIG_DIR at query start (initial + post-switch), so the app can display the current account. Mirrors the currentModelCode emitter. */
+    onAccountConfigDir?: (configDir: string) => void
 }) {
 
     // Check if session is valid
@@ -81,6 +101,39 @@ export async function claudeRemote(opts: {
     const initial = await opts.nextMessage();
     if (!initial) { // No initial message - exit
         return;
+    }
+
+    // ── Per-message Claude account switch (mirrors mid-session model switch) ──────
+    // The app carries the selected account's CLAUDE_CONFIG_DIR in message meta.
+    // A change flips the mode hash upstream, which tears down the prior query and
+    // re-enters claudeRemote here. When the selected account differs from the one
+    // the SDK child is currently pointed at, migrate the resumable session file
+    // into the new account's config dir (so `resume` preserves conversation
+    // context), then repoint CLAUDE_CONFIG_DIR so the freshly-spawned claude child
+    // authenticates as the new account. process.env carries the active dir across
+    // restarts; claudeEnvVars is updated too so loop.ts:73 re-application stays in
+    // sync with the last-selected account (correct prior-dir on the next switch).
+    const selectedConfigDir = initial.mode.claudeConfigDir;
+    if (selectedConfigDir && selectedConfigDir !== process.env.CLAUDE_CONFIG_DIR) {
+        const priorConfigDir = process.env.CLAUDE_CONFIG_DIR;
+        if (startFrom && priorConfigDir) {
+            try {
+                migrateClaudeSessionFile(priorConfigDir, selectedConfigDir, opts.path, startFrom);
+            } catch (e) {
+                logger.debug(`[claudeRemote] Claude session-file migration failed, context may reset: ${e}`);
+            }
+        }
+        process.env.CLAUDE_CONFIG_DIR = selectedConfigDir;
+        if (opts.claudeEnvVars) { opts.claudeEnvVars.CLAUDE_CONFIG_DIR = selectedConfigDir; }
+        logger.debug(`[claudeRemote] Claude account switched to config dir: ${selectedConfigDir}`);
+    }
+
+    // Report the active account's config dir once per query start (covers the
+    // initial account and any post-switch value). Mirrors the currentModelCode
+    // emitter: purely additive REPORTING so the app can show the current account
+    // in any session. When the env is unset (e.g. daemon default), do not report.
+    if (opts.onAccountConfigDir && process.env.CLAUDE_CONFIG_DIR) {
+        opts.onAccountConfigDir(process.env.CLAUDE_CONFIG_DIR);
     }
 
     // Handle special commands

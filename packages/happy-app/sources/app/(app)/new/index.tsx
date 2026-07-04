@@ -33,6 +33,7 @@ import { useHeaderHeight } from '@/utils/responsive';
 import { t } from '@/text';
 import { useAllMachines, useSessions, useSetting, storage } from '@/sync/storage';
 import type { NewSessionAgentType } from '@/sync/persistence';
+import { loadLastClaudeAccount, saveLastClaudeAccount } from '@/sync/persistence';
 import { sync } from '@/sync/sync';
 import { isMachineOnline } from '@/utils/machineUtils';
 import { machineSpawnNewSession } from '@/sync/ops';
@@ -55,6 +56,12 @@ import {
     type ModelMode,
     type EffortLevel,
 } from '@/components/modelModeOptions';
+import {
+    getClaudeAccount,
+    nextClaudeAccountKey,
+    normalizeClaudeAccountKey,
+    type ClaudeAccountKey,
+} from '@/components/claudeAccountOptions';
 
 // Agent icon assets
 const agentIcons = {
@@ -71,6 +78,9 @@ const ALL_AGENTS: { key: AgentKey; label: string }[] = [
     { key: 'openclaw', label: 'openclaw' },
     { key: 'gemini', label: 'gemini' },
 ];
+
+// Claude account selector helpers are shared with the in-session switcher;
+// see @/components/claudeAccountOptions.
 
 type PickerItem = { key: string; label: string; subtitle?: string; dimmed?: boolean };
 
@@ -487,6 +497,11 @@ function NewSessionScreen() {
     const setSelectedMachineId = draft.setMachineId;
     const selectedPath = draft.selectedPath;
     const setSelectedPath = draft.setPath;
+    // Claude account defaults to the account last used ANYWHERE (new-session pick
+    // OR in-session switch); seed once from the global persisted value.
+    const [claudeAccount, setClaudeAccount] = React.useState<ClaudeAccountKey>(
+        () => normalizeClaudeAccountKey(loadLastClaudeAccount()),
+    );
     const [worktreeKey, setWorktreeKey] = React.useState<string>(
         draft.sessionType === 'worktree' ? '__new__' : '__none__'
     );
@@ -721,8 +736,19 @@ function NewSessionScreen() {
         setSelectedAgent(next);
     }, [availableAgents, selectedAgent, setSelectedAgent]);
 
+    const cycleClaudeAccount = React.useCallback(() => {
+        const next = nextClaudeAccountKey(claudeAccount);
+        setClaudeAccount(next);
+        // Persist immediately so cycling on the new-session screen (even without
+        // creating a session) updates the last-used account anywhere.
+        saveLastClaudeAccount(next);
+    }, [claudeAccount]);
+
     const isOffline = selectedMachine ? !isMachineOnline(selectedMachine) : false;
     const agent = availableAgents.find(a => a.key === selectedAgent) ?? ALL_AGENTS[0];
+    // Account selection applies only for the claude agent.
+    const showClaudeAccount = selectedAgent === 'claude';
+    const currentClaudeAccount = getClaudeAccount(claudeAccount);
     const currentPermission = permissionModes[permissionIndex] ?? permissionModes[0];
     const currentEffort = effortLevels[effortIndex] ?? effortLevels[0];
     const permissionStyle = currentPermission?.key !== 'default' ? getPermissionStyle(currentPermission.key) : null;
@@ -814,11 +840,18 @@ function NewSessionScreen() {
                 lastUsedModelMode: currentModelKey,
             });
 
+            // Only the claude agent honors a per-account credentials dir; leave
+            // undefined for codex/gemini/openclaw so no env is attached.
+            const claudeConfigDir = selectedAgent === 'claude'
+                ? getClaudeAccount(claudeAccount).configDir
+                : undefined;
+
             const result = await machineSpawnNewSession({
                 machineId: selectedMachineId,
                 directory: spawnDirectory,
                 approvedNewDirectoryCreation,
                 agent: selectedAgent,
+                claudeConfigDir,
             });
 
             switch (result.type) {
@@ -828,6 +861,11 @@ function NewSessionScreen() {
                     // Set permission mode and model on the session before sending
                     storage.getState().updateSessionPermissionMode(result.sessionId, currentPermission.key);
                     storage.getState().updateSessionModelMode(result.sessionId, currentModelKey);
+                    // Record the chosen Claude account so the session displays it and
+                    // can be switched later (claude agent only).
+                    if (selectedAgent === 'claude') {
+                        storage.getState().updateSessionClaudeAccount(result.sessionId, claudeAccount);
+                    }
 
                     // Clear input text so draft doesn't repeat the sent message
                     setPrompt('');
@@ -863,7 +901,7 @@ function NewSessionScreen() {
         } finally {
             setIsSpawning(false);
         }
-    }, [selectedMachineId, selectedMachine, selectedPath, selectedAgent, prompt, router, navigateToSession, currentPermission.key, currentModelKey, worktreeKey]);
+    }, [selectedMachineId, selectedMachine, selectedPath, selectedAgent, claudeAccount, prompt, router, navigateToSession, currentPermission.key, currentModelKey, worktreeKey]);
 
     const canSend = selectedMachineId && selectedMachine && isMachineOnline(selectedMachine) && !isSpawning;
 
@@ -982,6 +1020,17 @@ function NewSessionScreen() {
                                                 <Pressable onPress={cycleEffort} style={(p) => [p.pressed && styles.configRowPressed]}>
                                                     <Text style={[styles.configLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                                                         {currentEffort?.name}
+                                                    </Text>
+                                                </Pressable>
+                                            </>
+                                        )}
+
+                                        {showClaudeAccount && (
+                                            <>
+                                                <Text style={[styles.configLabel, { color: theme.colors.textSecondary }]}>·</Text>
+                                                <Pressable onPress={cycleClaudeAccount} style={(p) => [p.pressed && styles.configRowPressed]}>
+                                                    <Text style={[styles.configLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                                                        {currentClaudeAccount.label}
                                                     </Text>
                                                 </Pressable>
                                             </>

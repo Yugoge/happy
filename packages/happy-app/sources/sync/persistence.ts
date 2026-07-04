@@ -9,6 +9,7 @@ import type { PendingAttachment } from '@/hooks/useAttachments';
 const mmkv = new MMKV();
 const NEW_SESSION_DRAFT_KEY = 'new-session-draft-v1';
 const REGISTERED_PUSH_TOKEN_KEY = 'registered-push-token-v1';
+const LAST_CLAUDE_ACCOUNT_KEY = 'last-claude-account';
 
 export type NewSessionAgentType = 'claude' | 'codex' | 'gemini' | 'openclaw';
 export type NewSessionSessionType = 'simple' | 'worktree';
@@ -221,6 +222,22 @@ export function loadSessionModelModes(): Record<string, string> {
 
 export function saveSessionModelModes(modes: Record<string, string>) {
     mmkv.set('session-model-modes', JSON.stringify(modes));
+}
+
+export function loadSessionClaudeAccounts(): Record<string, string> {
+    return parseModesJson(mmkv.getString('session-claude-accounts'));
+}
+
+export function saveSessionClaudeAccounts(accounts: Record<string, string>) {
+    mmkv.set('session-claude-accounts', JSON.stringify(accounts));
+}
+
+export function loadLastClaudeAccount(): string | null {
+    return mmkv.getString(LAST_CLAUDE_ACCOUNT_KEY) ?? null;
+}
+
+export function saveLastClaudeAccount(key: string) {
+    mmkv.set(LAST_CLAUDE_ACCOUNT_KEY, key);
 }
 
 export function loadProfile(): Profile {

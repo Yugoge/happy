@@ -21,6 +21,8 @@ export interface EnhancedMode {
     appendSystemPrompt?: string;
     allowedTools?: string[];
     disallowedTools?: string[];
+    /** Claude account config dir (CLAUDE_CONFIG_DIR) — switches which account the spawned child authenticates as. */
+    claudeConfigDir?: string;
 }
 
 interface LoopOptions {

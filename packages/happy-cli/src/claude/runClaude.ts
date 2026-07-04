@@ -294,7 +294,11 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
         customSystemPrompt: mode.customSystemPrompt,
         appendSystemPrompt: mode.appendSystemPrompt,
         allowedTools: mode.allowedTools,
-        disallowedTools: mode.disallowedTools
+        disallowedTools: mode.disallowedTools,
+        // Account switch changes the hash so the query is torn down + restarted
+        // (same isolate mechanism as model switch), letting claudeRemote repoint
+        // CLAUDE_CONFIG_DIR at the newly-selected account for the next spawn.
+        claudeConfigDir: mode.claudeConfigDir
     }));
 
     // Forward messages to the queue
@@ -306,6 +310,7 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     let currentAppendSystemPrompt: string | undefined = undefined; // Track current append system prompt
     let currentAllowedTools: string[] | undefined = undefined; // Track current allowed tools
     let currentDisallowedTools: string[] | undefined = undefined; // Track current disallowed tools
+    let currentClaudeConfigDir: string | undefined = undefined; // Track current Claude account config dir (sticky)
     session.onUserMessage((message) => {
 
         // Resolve permission mode from meta - pass through as-is, mapping happens at SDK boundary
@@ -378,6 +383,17 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
             logger.debug(`[loop] User message received with no disallowed tools override, using current: ${currentDisallowedTools ? currentDisallowedTools.join(', ') : 'none'}`);
         }
 
+        // Resolve Claude account config dir — sticky: apply only when a non-empty
+        // value is present, otherwise keep the current account. Unlike model, an
+        // absent/null value must NOT reset to the daemon default mid-session (that
+        // would silently switch the account back).
+        let messageClaudeConfigDir = currentClaudeConfigDir;
+        if (message.meta?.claudeConfigDir) {
+            messageClaudeConfigDir = message.meta.claudeConfigDir;
+            currentClaudeConfigDir = messageClaudeConfigDir;
+            logger.debug(`[loop] Claude account config dir updated from user message: ${messageClaudeConfigDir}`);
+        }
+
         // Check for special commands before processing
         const specialCommand = parseSpecialCommand(message.content.text);
 
@@ -390,7 +406,8 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
                 customSystemPrompt: messageCustomSystemPrompt,
                 appendSystemPrompt: messageAppendSystemPrompt,
                 allowedTools: messageAllowedTools,
-                disallowedTools: messageDisallowedTools
+                disallowedTools: messageDisallowedTools,
+                claudeConfigDir: messageClaudeConfigDir
             };
             messageQueue.pushIsolateAndClear(specialCommand.originalMessage || message.content.text, enhancedMode);
             logger.debugLargeJson('[start] /compact command pushed to queue:', message);
@@ -406,7 +423,8 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
                 customSystemPrompt: messageCustomSystemPrompt,
                 appendSystemPrompt: messageAppendSystemPrompt,
                 allowedTools: messageAllowedTools,
-                disallowedTools: messageDisallowedTools
+                disallowedTools: messageDisallowedTools,
+                claudeConfigDir: messageClaudeConfigDir
             };
             messageQueue.pushIsolateAndClear(specialCommand.originalMessage || message.content.text, enhancedMode);
             logger.debugLargeJson('[start] /compact command pushed to queue:', message);
@@ -421,7 +439,8 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
             customSystemPrompt: messageCustomSystemPrompt,
             appendSystemPrompt: messageAppendSystemPrompt,
             allowedTools: messageAllowedTools,
-            disallowedTools: messageDisallowedTools
+            disallowedTools: messageDisallowedTools,
+            claudeConfigDir: messageClaudeConfigDir
         };
         // Attach files: download first, then append @path refs after message text
         const attachments = message.meta?.attachments;

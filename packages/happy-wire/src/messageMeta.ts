@@ -18,6 +18,7 @@ export const MessageMetaSchema = z.object({
   appendSystemPrompt: z.string().nullable().optional(),
   allowedTools: z.array(z.string()).nullable().optional(),
   disallowedTools: z.array(z.string()).nullable().optional(),
+  claudeConfigDir: z.string().nullable().optional(), // Claude account CLAUDE_CONFIG_DIR (switch account mid-session; absent = keep current)
   displayText: z.string().optional(),
   attachments: z.array(AttachmentMetadataSchema).optional(),
 });

@@ -464,7 +464,7 @@ class Sync {
             return;
         }
 
-        const { permissionMode, model } = resolveMessageModeMeta(session);
+        const { permissionMode, model, claudeConfigDir } = resolveMessageModeMeta(session);
 
         // Generate local ID
         const localId = randomUUID();
@@ -501,6 +501,9 @@ class Sync {
                 model,
                 fallbackModel,
                 appendSystemPrompt: systemPrompt,
+                // Sticky: only send an account override when one is selected; absence
+                // keeps the CLI on its current account (accounts don't reset to default).
+                ...(claudeConfigDir && { claudeConfigDir }),
                 ...(displayText && { displayText }), // Add displayText if provided
                 ...(attachments && attachments.length > 0 && { attachments })
             }

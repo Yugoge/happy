@@ -38,7 +38,7 @@ type LauncherState = {
 };
 
 type LoopState = {
-    pending: { message: string; mode: EnhancedMode } | null;
+    pending: { message: string; mode: EnhancedMode; hash: string } | null;
     previousSessionId: string | null;
     consecutiveCrashes: number;
     MAX_CONSECUTIVE_CRASHES: number;
@@ -49,7 +49,7 @@ type MetaScannerState = {
     promise: Promise<void> | null;
 };
 
-type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter; currentModelCodeEmitter: CurrentModelCodeEmitter };
+type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter; currentModelCodeEmitter: CurrentModelCodeEmitter; emitAccountConfigDir: (dir: string) => void };
 
 function createLauncherState(): LauncherState {
     return {
@@ -197,7 +197,10 @@ async function cleanupAfterLaunch(state: LauncherState, svc: Services, session: 
 
 function buildNextMessage(session: Session, ctrl: AbortController, ph: PermissionHandler, loop: LoopState, mode: { hash: string | null; mode: EnhancedMode | null }) {
     return async () => {
-        if (loop.pending) { const p = loop.pending; loop.pending = null; ph.handleModeChange(p.mode.permissionMode); return p; }
+        // Record the restart-initial's hash/mode so a SECOND consecutive mode change
+        // (e.g. account B->C, or model B->C) right after an isolate is compared against
+        // the actually-running mode — not a stale null, which would skip the restart.
+        if (loop.pending) { const p = loop.pending; loop.pending = null; mode.hash = p.hash; mode.mode = p.mode; ph.handleModeChange(p.mode.permissionMode); return p; }
         const msg = await session.queue.waitForMessagesAndGetAsString(ctrl.signal);
         if (!msg) return null;
         if ((mode.hash && msg.hash !== mode.hash) || msg.isolate) { loop.pending = msg; return null; }
@@ -257,7 +260,17 @@ function initServices(session: Session): Services {
     // so the app's resolveContextWindow() helper can pick the correct
     // 200K vs 1M denominator on the normal Claude SDK path.
     const currentModelCodeEmitter = createCurrentModelCodeEmitter((updater) => session.client.updateMetadata(updater));
-    return { permissionHandler, messageQueue, sdkToLogConverter, currentModelCodeEmitter };
+    // Emit metadata.currentClaudeConfigDir from the active account's CLAUDE_CONFIG_DIR
+    // at each query start, so the app shows the current account in any session (parity
+    // with currentModelCode). Guard against redundant metadata writes for the common
+    // case where the account is unchanged across restarts of a long-running session.
+    let lastEmittedConfigDir: string | undefined;
+    const emitAccountConfigDir = (dir: string) => {
+        if (lastEmittedConfigDir === dir) return;
+        lastEmittedConfigDir = dir;
+        session.client.updateMetadata(m => ({ ...m, currentClaudeConfigDir: dir }));
+    };
+    return { permissionHandler, messageQueue, sdkToLogConverter, currentModelCodeEmitter, emitAccountConfigDir };
 }
 
 async function invokeClaude(
@@ -275,6 +288,7 @@ async function invokeClaude(
         onMessage, signal: ctrl.signal,
         onCompletionEvent: (msg: string) => { session.client.sendSessionEvent({ type: 'message', message: msg }); },
         onSessionReset: () => { session.clearSessionId(); },
+        onAccountConfigDir: svc.emitAccountConfigDir,
         onReady: buildOnReady(session, loop),
     });
 }

@@ -41,6 +41,15 @@ interface AgentInputProps {
     modelMode?: ModelMode | null;
     availableModels?: ModelMode[];
     onModelModeChange?: (mode: ModelMode) => void;
+    // Claude account (CLAUDE_CONFIG_DIR) — mirrors the MODEL switcher. The panel renders
+    // a radio-list section over `availableClaudeAccounts` (each {key,label}); the currently
+    // selected account (`claudeAccountKey`) is highlighted and tapping a row calls
+    // `onClaudeAccountChange(key)`. `claudeAccountLabel` is the display-only footer chip
+    // (null hides both the section and the chip for non-claude agents).
+    claudeAccountLabel?: string | null;
+    claudeAccountKey?: string | null;
+    availableClaudeAccounts?: { key: string; label: string }[];
+    onClaudeAccountChange?: (key: string) => void;
     metadata?: Metadata | null;
     onAbort?: () => void | Promise<void>;
     showAbortButton?: boolean;
@@ -777,6 +786,81 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                         </Text>
                                     )}
                                 </View>
+
+                                {/* Claude Account Section — Claude sessions only; mirrors the
+                                    MODEL section. Hidden for non-claude agents (no accounts
+                                    provided), same as the footer account chip. */}
+                                {props.availableClaudeAccounts && props.availableClaudeAccounts.length > 0 && (
+                                    <>
+                                        {/* Divider */}
+                                        <View style={{
+                                            height: 1,
+                                            backgroundColor: theme.colors.divider,
+                                            marginHorizontal: 16
+                                        }} />
+                                        <View style={{ paddingVertical: 8 }}>
+                                            <Text style={{
+                                                fontSize: 12,
+                                                fontWeight: '600',
+                                                color: theme.colors.textSecondary,
+                                                paddingHorizontal: 16,
+                                                paddingBottom: 4,
+                                                ...Typography.default('semiBold')
+                                            }}>
+                                                CLAUDE ACCOUNT
+                                            </Text>
+                                            {props.availableClaudeAccounts.map((account) => {
+                                                const isSelected = props.claudeAccountKey === account.key;
+
+                                                return (
+                                                    <Pressable
+                                                        key={account.key}
+                                                        onPress={() => {
+                                                            hapticsLight();
+                                                            props.onClaudeAccountChange?.(account.key);
+                                                        }}
+                                                        style={({ pressed }) => ({
+                                                            flexDirection: 'row',
+                                                            alignItems: 'center',
+                                                            paddingHorizontal: 16,
+                                                            paddingVertical: 8,
+                                                            backgroundColor: pressed ? theme.colors.surfacePressed : 'transparent'
+                                                        })}
+                                                    >
+                                                        <View style={{
+                                                            width: 16,
+                                                            height: 16,
+                                                            borderRadius: 8,
+                                                            borderWidth: 2,
+                                                            borderColor: isSelected ? theme.colors.radio.active : theme.colors.radio.inactive,
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            marginRight: 12
+                                                        }}>
+                                                            {isSelected && (
+                                                                <View style={{
+                                                                    width: 6,
+                                                                    height: 6,
+                                                                    borderRadius: 3,
+                                                                    backgroundColor: theme.colors.radio.dot
+                                                                }} />
+                                                            )}
+                                                        </View>
+                                                        <View>
+                                                            <Text style={{
+                                                                fontSize: 14,
+                                                                color: isSelected ? theme.colors.radio.active : theme.colors.text,
+                                                                ...Typography.default()
+                                                            }}>
+                                                                {account.label}
+                                                            </Text>
+                                                        </View>
+                                                    </Pressable>
+                                                );
+                                            })}
+                                        </View>
+                                    </>
+                                )}
                             </FloatingOverlay>
                         </View>
                     </>
@@ -902,6 +986,24 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                     }}
                                 >
                                     {props.modelMode.name}
+                                </Text>
+                            </View>
+                        )}
+                        {/* Claude account chip — display-only badge (mirrors the model chip);
+                            shows which account/quota window the session runs under. Switching
+                            happens in the settings panel's CLAUDE ACCOUNT section, not here. */}
+                        {props.claudeAccountLabel && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 }}>
+                                <Ionicons name="person-circle-outline" size={11} color={theme.colors.textSecondary} />
+                                <Text
+                                    numberOfLines={1}
+                                    style={{
+                                        fontSize: 11,
+                                        color: theme.colors.textSecondary,
+                                        ...Typography.default()
+                                    }}
+                                >
+                                    {props.claudeAccountLabel}
                                 </Text>
                             </View>
                         )}

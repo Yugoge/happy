@@ -11,7 +11,7 @@ import { LocalSettings, applyLocalSettings } from "./localSettings";
 import { Purchases, customerInfoToPurchases } from "./purchases";
 import { Profile } from "./profile";
 import { UserProfile, RelationshipUpdatedEvent } from "./friendTypes";
-import { loadSettings, loadLocalSettings, saveLocalSettings, saveSettings, loadPurchases, savePurchases, loadProfile, saveProfile, loadSessionDrafts, saveSessionDrafts, loadSessionPermissionModes, saveSessionPermissionModes, loadSessionModelModes, saveSessionModelModes } from "./persistence";
+import { loadSettings, loadLocalSettings, saveLocalSettings, saveSettings, loadPurchases, savePurchases, loadProfile, saveProfile, loadSessionDrafts, saveSessionDrafts, loadSessionPermissionModes, saveSessionPermissionModes, loadSessionModelModes, saveSessionModelModes, loadSessionClaudeAccounts, saveSessionClaudeAccounts, saveLastClaudeAccount } from "./persistence";
 import { getDefaultModelKey } from '@/components/modelModeOptions';
 import type { PermissionModeKey } from '@/components/PermissionModeSelector';
 import type { CustomerInfo } from './revenueCat/types';
@@ -126,6 +126,7 @@ interface StorageState {
     updateSessionDraft: (sessionId: string, draft: string | null) => void;
     updateSessionPermissionMode: (sessionId: string, mode: string) => void;
     updateSessionModelMode: (sessionId: string, mode: string) => void;
+    updateSessionClaudeAccount: (sessionId: string, accountKey: string) => void;
     // Artifact methods
     applyArtifacts: (artifacts: DecryptedArtifact[]) => void;
     addArtifact: (artifact: DecryptedArtifact) => void;
@@ -259,6 +260,7 @@ export const storage = create<StorageState>()((set, get) => {
     let sessionDrafts = loadSessionDrafts();
     let sessionPermissionModes = loadSessionPermissionModes();
     let sessionModelModes = loadSessionModelModes();
+    let sessionClaudeAccounts = loadSessionClaudeAccounts();
     return {
         settings,
         settingsVersion: version,
@@ -313,6 +315,7 @@ export const storage = create<StorageState>()((set, get) => {
             const savedDrafts = Object.keys(state.sessions).length === 0 ? sessionDrafts : {};
             const savedPermissionModes = Object.keys(state.sessions).length === 0 ? sessionPermissionModes : {};
             const savedModelModes = Object.keys(state.sessions).length === 0 ? sessionModelModes : {};
+            const savedClaudeAccounts = Object.keys(state.sessions).length === 0 ? sessionClaudeAccounts : {};
 
             // Merge new sessions with existing ones
             const mergedSessions: Record<string, Session> = { ...state.sessions };
@@ -343,12 +346,20 @@ export const storage = create<StorageState>()((set, get) => {
                     (session.modelMode && session.modelMode !== 'default' ? session.modelMode : undefined) ||
                     defaultModelMode;
 
+                // Claude account has no "default key" — an unset session stays null
+                // (no per-message CLAUDE_CONFIG_DIR override is sent for it).
+                const existingClaudeAccount = state.sessions[session.id]?.claudeAccount;
+                const savedClaudeAccount = savedClaudeAccounts[session.id];
+                const resolvedClaudeAccount: string | null =
+                    existingClaudeAccount || savedClaudeAccount || session.claudeAccount || null;
+
                 mergedSessions[session.id] = {
                     ...session,
                     presence,
                     draft: existingDraft || savedDraft || session.draft || null,
                     permissionMode: resolvedPermissionMode,
-                    modelMode: resolvedModelMode
+                    modelMode: resolvedModelMode,
+                    claudeAccount: resolvedClaudeAccount
                 };
             });
 
@@ -899,6 +910,40 @@ export const storage = create<StorageState>()((set, get) => {
             saveSessionModelModes(allModes);
 
             // No need to rebuild sessionListViewData since model mode doesn't affect the list display
+            return {
+                ...state,
+                sessions: updatedSessions
+            };
+        }),
+        updateSessionClaudeAccount: (sessionId: string, accountKey: string) => set((state) => {
+            const session = state.sessions[sessionId];
+            if (!session) return state;
+
+            // Update the session with the new Claude account key
+            const updatedSessions = {
+                ...state.sessions,
+                [sessionId]: {
+                    ...session,
+                    claudeAccount: accountKey
+                }
+            };
+
+            // Collect all selected accounts for persistence
+            const allAccounts: Record<string, string> = {};
+            Object.entries(updatedSessions).forEach(([id, sess]) => {
+                if (sess.claudeAccount) {
+                    allAccounts[id] = sess.claudeAccount;
+                }
+            });
+
+            // Persist selected accounts (account switch doesn't affect list display)
+            saveSessionClaudeAccounts(allAccounts);
+
+            // Also record this as the last-used Claude account anywhere, so the
+            // new-session screen defaults to it (captures both in-session switches
+            // and new-session creation, which routes through this action).
+            saveLastClaudeAccount(accountKey);
+
             return {
                 ...state,
                 sessions: updatedSessions

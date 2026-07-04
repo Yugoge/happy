@@ -8,6 +8,7 @@ import {
     getDefaultPermissionModeKey,
     resolveCurrentOption,
 } from '@/components/modelModeOptions';
+import { getClaudeAccount, getClaudeAccountKeyByConfigDir, CLAUDE_ACCOUNTS } from '@/components/claudeAccountOptions';
 import { getSuggestions } from '@/components/autocomplete/suggestions';
 import { ChatHeaderView } from '@/components/ChatHeaderView';
 import { ChatList } from '@/components/ChatList';
@@ -202,7 +203,27 @@ function useModesAndModels(session: Session) {
     const modes = React.useMemo(() => getAvailablePermissionModes(flavor, session.metadata, t), [flavor, session.metadata]);
     const perm = React.useMemo<PermissionMode | null>(() => resolveCurrentOption(modes, [session.permissionMode, session.metadata?.currentOperatingModeCode, getDefaultPermissionModeKey(flavor)]), [modes, session.permissionMode, session.metadata?.currentOperatingModeCode, flavor]);
     const model = React.useMemo<ModelMode | null>(() => resolveCurrentOption(models, [session.modelMode, session.metadata?.currentModelCode, getDefaultModelKey(flavor)]), [models, session.modelMode, session.metadata?.currentModelCode, flavor]);
-    return { flavor, models, modes, perm, model };
+    // Account switching is a Claude-only concept (codex/gemini authenticate differently).
+    // Resolve the current account key with precedence mirroring the model resolver:
+    // explicit local choice (session.claudeAccount) FIRST, then the CLI-reported active
+    // config dir (metadata.currentClaudeConfigDir) mapped back to a tracked key, else null.
+    // This makes historical sessions on a tracked account show + highlight it once the CLI
+    // reports it, while untracked/default sessions stay null (no chip, no highlight) — never
+    // a fabricated default. Sessions created via the new-session selector already carry
+    // session.claudeAccount and keep working unchanged.
+    const isClaudeFlavor = (flavor ?? 'claude') === 'claude';
+    const claudeAccountKey = isClaudeFlavor
+        ? (session.claudeAccount ?? getClaudeAccountKeyByConfigDir(session.metadata?.currentClaudeConfigDir))
+        : null;
+    // Footer chip label = the resolved key's label (null → no chip). Single resolved key
+    // drives BOTH the panel highlight and the chip so they never disagree.
+    const claudeAccountLabel = claudeAccountKey ? getClaudeAccount(claudeAccountKey).label : null;
+    // Available accounts drive the CLAUDE ACCOUNT switcher section (mirrors availableModels).
+    // Surfaced for claude sessions so an unset session can still pick an account.
+    const claudeAccounts = isClaudeFlavor
+        ? CLAUDE_ACCOUNTS.map(a => ({ key: a.key, label: a.label }))
+        : [];
+    return { flavor, models, modes, perm, model, claudeAccountLabel, claudeAccounts, claudeAccountKey };
 }
 
 function dismissCliVersion(machineId: string | undefined, cliVersion: string | undefined, ack: Record<string, string>) {
@@ -435,7 +456,9 @@ function SessionInputArea({ session, sessionId, micBtn }: {
 function useComposerCallbacks(sessionId: string) {
     const upPerm = React.useCallback((mode: PermissionMode) => { storage.getState().updateSessionPermissionMode(sessionId, mode.key); }, [sessionId]);
     const upModel = React.useCallback((mode: ModelMode) => { storage.getState().updateSessionModelMode(sessionId, mode.key); }, [sessionId]);
-    return { upPerm, upModel };
+    // Select the Claude account from the settings panel (mirrors upModel).
+    const upAccount = React.useCallback((key: string) => { storage.getState().updateSessionClaudeAccount(sessionId, key); }, [sessionId]);
+    return { upPerm, upModel, upAccount };
 }
 
 // Inline attachment-error messages. The 10-language translation files all
@@ -533,6 +556,8 @@ function ComposerInput({ session, sessionId, msg, setMsg, m, cbs, onSend, conn, 
             sessionId={sessionId} permissionMode={m.perm} onPermissionModeChange={cbs.upPerm}
             availableModes={m.modes} modelMode={m.model} availableModels={m.models}
             onModelModeChange={cbs.upModel} metadata={session.metadata}
+            claudeAccountLabel={m.claudeAccountLabel} claudeAccountKey={m.claudeAccountKey}
+            availableClaudeAccounts={m.claudeAccounts} onClaudeAccountChange={cbs.upAccount}
             connectionStatus={conn} blockSend={settings.disconnected} onSend={onSend}
             onMicPress={settings.disconnected ? undefined : micBtn.onMicPress}
             isMicActive={settings.disconnected ? false : micBtn.isMicActive}

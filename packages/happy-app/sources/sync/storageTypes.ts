@@ -11,6 +11,7 @@ export const MetadataSchema = z.object({
         description: z.string().nullish(),
     })).optional(),
     currentModelCode: z.string().optional(),
+    currentClaudeConfigDir: z.string().optional(), // Active Claude account CLAUDE_CONFIG_DIR reported by the CLI (for current-account display)
     operatingModes: z.array(z.object({
         code: z.string(),
         value: z.string(),
@@ -97,6 +98,7 @@ export interface Session {
     draft?: string | null; // Local draft message, not synced to server
     permissionMode?: string | null; // Local permission mode key, not synced to server
     modelMode?: string | null; // Local model key, not synced to server
+    claudeAccount?: string | null; // Local Claude account key (CLAUDE_CONFIG_DIR selector), not synced to server
     // IMPORTANT: latestUsage is extracted from reducerState.latestUsage after message processing.
     // We store it directly on Session to ensure it's available immediately on load.
     // Do NOT store reducerState itself on Session - it's mutable and should only exist in SessionMessages.
