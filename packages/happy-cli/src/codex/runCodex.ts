@@ -561,6 +561,17 @@ export async function runCodex(opts: {
         }
     });
 
+    // request_user_input handler: surfaces codex's interactive question as an
+    // answer card (permission id = codex itemId) and relays the user's answers.
+    client.setRequestUserInputHandler(async (params) => {
+        try {
+            return await permissionHandler.handleRequestUserInput(params.itemId, params.questions);
+        } catch (error) {
+            logger.debug('[Codex] Error handling request_user_input:', error);
+            return null;
+        }
+    });
+
     // Event handler: same EventMsg types as the legacy MCP server — no changes needed
     client.setEventHandler((msg) => {
         logger.debug(`[Codex] Event: ${JSON.stringify(msg)}`);
@@ -687,6 +698,11 @@ export async function runCodex(opts: {
         }
     } as const;
     let first = true;
+    // Change-guard: emit currentModelMode / currentPermissionMode to session metadata
+    // at each turn start, mirroring claudeRemoteLauncher.ts:277-287. Avoids redundant
+    // metadata writes when the selection is unchanged across turns.
+    let lastEmittedModelMode: string | undefined;
+    let lastEmittedPermissionMode: string | undefined;
 
     try {
         logger.debug('[codex]: client.connect begin');
@@ -749,6 +765,18 @@ export async function runCodex(opts: {
                     sandboxManagedByHappy,
                 );
 
+                // Emit currentModelMode / currentPermissionMode to session metadata so the app
+                // can restore the user's model/permission selection cross-device (AC3 emitter gap).
+                // Mirrors claudeRemoteLauncher.ts:278-287 change-guard pattern.
+                if (message.mode.model !== lastEmittedModelMode) {
+                    lastEmittedModelMode = message.mode.model;
+                    session.updateMetadata((cur) => ({ ...cur, currentModelMode: message.mode.model }));
+                }
+                if (message.mode.permissionMode !== lastEmittedPermissionMode) {
+                    lastEmittedPermissionMode = message.mode.permissionMode;
+                    session.updateMetadata((cur) => ({ ...cur, currentPermissionMode: message.mode.permissionMode }));
+                }
+
                 // Start thread on first turn (thread persists across mode changes)
                 if (!client.hasActiveThread()) {
                     const startedThread = await client.startThread({
@@ -774,6 +802,9 @@ export async function runCodex(opts: {
                     approvalPolicy: executionPolicy.approvalPolicy,
                     sandbox: executionPolicy.sandbox,
                     inputItems,
+                    ...(executionPolicy.collaborationMode
+                        ? { collaborationMode: executionPolicy.collaborationMode }
+                        : {}),
                 });
                 first = false;
 
