@@ -137,7 +137,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
                 ) : content
             ) : null}
 
-            {tool.permission && sessionId && tool.name !== 'AskUserQuestion' && (
+            {tool.permission && sessionId && tool.name !== 'AskUserQuestion' && tool.name !== 'functions.request_user_input' && (
                 <PermissionFooter
                     permission={tool.permission}
                     sessionId={sessionId}

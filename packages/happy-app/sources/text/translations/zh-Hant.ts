@@ -407,6 +407,8 @@ export const zhHant: TranslationStructure = {
             badgeReadOnly: '唯讀模式',
             badgeSafeYolo: '安全 YOLO',
             badgeYolo: 'YOLO',
+            plan: '計畫',
+            badgePlan: '計畫',
         },
         codexModel: {
             title: 'CODEX 模型',

@@ -25,15 +25,17 @@ const SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set([
     'CodexDiff',
     'functions.update_plan',
     'multi_tool_use.parallel',
-    // B13 (AC-B13-2): the lifecycle full view (AgentFullView → TaskViewFull) now
-    // renders structured Prompt + Tool Calls + Result/final_summary itself, so
-    // suppress the raw Input/Output JSON dump that would otherwise duplicate it.
-    'functions.subagent_lifecycle',
-    // #5 (Cluster C / MIN-2): RequestUserInputView renders the structured
-    // question/options/answer (+ error reason) itself on the full-detail route,
-    // so suppress the generic Input/Output/Error JSON dump that would otherwise
-    // duplicate it and re-leak the raw failure payload.
-    'functions.request_user_input',
+    // AC-B1 (task 20260618-142111): functions.subagent_lifecycle is NO LONGER a
+    // specialized-full-payload tool. The click-title full detail must show Claude's
+    // generic structured view (Description + Input Parameters raw tool.input JSON),
+    // matching Claude's Task detail. So the lifecycle is removed from this set (and
+    // from the _all.tsx toolFullViewRegistry + the ToolDescriptionSection hard-null)
+    // so ToolInputSection renders. The desktop sidebar conversation view
+    // (SidebarAgentConversation) is a SEPARATE route and stays unchanged.
+    // functions.request_user_input is deliberately NOT specialized-full-payload: its
+    // click-title detail now shows the generic structured view (Description + Input
+    // Parameters raw tool.input JSON), mirroring subagent_lifecycle (AC-B1) and Claude.
+    // The interactive answer card stays INLINE only (toolViewRegistry), not in the detail.
     // Wave-1 Item 1 (spec-20260607-124814): every image-tool detail is now fully owned
     // by ImageToolFullView (view_image / screenshot / image_generation / file / aliases),
     // so the generic Input/Output/Error/Description/RawJson dumps are all suppressed —
@@ -75,10 +77,9 @@ function getCommandCandidates(input: ToolCall['input']): string[] {
 }
 
 function ToolDescriptionSection({ tool }: { tool: ToolCall }) {
-    // B13 (codex F4): the lifecycle full view (TaskViewFull) renders the prompt in
-    // its own Prompt section, and tool.description echoes that prompt — hide the
-    // generic Description here to avoid duplicating it on mobile detail.
-    if (tool.name === 'functions.subagent_lifecycle') return null;
+    // AC-B1 (task 20260618-142111): the lifecycle hard-null is REMOVED so the
+    // click-title full detail renders the generic Description section (Claude
+    // Task-detail parity). The empty/command-echo guard below still applies.
     // Guard: hide Description when it is empty or echoes a raw command.
     // Codex exec_command populates tool.description from input.description,
     // which is the raw `/bin/bash -lc "..."` string — identical to input.command.

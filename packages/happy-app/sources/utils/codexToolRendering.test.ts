@@ -785,6 +785,77 @@ describe('codex rendering helpers', () => {
         expect(running.answer).toBeNull();
     });
 
+    // #5 (Cluster 5 / AC-C3): the parser MUST preserve the producer-emitted question
+    // id (qid) and per-question multiSelect so the interactive RequestUserInputView can
+    // (a) render radios vs checkboxes and (b) key answersRecord by qid for the C-producer
+    // round-trip. Keying by header alone would break the qid->answer mapping.
+    it('AC-C3: extractRequestUserInputSummary preserves qid + multiSelect for the interactive round-trip', () => {
+        const withId = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', {
+                questions: [{
+                    id: 'q-renderer', header: 'Render', question: 'Pick a renderer', multiSelect: true,
+                    options: [{ label: 'WebGL' }, { label: 'Canvas' }],
+                }],
+            }, undefined, 'running'),
+        );
+        expect(withId.questions[0].id).toBe('q-renderer');
+        expect(withId.questions[0].multiSelect).toBe(true);
+
+        // snake_case multi_select and qid alias are honored; single-select defaults false.
+        const snake = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', {
+                questions: [{ qid: 'q-theme', question: 'Theme?', multi_select: false, options: [{ label: 'Dark' }] }],
+            }, undefined, 'running'),
+        );
+        expect(snake.questions[0].id).toBe('q-theme');
+        expect(snake.questions[0].multiSelect).toBe(false);
+
+        // id is null when the producer omits it (view then falls back to header).
+        const noId = extractRequestUserInputSummary(
+            makeToolCall('functions.request_user_input', {
+                questions: [{ header: 'H', question: 'Q?', options: [{ label: 'A' }] }],
+            }, undefined, 'running'),
+        );
+        expect(noId.questions[0].id).toBeNull();
+        expect(noId.questions[0].multiSelect).toBe(false);
+    });
+
+    // #5 (Cluster 5 / AC-C3): a PENDING interactive request_user_input (running tool
+    // carrying a pending permission) MUST reach the interactive view (return true) so
+    // the user can answer — it is NOT force-normalized to a read-only/unavailable card.
+    // A running request WITHOUT a pending permission stays header-only (return false).
+    it('AC-C3: shouldRenderToolContent surfaces a pending interactive request_user_input', () => {
+        const pending = makeToolCall('functions.request_user_input',
+            { questions: [{ id: 'q1', question: 'Pick', options: [{ label: 'A' }] }] }, undefined, 'running');
+        pending.permission = { id: 'item-123', status: 'pending' };
+        // hasSpecializedView=true (view registered), minimal=true (header-only default):
+        // the pending interactive request must still render its form.
+        expect(shouldRenderToolContent(pending, true, true)).toBe(true);
+
+        // No permission => legacy running request stays header-only.
+        const runningNoPerm = makeToolCall('functions.request_user_input',
+            { questions: [{ id: 'q1', question: 'Pick', options: [{ label: 'A' }] }] }, undefined, 'running');
+        expect(shouldRenderToolContent(runningNoPerm, true, true)).toBe(false);
+
+        // An already-approved permission is no longer pending => not forced interactive.
+        const approved = makeToolCall('functions.request_user_input',
+            { questions: [{ id: 'q1', question: 'Pick', options: [{ label: 'A' }] }] }, { answers: { q1: 'A' } }, 'completed');
+        approved.permission = { id: 'item-123', status: 'approved' };
+        // completed (non-running) request renders its read-only answer card.
+        expect(shouldRenderToolContent(approved, true, true)).toBe(true);
+
+        // codex#4: a STALE pending permission on an ERROR card must NOT take the
+        // running-pending interactive branch — the error read-only path wins (also true,
+        // but via the error-state gate, not the interactive gate). The point is the
+        // running+pending gate does not fire for a non-running tool.
+        const errorWithStalePending = makeToolCall('functions.request_user_input',
+            { questions: [{ id: 'q1', question: 'Pick', options: [{ label: 'A' }] }] },
+            '<tool_use_error>boom</tool_use_error>', 'error');
+        errorWithStalePending.permission = { id: 'item-123', status: 'pending' };
+        // renders (via the error-state gate), and the view will show the read-only error.
+        expect(shouldRenderToolContent(errorWithStalePending, true, true)).toBe(true);
+    });
+
     // #5 (Cluster C / AC-C2 + AC-C4 / OBJ-3 B11): the view-facing failure helper
     // parses internally so a RAW tool.result (string OR object) reuses the B11
     // failure logic the GenericToolPreview no longer applies once the view is
@@ -858,22 +929,25 @@ describe('codex rendering helpers', () => {
         expect(shouldRenderToolContent(completed, false, true)).toBe(false);
     });
 
-    // #5 (Cluster C / AC-C3): the registry wiring resolves request_user_input to
-    // the specialized view on all three surfaces and suppresses the generic raw-JSON
-    // dump on the full-detail route. Source-derived so a revert fails the test.
-    it('AC-C3: request_user_input registered on inline + full-detail + desktop sidebar (raw JSON suppressed)', () => {
+    // #5 (Cluster C / AC-C3, revised task 20260703-053043): request_user_input renders the
+    // interactive card INLINE and in the desktop SIDEBAR, but the click-title full DETAIL now
+    // falls through to the generic structured view (Description + Input Parameters raw JSON),
+    // mirroring subagent_lifecycle (AC-B1) and Claude. Source-derived so a revert fails the test.
+    it('AC-C3: request_user_input is inline + sidebar, but its click-title detail is the generic structured view (not the specialized card)', () => {
         const allSrc = readFileSync(resolve(__dirname, '../components/tools/views/_all.tsx'), 'utf8');
         const inlineBlock = /export const toolViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
         const fullBlock = /export const toolFullViewRegistry:[\s\S]*?=\s*\{([\s\S]*?)\n\};/.exec(allSrc)?.[1] ?? '';
+        // Inline: the interactive answer card.
         expect(/'functions\.request_user_input':\s*RequestUserInputView/.test(inlineBlock)).toBe(true);
-        expect(/'functions\.request_user_input':\s*RequestUserInputView/.test(fullBlock)).toBe(true);
+        // Full-detail: NOT registered → falls through to the generic Description + Input Parameters view.
+        expect(/'functions\.request_user_input':\s*RequestUserInputView/.test(fullBlock)).toBe(false);
 
-        // SPECIALIZED_FULL_PAYLOAD_TOOLS membership suppresses the generic Input/Output/Error dump.
+        // NOT in SPECIALIZED_FULL_PAYLOAD_TOOLS → the generic Input Parameters section renders on the detail.
         const fullViewSrc = readFileSync(resolve(__dirname, '../components/tools/ToolFullView.tsx'), 'utf8');
         const payloadSet = /SPECIALIZED_FULL_PAYLOAD_TOOLS = new Set\(\[([\s\S]*?)\]\)/.exec(fullViewSrc)?.[1] ?? '';
-        expect(payloadSet).toContain("'functions.request_user_input'");
+        expect(payloadSet).not.toContain("'functions.request_user_input'");
 
-        // Desktop sidebar routes to the specialized view BEFORE the SidebarGenericView fallback.
+        // Desktop sidebar is UNCHANGED — still routes to the specialized card (B applies to the detail, not the sidebar).
         const sidebarSrc = readFileSync(resolve(__dirname, '../components/sidebar/SidebarContentRenderer.tsx'), 'utf8');
         expect(/REQUEST_USER_INPUT_TOOLS\.has\(tool\.name\)\)\s*\{\s*return <RequestUserInputView/.test(sidebarSrc)).toBe(true);
     });

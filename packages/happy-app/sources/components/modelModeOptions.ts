@@ -55,6 +55,9 @@ export function getClaudePermissionModes(translate: Translate): PermissionMode[]
 export function getCodexPermissionModes(translate: Translate): PermissionMode[] {
     return [
         { key: 'default', name: translate('agentInput.codexPermissionMode.default'), description: null },
+        // Plan mode is what enables codex's interactive request_user_input (the CLI sets
+        // collaborationMode='plan' only when permissionMode==='plan'); expose it like Claude/Gemini.
+        { key: 'plan', name: translate('agentInput.codexPermissionMode.plan'), description: null },
         { key: 'read-only', name: translate('agentInput.codexPermissionMode.readOnly'), description: null },
         { key: 'safe-yolo', name: translate('agentInput.codexPermissionMode.safeYolo'), description: null },
         { key: 'yolo', name: translate('agentInput.codexPermissionMode.yolo'), description: null },

@@ -220,9 +220,18 @@ export type RequestUserInputOption = {
 };
 
 export type RequestUserInputQuestion = {
+    // #5 (Cluster 5 C-app / AC-C3): preserve the producer-emitted question id so the
+    // interactive view can key answersRecord by qid (the C-producer maps qid->answer
+    // for the JSON-RPC round-trip). Null when the producer omits an id (then the view
+    // falls back to header). PRESERVE input.questions[].id verbatim.
+    id: string | null;
     header: string | null;
     question: string;
     options: RequestUserInputOption[];
+    // #5 (AC-C3): mirror AskUserQuestion's per-question single/multi-select so the
+    // interactive card renders radios vs checkboxes. Producer may carry this under
+    // multiSelect / multi_select / allowMultiple; absent => single-select.
+    multiSelect: boolean;
 };
 
 export type RequestUserInputSummary = {
@@ -254,17 +263,22 @@ function extractRequestUserInputQuestions(input: unknown): RequestUserInputQuest
     for (const entry of raw) {
         if (typeof entry === 'string') {
             const text = entry.trim();
-            if (text) out.push({ header: null, question: text, options: [] });
+            if (text) out.push({ id: null, header: null, question: text, options: [], multiSelect: false });
             continue;
         }
         if (!isRecord(entry)) continue;
         const question = stringifyUnknown(entry.question ?? entry.prompt ?? entry.text ?? entry.label);
         if (!question) continue;
         const header = stringifyUnknown(entry.header ?? entry.title);
+        // #5 (AC-C3): qid round-trips back to the C-producer. Preserve verbatim;
+        // null when absent (view then keys by header).
+        const id = stringifyUnknown(entry.id ?? entry.qid ?? entry.questionId);
+        const multiSelect = entry.multiSelect === true || entry.multi_select === true
+            || entry.allowMultiple === true || entry.allow_multiple === true;
         const options = (Array.isArray(entry.options) ? entry.options : [])
             .map(toOption)
             .filter((o): o is RequestUserInputOption => !!o);
-        out.push({ header, question, options });
+        out.push({ id, header, question, options, multiSelect });
     }
     return out;
 }
@@ -352,6 +366,18 @@ export function shouldRenderToolContent(
     // returned BEFORE the minimal-gate to let the GenericToolPreview body render.
     // Narrowly gated: does NOT widen to other tools and does NOT regress any other
     // tool's header-only minimal (codex F5).
+    // #5 (Cluster 5 / AC-C3): an INTERACTIVE pending request_user_input arrives as a
+    // RUNNING tool carrying a pending permission (the reducer turns
+    // agentState.requests[itemId] into a card with tool.permission.id). It MUST reach
+    // the interactive RequestUserInputView so the user can select+submit — NOT stay
+    // header-only and NOT be force-normalized to an error/unavailable read-only card.
+    // Placed BEFORE the error/unavailable/minimal gates. Scoped to state==='running' &&
+    // pending (codex#4): a stale pending permission on a completed/error card must NOT
+    // re-show the form — completed/error read-only wins; a denied/canceled permission is
+    // not 'pending' and also falls through to the read-only paths below.
+    if (tool.name === 'functions.request_user_input'
+        && tool.state === 'running'
+        && tool.permission?.status === 'pending') return true;
     if (tool.name === 'functions.request_user_input' && tool.state === 'error') return true;
     // AC6 (Cycle 16 Wave 2): EXTEND the above — a COMPLETED request_user_input whose
     // output reports it is unavailable/only-available-in-Plan-mode also renders inline

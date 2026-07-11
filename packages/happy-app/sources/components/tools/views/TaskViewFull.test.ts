@@ -33,6 +33,9 @@ import type { Message, ToolCall, ToolCallMessage, AgentTextMessage, UserTextMess
 const VIEWS_DIR = resolve(__dirname);
 const taskViewFullSrc = readFileSync(resolve(VIEWS_DIR, 'TaskViewFull.tsx'), 'utf8');
 const sidebarSrc = readFileSync(resolve(VIEWS_DIR, '../../sidebar/SidebarAgentConversation.tsx'), 'utf8');
+const toolFullViewSrc = readFileSync(resolve(VIEWS_DIR, '../ToolFullView.tsx'), 'utf8');
+const allRegistrySrc = readFileSync(resolve(VIEWS_DIR, '_all.tsx'), 'utf8');
+const sidebarContentRendererSrc = readFileSync(resolve(VIEWS_DIR, '../../sidebar/SidebarContentRenderer.tsx'), 'utf8');
 
 function lifecycleTool(result: any, name = 'functions.subagent_lifecycle', state: ToolCall['state'] = 'completed'): ToolCall {
     return {
@@ -277,5 +280,82 @@ describe('AC-B1 source-derived assertions — desktop SidebarAgentConversation (
     it('does NOT add a shared guard helper to codexToolRendering.ts (file-disjoint with Cluster C)', () => {
         // the guard is exported from THIS component file, not imported from the C-owned util
         expect(sidebarSrc).not.toMatch(/import[\s\S]*?dropDuplicateFinalAnswerChild[\s\S]*?from '@\/utils\/codexToolRendering'/);
+    });
+});
+
+// Cluster 3-happy-app-B (Item B, task 20260618-142111): the click-title FULL detail
+// of a Codex subagent lifecycle card must show Claude's GENERIC structured view —
+// the ToolFullView Description section + an Input Parameters section showing raw
+// tool.input JSON — NOT the conversation view. Three suppression points added by
+// 4732adc7 are removed: (1) the SPECIALIZED_FULL_PAYLOAD_TOOLS set entry, (2) the
+// ToolDescriptionSection hard-null, (3) the _all.tsx toolFullViewRegistry entry
+// routing the lifecycle to AgentFullView. AC-B2: the desktop sidebar is a SEPARATE
+// route and must stay exactly the conversation view (zero diff in the two sidebar
+// files). These are SOURCE-DERIVED, revert-sensitive assertions (RN components do
+// not load in node-env vitest); the binding gate is the live desktop+mobile render
+// on dev.life-ai.app per the project E2E rule.
+describe('AC-B1 full-detail generic structured view — ToolFullView (fail if any suppression point reverts)', () => {
+    // The toolFullViewRegistry object slice — used to scope assertions to the
+    // FULL-detail registry (toolViewRegistry, the inline card, legitimately keeps
+    // its functions.subagent_lifecycle → CodexSubagentLifecycleView entry).
+    const fullRegistrySlice = allRegistrySrc.slice(
+        allRegistrySrc.indexOf('toolFullViewRegistry'),
+    );
+
+    it('functions.subagent_lifecycle is NOT a member of SPECIALIZED_FULL_PAYLOAD_TOOLS (so ToolInputSection renders)', () => {
+        // The whole ToolFullView file no longer contains the quoted literal at all
+        // (both the set entry and the ToolDescriptionSection hard-null were removed).
+        // A set membership line would re-introduce it: assert absence of the literal.
+        // Quote-agnostic (codex finding 2): a future regression using double quotes
+        // must also fail this assertion, so match either quote style.
+        expect(toolFullViewSrc).not.toMatch(/['"]functions\.subagent_lifecycle['"]/);
+    });
+
+    it('ToolDescriptionSection does NOT hard-null functions.subagent_lifecycle (so the generic Description renders)', () => {
+        // the early-return guard `if (tool.name === 'functions.subagent_lifecycle') return null;` is gone.
+        // Quote-agnostic so a double-quote re-introduction also fails.
+        expect(toolFullViewSrc).not.toMatch(/tool\.name === ['"]functions\.subagent_lifecycle['"]/);
+    });
+
+    it('toolFullViewRegistry does NOT route functions.subagent_lifecycle to AgentFullView (falls through to generic ToolFullView)', () => {
+        // scoped to the FULL registry slice; the inline toolViewRegistry entry is unaffected.
+        // Quote-agnostic key match (codex finding 2): catches a double-quoted re-add.
+        expect(fullRegistrySlice).not.toMatch(/['"]functions\.subagent_lifecycle['"]\s*:/);
+    });
+
+    it('the generic ToolFullView sections (Description + Input Parameters) are still present and unconditionally rendered for non-specialized tools', () => {
+        // Description section + Input Params section exist and gate on (!SpecializedFullView || !specializedOwnsPayload)
+        expect(toolFullViewSrc).toMatch(/function ToolInputSection/);
+        expect(toolFullViewSrc).toMatch(/tools\.fullView\.inputParams/);
+        expect(toolFullViewSrc).toMatch(/JSON\.stringify\(tool\.input, null, 2\)/);
+        expect(toolFullViewSrc).toMatch(/function ToolDescriptionSection/);
+        expect(toolFullViewSrc).toMatch(/\(!SpecializedFullView \|\| !specializedOwnsPayload\) && <ToolInputSection/);
+    });
+
+    it('the inline subagent-lifecycle CARD (toolViewRegistry) is preserved — only the FULL-detail route changed', () => {
+        const inlineRegistrySlice = allRegistrySrc.slice(
+            allRegistrySrc.indexOf('toolViewRegistry'),
+            allRegistrySrc.indexOf('toolFullViewRegistry'),
+        );
+        expect(inlineRegistrySlice).toMatch(/'functions\.subagent_lifecycle'\s*:\s*CodexSubagentLifecycleView/);
+    });
+});
+
+describe('AC-B2 desktop sidebar conversation view unchanged (Item B sidebar exclusion)', () => {
+    it('SidebarContentRenderer still routes functions.subagent_lifecycle to SidebarAgentConversation (conversation view intact)', () => {
+        expect(sidebarContentRendererSrc).toMatch(/const AGENT_TOOLS = new Set\(\[[^\]]*'functions\.subagent_lifecycle'[^\]]*\]\)/);
+        expect(sidebarContentRendererSrc).toMatch(/AGENT_TOOLS\.has\(tool\.name\)/);
+        expect(sidebarContentRendererSrc).toMatch(/<SidebarAgentConversation/);
+    });
+
+    it('the sidebar route does NOT depend on the toolFullViewRegistry (the registry edit cannot affect it)', () => {
+        // SidebarContentRenderer routes via its own hardcoded Sets, importing the
+        // sidebar conversation component directly — never calling into the full-view
+        // registry. Scope to actual code dependency (calls / imports), not a bare
+        // word match (an explanatory comment legitimately mentions the registry).
+        expect(sidebarContentRendererSrc).not.toMatch(/getToolFullViewComponent\s*\(/);
+        // never imports the full-view registry barrel (the _all.tsx module)
+        expect(sidebarContentRendererSrc).not.toMatch(/from '[^']*\/_all'/);
+        expect(sidebarContentRendererSrc).toMatch(/import \{ SidebarAgentConversation \} from '\.\/SidebarAgentConversation'/);
     });
 });

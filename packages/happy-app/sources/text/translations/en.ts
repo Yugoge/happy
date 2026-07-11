@@ -421,6 +421,8 @@ export const en: TranslationStructure = {
             badgeReadOnly: 'read-only',
             badgeSafeYolo: 'safe yolo',
             badgeYolo: 'yolo',
+            plan: 'plan',
+            badgePlan: 'plan',
         },
         codexModel: {
             title: 'CODEX MODEL',

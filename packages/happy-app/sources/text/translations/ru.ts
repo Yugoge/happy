@@ -416,6 +416,8 @@ export const ru: TranslationStructure = {
             badgeReadOnly: 'Только чтение',
             badgeSafeYolo: 'Safe YOLO',
             badgeYolo: 'YOLO',
+            plan: 'Планирование',
+            badgePlan: 'Планирование',
         },
         codexModel: {
             title: 'CODEX MODEL',

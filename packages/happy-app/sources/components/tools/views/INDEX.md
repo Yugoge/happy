@@ -1,13 +1,14 @@
 # views
 
-*Last updated: 2026-05-09T17:25:29Z*
-**Total entries**: 24
+*Last updated: 2026-06-02T20:42:54Z*
+**Total entries**: 26
 **Convention**: kebab
 
 ## Tree
 ```
 views/
 ├── `_all.tsx` - tsx file
+├── `AgentFullView.tsx` - tsx file
 ├── `AskUserQuestionView.tsx` - tsx file
 ├── `BashView.tsx` - tsx file
 ├── `BashViewFull.tsx` - tsx file
@@ -27,6 +28,7 @@ views/
 ├── `MCPToolView.tsx` - tsx file
 ├── `MultiEditView.tsx` - tsx file
 ├── `MultiEditViewFull.tsx` - tsx file
+├── `ReadView.tsx` - tsx file
 ├── `TaskView.tsx` - tsx file
 ├── `TaskViewFull.tsx` - tsx file
 ├── `TodoView.tsx` - tsx file

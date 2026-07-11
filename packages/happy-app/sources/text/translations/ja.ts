@@ -408,6 +408,8 @@ export const ja: TranslationStructure = {
             badgeReadOnly: '読み取り専用モード',
             badgeSafeYolo: 'セーフYOLO',
             badgeYolo: 'YOLO',
+            plan: 'プラン',
+            badgePlan: 'プラン',
         },
         codexModel: {
             title: 'CODEXモデル',

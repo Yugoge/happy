@@ -140,6 +140,10 @@ export interface SpawnSessionOptions {
     approvedNewDirectoryCreation?: boolean;
     token?: string;
     agent?: 'codex' | 'claude' | 'gemini' | 'openclaw';
+    // Narrow per-session credentials-dir selection (NOT a generic env map).
+    // When set, ops.ts forwards it as environmentVariables.CLAUDE_CONFIG_DIR so the
+    // spawned claude resolves its credentials from this directory. Never a token.
+    claudeConfigDir?: string;
 }
 
 export interface ResumeSessionOptions {
@@ -154,7 +158,13 @@ export interface ResumeSessionOptions {
  */
 export async function machineSpawnNewSession(options: SpawnSessionOptions): Promise<SpawnSessionResult> {
 
-    const { machineId, directory, approvedNewDirectoryCreation = false, token, agent } = options;
+    const { machineId, directory, approvedNewDirectoryCreation = false, token, agent, claudeConfigDir } = options;
+
+    // Translate the narrow per-session option into the daemon's existing
+    // environmentVariables transport. Only the one credentials-dir key is ever sent.
+    const environmentVariables = claudeConfigDir
+        ? { CLAUDE_CONFIG_DIR: claudeConfigDir }
+        : undefined;
 
     try {
         const result = await apiSocket.machineRPC<SpawnSessionResult, {
@@ -163,10 +173,11 @@ export async function machineSpawnNewSession(options: SpawnSessionOptions): Prom
             approvedNewDirectoryCreation?: boolean,
             token?: string,
             agent?: 'codex' | 'claude' | 'gemini' | 'openclaw',
+            environmentVariables?: Record<string, string>,
         }>(
             machineId,
             'spawn-happy-session',
-            { type: 'spawn-in-directory', directory, approvedNewDirectoryCreation, token, agent }
+            { type: 'spawn-in-directory', directory, approvedNewDirectoryCreation, token, agent, environmentVariables }
         );
         return result;
     } catch (error) {

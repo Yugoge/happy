@@ -405,6 +405,8 @@ export const en = {
             badgeReadOnly: 'read-only',
             badgeSafeYolo: 'safe yolo',
             badgeYolo: 'yolo',
+            plan: 'plan',
+            badgePlan: 'plan',
         },
         codexModel: {
             title: 'CODEX MODEL',

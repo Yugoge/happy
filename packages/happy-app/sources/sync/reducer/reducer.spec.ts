@@ -3309,4 +3309,141 @@ describe('reducer', () => {
             expect(() => reducer(state, normalized)).toThrow();
         });
     });
+
+    describe('Codex request_user_input answer persistence', () => {
+        // These tests prove that AgentState.completedRequests[id].answers is threaded
+        // through to the rendered tool card's permission.answers. This is what lets an
+        // answered request_user_input card survive a cold reload / a second client.
+        // They are revert-sensitive: removing the `answers` threading from reducer.ts
+        // (the `answers: completed.answers || undefined` lines) makes them fail.
+
+        it('COLD-START: builds an answered request_user_input card from completedRequests with no pre-existing message', () => {
+            const state = createReducer();
+
+            // completedRequests carries an answered request_user_input, and there is NO
+            // pre-existing message or incoming tool call for it (cold reload / second client).
+            const agentState: AgentState = {
+                completedRequests: {
+                    'req-1': {
+                        tool: 'functions.request_user_input',
+                        arguments: { questions: [{ id: 'q1', prompt: 'Pick a color' }] },
+                        createdAt: 1000,
+                        completedAt: 2000,
+                        status: 'approved',
+                        answers: { q1: 'Blue' }
+                    }
+                }
+            };
+
+            const result = reducer(state, [], agentState);
+
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].kind).toBe('tool-call');
+            if (result.messages[0].kind === 'tool-call') {
+                expect(result.messages[0].tool.name).toBe('functions.request_user_input');
+                expect(result.messages[0].tool.permission?.id).toBe('req-1');
+                // The answers must be threaded onto the rendered card's permission.
+                expect(result.messages[0].tool.permission?.answers).toEqual({ q1: 'Blue' });
+            }
+        });
+
+        it('LIVE-UPDATE: an existing request_user_input message gets permission.answers populated when the completed request arrives', () => {
+            const state = createReducer();
+
+            // First: a pending permission request creates the tool-call message (no answers yet).
+            const pendingState: AgentState = {
+                requests: {
+                    'req-1': {
+                        tool: 'functions.request_user_input',
+                        arguments: { questions: [{ id: 'q1', prompt: 'Pick a color' }] },
+                        createdAt: 1000
+                    }
+                }
+            };
+
+            const pendingResult = reducer(state, [], pendingState);
+            expect(pendingResult.messages).toHaveLength(1);
+            expect(pendingResult.messages[0].kind).toBe('tool-call');
+            if (pendingResult.messages[0].kind !== 'tool-call') throw new Error('expected tool-call');
+            expect(pendingResult.messages[0].tool.permission?.answers).toBeUndefined();
+            const pendingId = pendingResult.messages[0].id;
+
+            // Then: the completed request arrives carrying the user's answers.
+            const completedState: AgentState = {
+                completedRequests: {
+                    'req-1': {
+                        tool: 'functions.request_user_input',
+                        arguments: { questions: [{ id: 'q1', prompt: 'Pick a color' }] },
+                        createdAt: 1000,
+                        completedAt: 2000,
+                        status: 'approved',
+                        answers: { q1: 'Blue' }
+                    }
+                }
+            };
+
+            const completedResult = reducer(state, [], completedState);
+
+            // Same message, updated IN PLACE (same id, no replacement card) with the answers
+            // threaded onto its permission — this is what makes the answered card survive.
+            expect(completedResult.messages).toHaveLength(1);
+            expect(completedResult.messages[0].id).toBe(pendingId);
+            expect(state.messages.size).toBe(1);
+            expect(state.toolIdToMessageId.get('req-1')).toBe(pendingId);
+            expect(completedResult.messages[0].kind).toBe('tool-call');
+            if (completedResult.messages[0].kind === 'tool-call') {
+                expect(completedResult.messages[0].tool.permission?.status).toBe('approved');
+                expect(completedResult.messages[0].tool.permission?.answers).toEqual({ q1: 'Blue' });
+            }
+        });
+
+        it('INCOMING-TOOL-CALL: answers survive via stored permission when a completed request and its tool call arrive together', () => {
+            const state = createReducer();
+
+            // A completed answered request AND the matching incoming tool-call in the SAME reducer
+            // call. This exercises the distinct threading path where `answers` is stashed into
+            // state.permissions (no pre-existing message) and then copied onto the Phase-2 tool
+            // card built from the incoming tool-call — separate from the two paths above.
+            const agentState: AgentState = {
+                completedRequests: {
+                    'req-1': {
+                        tool: 'functions.request_user_input',
+                        arguments: { questions: [{ id: 'q1', prompt: 'Pick a color' }] },
+                        createdAt: 1000,
+                        completedAt: 2000,
+                        status: 'approved',
+                        answers: { q1: 'Blue' }
+                    }
+                }
+            };
+
+            const messages: NormalizedMessage[] = [
+                {
+                    id: 'msg-1',
+                    localId: null,
+                    createdAt: 3000,
+                    role: 'agent',
+                    isSidechain: false,
+                    content: [{
+                        type: 'tool-call',
+                        id: 'req-1',
+                        name: 'functions.request_user_input',
+                        input: { questions: [{ id: 'q1', prompt: 'Pick a color' }] },
+                        description: null,
+                        uuid: 'req-1-uuid',
+                        parentUUID: null
+                    }]
+                }
+            ];
+
+            const result = reducer(state, messages, agentState);
+
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].kind).toBe('tool-call');
+            if (result.messages[0].kind === 'tool-call') {
+                expect(result.messages[0].tool.name).toBe('functions.request_user_input');
+                expect(result.messages[0].tool.permission?.answers).toEqual({ q1: 'Blue' });
+            }
+        });
+    });
 });

@@ -141,6 +141,7 @@ type StoredPermission = {
     mode?: string;
     allowedTools?: string[];
     decision?: 'approved' | 'approved_for_session' | 'denied' | 'abort';
+    answers?: Record<string, string>;
 };
 
 export type ReducerState = {
@@ -606,7 +607,8 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                             reason: completed.reason || undefined,
                             mode: completed.mode || undefined,
                             allowedTools: completed.allowedTools || undefined,
-                            decision: completed.decision || undefined
+                            decision: completed.decision || undefined,
+                            answers: completed.answers || undefined
                         });
 
                         if (hasChanged) {
@@ -626,7 +628,8 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                             createdAt: completed.createdAt || Date.now(),
                             completedAt: completed.completedAt || undefined,
                             status: completed.status,
-                            reason: completed.reason || undefined
+                            reason: completed.reason || undefined,
+                            answers: completed.answers || undefined
                         });
                         continue;
                     }
@@ -655,7 +658,8 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                             reason: completed.reason || undefined,
                             mode: completed.mode || undefined,
                             allowedTools: completed.allowedTools || undefined,
-                            decision: completed.decision || undefined
+                            decision: completed.decision || undefined,
+                            answers: completed.answers || undefined
                         }
                     };
 
@@ -681,7 +685,8 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                         reason: completed.reason || undefined,
                         mode: completed.mode || undefined,
                         allowedTools: completed.allowedTools || undefined,
-                        decision: completed.decision || undefined
+                        decision: completed.decision || undefined,
+                        answers: completed.answers || undefined
                     });
 
                     changed.add(mid);
@@ -842,7 +847,8 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                                 reason: permission.reason,
                                 mode: permission.mode,
                                 allowedTools: permission.allowedTools,
-                                decision: permission.decision
+                                decision: permission.decision,
+                                answers: permission.answers
                             };
 
                             // Update state based on permission status

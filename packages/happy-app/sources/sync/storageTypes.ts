@@ -11,6 +11,7 @@ export const MetadataSchema = z.object({
         description: z.string().nullish(),
     })).optional(),
     currentModelCode: z.string().optional(),
+    currentModelMode: z.string().optional(), // User's SELECTED model key reported by the CLI (for cross-device model-selection restore)
     currentClaudeConfigDir: z.string().optional(), // Active Claude account CLAUDE_CONFIG_DIR reported by the CLI (for current-account display)
     operatingModes: z.array(z.object({
         code: z.string(),
@@ -18,6 +19,7 @@ export const MetadataSchema = z.object({
         description: z.string().nullish(),
     })).optional(),
     currentOperatingModeCode: z.string().optional(),
+    currentPermissionMode: z.string().optional(), // User's SELECTED permission key reported by the CLI (for cross-device permission-selection restore)
     thoughtLevels: z.array(z.object({
         code: z.string(),
         value: z.string(),

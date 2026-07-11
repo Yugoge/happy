@@ -121,14 +121,19 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     spawn_agent: AgentFullView,
     // Also register functions.spawn_agent for the protocol-level verb
     'functions.spawn_agent': AgentFullView,
-    // Lifecycle envelope is the primary visible card when protocol emits it —
-    // must also get AgentFullView so sidebar renders TaskViewFull for it.
-    'functions.subagent_lifecycle': AgentFullView,
-    // #5 (Cluster C / MIN-2): the mobile full-detail route (ToolFullView via
-    // toolFullViewRegistry) must use the specialized read-only view too —
-    // otherwise the generic Input/Output/Error JSON dump renders. Paired with
-    // SPECIALIZED_FULL_PAYLOAD_TOOLS membership in ToolFullView.tsx.
-    'functions.request_user_input': RequestUserInputView,
+    // AC-B1 (task 20260618-142111): functions.subagent_lifecycle is NO LONGER
+    // routed to AgentFullView (the conversation view) on the click-title full
+    // detail. With no toolFullViewRegistry entry, getToolFullViewComponent returns
+    // null and ToolFullView falls through to its generic structured sections
+    // (Description + Input Parameters raw tool.input JSON), matching Claude's Task
+    // detail (which is likewise absent from this registry). The DESKTOP SIDEBAR is a
+    // SEPARATE route (SidebarContentRenderer → SidebarAgentConversation) and is
+    // unchanged — it still renders the conversation view.
+    // functions.request_user_input is deliberately NOT registered here: like
+    // functions.subagent_lifecycle (AC-B1) and Claude's own tools, the click-title
+    // full detail falls through to the generic structured sections (Description +
+    // Input Parameters raw tool.input JSON). The interactive answer card stays INLINE
+    // via toolViewRegistry above; the detail is read-only raw inspection, matching Claude.
 };
 
 // Helper function to get the appropriate view component for a tool

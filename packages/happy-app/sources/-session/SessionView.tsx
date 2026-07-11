@@ -201,8 +201,8 @@ function useModesAndModels(session: Session) {
     const flavor = session.metadata?.flavor;
     const models = React.useMemo(() => getAvailableModels(flavor, session.metadata, t), [flavor, session.metadata]);
     const modes = React.useMemo(() => getAvailablePermissionModes(flavor, session.metadata, t), [flavor, session.metadata]);
-    const perm = React.useMemo<PermissionMode | null>(() => resolveCurrentOption(modes, [session.permissionMode, session.metadata?.currentOperatingModeCode, getDefaultPermissionModeKey(flavor)]), [modes, session.permissionMode, session.metadata?.currentOperatingModeCode, flavor]);
-    const model = React.useMemo<ModelMode | null>(() => resolveCurrentOption(models, [session.modelMode, session.metadata?.currentModelCode, getDefaultModelKey(flavor)]), [models, session.modelMode, session.metadata?.currentModelCode, flavor]);
+    const perm = React.useMemo<PermissionMode | null>(() => resolveCurrentOption(modes, [session.permissionMode, session.metadata?.currentPermissionMode, session.metadata?.currentOperatingModeCode, getDefaultPermissionModeKey(flavor)]), [modes, session.permissionMode, session.metadata?.currentPermissionMode, session.metadata?.currentOperatingModeCode, flavor]);
+    const model = React.useMemo<ModelMode | null>(() => resolveCurrentOption(models, [session.modelMode, session.metadata?.currentModelMode, session.metadata?.currentModelCode, getDefaultModelKey(flavor)]), [models, session.modelMode, session.metadata?.currentModelMode, session.metadata?.currentModelCode, flavor]);
     // Account switching is a Claude-only concept (codex/gemini authenticate differently).
     // Resolve the current account key with precedence mirroring the model resolver:
     // explicit local choice (session.claudeAccount) FIRST, then the CLI-reported active

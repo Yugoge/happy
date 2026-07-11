@@ -30,7 +30,7 @@ export const CodexPlanView = React.memo<ToolViewProps>(({ tool }) => {
                         <Ionicons
                             name={iconNameForStatus(item.status) as any}
                             size={16}
-                            color={item.status === 'completed' ? theme.colors.success : item.status === 'in_progress' ? theme.colors.status.connecting : theme.colors.textSecondary}
+                            color={item.status === 'completed' ? theme.colors.success : item.status === 'in_progress' ? '#007AFF' : theme.colors.textSecondary}
                             style={planStyles.icon}
                         />
                         <Text style={[planStyles.text, statusStyle(item.status)]}>{item.step}</Text>
@@ -64,7 +64,9 @@ const planStyles = StyleSheet.create((theme) => ({
         textDecorationLine: 'line-through',
     },
     inProgressText: {
-        color: theme.colors.status.connecting,
+        // In-progress must match Claude TodoView's hardcoded #007AFF in BOTH themes.
+        // The connecting status token is #007AFF (light) but #FFFFFF (dark) — invisible in dark.
+        color: '#007AFF',
     },
     pendingText: {
         color: theme.colors.textSecondary,

@@ -408,6 +408,8 @@ export const zhHans: TranslationStructure = {
             badgeReadOnly: 'Read Only Mode',
             badgeSafeYolo: 'Safe YOLO',
             badgeYolo: 'YOLO',
+            plan: '计划',
+            badgePlan: '计划',
         },
         codexModel: {
             title: 'CODEX MODEL',
