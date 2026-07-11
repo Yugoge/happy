@@ -1,7 +1,7 @@
 # happy-dev
 
-*Last updated: 2026-04-25T13:30:45Z*
-**Total entries**: 1135
+*Last updated: 2026-05-14T19:57:49Z*
+**Total entries**: 1731
 **Convention**: kebab
 
 ## Tree
@@ -18,8 +18,19 @@ happy-dev/
 │   │   ├── evidence/
 │   │   ├── overnight/
 │   │   ├── postmortems/
+│   │   ├── qa-artifacts/
+│   │   ├── qa-partial-20260425-131502/
 │   │   ├── specs/
 │   │   ├── specs.pre-merge-backup/
+│   │   ├── visual-evidence-20260426/
+│   │   ├── `adr-atomic-symlink-deploy.md` - ADR: Atomic-symlink deploys for happy-cli
+│   │   ├── `agent-failure-audit-20260507.md` - Agent Failure Audit — 2026-05-07
+│   │   ├── `apply-sop-c1-redev-20260505-001500.md` - Apply SOP — C1 Redev (`/root/bin/happy-restart.sh` per-stack refactor)
+│   │   ├── `architect-codex-recovery-gap-20260428-215017.json` - json config
+│   │   ├── `architect-d5-subagent-lifecycle-merge-20260508-130403.json` - json config
+│   │   ├── `architect-happy-restart-and-daemon-prohibition-20260504-223115.md` - Architect Report — happy-restart.sh per-stack support + permanent daemon-restart prohibition
+│   │   ├── `architect-report-20260513-211054.json` - json config
+│   │   ├── `architect-virtual-repo-testing-20260429-192017.json` - json config
 │   │   ├── `ba-children-analysis.md` - BA Analysis: Agent/Task Sidechain Children Pipeline
 │   │   ├── `ba-investigation-20260425-122518.md` - BA Re-Investigation Artifact — Cycle 2 Round 2
 │   │   ├── `ba-issue3-deep-20260407.md` - Deep Analysis: Issue 3 -- Subagent Sidebar Missing Messages
@@ -49,6 +60,61 @@ happy-dev/
 │   │   ├── `ba-qa-report-20260425-122518-iter1.json` - json config
 │   │   ├── `ba-qa-report-20260425-122518.json` - json config
 │   │   ├── `ba-qa-report-20260425-131502.json` - json config
+│   │   ├── `ba-qa-report-20260425-143500-redev.json` - json config
+│   │   ├── `ba-qa-report-20260425-201355-5-16.json` - json config
+│   │   ├── `ba-qa-report-20260425-201355-5-17.json` - json config
+│   │   ├── `ba-qa-report-20260425-201355-5-19.json` - json config
+│   │   ├── `ba-qa-report-20260425-201355-5-2.json` - json config
+│   │   ├── `ba-qa-report-20260425-201355-5-3.json` - json config
+│   │   ├── `ba-qa-report-20260425-201355-5-4-5.json` - json config
+│   │   ├── `ba-qa-report-20260425-211000-redev2.json` - json config
+│   │   ├── `ba-qa-report-20260425-221000-redev3-iter1.json` - json config
+│   │   ├── `ba-qa-report-20260425-221000-redev3.json` - json config
+│   │   ├── `ba-qa-report-20260426-085000-ac12.json` - json config
+│   │   ├── `ba-qa-report-20260426-095000-wid.json` - json config
+│   │   ├── `ba-qa-report-20260427-001500-saga.json` - json config
+│   │   ├── `ba-qa-report-20260427-230227-p01-rerun.json` - json config
+│   │   ├── `ba-qa-report-20260427-230227-p02.json` - json config
+│   │   ├── `ba-qa-report-20260428-063343-codex-rendering-rerun.json` - json config
+│   │   ├── `ba-qa-report-20260428-063343-codex-rendering.json` - json config
+│   │   ├── `ba-qa-report-20260428-112122-codex-claude-transcript-parity-r2.json` - json config
+│   │   ├── `ba-qa-report-20260428-112122-codex-claude-transcript-parity-r3.json` - json config
+│   │   ├── `ba-qa-report-20260428-112122-codex-claude-transcript-parity.json` - json config
+│   │   ├── `ba-qa-report-20260428-215017.json` - json config
+│   │   ├── `ba-qa-report-20260429-120613.json` - json config
+│   │   ├── `ba-qa-report-20260429-192017.json` - json config
+│   │   ├── `ba-qa-report-20260502-162334.json` - json config
+│   │   ├── `ba-qa-report-20260506-124632.json` - json config
+│   │   ├── `ba-qa-report-20260507-055611.json` - json config
+│   │   ├── `ba-qa-report-20260507-060647.json` - json config
+│   │   ├── `ba-qa-report-20260507-103129.json` - json config
+│   │   ├── `ba-qa-report-20260507-103856.json` - json config
+│   │   ├── `ba-qa-report-20260507-142748-iter2.json` - json config
+│   │   ├── `ba-qa-report-20260507-142748.json` - json config
+│   │   ├── `ba-qa-report-20260507-142952.json` - json config
+│   │   ├── `ba-qa-report-20260507-191304.json` - json config
+│   │   ├── `ba-qa-report-20260507-191743.json` - json config
+│   │   ├── `ba-qa-report-20260508-130403.json` - json config
+│   │   ├── `ba-qa-report-20260508-134003.json` - json config
+│   │   ├── `ba-qa-report-20260508-154926.json` - json config
+│   │   ├── `ba-qa-report-20260508-211214.json` - json config
+│   │   ├── `ba-qa-report-20260508-211705.json` - json config
+│   │   ├── `ba-qa-report-20260509-115500.json` - json config
+│   │   ├── `ba-qa-report-20260509-152243.json` - json config
+│   │   ├── `ba-qa-report-20260509-225006.json` - json config
+│   │   ├── `ba-qa-report-20260510-090535.json` - json config
+│   │   ├── `ba-qa-report-20260510-134234.json` - json config
+│   │   ├── `ba-qa-report-20260510-191410.json` - json config
+│   │   ├── `ba-qa-report-20260513-211054.json` - json config
+│   │   ├── `ba-qa-report-20260514-093200.json` - json config
+│   │   ├── `ba-qa-report-20260514-143000.json` - json config
+│   │   ├── `ba-qa-report-c1-20260504-223115.json` - json config
+│   │   ├── `ba-qa-report-c1-redev-20260505-001500.json` - json config
+│   │   ├── `ba-qa-report-c2-20260504-223115.json` - json config
+│   │   ├── `ba-qa-report-c3-20260504-223115-iter2.json` - json config
+│   │   ├── `ba-qa-report-c3-20260504-223115.json` - json config
+│   │   ├── `ba-qa-response-20260428-112122-codex-claude-transcript-parity.json` - json config
+│   │   ├── `ba-report-20260502-162334.json` - json config
 │   │   ├── `ba-spec-20260323-210000.md` - BA Specification: Sidebar Collapse/Expand UI Redesign
 │   │   ├── `ba-spec-20260403-210447-0.md` - BA Specification: Restore LaTeX Rendering in MarkdownView
 │   │   ├── `ba-spec-20260403-210447-1.md` - BA Specification: Re-wire File Attachment UI in AgentInput
@@ -111,10 +177,56 @@ happy-dev/
 │   │   ├── `ba-spec-20260425-104643.md` - BA Specification: Restructure spec-20260424-233926.md to close 7 maturity gaps
 │   │   ├── `ba-spec-20260425-122518.md` - BA Specification: Cycle 2 — Implement engineering for spec-20260424-233926 (R1–R5)
 │   │   ├── `ba-spec-20260425-131502.md` - BA Specification: Verification Pass — Claude Code items in spec-20260424-084848
+│   │   ├── `ba-spec-20260425-143500-redev.md` - BA Specification: Gap E + Gap C fix (/redev cycle)
+│   │   ├── `ba-spec-20260425-201355-5-16.md` - BA Specification: Spec Item 5.16 — LaTeX rendering re-verification + mixed-line `$$…$$` collision
+│   │   ├── `ba-spec-20260425-201355-5-17.md` - BA Specification: §5.17 — H2 Typography + List Rendering Leak
+│   │   ├── `ba-spec-20260425-201355-5-18.md` - BA Specification: 5.18 — CronList inline card must show input line (bash-card style)
+│   │   ├── `ba-spec-20260425-201355-5-2.md` - BA Specification: §5.2 Context% Display Broken — Architecture Bug (Cycle 6 Re-attempt)
+│   │   ├── `ba-spec-20260425-201355-5-3.md` - BA Specification: §5.3 Right detail panel — Bash command overflow (cycle-2 retry)
+│   │   ├── `ba-spec-20260425-201355-5-4-5.md` - BA Specification: Top-bar 800px hardcoded cap + inverted-toggle symptom (§5.4 + §5.5 bundle)
+│   │   ├── `ba-spec-20260425-201355-5-8.md` - BA Specification: 5.8 — Message-card wrapper width mismatches actual content width on mobile
+│   │   ├── `ba-spec-20260425-211000-redev2.md` - BA Specification: claude-config-guard regex false-positive + anti-fabrication discipline
+│   │   ├── `ba-spec-20260425-221000-redev3.md` - BA Specification: M6 — `pretool-quality-gate.py` no-net-worsening exemption
+│   │   ├── `ba-spec-20260425-bgtask.md` - BA Specification: Background-Task Notification Not Refreshing in Real-Time
 │   │   ├── `ba-spec-20260425-redev-final.md` - BA Specification: spec-20260425-094312 彻底修复 (final pass)
 │   │   ├── `ba-spec-20260425-redev-fix.md` - BA Spec: spec-20260425-094312 Redev Fix (9 Objections)
 │   │   ├── `ba-spec-20260425-redev-layering.md` - BA Spec: spec-20260425-094312 Re-Layering Design
+│   │   ├── `ba-spec-20260426-085000-ac12.md` - BA Specification: AC12 Script-Level Dry-Run Verification of /merge
+│   │   ├── `ba-spec-20260426-095000-wid.md` - BA Specification: 20260426-095000-wid — Workflow Integrity Dimension Remediation
+│   │   ├── `ba-spec-20260427-001500-saga.md` - BA Specification: 20260427-001500-saga — Saga closure (final)
+│   │   ├── `ba-spec-20260427-230227-p04.md` - BA Specification: §5.16/§5.17/§5.18 Evidence Conflict Closure
+│   │   ├── `ba-spec-20260428-063343-codex-rendering.md` - BA Specification: Codex Rendering Completion
+│   │   ├── `ba-spec-20260428-112122-codex-claude-transcript-parity.md` - BA Specification: Codex/Claude Transcript Rendering Parity — R3 QA Amendment
+│   │   ├── `ba-spec-20260428-215017.md` - BA Specification: Fix codex session registration gap so codex sessions survive dev-daemon restart
+│   │   ├── `ba-spec-20260429-120613.md` - BA Specification: rollback.sh — symmetric companion to deploy.sh
+│   │   ├── `ba-spec-20260429-192017.md` - BA Specification: Virtual-Repo End-to-End Test Harness for deploy.sh + rollback.sh
+│   │   ├── `ba-spec-20260507-142952.md` - BA Specification: Hook-Layer Fix — cp-state Direct-Write Block, Stop Hook Backstop, Resolver Fail-Closed
+│   │   ├── `ba-spec-20260507-191743.md` - BA Specification: cp-state Bash-Write Bypass Closure (4 Codex Forms + High-Risk Adjacent)
+│   │   ├── `blocked-20260428-063343-codex-rendering.md` - Blocked Development Report — 20260428-063343-codex-rendering
 │   │   ├── `build-verification-20260409.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260504-223115.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260507-055611.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260507-103856.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260507-142748.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260507-142952.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260507-191304.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260507-191743.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260508-130403.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260508-134003.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260508-154926.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260508-211214.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260508-211705.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260509-115500.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260509-152243.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260509-225006.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260510-090535.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260510-115954.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260510-134234.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260510-191410.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260513-211054.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260514-093200.json` - json config
+│   │   ├── `cleanliness-inspector-report-20260514-143000.json` - json config
+│   │   ├── `cleanliness-inspector-report-spec-20260506-203844.json` - json config
 │   │   ├── `close-report-20260424-175800.md` - Close Report — Overnight Delivery 2026-04-24
 │   │   ├── `close-report-20260425-001000.md` - Close-Report (Spec Maturity Review): spec-20260424-233926
 │   │   ├── `close-report-20260425-102054.md` - Close Debate Report
@@ -122,8 +234,81 @@ happy-dev/
 │   │   ├── `close-report-20260425-110000.md` - Close Debate Report
 │   │   ├── `close-report-20260425-110500.md` - /close debate report — spec maturity re-check after /redev cycle
 │   │   ├── `close-report-20260425-111000.md` - Close Debate Report (Re-check after /redev)
+│   │   ├── `close-report-20260425-134121.md` - Close Debate Report (QA-only, no codex)
+│   │   ├── `close-report-20260425-205822.md` - Close Debate Report
+│   │   ├── `close-report-20260425-220425.md` - Close Debate Report
+│   │   ├── `close-report-20260425-234439.md` - Close Debate Report
+│   │   ├── `close-report-20260426-080520.md` - /close report — spec-20260424-233926, fifth invocation
+│   │   ├── `close-report-20260426-084528.md` - /close report — sixth invocation (saga spec-20260424-233926)
+│   │   ├── `close-report-20260426-085000-ac12.md` - Close Debate Report
+│   │   ├── `close-report-20260426-095000-wid.md` - Close Debate Report — /redev5 (diagnostic via codex)
+│   │   ├── `close-report-20260427-001500-saga.md` - Close Debate Report
+│   │   ├── `close-report-20260429-192017.md` - Close Debate Report
+│   │   ├── `close-report-20260504-223115.md` - Close Debate Report
+│   │   ├── `close-report-20260507-055611.md` - Close Debate Report
+│   │   ├── `close-report-20260507-103856.md` - Close Debate Report
+│   │   ├── `close-report-20260507-142748.md` - Close Debate Report
+│   │   ├── `close-report-20260507-142952.md` - /close Debate Report — task-id 20260507-142952
+│   │   ├── `close-report-20260507-191304.md` - Close Report — task-id 20260507-191304 (cycle 5)
+│   │   ├── `close-report-20260507-191743.md` - Close Report — task-id 20260507-191743
+│   │   ├── `close-report-20260508-130403.md` - Close Report — cycle 6 (spec-20260506-203844, D.5 subagent lifecycle merge)
+│   │   ├── `close-report-20260508-134003.md` - Close Report — Cycle 5 (task-id 20260508-134003)
+│   │   ├── `close-report-20260508-154926.md` - Close Report — cycle 7 (spec-20260506-203844, D.5 final_summary production data path fix)
+│   │   ├── `close-report-20260508-211214.md` - Close Report — task-id 20260508-211214 (cycle 8 of spec-20260506-203844)
+│   │   ├── `close-report-20260508-211705.md` - Close Report — Cycle 6 (task-id 20260508-211705)
+│   │   ├── `close-report-20260509-115500.md` - Close Debate Report
+│   │   ├── `close-report-20260509-152243.md` - Close Report — task-id 20260509-152243
+│   │   ├── `close-report-20260509-225006.md` - Close Report — task-id 20260509-225006
+│   │   ├── `close-report-20260510-090535.md` - Close-Debate Report — 20260510-090535
+│   │   ├── `close-report-20260510-115954.md` - Close Debate Report
+│   │   ├── `close-report-20260510-134234.md` - Close-Debate Report — 20260510-134234
+│   │   ├── `close-report-20260510-191410.md` - Close Debate Report
+│   │   ├── `close-report-20260513-211054.md` - Close Report — Codex Symmetric Tracking (Biological-Child Parity)
+│   │   ├── `close-report-20260514-093200.md` - Close Debate Transcript — task-id 20260514-093200
+│   │   ├── `close-report-20260514-143000.json` - json config
+│   │   ├── `close-report-20260514-143000.md` - Close Debate Report
+│   │   ├── `close-report-spec-20260506-203844.md` - Close Debate Report
+│   │   ├── `codex-fork-divergence-research-20260427.md` - No description
+│   │   ├── `codex-mapping-rollout-roadmap.md` - Codex Mapping Rollout Roadmap — fd-scan Deprecation Chain
+│   │   ├── `codex-research-20260425-bgtask-reconnect.md` - No description
 │   │   ├── `completion-20260424-202503.md` - Development Completion Report — Close-Remediation
 │   │   ├── `completion-20260425-104643.md` - Development Completion Report — Spec Maturity Remediation
+│   │   ├── `completion-20260425-122518.md` - Development Completion Report
+│   │   ├── `completion-20260425-131502.md` - /dev Completion Report — Comprehensive Claude Code Verification Pass
+│   │   ├── `completion-20260425-143500-redev.md` - /redev Completion Report — Gap E + Gap C
+│   │   ├── `completion-20260425-201355.md` - /dev Completion Report — Cycle 6
+│   │   ├── `completion-20260425-211000-redev2.md` - /redev2 Completion Report — Mystery 4 + Trap 11
+│   │   ├── `completion-20260425-221000-redev3.md` - /redev3 Completion Report — Mystery 6 + 5-function refactor
+│   │   ├── `completion-20260426-085000-ac12.md` - /redev4 Completion Report 20260426-085000-ac12 — AC12 /merge-half empirically verified
+│   │   ├── `completion-20260427-001500-saga.md` - Saga Closure Attestation — 20260427-001500-saga
+│   │   ├── `completion-20260428-112122-codex-claude-transcript-parity.md` - Development Completion Report — 20260428-112122-codex-claude-transcript-parity
+│   │   ├── `completion-20260428-215017.md` - Development Completion Report — 20260428-215017
+│   │   ├── `completion-20260429-120613.md` - Development Completion Report — 20260429-120613
+│   │   ├── `completion-20260429-192017.md` - Development Completion Report — 20260429-192017
+│   │   ├── `completion-20260502-162334.md` - Development Completion Report — 20260502-162334
+│   │   ├── `completion-20260504-223115.md` - Development Completion Report — 20260504-223115
+│   │   ├── `completion-20260506-124632.md` - Development Completion Report — 20260506-124632
+│   │   ├── `completion-20260507-055611.md` - Development Completion Report — 20260507-055611
+│   │   ├── `completion-20260507-103856.md` - Development Completion Report — 20260507-103856
+│   │   ├── `completion-20260507-142748.md` - Development Completion Report — 20260507-142748
+│   │   ├── `completion-20260507-142952.md` - Completion Report — task-id 20260507-142952
+│   │   ├── `completion-20260507-191304.md` - Development Completion Report — 20260507-191304
+│   │   ├── `completion-20260507-191743.md` - Completion Report — task-id 20260507-191743
+│   │   ├── `completion-20260508-130403.md` - Development Completion Report — 20260508-130403
+│   │   ├── `completion-20260508-134003.md` - Completion Report — task-id 20260508-134003
+│   │   ├── `completion-20260508-154926.md` - Development Completion Report — 20260508-154926
+│   │   ├── `completion-20260508-211214.md` - Development Completion Report — 20260508-211214
+│   │   ├── `completion-20260508-211705.md` - Completion Report — task-id 20260508-211705
+│   │   ├── `completion-20260509-115500.md` - Development Completion Report — 20260509-115500
+│   │   ├── `completion-20260509-152243.md` - Completion Report — task-id 20260509-152243
+│   │   ├── `completion-20260509-225006.md` - Completion Report — task-id 20260509-225006
+│   │   ├── `completion-20260510-090535.md` - Completion Report — task-id 20260510-090535
+│   │   ├── `completion-20260510-134234.md` - Completion Report — task-id 20260510-134234
+│   │   ├── `completion-20260510-191410.md` - Development Completion Report — 20260510-191410
+│   │   ├── `completion-20260513-211054.md` - Completion Report — Codex Symmetric Tracking (Biological Child Parity)
+│   │   ├── `completion-20260514-093200.md` - Completion Report — /redev Follow-up (Codex Parity Telemetry + Process.Title + Cgroup)
+│   │   ├── `completion-20260514-143000.md` - Completion Report — Codex Recovery Script Patches (Blocks 2+3+4 Final SOP)
+│   │   ├── `completion-redev-c1-20260505-001500.md` - /redev Completion Report — redev-c1-20260505-001500
 │   │   ├── `context-20260323-210000.json` - json config
 │   │   ├── `context-20260403-210447-0.json` - json config
 │   │   ├── `context-20260403-210447-1.json` - json config
@@ -186,6 +371,55 @@ happy-dev/
 │   │   ├── `context-20260425-104643.json` - json config
 │   │   ├── `context-20260425-122518.json` - json config
 │   │   ├── `context-20260425-131502.json` - json config
+│   │   ├── `context-20260425-143500-redev.json` - json config
+│   │   ├── `context-20260425-201355-5-16.json` - json config
+│   │   ├── `context-20260425-201355-5-17.json` - json config
+│   │   ├── `context-20260425-201355-5-18.json` - json config
+│   │   ├── `context-20260425-201355-5-2.json` - json config
+│   │   ├── `context-20260425-201355-5-3.json` - json config
+│   │   ├── `context-20260425-201355-5-4-5.json` - json config
+│   │   ├── `context-20260425-201355-5-8.json` - json config
+│   │   ├── `context-20260425-211000-redev2.json` - json config
+│   │   ├── `context-20260425-221000-redev3.json` - json config
+│   │   ├── `context-20260425-bgtask.json` - json config
+│   │   ├── `context-20260426-085000-ac12.json` - json config
+│   │   ├── `context-20260426-095000-wid.json` - json config
+│   │   ├── `context-20260427-001500-saga.json` - json config
+│   │   ├── `context-20260427-230227-p04.json` - json config
+│   │   ├── `context-20260428-063343-codex-rendering.json` - json config
+│   │   ├── `context-20260428-112122-codex-claude-transcript-parity.json` - json config
+│   │   ├── `context-20260428-215017.json` - json config
+│   │   ├── `context-20260429-120613.json` - json config
+│   │   ├── `context-20260429-192017.json` - json config
+│   │   ├── `context-20260506-124632.json` - json config
+│   │   ├── `context-20260507-055611.json` - json config
+│   │   ├── `context-20260507-060647.json` - json config
+│   │   ├── `context-20260507-103129.json` - json config
+│   │   ├── `context-20260507-103856.json` - json config
+│   │   ├── `context-20260507-142748.json` - json config
+│   │   ├── `context-20260507-142952.json` - json config
+│   │   ├── `context-20260507-191304.json` - json config
+│   │   ├── `context-20260507-191743.json` - json config
+│   │   ├── `context-20260508-130403.json` - json config
+│   │   ├── `context-20260508-134003.json` - json config
+│   │   ├── `context-20260508-154926.json` - json config
+│   │   ├── `context-20260508-211214.json` - json config
+│   │   ├── `context-20260508-211705.json` - json config
+│   │   ├── `context-20260509-115500.json` - json config
+│   │   ├── `context-20260509-152243.json` - json config
+│   │   ├── `context-20260509-225006.json` - json config
+│   │   ├── `context-20260510-090535.json` - json config
+│   │   ├── `context-20260510-134234.json` - json config
+│   │   ├── `context-20260510-191410.json` - json config
+│   │   ├── `context-20260513-211054.json` - json config
+│   │   ├── `context-20260514-093200.json` - json config
+│   │   ├── `context-20260514-143000.json` - json config
+│   │   ├── `context-c1-20260504-223115.json` - json config
+│   │   ├── `context-c1-redev-20260505-001500.json` - json config
+│   │   ├── `context-c2-20260504-223115.json` - json config
+│   │   ├── `context-c3-20260504-223115.json` - json config
+│   │   ├── `deploy-report-20260425-201355.json` - json config
+│   │   ├── `dev-instrument-20260425-201355-5-19-7.1.md` - Pipeline 7.1 — Phase-1 Instrumentation Plan + Block Report
 │   │   ├── `dev-report-20260403-210447-0.json` - json config
 │   │   ├── `dev-report-20260403-210447-1.json` - json config
 │   │   ├── `dev-report-20260403-210447-10.json` - json config
@@ -199,6 +433,7 @@ happy-dev/
 │   │   ├── `dev-report-20260403-210447-7.json` - json config
 │   │   ├── `dev-report-20260403-210447-8.json` - json config
 │   │   ├── `dev-report-20260403-210447-9.json` - json config
+│   │   ├── `dev-report-20260403-210447.json` - json config
 │   │   ├── `dev-report-20260404-080000.json` - json config
 │   │   ├── `dev-report-20260404-110000.json` - json config
 │   │   ├── `dev-report-20260404-120000.json` - json config
@@ -229,37 +464,150 @@ happy-dev/
 │   │   ├── `dev-report-20260424-143000-7.json` - json config
 │   │   ├── `dev-report-20260424-143000-8.json` - json config
 │   │   ├── `dev-report-20260424-143000-9.json` - json config
+│   │   ├── `dev-report-20260424-143000.json` - json config
 │   │   ├── `dev-report-20260424-170900-extra.json` - json config
+│   │   ├── `dev-report-20260424-170900.json` - json config
 │   │   ├── `dev-report-20260424-172000-extra2.json` - json config
+│   │   ├── `dev-report-20260424-172000.json` - json config
 │   │   ├── `dev-report-20260424-202503.json` - json config
 │   │   ├── `dev-report-20260425-000300-0.json` - json config
 │   │   ├── `dev-report-20260425-000300-1.json` - json config
 │   │   ├── `dev-report-20260425-000300-2.json` - json config
 │   │   ├── `dev-report-20260425-000300-9.json` - json config
+│   │   ├── `dev-report-20260425-000300.json` - json config
 │   │   ├── `dev-report-20260425-030000-0.json` - json config
+│   │   ├── `dev-report-20260425-030000.json` - json config
 │   │   ├── `dev-report-20260425-104643.json` - json config
 │   │   ├── `dev-report-20260425-122518-G1.json` - json config
+│   │   ├── `dev-report-20260425-122518-G2-iter1.json` - json config
 │   │   ├── `dev-report-20260425-122518-G2.json` - json config
 │   │   ├── `dev-report-20260425-122518-G3.json` - json config
+│   │   ├── `dev-report-20260425-122518-G4.json` - json config
 │   │   ├── `dev-report-20260425-122518-G5.json` - json config
+│   │   ├── `dev-report-20260425-122518.json` - json config
+│   │   ├── `dev-report-20260425-131502.json` - json config
+│   │   ├── `dev-report-20260425-143500-redev.json` - json config
+│   │   ├── `dev-report-20260425-143500.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-16.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-17.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-18-retry.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-18.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-19-7.1-retry.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-19-7.1.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-19-7.2.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-19-7.3-retry.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-19-7.3.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-2-retry.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-2.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-3.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-4-5.json` - json config
+│   │   ├── `dev-report-20260425-201355-5-8.json` - json config
+│   │   ├── `dev-report-20260425-201355.json` - json config
+│   │   ├── `dev-report-20260425-211000-redev2.json` - json config
+│   │   ├── `dev-report-20260425-211000.json` - json config
+│   │   ├── `dev-report-20260425-221000-redev3-iter1.json` - json config
+│   │   ├── `dev-report-20260425-221000-redev3.json` - json config
+│   │   ├── `dev-report-20260425-221000.json` - json config
+│   │   ├── `dev-report-20260426-085000-ac12.json` - json config
+│   │   ├── `dev-report-20260426-085000.json` - json config
+│   │   ├── `dev-report-20260426-095000-wid-iter1.json` - json config
+│   │   ├── `dev-report-20260426-095000-wid.json` - json config
+│   │   ├── `dev-report-20260426-095000.json` - json config
+│   │   ├── `dev-report-20260427-001500-saga.json` - json config
+│   │   ├── `dev-report-20260427-001500.json` - json config
+│   │   ├── `dev-report-20260428-063343-codex-rendering-iter1.json` - json config
+│   │   ├── `dev-report-20260428-063343-codex-rendering-iter2.json` - json config
+│   │   ├── `dev-report-20260428-063343-codex-rendering-iter3.json` - json config
+│   │   ├── `dev-report-20260428-063343-codex-rendering-iter4.json` - json config
+│   │   ├── `dev-report-20260428-063343-codex-rendering.json` - json config
+│   │   ├── `dev-report-20260428-063343.json` - json config
+│   │   ├── `dev-report-20260428-112122-codex-claude-transcript-parity.json` - json config
+│   │   ├── `dev-report-20260428-112122.json` - json config
+│   │   ├── `dev-report-20260428-215017.json` - json config
+│   │   ├── `dev-report-20260429-120613.json` - json config
+│   │   ├── `dev-report-20260429-192017.json` - json config
+│   │   ├── `dev-report-20260502-162334.json` - json config
+│   │   ├── `dev-report-20260504-223115.json` - json config
+│   │   ├── `dev-report-20260506-124632.json` - json config
+│   │   ├── `dev-report-20260507-055611.json` - json config
+│   │   ├── `dev-report-20260507-060647.json` - json config
+│   │   ├── `dev-report-20260507-103856.json` - json config
+│   │   ├── `dev-report-20260507-142748.json` - json config
+│   │   ├── `dev-report-20260507-142952.json` - json config
+│   │   ├── `dev-report-20260507-191304.json` - json config
+│   │   ├── `dev-report-20260507-191743.json` - json config
+│   │   ├── `dev-report-20260508-130403.json` - json config
+│   │   ├── `dev-report-20260508-134003.json` - json config
+│   │   ├── `dev-report-20260508-154926.json` - json config
+│   │   ├── `dev-report-20260508-211214.json` - json config
+│   │   ├── `dev-report-20260508-211705.json` - json config
+│   │   ├── `dev-report-20260509-115500.json` - json config
+│   │   ├── `dev-report-20260509-152243.json` - json config
+│   │   ├── `dev-report-20260509-225006.json` - json config
+│   │   ├── `dev-report-20260510-090535.json` - json config
+│   │   ├── `dev-report-20260510-115954.json` - json config
+│   │   ├── `dev-report-20260510-134234.json` - json config
+│   │   ├── `dev-report-20260510-191410.json` - json config
+│   │   ├── `dev-report-20260513-211054.json` - json config
+│   │   ├── `dev-report-20260514-093200.json` - json config
+│   │   ├── `dev-report-20260514-143000.json` - json config
+│   │   ├── `dev-report-c1-20260504-223115.json` - json config
+│   │   ├── `dev-report-c1-redev-20260505-001500.json` - json config
+│   │   ├── `dev-report-c3-20260504-223115.json` - json config
 │   │   ├── `dev-report-tools2-filter-fix.json` - json config
 │   │   ├── `e2e-verification-rendering.json` - json config
 │   │   ├── `e2e-verification-title.json` - json config
 │   │   ├── `e2e-verification-ui.json` - json config
+│   │   ├── `hook-block-handoff-20260425-201355.md` - Hook-Block Handoff — DEV_SESSION_ID dev-20260425-201355
 │   │   ├── `incident-forensic-20260404.md` - Forensic Incident Report: Production Sessions Killed 2026-04-04
 │   │   ├── `isolation-audit-20260404.md` - Production/Dev Isolation Audit
+│   │   ├── `observations-ledger.md` - Observations Ledger
 │   │   ├── `overnight-log-20260424.md` - Overnight Log — 2026-04-24
 │   │   ├── `overnight-log-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - No description
 │   │   ├── `overnight-log-d6f1eea4.md` - Overnight Development Log — d6f1eea4
 │   │   ├── `overnight-summary-20260424.md` - Overnight Development Summary — 2026-04-24
 │   │   ├── `overnight-summary-21d24e89-e5f4-41f4-90f9-7ec3b025fc44.md` - Overnight Development Summary — Session 21d24e89
 │   │   ├── `overnight-summary-d6f1eea4.md` - Overnight Development Summary
+│   │   ├── `prompt-inspector-report-20260504-223115.json` - json config
+│   │   ├── `prompt-inspector-report-20260507-055611.json` - json config
+│   │   ├── `prompt-inspector-report-20260507-103856.json` - json config
+│   │   ├── `prompt-inspector-report-20260507-142748.json` - json config
+│   │   ├── `prompt-inspector-report-20260507-142952.json` - json config
+│   │   ├── `prompt-inspector-report-20260507-191304.json` - json config
+│   │   ├── `prompt-inspector-report-20260507-191743.json` - json config
+│   │   ├── `prompt-inspector-report-20260508-130403.json` - json config
+│   │   ├── `prompt-inspector-report-20260508-134003.json` - json config
+│   │   ├── `prompt-inspector-report-20260508-154926.json` - json config
+│   │   ├── `prompt-inspector-report-20260508-211214.json` - json config
+│   │   ├── `prompt-inspector-report-20260508-211705.json` - json config
+│   │   ├── `prompt-inspector-report-20260509-115500.json` - json config
+│   │   ├── `prompt-inspector-report-20260509-152243.json` - json config
+│   │   ├── `prompt-inspector-report-20260509-225006.json` - json config
+│   │   ├── `prompt-inspector-report-20260510-090535.json` - json config
+│   │   ├── `prompt-inspector-report-20260510-115954.json` - json config
+│   │   ├── `prompt-inspector-report-20260510-134234.json` - json config
+│   │   ├── `prompt-inspector-report-20260510-191410.json` - json config
+│   │   ├── `prompt-inspector-report-20260513-211054.json` - json config
+│   │   ├── `prompt-inspector-report-20260514-093200.json` - json config
+│   │   ├── `prompt-inspector-report-20260514-143000.json` - json config
+│   │   ├── `prompt-inspector-report-spec-20260506-203844.json` - json config
+│   │   ├── `proposal-c1-happy-restart-refactor-20260504-223115.sh.md` - Proposal: Refactored /root/bin/happy-restart.sh (C1 dispatch-table architecture)
 │   │   ├── `qa-audit-20260407.json` - json config
+│   │   ├── `qa-audit-20260425-131502.md` - QA 审计报告 — Cycle 5 Verification (dev-20260425-131502)
 │   │   ├── `qa-build-deploy-20260407.json` - json config
+│   │   ├── `qa-codex-consensus-20260502-162334.txt` - txt file
+│   │   ├── `qa-codex-consensus-20260507-142952.txt` - txt file
+│   │   ├── `qa-codex-schema-audit-20260509-115500.json` - json config
 │   │   ├── `qa-hooks-bash-safety.json` - json config
 │   │   ├── `qa-hooks-prod-files.json` - json config
 │   │   ├── `qa-hooks-project.json` - json config
+│   │   ├── `qa-input-20260429-192017-ac4-mutated-deploy.sh` - AC4 mutation harness: temporarily modify the rewritten deploy.sh to disable
+│   │   ├── `qa-input-20260429-192017-redebate-codex-prompt.txt` - txt file
+│   │   ├── `qa-input-20260429-192017-redebate-mutation-test.sh` - QA re-debate mutation harness for M-REWRITE.5 verification.
+│   │   ├── `qa-input-codex-prompt-20260428-215017.txt` - txt file
 │   │   ├── `qa-issue3-browser-debug-20260407.json` - json config
+│   │   ├── `qa-output-20260429-192017-codex.txt` - txt file
+│   │   ├── `qa-output-codex-cycle5-20260507-191304.txt` - txt file
 │   │   ├── `qa-report-20260403-210447-0.json` - json config
 │   │   ├── `qa-report-20260403-210447-1.json` - json config
 │   │   ├── `qa-report-20260403-210447-10.json` - json config
@@ -316,9 +664,107 @@ happy-dev/
 │   │   ├── `qa-report-20260425-030000-0-pm2.json` - json config
 │   │   ├── `qa-report-20260425-030000-0.json` - json config
 │   │   ├── `qa-report-20260425-104643.json` - json config
+│   │   ├── `qa-report-20260425-122518-iter1.json` - json config
+│   │   ├── `qa-report-20260425-122518.json` - json config
+│   │   ├── `qa-report-20260425-143500-redev.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-16.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-17.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-18.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-19.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-2.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-3.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-4-5.json` - json config
+│   │   ├── `qa-report-20260425-201355-5-8.json` - json config
+│   │   ├── `qa-report-20260425-201355-fresh-session-retest.json` - json config
+│   │   ├── `qa-report-20260425-211000-redev2.json` - json config
+│   │   ├── `qa-report-20260425-221000-redev3-iter1.json` - json config
+│   │   ├── `qa-report-20260425-221000-redev3.json` - json config
+│   │   ├── `qa-report-20260426-085000-ac12.json` - json config
+│   │   ├── `qa-report-20260427-001500-saga.json` - json config
+│   │   ├── `qa-report-20260427-230227-p05.json` - json config
+│   │   ├── `qa-report-20260428-063343-codex-rendering-iter1-live-rerun.json` - json config
+│   │   ├── `qa-report-20260428-063343-codex-rendering-iter1.json` - json config
+│   │   ├── `qa-report-20260428-063343-codex-rendering-iter2-live-rerun.json` - json config
+│   │   ├── `qa-report-20260428-063343-codex-rendering-iter2.json` - json config
+│   │   ├── `qa-report-20260428-063343-codex-rendering.json` - json config
+│   │   ├── `qa-report-20260428-112122-codex-claude-transcript-parity-r2.json` - json config
+│   │   ├── `qa-report-20260428-112122-codex-claude-transcript-parity.json` - json config
+│   │   ├── `qa-report-20260428-215017.json` - json config
+│   │   ├── `qa-report-20260429-120613.json` - json config
+│   │   ├── `qa-report-20260429-192017.json` - json config
+│   │   ├── `qa-report-20260502-162334.json` - json config
+│   │   ├── `qa-report-20260506-124632.json` - json config
+│   │   ├── `qa-report-20260507-055611.json` - json config
+│   │   ├── `qa-report-20260507-103856.json` - json config
+│   │   ├── `qa-report-20260507-142748.json` - json config
+│   │   ├── `qa-report-20260507-142952.json` - json config
+│   │   ├── `qa-report-20260507-191304.json` - json config
+│   │   ├── `qa-report-20260507-191743.json` - json config
+│   │   ├── `qa-report-20260508-130403.json` - json config
+│   │   ├── `qa-report-20260508-134003.json` - json config
+│   │   ├── `qa-report-20260508-154926.json` - json config
+│   │   ├── `qa-report-20260508-211214.json` - json config
+│   │   ├── `qa-report-20260508-211705.json` - json config
+│   │   ├── `qa-report-20260509-115500.json` - json config
+│   │   ├── `qa-report-20260509-152243.json` - json config
+│   │   ├── `qa-report-20260509-225006.json` - json config
+│   │   ├── `qa-report-20260510-090535.json` - json config
+│   │   ├── `qa-report-20260510-134234.json` - json config
+│   │   ├── `qa-report-20260510-191410.json` - json config
+│   │   ├── `qa-report-20260513-211054.json` - json config
+│   │   ├── `qa-report-20260514-093200.json` - json config
+│   │   ├── `qa-report-20260514-143000.json` - json config
+│   │   ├── `qa-report-c1-20260504-223115.json` - json config
+│   │   ├── `qa-report-c1-redev-20260505-001500.json` - json config
+│   │   ├── `qa-report-c3-20260504-223115.json` - json config
+│   │   ├── `qa-report-visual-evidence-20260426.md` - QA Visual Evidence Report — spec-20260424-084848 Cycle 6 (2026-04-26 22:18Z)
 │   │   ├── `qa-review-20260407-0830.json` - json config
 │   │   ├── `qa-site-isolation-verification.json` - json config
-│   │   └── `qa-validation-20260410.json` - json config
+│   │   ├── `qa-validation-20260410.json` - json config
+│   │   ├── `recovery-script-patches-20260513-211054.md` - Recovery & Restart Script Patches — Task 20260513-211054
+│   │   ├── `recovery-script-patches-final-20260514-143000.md` - Recovery Script Patches — Final SOP for Blocks 2+3+4
+│   │   ├── `sim-test-and-cleanup-20260425-122518.json` - json config
+│   │   ├── `style-inspector-report-20260504-223115.json` - json config
+│   │   ├── `style-inspector-report-20260507-055611.json` - json config
+│   │   ├── `style-inspector-report-20260507-103856.json` - json config
+│   │   ├── `style-inspector-report-20260507-142748.json` - json config
+│   │   ├── `style-inspector-report-20260507-142952.json` - json config
+│   │   ├── `style-inspector-report-20260507-191304.json` - json config
+│   │   ├── `style-inspector-report-20260507-191743.json` - json config
+│   │   ├── `style-inspector-report-20260508-130403.json` - json config
+│   │   ├── `style-inspector-report-20260508-134003.json` - json config
+│   │   ├── `style-inspector-report-20260508-154926.json` - json config
+│   │   ├── `style-inspector-report-20260508-211214.json` - json config
+│   │   ├── `style-inspector-report-20260508-211705.json` - json config
+│   │   ├── `style-inspector-report-20260509-115500.json` - json config
+│   │   ├── `style-inspector-report-20260509-152243.json` - json config
+│   │   ├── `style-inspector-report-20260509-225006.json` - json config
+│   │   ├── `style-inspector-report-20260510-090535.json` - json config
+│   │   ├── `style-inspector-report-20260510-115954.json` - json config
+│   │   ├── `style-inspector-report-20260510-134234.json` - json config
+│   │   ├── `style-inspector-report-20260510-191410.json` - json config
+│   │   ├── `style-inspector-report-20260513-211054.json` - json config
+│   │   ├── `style-inspector-report-20260514-093200.json` - json config
+│   │   ├── `style-inspector-report-20260514-143000.json` - json config
+│   │   ├── `style-inspector-report-spec-20260506-203844.json` - json config
+│   │   ├── `ticket-20260506-124632.md` - Ticket 20260506-124632: Inline rendering for image-like tool outputs
+│   │   ├── `ticket-20260507-055611.md` - BA Specification: P0 Inline Markdown Parser/Data-Flow Regression Slice (QA-Corrected)
+│   │   ├── `ticket-20260507-060647.md` - BA Specification: Happy Tool Rendering Matrix Fix (QA Revision)
+│   │   ├── `ticket-20260507-103856.md` - BA Specification: Close-report cycle-3 fix — `web.open` fixture row + per-row §5.3.B image-preview screenshots
+│   │   ├── `ticket-20260507-142748.md` - BA Specification: Spec spec-20260506-203844 — Phase A remaining sub-items (C.2, B.7, F.4, G.4, E.2-doc, I.2-doc)
+│   │   ├── `ticket-20260507-191304.md` - BA Specification: Remove cycle-4 DOM probe script + cleanup stale permission entry
+│   │   ├── `ticket-20260508-130403.md` - BA Specification: D.5 Subagent Lifecycle Card Merge (cycle 6 of spec-20260506-203844)
+│   │   ├── `ticket-20260508-154926.md` - BA Specification: D.5 final_summary production data path (3-layer fix)
+│   │   ├── `ticket-20260508-211214.md` - BA Specification: Cycle 8 — spawn-begin lifecycle entry gate fix (Path A+) + fixture realism
+│   │   ├── `ticket-20260509-115500.md` - BA Specification: Restore DropdownMenu API in SessionActionsNativeMenu.android.tsx (typecheck fix)
+│   │   ├── `ticket-20260510-191410.md` - BA Specification: Add §5.X-inflation prohibition + --codex mode to /spec
+│   │   ├── `ticket-20260513-211054.md` - BA Specification: Codex Symmetric Tracking — First-Class Biological Child Parity with Claude
+│   │   ├── `ticket-20260514-093200.md` - BA Specification: /redev round-1 — land risk-filtered prior-cycle deferrals (M1' M2' M3' M4')
+│   │   ├── `ticket-20260514-143000.md` - BA Specification: Codex-Mapping Recovery — Block 2+3+4 Closure (Subagent Slice)
+│   │   ├── `ticket-c1-20260504-223115.md` - BA Specification: happy-restart.sh per-stack target dispatch (CONCERN C1)
+│   │   ├── `ticket-c1-redev-20260505-001500.md` - BA Specification: C1 Redev — Apply-Step Contract for happy-restart.sh refactor
+│   │   ├── `ticket-c2-20260504-223115.md` - BA Specification: Recover Codex Session 019dd077 (CONCERN C2)
+│   │   └── `ticket-c3-20260504-223115.md` - BA Specification: C3 — Permanent prohibition on Claude restarting any happy-daemon
 │   ├── e2e/
 │   │   ├── `console-initial.log` - log file
 │   │   ├── `download-desktop-codeblock-buttons.png` - png file
@@ -589,11 +1035,63 @@ happy-dev/
 │   ├── `10-session-deleted-state.png` - png file
 │   └── `11-applio-redirect-mobile.png` - png file
 ├── scripts/
+│   ├── `build-cli-production.sh` - Build and globally install production happy-cli from /root/happy only.
+│   ├── `deploy-services.sh` - happy-dev service deployment helper. Keeps the existing promotion deploy.sh separate.
+│   ├── `deploy.sh` - deploy.sh — Foolproof dev → prod patch promotion for happy monorepo
+│   ├── `DEPLOYMENT.md` - DEPLOYMENT.md — happy dev → prod patch promotion runbook
+│   ├── `derive-content-public-key.js` - js file
+│   ├── `dev-overnight-build-deploy.sh` - Build and deploy happy-dev frontend/backend directly from a worktree context.
+│   ├── `generate-access-key-material.sh` - Derive content publicKey and mint a privacy-kit token for access.key material.
+│   ├── `playwright-login-dev.js` - js file
 │   ├── `postinstall.cjs` - cjs file
 │   ├── `pretool-block-production.sh` - Hook: PreToolUse (mcp__playwright__browser_navigate, mcp__playwright__browser_run_code, WebFetch)
-│   └── `release.cjs` - cjs file
+│   ├── `release.cjs` - cjs file
+│   ├── `rollback.sh` - rollback.sh — Symmetric companion to deploy.sh
+│   └── `verify-cli-build.sh` - Verify installed happy-coder binary after a CLI build.
+├── tests/
+│   ├── bin/
+│   │   ├── `npm` - unknown file
+│   │   ├── `recovery-stub.sh` - tests/bin/recovery-stub.sh — M-RECOVERY
+│   │   └── `yarn` - unknown file
+│   ├── lib/
+│   │   ├── `assert.sh` - tests/lib/assert.sh — M-ASSERT
+│   │   ├── `daemon-mock.sh` - tests/lib/daemon-mock.sh — M-DAEMONMOCK
+│   │   ├── `git-helpers.sh` - tests/lib/git-helpers.sh — M-GIT
+│   │   ├── `path-scan.sh` - tests/lib/path-scan.sh — M-PATHSCAN
+│   │   ├── `rewrite.sh` - tests/lib/rewrite.sh — M-REWRITE
+│   │   ├── `sandbox.sh` - tests/lib/sandbox.sh — M-SANDBOX
+│   │   └── `static-audit.sh` - tests/lib/static-audit.sh — defines audit_no_executable() helper used by S17
+│   ├── scenarios/
+│   │   ├── `S01-deploy-happy-path.sh` - S01: deploy-happy-path-clean-version-bump
+│   │   ├── `S02-deploy-aborts-same-version.sh` - S02: deploy-aborts-same-version-codex-3
+│   │   ├── `S03-deploy-restores-protected-paths.sh` - S03: deploy-restores-protected-paths-codex-1-2
+│   │   ├── `S03b-deploy-aborts-unreachable-dev-sha.sh` - S03b: deploy-aborts-unreachable-dev-sha-codex-10  (Pass 2 #2)
+│   │   ├── `S04-deploy-aborts-wrong-cwd.sh` - S04: deploy-aborts-wrong-cwd-codex-5  (the 2026-04-04 incident)
+│   │   ├── `S05-deploy-aborts-dirty-tree.sh` - S05: deploy-aborts-dirty-tree-codex-9
+│   │   ├── `S06-deploy-aborts-on-test-gate-failure.sh` - S06: deploy-aborts-on-test-gate-failure-codex-14
+│   │   ├── `S06b-deploy-aborts-on-frozen-lockfile-install-failure.sh` - S06b: deploy-aborts-on-frozen-lockfile-install-failure  (Pass 2 #1)
+│   │   ├── `S07-deploy-aborts-on-install-failure-and-restores.sh` - S07: deploy-aborts-on-install-failure-and-restores-codex-14-install-side
+│   │   ├── `S08-deploy-no-tag-leak.sh` - S08: deploy-no-tag-leak-codex-11
+│   │   ├── `S09-deploy-push-fails-local-still-good.sh` - S09: deploy-push-fails-local-still-good-codex-8
+│   │   ├── `S10-rollback-happy-path.sh` - S10: rollback-happy-path
+│   │   ├── `S11-rollback-aborts-same-version.sh` - S11: rollback-aborts-same-version-codex-3-symmetric
+│   │   ├── `S11b-rollback-bad-argv-exits-2.sh` - S11b: rollback-bad-argv-exits-2  (Pass 2 #6)
+│   │   ├── `S12-rollback-aborts-partial-daemon-migration.sh` - S12: rollback-aborts-partial-daemon-migration-M14-P3
+│   │   ├── `S12b-rollback-stale-daemon-emits-safe-daemon-restart-hint.sh` - S12b: rollback-stale-daemon-emits-safe-daemon-restart-hint  (Pass 2 #5)
+│   │   ├── `S13-rollback-safety-tag-collision-suffix.sh` - S13: rollback-safety-tag-collision-suffix-S2-codex-15
+│   │   ├── `S14-rollback-aborts-on-recovery-snapshot-fail.sh` - S14: rollback-aborts-on-recovery-snapshot-fail-M6
+│   │   ├── `S14b-rollback-aborts-on-install-failure-P2.sh` - S14b: rollback-aborts-on-install-failure-P2  (Pass 2 #7)
+│   │   ├── `S15-rollback-aborts-on-active-merge.sh` - S15: rollback-aborts-on-active-merge-M3b
+│   │   ├── `S15b-rollback-aborts-on-unreachable-tag.sh` - S15b: rollback-aborts-on-unreachable-tag  (Pass 2 #4 / M4)
+│   │   ├── `S15c-rollback-aborts-on-sensitive-untracked.sh` - S15c: rollback-aborts-on-sensitive-untracked  (Pass 2 #4 / M5 strict)
+│   │   ├── `S16-rollback-fork-divergence-and-missing-fork-main.sh` - S16: rollback-fork-divergence-and-missing-fork-main  (Pass 2 #10)
+│   │   └── `S17-static-audit-no-network-no-shell-state.sh` - S17: static-audit-no-network-no-shell-state  (Pass 2 #12, iter1+2+3)
+│   └── `run-all.sh` - tests/run-all.sh — M-RUNNER
 ├── `01-connected-no-sessions.png` - png file
+├── `01-happy-dev-session-overview.png` - png file
+├── `02-bottom-of-happy-dev-session.png` - png file
 ├── `02-settings-page.png` - png file
+├── `03-mobile-390px-tool-cards.png` - png file
 ├── `03-session-appeared.png` - png file
 ├── `04-session-messages-loaded.png` - png file
 ├── `05-session-full-view.png` - png file
@@ -603,17 +1101,23 @@ happy-dev/
 ├── `09-table-area.png` - png file
 ├── `10-taskview-detail-duplicate-title.png` - png file
 ├── `11-table-scroll-indicator.png` - png file
+├── `12-1280-rightsidebar-closed.png` - png file
 ├── `12-table-view.png` - png file
+├── `13-mobile-390x844.png` - png file
 ├── `13-table-scroll-test.png` - png file
 ├── `14-table-in-view.png` - png file
 ├── `15-navigation-instability.png` - png file
 ├── `16-input-bar-attachments.png` - png file
 ├── `17-mermaid-message-typed.png` - png file
 ├── `18-mermaid-rendered.png` - png file
+├── `5.3-bash-popup-current.png` - png file
 ├── `_test_notebook.ipynb` - ipynb file
 ├── `_tool_test.txt` - txt file
 ├── `agent-sidebar-test.png` - png file
+├── `applio-session-claude-code-tools.png` - png file
+├── `applio-session-deleted.png` - png file
 ├── `arch-session-latex-test.png` - png file
+├── `ba-5-16-desktop-latex.png` - png file
 ├── `bashview-82pct.png` - png file
 ├── `bashview-94pct.png` - png file
 ├── `bashview-cards.png` - png file
@@ -625,6 +1129,7 @@ happy-dev/
 ├── `bashview-new-inline.png` - png file
 ├── `bashview-new-v2.png` - png file
 ├── `bashview-rebuild.png` - png file
+├── `bg-task-bug-current-session.png` - png file
 ├── `bug-hunt-01-initial-load.png` - png file
 ├── `bug-hunt-02-session-view.png` - png file
 ├── `bug-hunt-03-input-focused.png` - png file
@@ -655,16 +1160,22 @@ happy-dev/
 ├── `bun.lock` - lock file
 ├── `CLAUDE.md` - CLAUDE.md
 ├── `CLAUDE.md.bak-layering-20260425-1329` - bak-layering-20260425-1329 file
+├── `codex-render-desktop-session.png` - png file
+├── `composer-initial.png` - png file
+├── `cron-cycle5-current.png` - png file
 ├── `cycle2-landing.png` - png file
 ├── `cycle2-session-open.png` - png file
 ├── `cycle2-session2.png` - png file
 ├── `cycle2-sidebar-collapse.png` - png file
 ├── `cycle2-sidebar-restored.png` - png file
 ├── `cycle3-initial-load.png` - png file
+├── `demo-dev-life-ai-2.png` - png file
+├── `demo-dev-life-ai.png` - png file
 ├── `desktop-appearance-1440.png` - png file
 ├── `desktop-code-block-1440.png` - png file
 ├── `desktop-codeblock-area.png` - png file
 ├── `desktop-home-1440.png` - png file
+├── `desktop-landing.png` - png file
 ├── `desktop-session-1440.png` - png file
 ├── `desktop-session-top-1440.png` - png file
 ├── `desktop-settings-1440.png` - png file
@@ -685,6 +1196,9 @@ happy-dev/
 ├── `find-agent-97pct.png` - png file
 ├── `find-agent-985.png` - png file
 ├── `find-agent-tool.png` - png file
+├── `happy-dev-session.png` - png file
+├── `happydev-session-desktop-1440px.png` - png file
+├── `happydev-session-mobile-390px.png` - png file
 ├── `LICENCE` - unknown file
 ├── `logo.png` - png file
 ├── `mobile-home-375.png` - png file
@@ -726,6 +1240,7 @@ happy-dev/
 ├── `pm-desktop-session.png` - png file
 ├── `pm-desktop-terminals.png` - png file
 ├── `pm-files-page.png` - png file
+├── `pm-happy-app-session-view.png` - png file
 ├── `pm-landing-2026-04-24.png` - png file
 ├── `pm-landing-authenticated.png` - png file
 ├── `pm-landing-connecting.png` - png file
@@ -740,6 +1255,7 @@ happy-dev/
 ├── `pm-settings-mobile.png` - png file
 ├── `pm-settings.png` - png file
 ├── `pm-tool-views.png` - png file
+├── `po-00-current-stop-hook-visible.png` - png file
 ├── `po-01-initial-load.png` - png file
 ├── `po-01-landing-connected.png` - png file
 ├── `po-01-landing-connecting.png` - png file
@@ -783,6 +1299,7 @@ happy-dev/
 ├── `po-appearance.png` - png file
 ├── `po-bug62-title-header.png` - png file
 ├── `po-changelog.png` - png file
+├── `po-current-snapshot.md` - No description
 ├── `po-cycle2-chip-click-result.png` - png file
 ├── `po-cycle2-chip-navigation-bug.png` - png file
 ├── `po-cycle2-chip-sent-message.png` - png file
@@ -807,6 +1324,10 @@ happy-dev/
 ├── `po-new-session-desktop.png` - png file
 ├── `po-new-session-page.png` - png file
 ├── `po-new-session.png` - png file
+├── `po-reset-screenshot.png` - png file
+├── `po-reset2.md` - No description
+├── `po-reset3.md` - No description
+├── `po-reset4.md` - No description
 ├── `po-session-desktop-full.png` - png file
 ├── `po-session-desktop-view.png` - png file
 ├── `po-session-desktop.png` - png file
@@ -819,9 +1340,43 @@ happy-dev/
 ├── `po-settings-redirect.png` - png file
 ├── `po-step0-landing.png` - png file
 ├── `po-usage.png` - png file
+├── `qa-20260425-201355-5-17-desktop-rendered-headers-lists.png` - png file
+├── `qa-20260425-201355-5-17-desktop-rendered.png` - png file
+├── `qa-20260426-085500-mobile-overview.png` - png file
+├── `qa-5-16-desktop-AC2-AC3-existing-block-and-inline.png` - png file
+├── `qa-5-16-desktop-baseline-existing-latex.png` - png file
+├── `qa-5-16-mobile-AC2-AC3-existing-block-and-inline-v2.png` - png file
+├── `qa-5-16-mobile-AC2-AC3-existing-block-and-inline.png` - png file
+├── `qa-5-16-mobile-AC2-AC3-final.png` - png file
+├── `qa-5-18-desktop-cronlist-2-rows.png` - png file
+├── `qa-5-18-desktop-cronlist-card.png` - png file
+├── `qa-5-18-desktop-cronlist-final.png` - png file
+├── `qa-5-18-desktop-cronlist-visible.png` - png file
+├── `qa-5-18-mobile-cronlist-2-rows.png` - png file
+├── `qa-5-3-after-click-1.png` - png file
+├── `qa-5-3-bashview-inline-regression.png` - png file
+├── `qa-5-3-current-state.png` - png file
+├── `qa-5-3-desktop-cycle2-popup.png` - png file
+├── `qa-5-3-desktop-loaded.png` - png file
+├── `qa-5-3-desktop-state.png` - png file
+├── `qa-5-3-mobile-after-close.png` - png file
+├── `qa-5-3-mobile-cycle2-popup.png` - png file
+├── `qa-5-3-state-debug.png` - png file
+├── `qa-5-4-5-1280-pre-toggle.png` - png file
+├── `qa-5-4-5-1920-final.png` - png file
+├── `qa-5-4-5-1920-sidebar-OPEN-maxwidth-1110.png` - png file
+├── `qa-5-4-5-desktop-1280-sidebar-closed.png` - png file
+├── `qa-5-4-5-desktop-1920-sidebar-closed.png` - png file
+├── `qa-5-4-5-mobile-390.png` - png file
+├── `qa-5.2-desktop-final.png` - png file
+├── `qa-5.2-desktop-inactive-default.png` - png file
+├── `qa-5.2-mobile-final.png` - png file
 ├── `qa-516-desktop-1280.png` - png file
 ├── `qa-516-desktop.png` - png file
 ├── `qa-516-mobile-390.png` - png file
+├── `qa-518-inline.png` - png file
+├── `qa-ac17-mcp-fixtures-desktop.png` - png file
+├── `qa-ac17-mcp-fixtures-mobile.png` - png file
 ├── `qa-after-click-desktop.png` - png file
 ├── `qa-after-reload.png` - png file
 ├── `qa-agent-card-click-desktop.png` - png file
@@ -874,6 +1429,9 @@ happy-dev/
 ├── `qa-cycle2-p3-tools2.png` - png file
 ├── `qa-cycle2-p6-other-tools-filtered.png` - png file
 ├── `qa-cycle2-p6-other-tools.png` - png file
+├── `qa-desktop-1440-confirmed.png` - png file
+├── `qa-desktop-1440-final.png` - png file
+├── `qa-desktop-1440x900-overview.png` - png file
 ├── `qa-desktop-bash-truncation.png` - png file
 ├── `qa-desktop-bashview-hover-scrollbar.png` - png file
 ├── `qa-desktop-bashview-scrollbar.png` - png file
@@ -886,14 +1444,24 @@ happy-dev/
 ├── `qa-dev-agent-subtools.png` - png file
 ├── `qa-dev-app-state.png` - png file
 ├── `qa-find-agent-tools.png` - png file
+├── `qa-fresh-desktop-1.png` - png file
+├── `qa-fresh-desktop-context-pct.png` - png file
+├── `qa-fresh-desktop-sonnet.png` - png file
+├── `qa-fresh-mobile-1.png` - png file
+├── `qa-fresh-mobile-context-pct.png` - png file
+├── `qa-image-render-mobile-attempt.png` - png file
 ├── `qa-initial-session-view.png` - png file
 ├── `qa-inline-todo-overview.png` - png file
 ├── `qa-issue3-sidebar-ba-agent.png` - png file
 ├── `qa-latex-inline-closeup.png` - png file
 ├── `qa-latex-inline-rendering.png` - png file
 ├── `qa-mid-scroll.md` - No description
+├── `qa-mobile-390x844-overview.png` - png file
 ├── `qa-mobile-agent-detail.png` - png file
+├── `qa-mobile-bash-card-clipped.png` - png file
 ├── `qa-mobile-bashview.png` - png file
+├── `qa-mobile-conversation-bottom.png` - png file
+├── `qa-mobile-markdown-demo.png` - png file
 ├── `qa-mobile-session-view.jpeg` - jpeg file
 ├── `qa-mobile-sidechain-agent-card.png` - png file
 ├── `qa-mobile-viewport.png` - png file
@@ -998,7 +1566,9 @@ happy-dev/
 ├── `screenshot-17-empty-send-test.png` - png file
 ├── `session-scrolled-top.png` - png file
 ├── `session-top.png` - png file
+├── `session-view-desktop.png` - png file
 ├── `session-view-initial.png` - png file
+├── `sessions-list-view.png` - png file
 ├── `sidebar-agent-card.png` - png file
 ├── `sidebar-scrolled-bottom.png` - png file
 ├── `sidechain-after-test.png` - png file
@@ -1045,9 +1615,29 @@ happy-dev/
 ├── `step9-settings.png` - png file
 ├── `step9-tools-demo-examples.png` - png file
 ├── `tmp-test-edit.ts` - ts file
+├── `tool-render-demo-playwright.png` - png file
+├── `tool-rendering-demo.png` - png file
 ├── `tools2-initial.png` - png file
 ├── `tools2-permission-states.png` - png file
 ├── `tools2-status-icons.png` - png file
+├── `ui-specialist-desktop-codex-fixtures.png` - png file
+├── `ui-specialist-desktop-dev-tools2.png` - png file
+├── `ui-specialist-desktop-tool-cards.png` - png file
+├── `ui-specialist-desktop-tool-rendering-current.png` - png file
+├── `ui-specialist-mobile-codex-fixtures-image-diff-fallback.png` - png file
+├── `ui-specialist-mobile-codex-fixtures-mcp.png` - png file
+├── `ui-specialist-mobile-codex-fixtures-table-terminal.png` - png file
+├── `ui-specialist-mobile-codex-fixtures-top.png` - png file
+├── `ui-specialist-mobile-dev-tools2-cards.png` - png file
+├── `ui-specialist-mobile-dev-tools2.png` - png file
+├── `ui-specialist-mobile-session-fix-tool-cards.png` - png file
+├── `ui-specialist-mobile-spec-current.png` - png file
+├── `ui-specialist-mobile-start.md` - No description
+├── `ui-specialist-mobile-subagent-cards.png` - png file
+├── `ui-specialist-mobile-tool-cards.png` - png file
+├── `ui-specialist-mobile-tool-rendering-current.png` - png file
+├── `ui-specialist-mobile-view-image-fixture-scrolled.png` - png file
+├── `ui-specialist-mobile-view-image-fixture.png` - png file
 ├── `user-01-initial-state.png` - png file
 ├── `user-01-landing-mobile.png` - png file
 ├── `user-02-session-view-mobile.png` - png file
@@ -1141,6 +1731,12 @@ happy-dev/
 ├── `user-c3-31-mobile-sessions.png` - png file
 ├── `user-c3-32-desktop-sessions.png` - png file
 ├── `user-c3-33-settings-page.png` - png file
+├── `user-codex-render-fixtures-top-mobile.png` - png file
+├── `user-tool-demo-page-mobile.png` - png file
+├── `user-tool-rendering-after-wait-mobile.png` - png file
+├── `user-tool-rendering-current-mobile-top.png` - png file
+├── `user-tool-rendering-fix-session-mobile.png` - png file
+├── `user-tool-rendering-screenshot-attachment-preview.png` - png file
 └── `yarn.lock` - lock file
 ```
 

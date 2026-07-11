@@ -1549,4 +1549,227 @@ describe('CodexAppServerClient sandbox integration', () => {
 
         await client.disconnect();
     });
+
+    // AC-C1 (client half): collaborationMode is forwarded into turn/start only when set.
+    it("forwards collaborationMode='plan' into turn/start params only when set", async () => {
+        const turnStarts: any[] = [];
+        const proc = createMockProcess({
+            pid: 4101,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-collab', path: '/tmp/thread-collab' },
+                                model: 'gpt-test', modelProvider: 'openai', cwd: '/tmp/project',
+                                approvalPolicy: 'untrusted',
+                                sandbox: { type: 'workspaceWrite' }, reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    turnStarts.push(msg.params);
+                    setTimeout(() => {
+                        pushJsonLine(stdout, { id: msg.id, result: {} });
+                        pushJsonLine(stdout, {
+                            method: 'codex/event',
+                            params: { msg: { type: 'task_started', turn_id: 'turn-collab' } },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'codex/event',
+                            params: { msg: { type: 'task_complete', turn_id: 'turn-collab' } },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        await client.connect();
+        await client.startThread({ model: 'gpt-test', cwd: '/tmp/project', approvalPolicy: 'untrusted', sandbox: 'workspace-write' });
+
+        // Plan turn → collaborationMode forwarded as the {mode, settings} struct
+        // (codex app-server rejects a bare "plan" string).
+        await client.sendTurnAndWait('plan turn', { collaborationMode: 'plan', model: 'gpt-test' });
+        // Non-plan turn → collaborationMode absent.
+        await client.sendTurnAndWait('coding turn');
+
+        expect(turnStarts).toHaveLength(2);
+        expect(turnStarts[0].collaborationMode).toEqual({
+            mode: 'plan',
+            settings: {
+                model: 'gpt-test',
+                reasoning_effort: null,
+                developer_instructions: null,
+            },
+        });
+        expect('collaborationMode' in turnStarts[1]).toBe(false);
+
+        await client.disconnect();
+    });
+
+    // Fix #1: when a plan turn omits model, fall back to the model returned by
+    // thread/start (stored as _lastModel) so settings.model is never empty.
+    it('falls back to the thread model for collaborationMode.settings.model when the turn omits it', async () => {
+        const turnStarts: any[] = [];
+        const proc = createMockProcess({
+            pid: 4104,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-fb', path: '/tmp/thread-fb' },
+                                model: 'gpt-resolved', modelProvider: 'openai', cwd: '/tmp/project',
+                                approvalPolicy: 'untrusted',
+                                sandbox: { type: 'workspaceWrite' }, reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    turnStarts.push(msg.params);
+                    setTimeout(() => {
+                        pushJsonLine(stdout, { id: msg.id, result: {} });
+                        pushJsonLine(stdout, { method: 'codex/event', params: { msg: { type: 'task_started', turn_id: 'turn-fb' } } });
+                        pushJsonLine(stdout, { method: 'codex/event', params: { msg: { type: 'task_complete', turn_id: 'turn-fb' } } });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        await client.connect();
+        await client.startThread({ model: 'gpt-test', cwd: '/tmp/project', approvalPolicy: 'untrusted', sandbox: 'workspace-write' });
+
+        await client.sendTurnAndWait('plan turn no model', { collaborationMode: 'plan' });
+
+        expect(turnStarts[0].collaborationMode.settings.model).toBe('gpt-resolved');
+
+        await client.disconnect();
+    });
+
+    // AC-C2: item/tool/requestUserInput → handler invoked, answers mapped, SAME id replied.
+    it('handles item/tool/requestUserInput and replies the same id with the mapped answer map', async () => {
+        const writes: any[] = [];
+        const proc = createMockProcess({
+            pid: 4102,
+            onRequest: (msg, stdout) => {
+                writes.push(msg);
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-rui', path: '/tmp/thread-rui' },
+                                model: 'gpt-test', modelProvider: 'openai', cwd: '/tmp/project',
+                                approvalPolicy: 'untrusted',
+                                sandbox: { type: 'workspaceWrite' }, reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+
+        const received: any[] = [];
+        client.setRequestUserInputHandler(async (params) => {
+            received.push(params);
+            // Mirror the app: answersRecord keyed by question id (qid).
+            return { q1: 'Blue', q2: 'Large' };
+        });
+
+        await client.connect();
+        await client.startThread({ model: 'gpt-test', cwd: '/tmp/project', approvalPolicy: 'untrusted', sandbox: 'workspace-write' });
+
+        const requestId = 0;
+        pushJsonLine(proc.stdout as NodeJS.ReadableStream & { push: (chunk: string) => void }, {
+            id: requestId,
+            method: 'item/tool/requestUserInput',
+            params: {
+                threadId: 'thread-rui',
+                turnId: 'turn-rui',
+                itemId: 'item-rui-1',
+                questions: [
+                    { id: 'q1', header: 'Color', question: 'Pick a color', isOther: false, isSecret: false, options: [{ label: 'Blue' }, { label: 'Red' }] },
+                    { id: 'q2', header: 'Size', question: 'Pick a size', isOther: false, isSecret: false, options: [{ label: 'Large' }, { label: 'Small' }] },
+                ],
+            },
+        });
+
+        await waitFor(() => received.length === 1);
+        await waitFor(() => writes.some((m) => m.id === requestId && m.result));
+
+        // Handler received the full params (threadId/turnId/itemId/questions).
+        expect(received[0]).toEqual(expect.objectContaining({
+            threadId: 'thread-rui',
+            turnId: 'turn-rui',
+            itemId: 'item-rui-1',
+        }));
+        expect(received[0].questions).toHaveLength(2);
+
+        // Reply is on the SAME JSON-RPC id, mapped to {[qid]:{answers:[label]}}.
+        const reply = writes.find((m) => m.id === requestId && m.result);
+        expect(reply.result).toEqual({
+            answers: {
+                q1: { answers: ['Blue'] },
+                q2: { answers: ['Large'] },
+            },
+        });
+
+        await client.disconnect();
+    });
+
+    // AC-C2: a missing/absent handler must still reply (empty answers) so codex doesn't hang.
+    it('replies with empty answers when no requestUserInput handler is set', async () => {
+        const writes: any[] = [];
+        const proc = createMockProcess({
+            pid: 4103,
+            onRequest: (msg, stdout) => {
+                writes.push(msg);
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-rui-2', path: '/tmp/thread-rui-2' },
+                                model: 'gpt-test', modelProvider: 'openai', cwd: '/tmp/project',
+                                approvalPolicy: 'untrusted',
+                                sandbox: { type: 'workspaceWrite' }, reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        await client.connect();
+        await client.startThread({ model: 'gpt-test', cwd: '/tmp/project', approvalPolicy: 'untrusted', sandbox: 'workspace-write' });
+
+        const requestId = 0;
+        pushJsonLine(proc.stdout as NodeJS.ReadableStream & { push: (chunk: string) => void }, {
+            id: requestId,
+            method: 'item/tool/requestUserInput',
+            params: { threadId: 'thread-rui-2', turnId: 'turn-rui-2', itemId: 'item-x', questions: [] },
+        });
+
+        await waitFor(() => writes.some((m) => m.id === requestId && m.result));
+        expect(writes.find((m) => m.id === requestId && m.result).result).toEqual({ answers: {} });
+
+        await client.disconnect();
+    });
 });

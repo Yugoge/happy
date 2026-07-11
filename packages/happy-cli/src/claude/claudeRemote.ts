@@ -59,7 +59,11 @@ export async function claudeRemote(opts: {
     onCompletionEvent?: (message: string) => void,
     onSessionReset?: () => void,
     /** Reports the active Claude account's CLAUDE_CONFIG_DIR at query start (initial + post-switch), so the app can display the current account. Mirrors the currentModelCode emitter. */
-    onAccountConfigDir?: (configDir: string) => void
+    onAccountConfigDir?: (configDir: string) => void,
+    /** Reports the current query's SELECTED model key (initial.mode.model) at query start, so the app can restore the user's model selection cross-device. Mirrors onAccountConfigDir. */
+    onModelMode?: (key: string) => void,
+    /** Reports the current query's SELECTED permission key (initial.mode.permissionMode) at query start, so the app can restore the user's permission selection cross-device. Mirrors onAccountConfigDir. */
+    onPermissionMode?: (key: string) => void
 }) {
 
     // Check if session is valid
@@ -134,6 +138,18 @@ export async function claudeRemote(opts: {
     // in any session. When the env is unset (e.g. daemon default), do not report.
     if (opts.onAccountConfigDir && process.env.CLAUDE_CONFIG_DIR) {
         opts.onAccountConfigDir(process.env.CLAUDE_CONFIG_DIR);
+    }
+
+    // Report the current query's SELECTED model + permission keys once per query
+    // start (initial + every post-switch/isolate restart). Mirrors the account
+    // emitter above: purely additive REPORTING so the app can restore the user's
+    // selection cross-device. Only emit non-empty strings (undefined = default,
+    // which the app already resolves via its own default fallback).
+    if (opts.onModelMode && typeof initial.mode.model === 'string' && initial.mode.model) {
+        opts.onModelMode(initial.mode.model);
+    }
+    if (opts.onPermissionMode && typeof initial.mode.permissionMode === 'string' && initial.mode.permissionMode) {
+        opts.onPermissionMode(initial.mode.permissionMode);
     }
 
     // Handle special commands

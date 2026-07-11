@@ -141,7 +141,61 @@ export type McpServerElicitationRequestResponse = {
     _meta: Record<string, unknown> | null;
 };
 
+// --- request_user_input (server → client request `item/tool/requestUserInput`) ---
+// Cherry-picked from codex v2 ToolRequestUserInput* generated types. The server
+// asks the user one or more questions; the answer is the JSON-RPC RESPONSE payload.
+
+export type ToolRequestUserInputOption = {
+    label: string;
+    description?: string;
+};
+
+export type ToolRequestUserInputQuestion = {
+    id: string;
+    header: string;
+    question: string;
+    isOther?: boolean;
+    isSecret?: boolean;
+    options: ToolRequestUserInputOption[] | null;
+};
+
+export type ToolRequestUserInputParams = {
+    threadId: string;
+    turnId: string;
+    itemId: string;
+    questions: ToolRequestUserInputQuestion[];
+};
+
+export type ToolRequestUserInputAnswer = {
+    answers: string[];
+};
+
+export type ToolRequestUserInputResponse = {
+    answers: Record<string, ToolRequestUserInputAnswer>;
+};
+
 // --- Shared enums ---
+
+// Collaboration-mode kind. Happy only ever selects 'plan' (and only when the
+// session permission mode is 'plan'); codex gates interactive request_user_input
+// to plan mode. This lightweight marker is what executionPolicy returns.
+export type ModeKind = "plan" | "default";
+
+// Settings carried inside the collaboration-mode struct on turn/start.
+export type CollaborationModeSettings = {
+    model: string;
+    reasoning_effort: ReasoningEffort | null;
+    developer_instructions: string | null;
+};
+
+// The WIRE shape codex's `turn/start` expects for collaborationMode. Codex
+// app-server (>=0.130) rejects a bare "plan" string with
+// `invalid type: string "plan", expected struct CollaborationMode` — it must be
+// this {mode, settings} struct.
+export type CollaborationMode = {
+    mode: ModeKind;
+    settings: CollaborationModeSettings;
+};
 
 export type ApprovalPolicy = "untrusted" | "on-failure" | "on-request" | "never";
 export type SandboxMode = "read-only" | "workspace-write" | "danger-full-access";

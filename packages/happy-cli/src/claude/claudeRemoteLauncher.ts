@@ -49,7 +49,7 @@ type MetaScannerState = {
     promise: Promise<void> | null;
 };
 
-type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter; currentModelCodeEmitter: CurrentModelCodeEmitter; emitAccountConfigDir: (dir: string) => void };
+type Services = { permissionHandler: PermissionHandler; messageQueue: OutgoingMessageQueue; sdkToLogConverter: SDKToLogConverter; currentModelCodeEmitter: CurrentModelCodeEmitter; emitAccountConfigDir: (dir: string) => void; emitModelMode: (key: string) => void; emitPermissionMode: (key: string) => void };
 
 function createLauncherState(): LauncherState {
     return {
@@ -270,7 +270,23 @@ function initServices(session: Session): Services {
         lastEmittedConfigDir = dir;
         session.client.updateMetadata(m => ({ ...m, currentClaudeConfigDir: dir }));
     };
-    return { permissionHandler, messageQueue, sdkToLogConverter, currentModelCodeEmitter, emitAccountConfigDir };
+    // Emit metadata.currentModelMode / currentPermissionMode from the current query's
+    // SELECTED keys at each query start, so the app restores the user's model/permission
+    // selection cross-device (parity with currentClaudeConfigDir). Change-guarded to avoid
+    // redundant metadata writes when the selection is unchanged across restarts.
+    let lastEmittedModelMode: string | undefined;
+    const emitModelMode = (key: string) => {
+        if (lastEmittedModelMode === key) return;
+        lastEmittedModelMode = key;
+        session.client.updateMetadata(m => ({ ...m, currentModelMode: key }));
+    };
+    let lastEmittedPermissionMode: string | undefined;
+    const emitPermissionMode = (key: string) => {
+        if (lastEmittedPermissionMode === key) return;
+        lastEmittedPermissionMode = key;
+        session.client.updateMetadata(m => ({ ...m, currentPermissionMode: key }));
+    };
+    return { permissionHandler, messageQueue, sdkToLogConverter, currentModelCodeEmitter, emitAccountConfigDir, emitModelMode, emitPermissionMode };
 }
 
 async function invokeClaude(
@@ -289,6 +305,8 @@ async function invokeClaude(
         onCompletionEvent: (msg: string) => { session.client.sendSessionEvent({ type: 'message', message: msg }); },
         onSessionReset: () => { session.clearSessionId(); },
         onAccountConfigDir: svc.emitAccountConfigDir,
+        onModelMode: svc.emitModelMode,
+        onPermissionMode: svc.emitPermissionMode,
         onReady: buildOnReady(session, loop),
     });
 }

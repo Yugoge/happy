@@ -1,6 +1,6 @@
 # utils
 
-*Last updated: 2026-05-10T16:11:54Z*
+*Last updated: 2026-06-02T20:31:56Z*
 **Total entries**: 38
 **Convention**: kebab
 

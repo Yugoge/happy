@@ -18,6 +18,13 @@ export interface PermissionResponse {
     id: string;
     approved: boolean;
     decision?: 'approved' | 'approved_for_session' | 'denied' | 'abort';
+    /**
+     * Free-form answers from an interactive-answer tool (e.g. codex
+     * request_user_input), keyed by question id. Carried over the existing
+     * 'permission' RPC alongside approved=true. Additive — undefined for normal
+     * approve/deny flows.
+     */
+    answers?: Record<string, string>;
 }
 
 /**
@@ -35,6 +42,11 @@ export interface PendingRequest {
  */
 export interface PermissionResult {
     decision: 'approved' | 'approved_for_session' | 'denied' | 'abort';
+    /**
+     * Answers relayed from an interactive-answer tool (codex request_user_input).
+     * Present only when the user submitted structured answers. Additive.
+     */
+    answers?: Record<string, string>;
 }
 
 /**
@@ -90,6 +102,13 @@ export abstract class BasePermissionHandler {
                     ? { decision: response.decision === 'approved_for_session' ? 'approved_for_session' : 'approved' }
                     : { decision: response.decision === 'denied' ? 'denied' : 'abort' };
 
+                // Relay interactive answers (codex request_user_input) only on an
+                // approved/answered decision — a denied/aborted response must never
+                // relay or persist stray answers.
+                if (response.approved && response.answers) {
+                    result.answers = response.answers;
+                }
+
                 pending.resolve(result);
 
                 // Move request to completed in agent state
@@ -108,7 +127,11 @@ export abstract class BasePermissionHandler {
                                 ...request,
                                 completedAt: Date.now(),
                                 status: response.approved ? 'approved' : 'denied',
-                                decision: result.decision
+                                decision: result.decision,
+                                // Persist interactive answers (codex request_user_input) so the
+                                // answered card survives reload / a second client. Additive: a
+                                // normal approve/deny has no answers, so the field is omitted.
+                                ...(result.answers ? { answers: result.answers } : null)
                             }
                         }
                     } satisfies AgentState;

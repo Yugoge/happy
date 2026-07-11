@@ -267,9 +267,11 @@ export type Metadata = {
   // `code` = protocol value ID, `value` = human label
   models?: Array<{ code: string; value: string; description?: string | null }>,
   currentModelCode?: string,
+  currentModelMode?: string, // User's SELECTED model key reported by the CLI (for cross-device model-selection restore)
   currentClaudeConfigDir?: string, // Active Claude account CLAUDE_CONFIG_DIR reported by the CLI (for current-account display)
   operatingModes?: Array<{ code: string; value: string; description?: string | null }>,
   currentOperatingModeCode?: string,
+  currentPermissionMode?: string, // User's SELECTED permission key reported by the CLI (for cross-device permission-selection restore)
   thoughtLevels?: Array<{ code: string; value: string; description?: string | null }>,
   currentThoughtLevelCode?: string,
   path: string,

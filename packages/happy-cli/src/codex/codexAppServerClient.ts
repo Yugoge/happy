@@ -27,6 +27,10 @@ import type {
     ReasoningEffort,
     McpServerElicitationRequestParams,
     McpServerElicitationRequestResponse,
+    CollaborationMode,
+    ModeKind,
+    ToolRequestUserInputParams,
+    ToolRequestUserInputResponse,
 } from './codexAppServerTypes';
 import type { SandboxConfig } from '@/persistence';
 import { initializeSandbox, wrapForMcpTransport } from '@/sandbox/manager';
@@ -68,6 +72,15 @@ export type ApprovalRequest =
       };
 
 export type ApprovalHandler = (params: ApprovalRequest) => Promise<ReviewDecision>;
+
+/**
+ * Handler for the codex `item/tool/requestUserInput` server-request. Surfaces the
+ * questions as an interactive answer card and resolves to the answersRecord
+ * (qid -> selected label(s)) the user submitted, or null if denied/aborted.
+ */
+export type RequestUserInputHandler = (
+    params: ToolRequestUserInputParams,
+) => Promise<Record<string, string> | null>;
 
 /**
  * Check that `codex app-server` is available.
@@ -208,6 +221,9 @@ export class CodexAppServerClient {
         sandbox?: SandboxMode;
         mcpServers?: Record<string, unknown>;
     } | null = null;
+    // Resolved model returned by thread/start|resume — used as the collaboration
+    // mode settings.model fallback when a turn omits an explicit model.
+    private _lastModel: string | null = null;
 
     // Turn completion tracking for the currently active sendTurnAndWait call.
     // A completion event only resolves once we have seen task_started for this turn.
@@ -229,6 +245,7 @@ export class CodexAppServerClient {
     // Handlers set by the consumer (runCodex.ts)
     private eventHandler: ((msg: EventMsg) => void) | null = null;
     private approvalHandler: ApprovalHandler | null = null;
+    private requestUserInputHandler: RequestUserInputHandler | null = null;
 
     constructor(sandboxConfig?: SandboxConfig) {
         this.sandboxConfig = sandboxConfig;
@@ -248,6 +265,10 @@ export class CodexAppServerClient {
 
     setApprovalHandler(handler: ApprovalHandler): void {
         this.approvalHandler = handler;
+    }
+
+    setRequestUserInputHandler(handler: RequestUserInputHandler): void {
+        this.requestUserInputHandler = handler;
     }
 
     private extractTurnId(params: any): string | null {
@@ -1027,6 +1048,7 @@ export class CodexAppServerClient {
         const result = await this.request('thread/start', params) as NewConversationResponse;
         this._threadId = result.thread.id;
         this._turnId = null;
+        if (typeof result.model === 'string' && result.model.length > 0) this._lastModel = result.model;
         this.rememberThreadDefaults(opts);
         logger.debug('[CodexAppServer] Thread started:', this._threadId);
         return { threadId: result.thread.id, model: result.model };
@@ -1062,6 +1084,7 @@ export class CodexAppServerClient {
         const result = await this.request('thread/resume', params) as ResumeConversationResponse;
         this._threadId = result.thread.id;
         this._turnId = null;
+        if (typeof result.model === 'string' && result.model.length > 0) this._lastModel = result.model;
         this.rememberThreadDefaults({
             model: opts?.model ?? defaults.model,
             cwd: opts?.cwd ?? defaults.cwd,
@@ -1205,6 +1228,7 @@ export class CodexAppServerClient {
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
         inputItems?: InputItem[];
+        collaborationMode?: ModeKind;
     }): Promise<void> {
         if (!this._threadId) {
             throw new Error('No active thread. Call startThread first.');
@@ -1223,6 +1247,20 @@ export class CodexAppServerClient {
         if (opts?.approvalPolicy) params.approvalPolicy = opts.approvalPolicy;
         if (opts?.model) params.model = opts.model;
         if (opts?.effort) params.effort = opts.effort;
+        // Enable interactive request_user_input only in plan mode (never on a
+        // normal coding turn — it may block command/file execution). Codex expects
+        // the {mode, settings} struct, NOT a bare "plan" string.
+        if (opts?.collaborationMode) {
+            const collaborationMode: CollaborationMode = {
+                mode: opts.collaborationMode,
+                settings: {
+                    model: opts?.model ?? this._lastModel ?? this.threadDefaults?.model ?? '',
+                    reasoning_effort: opts?.effort ?? null,
+                    developer_instructions: null,
+                },
+            };
+            params.collaborationMode = collaborationMode;
+        }
 
         // Map sandbox mode to the camelCase policy format the server expects
         if (opts?.sandbox) {
@@ -1267,6 +1305,7 @@ export class CodexAppServerClient {
         effort?: ReasoningEffort;
         turnTimeoutMs?: number;
         inputItems?: InputItem[];
+        collaborationMode?: ModeKind;
     }): Promise<{ aborted: boolean }> {
         // Wait for any in-flight interruptTurn() to complete before starting a new
         // turn. Otherwise the stale turn/interrupt RPC can reach Codex after our
@@ -1421,7 +1460,7 @@ export class CodexAppServerClient {
 
         // Server → client request (approvals)
         if (msg.id != null && msg.method) {
-            this.handleServerRequest(msg.id, msg.method, msg.params).catch((err) => {
+            this.handleServerRequest(msg.id, msg.method, msg.params, sourceEpoch).catch((err) => {
                 logger.debug('[CodexAppServer] Error handling server request:', err);
             });
             return;
@@ -1550,7 +1589,7 @@ export class CodexAppServerClient {
         this.respond(id, this.mapDecisionToMcpElicitationResponse(decision));
     }
 
-    private async handleServerRequest(id: number, method: string, params: any): Promise<void> {
+    private async handleServerRequest(id: number, method: string, params: any, sourceEpoch: number = this.processEpoch): Promise<void> {
         // Command execution approval
         if (method === 'item/commandExecution/requestApproval' || method === 'execCommandApproval') {
             const legacy = method === 'execCommandApproval';
@@ -1590,9 +1629,50 @@ export class CodexAppServerClient {
             return;
         }
 
+        // Interactive request_user_input (plan mode). Surface the questions as an
+        // answer card, await the user's answers, then reply the SAME JSON-RPC id
+        // with the per-question answer map.
+        if (method === 'item/tool/requestUserInput') {
+            await this.handleRequestUserInput(id, params as ToolRequestUserInputParams, sourceEpoch);
+            return;
+        }
+
         // Unknown server request — respond so server doesn't hang
         logger.debug(`[CodexAppServer] Unknown server request: ${method}`);
         this.respond(id, {});
+    }
+
+    /**
+     * Handle the codex `item/tool/requestUserInput` server-request: hand the
+     * questions to the consumer's handler (which surfaces the interactive card and
+     * awaits the user's answers over the permission RPC), then reply on the SAME
+     * JSON-RPC id with the per-question answer map. The request id is the
+     * correlator — threadId/turnId need not be echoed.
+     */
+    private async handleRequestUserInput(id: number, params: ToolRequestUserInputParams, sourceEpoch: number): Promise<void> {
+        let answersRecord: Record<string, string> | null = null;
+        if (this.requestUserInputHandler) {
+            try {
+                answersRecord = await this.requestUserInputHandler(params);
+            } catch (err) {
+                logger.debug('[CodexAppServer] requestUserInput handler error:', err);
+            }
+        }
+
+        // The handler may await for a long time (user answering); if the app-server
+        // was reconnected meanwhile, the original JSON-RPC id belongs to a dead
+        // generation — do not write a stale response to the new process.
+        if (sourceEpoch !== this.processEpoch) {
+            logger.debug(`[CodexAppServer] requestUserInput response dropped (stale epoch, id=${id})`);
+            return;
+        }
+
+        const answers: ToolRequestUserInputResponse['answers'] = {};
+        for (const [qid, value] of Object.entries(answersRecord ?? {})) {
+            answers[qid] = { answers: value.length > 0 ? [value] : [] };
+        }
+        const response: ToolRequestUserInputResponse = { answers };
+        this.respond(id, response);
     }
 
     private async handleApproval(params: Parameters<ApprovalHandler>[0]): Promise<ReviewDecision> {

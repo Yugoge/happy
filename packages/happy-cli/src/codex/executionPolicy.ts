@@ -1,13 +1,22 @@
-import type { ApprovalPolicy, SandboxMode } from './codexAppServerTypes';
+import type { ApprovalPolicy, SandboxMode, ModeKind } from './codexAppServerTypes';
 
 export function resolveCodexExecutionPolicy(
     permissionMode: import('@/api/types').PermissionMode,
     sandboxManagedByHappy: boolean,
-): { approvalPolicy: ApprovalPolicy; sandbox: SandboxMode } {
+): { approvalPolicy: ApprovalPolicy; sandbox: SandboxMode; collaborationMode?: ModeKind } {
+    // Interactive request_user_input is gated by codex to plan mode, so emit the
+    // 'plan' collaboration-mode MARKER ONLY when the session is in plan mode. The
+    // client expands this marker into the wire {mode, settings} struct on
+    // turn/start. Setting it on a normal coding turn could block command/file
+    // execution.
+    const collaborationMode: ModeKind | undefined =
+        permissionMode === 'plan' ? 'plan' : undefined;
+
     if (sandboxManagedByHappy) {
         return {
             approvalPolicy: 'never',
             sandbox: 'danger-full-access',
+            ...(collaborationMode ? { collaborationMode } : {}),
         };
     }
 
@@ -41,5 +50,9 @@ export function resolveCodexExecutionPolicy(
         }
     })();
 
-    return { approvalPolicy, sandbox };
+    return {
+        approvalPolicy,
+        sandbox,
+        ...(collaborationMode ? { collaborationMode } : {}),
+    };
 }

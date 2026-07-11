@@ -1215,11 +1215,11 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         // Cycle 7 (M1.c): retro-emit lifecycle-start BEFORE the control-verb child end so `ssn` is
         // registered as a parent-id before the child links to it (idempotent — subagentLifecycle.ts:59).
         if (verb === 'spawn_agent' && ssn && !subagentLifecycles.has(ssn)) emitLifecycleStart(ssn, call, typeof message.prompt === 'string' ? message.prompt : '', typeof message.agentNickname === 'string' ? message.agentNickname : null, opts, subagentLifecycles, envelopes);
-        // OBJ-6 / MIN-7 (AC-A3 T2): the REAL provider nickname lives in the spawn function_call_output
+        // Item A (AC-A2): the REAL provider nickname lives in the spawn function_call_output
         // ({agent_id, nickname}); the replay path forwards it onto this spawn-END as message.agentNickname.
-        // The lifecycle was created at spawn-BEGIN with the synthesized 'Subagent N' ordinal label (the
-        // begin had no nickname), so promote the real nickname onto the entry now — a real provider nickname
-        // WINS over the synthesized label. A null/empty/missing nickname leaves the synthesized label intact.
+        // The lifecycle was created at spawn-BEGIN with a NULL agentNickname (no synthesized label, AC-A1, so
+        // the app prompt-first-line title fallback applies), so promote the real nickname onto the entry now —
+        // a real provider nickname WINS. A null/empty/missing nickname leaves the null nickname intact.
         if (verb === 'spawn_agent' && ssn) promoteRealAgentNickname(ssn, message.agentNickname, subagentLifecycles);
         // Cycle 7 (M1/M1.a/M1.b): emit the control-verb tool-call-END as a recursion-safe sidechain CHILD
         // (matching the begin: call = provider call_id (never ssn), opts.subagent = ssn) so begin/end pair

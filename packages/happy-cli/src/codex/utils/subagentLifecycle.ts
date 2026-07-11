@@ -71,16 +71,15 @@ function lifecycleDescription(prompt: string, sessionSubagent: string): string {
     return prompt || sessionSubagent;
 }
 
-// OBJ-6 (AC-A3 — LIVE no-op FIX): the live collab_agent_call_begin carries NO agentNickname (codex 0.130
-// collabAgentToolCall ThreadItem has no nickname field), so message.agentNickname resolves to null on the
-// live path and the app title fallback (knownTools.tsx agentNickname.trim() -> prompt firstLine) shows the
-// RAW PROMPT — the exact #6a defect. A real provider nickname (replay function_call_output nickname, or a
-// future live message.agentNickname) is authoritative and WINS; only when it is absent does the producer
-// SYNTHESIZE a concise prompt-free label from a DETERMINISTIC per-session signal: the spawn ordinal =
-// subagentLifecycles.size at spawn time (a stable counter), so the Nth spawn becomes 'Subagent N'.
-function resolveAgentNickname(providerNickname: string | null, subagentLifecycles: Map<string, LifecycleState>): string {
+// Item A #6a (AC-A1/AC-A2): a REAL provider nickname (replay function_call_output nickname, or a future
+// live message.agentNickname) is authoritative and WINS. When it is ABSENT the producer MUST NOT synthesize
+// a generic 'Subagent N' label — a synthesized label pre-empts the app's title fallback chain (knownTools.tsx
+// agentNickname -> prompt first-line -> 'Subagent'). Returning null lets the app resolve the title to the
+// truncated first line of the subagent's own prompt, which is the user-intended behavior for a no-nickname
+// spawn. promoteRealAgentNickname still promotes a real provider nickname that arrives at the begin/END path.
+function resolveAgentNickname(providerNickname: string | null): string | null {
     if (typeof providerNickname === 'string' && providerNickname.trim().length > 0) return providerNickname;
-    return `Subagent ${subagentLifecycles.size + 1}`;
+    return null;
 }
 
 export function emitLifecycleStart(
@@ -93,8 +92,8 @@ export function emitLifecycleStart(
     envelopes: SessionEnvelope[],
 ): void {
     if (subagentLifecycles.has(sessionSubagent)) return;
-    // OBJ-6: resolve BEFORE the entry is inserted so the ordinal counts prior spawns only (1-based label).
-    const resolvedNickname = resolveAgentNickname(agentNickname, subagentLifecycles);
+    // Item A (AC-A1): null when no real provider nickname, so the app's prompt-first-line title fallback wins.
+    const resolvedNickname = resolveAgentNickname(agentNickname);
     const lifecycleEnvelopeCall = lifecycleCallId(sessionSubagent);
     subagentLifecycles.set(sessionSubagent, {
         spawnCallId,
@@ -114,13 +113,13 @@ export function emitLifecycleStart(
     }, opts));
 }
 
-// OBJ-6 / MIN-7 (AC-A3 T2): a REAL provider nickname WINS over the synthesized 'Subagent N' label even
-// when it arrives AFTER the lifecycle was created. Real Codex stores the spawn nickname in the
-// function_call_output ({agent_id, nickname}), which the replay path forwards onto the spawn-END; at that
-// point the lifecycle already exists (created at spawn-begin with the synthesized ordinal label), so the
-// begin-time emitLifecycleStart cannot have seen it. Promote the real nickname onto the existing entry.
-// Only a genuine non-empty provider nickname promotes; a null/empty/missing nickname leaves the
-// synthesized label intact (no regression for the live no-nickname path).
+// Item A (AC-A2): a REAL provider nickname WINS even when it arrives AFTER the lifecycle was created. Real
+// Codex stores the spawn nickname in the function_call_output ({agent_id, nickname}), which the replay path
+// forwards onto the spawn-END; at that point the lifecycle already exists (created at spawn-begin with a NULL
+// nickname — AC-A1, so the app prompt-first-line title fallback applies), so the begin-time emitLifecycleStart
+// cannot have seen it. Promote the real nickname onto the existing entry. Only a genuine non-empty provider
+// nickname promotes; a null/empty/missing nickname leaves the null nickname intact (the app then renders the
+// prompt first-line — no regression for the live no-nickname path).
 export function promoteRealAgentNickname(
     sessionSubagent: string,
     providerNickname: unknown,

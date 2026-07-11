@@ -1015,7 +1015,116 @@ describe('replayCodexRolloutHistory', () => {
         expect((childEnd as any).ev.result.preview_uri).toBe(`data:image/png;base64,${RESULT_BASE64}`);
     });
 
-    it('AC-A3 (codex#5, replay OUTPUT nickname): a replayed spawn whose function_call_output carries a real nickname promotes it onto the lifecycle entry (real provider nickname wins over the synthesized ordinal)', async () => {
+    // ════════════════════════════════════════════════════════════════════════════════════════════
+    // Item D (AC-D1/AC-D2) — image_generation replay: real Codex records response_item/image_generation_call
+    // (BEGIN, `id` + snake_case `revised_prompt`, NO saved_path) + event_msg/image_generation_end (END,
+    // matching `call_id` + snake_case `saved_path`). Replay must emit a begin so the end is not orphaned, and
+    // reconstruct preview_uri from the on-disk saved file (graceful fallback when it is gone).
+    // ════════════════════════════════════════════════════════════════════════════════════════════
+    it('AC-D1 (real record order: END event_msg BEFORE BEGIN response_item): a resumed image_generation emits a paired begin tool-call-start that PRECEDES the end, with preview_uri reconstructed from the on-disk snake_case saved_path', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = '019e7d8d-fbd3-74b3-8b3b-05c6ddae0152';
+        const savedDir = await mkdtemp(join(tmpdir(), 'codex-gen-img-'));
+        tempDirs.push(savedDir);
+        const savedPath = join(savedDir, 'generated.png');
+        await writeFile(savedPath, PNG_BYTES);
+        const callId = 'ig_0c6de26aa7c06e69016a1c121a55e08191940860758df24425';
+        const INLINE_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+        // Real Codex order (verified against /root/.codex/sessions/.../019e7d8d...jsonl:143-144): the
+        // event_msg/image_generation_end is recorded BEFORE the response_item/image_generation_call.
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-31T10-21-57', [
+            { type: 'session_meta', payload: { id: threadId } },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-gen' } },
+            // END first: matching call_id + snake_case saved_path on disk + multi-MB inline base64 result.
+            { type: 'event_msg', payload: { type: 'image_generation_end', call_id: callId, status: 'generating', revised_prompt: 'A tiny friendly robot holding a sign', result: INLINE_B64, saved_path: savedPath } },
+            // BEGIN second: response_item/image_generation_call carries `id` (the call_id) + snake_case revised_prompt.
+            { type: 'response_item', payload: { type: 'image_generation_call', id: callId, status: 'generating', revised_prompt: 'A tiny friendly robot holding a sign', result: INLINE_B64 } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-gen' } },
+        ]);
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        // Exactly ONE begin (the synthesized-from-end begin + the image_generation_call begin dedupe to one).
+        const begins = envelopes.filter((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.image_generation' && e.ev.call === callId);
+        expect(begins).toHaveLength(1);
+        const end = envelopes.find((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === callId);
+        expect(end).toBeDefined();
+        // The begin MUST precede the end in the emitted stream (not orphaned despite END-first file order).
+        const beginIdx = envelopes.findIndex((e: any) => e.ev.t === 'tool-call-start' && e.ev.call === callId);
+        const endIdx = envelopes.findIndex((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === callId);
+        expect(beginIdx).toBeGreaterThanOrEqual(0);
+        expect(endIdx).toBeGreaterThan(beginIdx);
+        // Preview reconstructed from the on-disk saved file; the multi-MB inline base64 is NOT on the wire.
+        expect((end as any).ev.result.preview_uri).toBe(`data:image/png;base64,${PNG_BYTES.toString('base64')}`);
+        expect((end as any).ev.result.preview_unavailable_reason).toBeUndefined();
+        expect((end as any).ev.result.result).toBeUndefined();
+    });
+
+    it('AC-D1 (codex finding 2: saved_path file gone but inline base64 survives → inline preview_uri, NOT a downgrade to preview_unavailable_reason)', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = '019e7d8d-fb2c-74b3-8b3b-05c6ddae0152';
+        const savedDir = await mkdtemp(join(tmpdir(), 'codex-gen-img-inline-'));
+        tempDirs.push(savedDir);
+        // saved_path points at a file that does NOT exist; but the rollout still carries the inline base64.
+        const savedPath = join(savedDir, 'gone.png');
+        const callId = 'ig_inline_fallback_0c6de26aa7c06e69016a1c121a55';
+        const INLINE_B64 = PNG_BYTES.toString('base64');
+
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-31T10-30-00', [
+            { type: 'session_meta', payload: { id: threadId } },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-inline' } },
+            { type: 'event_msg', payload: { type: 'image_generation_end', call_id: callId, status: 'generating', revised_prompt: 'fallback', result: INLINE_B64, saved_path: savedPath } },
+            { type: 'response_item', payload: { type: 'image_generation_call', id: callId, status: 'generating', revised_prompt: 'fallback', result: INLINE_B64 } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-inline' } },
+        ]);
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const end = envelopes.find((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === callId);
+        expect(end).toBeDefined();
+        // Disk is unusable, so the inline base64 is kept and normalized to a data: preview_uri (no downgrade).
+        expect((end as any).ev.result.preview_uri).toBe(`data:image/png;base64,${INLINE_B64}`);
+        expect((end as any).ev.result.preview_unavailable_reason).toBeUndefined();
+    });
+
+    it('AC-D2: a resumed image_generation whose saved_path file no longer exists (and no inline base64 survives) renders a graceful fallback (preview_unavailable_reason), never a broken image or crash', async () => {
+        const codexHome = await createCodexHome();
+        const threadId = '019e7d8d-dead-74b3-8b3b-05c6ddae0152';
+        const savedDir = await mkdtemp(join(tmpdir(), 'codex-gen-img-gone-'));
+        tempDirs.push(savedDir);
+        // Point saved_path at a file that does NOT exist on disk.
+        const savedPath = join(savedDir, 'missing-generated.png');
+        const callId = 'ig_missing_0c6de26aa7c06e69016a1c121a55e0819194086075';
+
+        await writeRollout(codexHome, threadId, 'rollout-2026-05-31T11-00-00', [
+            { type: 'session_meta', payload: { id: threadId } },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-gen-gone' } },
+            // Real END-before-BEGIN order; saved_path references a gone file and NO inline base64 survives.
+            { type: 'event_msg', payload: { type: 'image_generation_end', call_id: callId, status: 'generating', revised_prompt: 'A vanished image', saved_path: savedPath } },
+            { type: 'response_item', payload: { type: 'image_generation_call', id: callId, status: 'generating', revised_prompt: 'A vanished image' } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-gen-gone' } },
+        ]);
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        // Begin still emitted (card still renders, not orphaned).
+        const begin = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.image_generation' && e.ev.call === callId);
+        expect(begin).toBeDefined();
+        const end = envelopes.find((e: any) => e.ev.t === 'tool-call-end' && e.ev.call === callId);
+        expect(end).toBeDefined();
+        // Graceful fallback: a preview_unavailable_reason, NO preview_uri, no throw.
+        expect((end as any).ev.result.preview_unavailable_reason).toBeDefined();
+        expect((end as any).ev.result.preview_uri).toBeUndefined();
+    });
+
+    it('AC-A2 (codex#5, replay OUTPUT nickname): a replayed spawn (begin agentNickname=null) whose function_call_output carries a real nickname promotes it onto the lifecycle entry; the raw prompt never leaks as the nickname', async () => {
         const codexHome = await createCodexHome();
         const parentThread = '019e31bd-7777-7cf1-a525-3616befac9ec';
         const agentId = '019e31bf-6666-7112-9c56-c575c6ede31a';
@@ -1030,15 +1139,35 @@ describe('replayCodexRolloutHistory', () => {
         const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
         expect(result.status).toBe('replayed');
         const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
-        // The lifecycle TERMINAL/start carries the lifecycle; assert the real nickname was promoted (the
-        // synthesized 'Subagent N' ordinal is the fallback only when no provider nickname exists).
         const lifecycleStart = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
         expect(lifecycleStart).toBeDefined();
-        // The lifecycle-start envelope was emitted at spawn-begin with the synthesized ordinal; the OUTPUT
-        // nickname is promoted onto the lifecycle ENTRY (MIN-7: the already-emitted start envelope's title is
-        // a known render-side limitation, recorded below — the entry-level promotion is the data-level win).
-        // Assert no envelope title leaked the raw prompt as the agentNickname.
+        // AC-A2 (codex finding 4): the lifecycle-start envelope was BUFFERED at spawn-begin with null, then the
+        // OUTPUT nickname was promoted; the end-of-replay patch back-fills the buffered start envelope so the
+        // REAL provider nickname renders as the card title after resume. The raw prompt MUST NOT leak.
         const startNickname = (lifecycleStart as any).ev.args.agentNickname;
-        expect(startNickname).not.toContain('long prompt');
+        expect(startNickname).toBe('Investigator');
+        expect(JSON.stringify(envelopes)).not.toContain('"agentNickname":"a long prompt');
+    });
+
+    it('AC-A1 (replay, no provider nickname): a replayed spawn with NO nickname keeps args.agentNickname null on the start envelope so the app renders the prompt first-line', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = '019e31bd-5555-7cf1-a525-3616befac9ec';
+        const agentId = '019e31bf-4444-7112-9c56-c575c6ede31a';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-05-15T00-00-00', [
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-nonick' } },
+            { type: 'response_item', payload: { type: 'function_call', name: 'spawn_agent', call_id: 'spawn-nonick', arguments: JSON.stringify({ message: 'investigate the flaky login test and report back' }) } },
+            // function_call_output binds the child but carries NO nickname.
+            { type: 'response_item', payload: { type: 'function_call_output', call_id: 'spawn-nonick', output: JSON.stringify({ agent_id: agentId }) } },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-nonick' } },
+        ]);
+
+        const session = { sendSessionProtocolMessage: vi.fn(), sendSessionEvent: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) };
+        const result = await replayCodexRolloutHistory({ threadId: parentThread, session, codexHome });
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([e]) => e);
+        const lifecycleStart = envelopes.find((e: any) => e.ev.t === 'tool-call-start' && e.ev.name === 'functions.subagent_lifecycle');
+        expect(lifecycleStart).toBeDefined();
+        // No provider nickname anywhere → agentNickname stays null (AC-A1: app falls back to prompt first-line).
+        expect((lifecycleStart as any).ev.args.agentNickname).toBeNull();
     });
 });

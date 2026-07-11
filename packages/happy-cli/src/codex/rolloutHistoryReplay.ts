@@ -66,6 +66,13 @@ type ReplayState = {
     // stored on the replay state (OUTSIDE the mapper's CodexTurnState) so they survive the parent's
     // task_complete map-clears. Consumed by the child-merge pass after the parent replay finishes.
     childSpawnBindings: Map<string, ChildSpawnBinding>;
+    // Item A (AC-A2, codex finding 4): a REAL provider nickname arrives on the spawn-END (after the
+    // lifecycle-start envelope was already buffered with a null nickname). promoteRealAgentNickname mutates
+    // the in-memory lifecycle entry, but the buffered start envelope still carries null — so the app would
+    // render the prompt first-line, not the real nickname, after resume. Snapshot every resolved (promoted)
+    // nickname by ssn here (this map survives the mapper's task_complete clears) and patch the buffered
+    // lifecycle-start envelopes at end-of-replay so AC-A2's "rendered title is the provider nickname" holds.
+    resolvedNicknamesBySsn: Map<string, string>;
 };
 
 // MIN-1 (AC-A4/A5): replayed image tools must route through the mapper's image-preview synthesis paths
@@ -268,6 +275,7 @@ function createReplayState(): ReplayState {
         // screenshot filename (the function_call_output carries no begin args).
         toolArgsByCallId: new Map<string, Record<string, unknown>>(),
         childSpawnBindings: new Map<string, ChildSpawnBinding>(),
+        resolvedNicknamesBySsn: new Map<string, string>(),
     };
 }
 
@@ -587,7 +595,77 @@ function mapResponseItem(payload: Record<string, unknown>, state: ReplayState): 
         return mapFunctionCallOutput(payload, state);
     }
 
+    // Item D (AC-D1): real Codex records a generated image as response_item/image_generation_call (the BEGIN,
+    // carrying `id` as the call_id and snake_case `revised_prompt`, NO saved_path) followed by an
+    // event_msg/image_generation_end (the END, carrying the matching `call_id` + snake_case `saved_path`).
+    // Without a begin branch this returns [] so the END is ORPHANED (no tool-call-start to pair with) and the
+    // image never renders after resume. Route the begin through the mapper's image_generation_begin handler so
+    // a tool-call-start is emitted; reconcile the snake_case `revised_prompt` to the camelCase key the handler
+    // reads. The matching END (mapEventMsg below) reconstructs preview_uri from the on-disk saved_path.
+    if (payload.type === 'image_generation_call') {
+        const callId = typeof payload.id === 'string' ? payload.id
+            : (typeof payload.call_id === 'string' ? payload.call_id : undefined);
+        if (!callId) {
+            return [];
+        }
+        const revisedPrompt = typeof payload.revised_prompt === 'string' ? payload.revised_prompt
+            : (typeof payload.revisedPrompt === 'string' ? payload.revisedPrompt : '');
+        return mapWithState({
+            type: 'image_generation_begin',
+            call_id: callId,
+            revisedPrompt,
+        }, state);
+    }
+
     return [];
+}
+
+// Item D (AC-D1/AC-D2): reconcile a rollout image_generation_end record before it reaches the mapper. Real
+// rollouts use snake_case `saved_path`/`revised_prompt` (the mapper's normalizeImageGenerationEnd reads the
+// camelCase `savedPath`), and carry a multi-MB inline base64 `result`. Map the snake_case keys to camelCase
+// and — ONLY when the on-disk saved file is actually previewable — DROP the inline `result` so the preview is
+// reconstructed from disk (view_image parity, small wire envelope). If the saved file is gone/unreadable but
+// the inline base64 still survives, KEEP `result` so normalizeImageGenerationEnd turns it into a data: URI
+// (codex finding 2 — never downgrade a still-renderable image to preview_unavailable_reason). When neither a
+// usable saved file nor inline base64 survives, the savedPath path yields the AC-D2 graceful fallback.
+// `baseDir` resolves a relative saved_path against the recording session cwd, mirroring the end's own preview
+// reconstruction (buildImageToolResult is reused so the readability probe uses the IDENTICAL resolution).
+function reconcileImageGenerationEnd(payload: Record<string, unknown>, baseDir?: string): Record<string, unknown> {
+    const savedPath = typeof payload.saved_path === 'string' ? payload.saved_path
+        : (typeof payload.savedPath === 'string' ? payload.savedPath : '');
+    const revisedPrompt = typeof payload.revised_prompt === 'string' ? payload.revised_prompt
+        : (typeof payload.revisedPrompt === 'string' ? payload.revisedPrompt : undefined);
+    const reconciled: Record<string, unknown> = { ...payload };
+    if (revisedPrompt !== undefined) reconciled.revisedPrompt = revisedPrompt;
+    if (savedPath.length > 0) {
+        reconciled.savedPath = savedPath;
+        // Probe the disk copy with the SAME resolution the end preview uses; only prefer disk when it can
+        // actually produce a preview_uri. Otherwise keep the inline base64 as the renderable fallback.
+        const diskPreview = buildImageToolResult({ type: 'image_generation_end', path: savedPath }, baseDir);
+        const diskUsable = typeof diskPreview?.preview_uri === 'string';
+        if (diskUsable) delete reconciled.result;
+    }
+    return reconciled;
+}
+
+// Item D (AC-D1, codex finding 1): real rollouts record image_generation_end (event_msg) BEFORE
+// image_generation_call (response_item) — the END precedes the BEGIN in file order. Streaming in file order
+// would emit the END's tool-call-end before any tool-call-start exists, leaving an ORPHAN. Synthesize the
+// paired image_generation_begin from the END's own fields (same call_id) and emit it immediately BEFORE the
+// END so the pair is always begin→end regardless of file order. The later image_generation_call record emits
+// its own begin too, but the replay dedupe key (role:tool-call-start:turn:subagent:call) collapses the
+// duplicate, so exactly one begin survives.
+function mapImageGenerationEnd(payload: Record<string, unknown>, state: ReplayState): SessionEnvelope[] {
+    const callId = typeof payload.call_id === 'string' ? payload.call_id
+        : (typeof payload.id === 'string' ? payload.id : undefined);
+    const revisedPrompt = typeof payload.revised_prompt === 'string' ? payload.revised_prompt
+        : (typeof payload.revisedPrompt === 'string' ? payload.revisedPrompt : '');
+    const envelopes: SessionEnvelope[] = [];
+    if (callId) {
+        envelopes.push(...mapWithState({ type: 'image_generation_begin', call_id: callId, revisedPrompt }, state));
+    }
+    envelopes.push(...mapWithState(reconcileImageGenerationEnd(payload, state.mapper.sessionCwd), state));
+    return envelopes;
 }
 
 function mapEventMsg(payload: Record<string, unknown>, state: ReplayState): SessionEnvelope[] {
@@ -598,6 +676,10 @@ function mapEventMsg(payload: Record<string, unknown>, state: ReplayState): Sess
 
     if (payload.type === 'agent_reasoning' || payload.type === 'agent_reasoning_delta') {
         return [];
+    }
+
+    if (payload.type === 'image_generation_end') {
+        return mapImageGenerationEnd(payload, state);
     }
 
     return mapWithState(payload, state);
@@ -1098,7 +1180,27 @@ async function replayFiles(opts: {
             }
             recordsRead++;
             parentEnvelopes.push(...mapRolloutRecord(record, state));
+            // Item A (AC-A2): snapshot any promoted (non-null) nickname now, BEFORE the next task_complete
+            // clears the mapper's lifecycle map, so it survives to the end-of-replay envelope patch.
+            for (const [ssn, entry] of state.mapper.subagentLifecycles ?? new Map<string, LifecycleState>()) {
+                if (typeof entry.agentNickname === 'string' && entry.agentNickname.trim().length > 0) {
+                    state.resolvedNicknamesBySsn.set(ssn, entry.agentNickname);
+                }
+            }
         }
+    }
+
+    // Item A (AC-A2, codex finding 4): patch each buffered functions.subagent_lifecycle start envelope's
+    // args.agentNickname from the promoted snapshot so a real provider nickname that arrived at the spawn-END
+    // (after the start was buffered with null) renders as the card title after resume. Lifecycles without a
+    // real provider nickname keep null so the app's prompt-first-line title fallback applies (AC-A1).
+    for (const envelope of parentEnvelopes) {
+        const ev = envelope.ev as { t: string; name?: string; args?: Record<string, unknown> };
+        if (ev.t !== 'tool-call-start' || ev.name !== 'functions.subagent_lifecycle' || !ev.args) continue;
+        const ssn = typeof ev.args.sessionSubagent === 'string' ? ev.args.sessionSubagent : undefined;
+        if (!ssn) continue;
+        const promoted = state.resolvedNicknamesBySsn.get(ssn);
+        if (promoted) ev.args.agentNickname = promoted;
     }
 
     // Cycle 8 (M4 — item 2 mode d): at end-of-replay, flush any lifecycle still in a non-terminal state

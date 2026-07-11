@@ -1684,11 +1684,14 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
     });
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────
-    // #6a / OBJ-6 (AC-A3) — live no-nickname spawn synthesizes a concise 'Subagent N' label; real wins.
+    // Item A #6a (AC-A1/AC-A2) — live no-nickname spawn emits a NULL agentNickname so the app title
+    // fallback resolves the prompt first-line; a real provider nickname still wins.
     // ─────────────────────────────────────────────────────────────────────────────────────────────
-    it('AC-A3 (T1, LIVE-shape): a live spawn WITHOUT agentNickname yields args.agentNickname == the synthesized concise label (not null, not the prompt)', () => {
+    it('AC-A1 (T1, LIVE-shape): a live spawn WITHOUT agentNickname yields args.agentNickname == null (NOT a synthesized "Subagent N", NOT the prompt) so the app prompt-first-line title fallback applies', () => {
         // The LIVE collab_agent_call_begin carries no agentNickname (codex 0.130 collabAgentToolCall has no
-        // nickname field). The producer must synthesize a concise prompt-free label, NOT fall to the prompt.
+        // nickname field). The producer MUST NOT synthesize a generic 'Subagent N' label — a synthesized label
+        // pre-empts the app title fallback chain (agentNickname -> prompt first-line -> 'Subagent'). Returning
+        // null lets the app render the truncated first line of the subagent's own prompt.
         const res = mapCodexMcpMessageToSessionEnvelopes(
             { type: 'collab_agent_call_begin', call_id: 'live-spawn-1', tool: 'spawnAgent', prompt: 'a very long raw prompt that must NOT become the card title', receiverThreadIds: [], agentsStates: {} },
             { currentTurnId: 'turn-live' }
@@ -1696,9 +1699,10 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         const lifecycle = res.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle');
         expect(lifecycle).toBeDefined();
         const nickname = (lifecycle!.ev as any).args.agentNickname;
-        expect(nickname).toBe('Subagent 1');
-        expect(nickname).not.toBeNull();
-        expect(nickname).not.toContain('raw prompt');
+        expect(nickname).toBeNull();
+        // The lifecycle ENTRY likewise stores null (no synthesized label) so a later promote/render is clean.
+        const ssn = (lifecycle!.ev as any).args.sessionSubagent as string;
+        expect(res.subagentLifecycles.get(ssn)?.agentNickname).toBeNull();
     });
 
     it('AC-A3 (T2, real wins via live message.agentNickname): a spawn WITH a real provider nickname keeps that nickname', () => {
@@ -1710,21 +1714,21 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
         expect((lifecycle!.ev as any).args.agentNickname).toBe('Architect');
     });
 
-    it('AC-A3 (T2, real wins via replay spawn-end OUTPUT nickname): an empty-rcv spawn whose END carries a real nickname promotes it onto the lifecycle (real > synthesized ordinal)', () => {
+    it('AC-A2 (real wins via replay spawn-end OUTPUT nickname): an empty-rcv spawn (begin agentNickname=null) whose END carries a real nickname promotes it onto the lifecycle (real provider nickname wins)', () => {
         // Real Codex stores the spawn nickname in the function_call_output, forwarded onto the spawn-END as
-        // message.agentNickname. The lifecycle was created at begin with the synthesized 'Subagent 1' label;
-        // the END must promote the real nickname so the real provider nickname wins over the ordinal.
+        // message.agentNickname. The lifecycle is created at begin with a NULL nickname (no synthesized label,
+        // AC-A1); the END must promote the real nickname so the real provider nickname wins (AC-A2).
         const begin = mapCodexMcpMessageToSessionEnvelopes(
             { type: 'collab_agent_call_begin', call_id: 'replay-spawn-3', tool: 'spawnAgent', prompt: 'inspect', receiverThreadIds: [], agentsStates: {} },
             { currentTurnId: 'turn-replay' }
         );
         const ssn = ssnOf(begin);
-        expect(begin.subagentLifecycles.get(ssn)?.agentNickname).toBe('Subagent 1'); // synthesized at begin
+        expect(begin.subagentLifecycles.get(ssn)?.agentNickname).toBeNull(); // null at begin (no synthesized label)
         const end = step({ type: 'collab_agent_call_end', call_id: 'replay-spawn-3', tool: 'spawnAgent', status: 'completed', agentNickname: 'Reviewer', receiverThreadIds: ['child-rep-3'], agentsStates: { 'child-rep-3': { status: 'running', message: null } } }, begin);
         expect(end.subagentLifecycles.get(ssn)?.agentNickname).toBe('Reviewer'); // real provider nickname wins
     });
 
-    it('AC-A3 (T3): two sequential live spawns WITHOUT nicknames → distinct ordinals (Subagent 1 then Subagent 2)', () => {
+    it('AC-A1 (T3): two sequential live spawns WITHOUT nicknames → both agentNickname null (no synthesized ordinals; app falls back to each prompt first-line)', () => {
         const begin1 = mapCodexMcpMessageToSessionEnvelopes(
             { type: 'collab_agent_call_begin', call_id: 'live-spawn-4a', tool: 'spawnAgent', prompt: 'first', receiverThreadIds: [], agentsStates: {} },
             { currentTurnId: 'turn-seq' }
@@ -1735,8 +1739,8 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
             { currentTurnId: 'turn-seq', startedSubagents: begin1.startedSubagents, activeSubagents: begin1.activeSubagents, providerSubagentToSessionSubagent: begin1.providerSubagentToSessionSubagent, subagentLifecycles: begin1.subagentLifecycles }
         );
         const n2 = (begin2.envelopes.find(e => e.ev.t === 'tool-call-start' && (e.ev as any).name === 'functions.subagent_lifecycle')!.ev as any).args.agentNickname;
-        expect(n1).toBe('Subagent 1');
-        expect(n2).toBe('Subagent 2');
+        expect(n1).toBeNull();
+        expect(n2).toBeNull();
     });
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────
