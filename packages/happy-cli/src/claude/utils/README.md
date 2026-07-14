@@ -2,18 +2,23 @@
 
 <!-- AUTO:readme-stats -->
 ## Overview
-- **Total files**: 27
+- **Total files**: 33
 - **Subdirectories**: 1
-- **Naming convention**: lower
+- **Naming convention**: kebab
 
 ## Files
 - `OutgoingMessageQueue.ts` - ts file
 - `claudeCheckSession.test.ts` - ts file
 - `claudeCheckSession.ts` - ts file
+- `claudeConfigDir.test.ts` - ts file
+- `claudeConfigDir.ts` - ts file
 - `claudeFindLastSession.test.ts` - ts file
 - `claudeFindLastSession.ts` - ts file
 - `claudeSettings.test.ts` - ts file
 - `claudeSettings.ts` - ts file
+- `currentModelCodeEmitter.test.ts` - ts file
+- `currentModelCodeEmitter.ts` - ts file
+- `fileContentReader.ts` - ts file
 - `generateHookSettings.ts` - ts file
 - `getToolDescriptor.ts` - ts file
 - `getToolName.ts` - ts file
@@ -32,6 +37,7 @@
 - `sessionScanner.ts` - ts file
 - `startHappyServer.ts` - ts file
 - `startHookServer.ts` - ts file
+- `stopHookFilter.ts` - ts file
 - `systemPrompt.ts` - ts file
 
 ## Subdirectories

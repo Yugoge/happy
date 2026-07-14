@@ -30,7 +30,7 @@ import { claudeLocal } from '@/claude/claudeLocal';
 import { createSessionScanner } from '@/claude/utils/sessionScanner';
 import { Session } from './session';
 import { applySandboxPermissionPolicy, resolveInitialClaudePermissionMode } from './utils/permissionMode';
-import { deriveResumeSeed, seedClaudeConfigDirFromEnv } from './utils/claudeConfigDir';
+import { deriveResumeSeed, resolveResumeConfigDir, seedClaudeConfigDirFromEnv } from './utils/claudeConfigDir';
 
 /** JavaScript runtime to use for spawning Claude Code */
 export type JsRuntime = 'node' | 'bun'
@@ -94,6 +94,9 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     // canonical env, so a crash before the first query still leaves a recovery
     // binding for the next daemon recovery. Empty on the non-resume path.
     const resumeSeed = deriveResumeSeed(options.claudeArgs, process.env);
+    // Sticky account-home tracked through the loop; M2 seeds it from canonical env,
+    // and the M6 mass-reboot discovery below may advance it before the first read.
+    let resolvedStickyConfigDir = claudeConfigDirSeed.sticky;
 
     // Log environment info at startup
     logger.debugLargeJson('[START] Happy process started', getEnvironmentInfo());
@@ -181,6 +184,28 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
         } else {
             logger.debug(`[START] Recovery: no claudeSessionId in server metadata — Claude will start fresh`);
         }
+    }
+
+    // M6 (mass-reboot coverage) — the ops recovery path `happy claude --resume <uuid>`
+    // reaches runClaude directly (NOT buildResumeLaunch), so run the same bounded
+    // account-home discovery HERE, before the first transcript read (uploadResumeHistory /
+    // claudeCheckSession). Without it an account-switched or legacy session resumes the
+    // stale copy from the daemon-default CLAUDE_CONFIG_DIR. resolveResumeConfigDir returns
+    // undefined (a strict no-op) when there is no --resume <uuid>, when nothing beats the
+    // current env, or when discovery finds nothing — so single-account / default sessions
+    // are byte-unchanged. The persisted binding (if any) comes from server metadata.
+    const recoveredConfigDir = resolveResumeConfigDir(
+        options.claudeArgs,
+        workingDirectory,
+        (response?.metadata as Metadata | null)?.currentClaudeConfigDir,
+        process.env,
+        { onDivergentEvent: (message) => logger.debug(`[START] ${message}`) },
+    );
+    if (recoveredConfigDir) {
+        logger.debug(`[START] Resume account-home discovery: CLAUDE_CONFIG_DIR ${process.env.CLAUDE_CONFIG_DIR ?? '(unset)'} → ${recoveredConfigDir}`);
+        process.env.CLAUDE_CONFIG_DIR = recoveredConfigDir;
+        options.claudeEnvVars = { ...(options.claudeEnvVars ?? {}), CLAUDE_CONFIG_DIR: recoveredConfigDir };
+        resolvedStickyConfigDir = recoveredConfigDir;
     }
 
     // Handle server unreachable case - run Claude locally with hot reconnection
@@ -327,7 +352,7 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     let currentAppendSystemPrompt: string | undefined = undefined; // Track current append system prompt
     let currentAllowedTools: string[] | undefined = undefined; // Track current allowed tools
     let currentDisallowedTools: string[] | undefined = undefined; // Track current disallowed tools
-    let currentClaudeConfigDir: string | undefined = claudeConfigDirSeed.sticky; // Track current Claude account config dir (sticky); M2 seeds from canonical env
+    let currentClaudeConfigDir: string | undefined = resolvedStickyConfigDir; // Track current Claude account config dir (sticky); M2 seeds from canonical env, M6 mass-reboot discovery may advance it
     session.onUserMessage((message) => {
 
         // Resolve permission mode from meta - pass through as-is, mapping happens at SDK boundary

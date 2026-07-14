@@ -375,3 +375,52 @@ export function discoverClaudeConfigDirForSession(
 
     return { home, source, tuple, tieBreak, divergent };
 }
+
+/**
+ * Resolve the account home to apply on a resume startup path (M6, mass-reboot
+ * coverage). The ops recovery path `happy claude --resume <uuid>` reaches
+ * runClaude directly — NOT buildResumeLaunch — so it must run the same bounded
+ * discovery here, before the first transcript read, or an account-switched
+ * session resumes the stale copy from the wrong CLAUDE_CONFIG_DIR.
+ *
+ * Pure and side-effect-free: returns the canonical home to switch to, or
+ * `undefined` when nothing should change — i.e. there is no `--resume <uuid>`
+ * in the args, discovery found nothing (default-home fallback), or the winner
+ * already equals the current canonical env. The undefined-means-no-op contract
+ * keeps single-account / non-resume / default sessions byte-identical.
+ */
+export function resolveResumeConfigDir(
+    claudeArgs: string[] | undefined,
+    cwd: string,
+    persisted: string | null | undefined,
+    env: { CLAUDE_CONFIG_DIR?: string; HAPPY_CLAUDE_ACCOUNTS_ROOT?: string },
+    hooks?: { onDivergentEvent?: (message: string) => void; onAudit?: (line: string) => void },
+): string | undefined {
+    const claudeSessionId = deriveResumeSeed(claudeArgs, env).claudeSessionId;
+    if (!claudeSessionId) {
+        return undefined;
+    }
+    const discovery = discoverClaudeConfigDirForSession(claudeSessionId, cwd, {
+        persisted,
+        env: env.CLAUDE_CONFIG_DIR,
+        accountsRootEnv: env.HAPPY_CLAUDE_ACCOUNTS_ROOT,
+        onDivergentEvent: hooks?.onDivergentEvent,
+        onAudit: hooks?.onAudit,
+    });
+    // Only switch when discovery actually scored a same-lineage transcript (tuple set).
+    // A persisted binding whose transcript is missing on disk returns home=persisted with
+    // tuple=null; honouring it would force Claude into a missing/stale account home, so
+    // "nothing found" stays a strict no-op.
+    if (!discovery.home || !discovery.tuple) {
+        return undefined;
+    }
+    // Compare against the EFFECTIVE current home: an unset CLAUDE_CONFIG_DIR still resolves
+    // to the default ~/.claude, so a single-account resume whose transcript lives in the
+    // default home must stay a no-op rather than explicitly pinning the default.
+    const currentHome = canonicalizeClaudeConfigDir(env.CLAUDE_CONFIG_DIR)
+        ?? canonicalizeClaudeConfigDir(join(homedir(), '.claude'));
+    if (discovery.home !== currentHome) {
+        return discovery.home;
+    }
+    return undefined;
+}

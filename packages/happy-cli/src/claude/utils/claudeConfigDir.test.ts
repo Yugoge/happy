@@ -8,6 +8,7 @@ import {
     compareTranscriptScore,
     deriveResumeSeed,
     discoverClaudeConfigDirForSession,
+    resolveResumeConfigDir,
     scoreTranscript,
     seedClaudeConfigDirFromEnv,
     transcriptPathFor,
@@ -240,6 +241,86 @@ describe('discoverClaudeConfigDirForSession (M6 / AC3-unit / AC12)', () => {
         const result = discoverClaudeConfigDirForSession(sessionId, cwd, {});
         expect(result.home).toBeNull();
         expect(result.source).toBe('default-fallback');
+    });
+});
+
+describe('resolveResumeConfigDir (M6 mass-reboot wiring for runClaude / happy claude --resume)', () => {
+    let root: string;
+    const cwd = '/tmp/resume-massreboot-project';
+    const sessionId = '869820bd-69f4-4282-ad31-6fad95da4656';
+
+    beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'cfgdir-resume-')); });
+    afterEach(() => { rmSync(root, { recursive: true, force: true }); });
+
+    it('no-op (undefined) when there is no --resume <uuid> in the args — fresh / non-resume session', () => {
+        expect(resolveResumeConfigDir([], cwd, undefined, {})).toBeUndefined();
+        expect(resolveResumeConfigDir(['--model', 'opus'], cwd, undefined, {})).toBeUndefined();
+        expect(resolveResumeConfigDir(undefined, cwd, undefined, {})).toBeUndefined();
+    });
+
+    it('mass-reboot: --resume launched under the stale/default home resolves to the richer same-lineage account home', () => {
+        const homeA = canonicalizeClaudeConfigDir(join(root, 'acctA', 'claude'))!;
+        const staleHome = canonicalizeClaudeConfigDir(join(root, 'default', 'claude'))!;
+        writeTranscript(homeA, cwd, sessionId, [
+            normalRec(sessionId, '2026-07-13T10:00:00.000Z'),
+            compactRec(sessionId, '2026-07-13T13:00:00.000Z'),
+        ]);
+        writeTranscript(staleHome, cwd, sessionId, [normalRec(sessionId, '2026-07-13T09:00:00.000Z')]);
+        const resolved = resolveResumeConfigDir(['--resume', sessionId], cwd, undefined, { CLAUDE_CONFIG_DIR: staleHome, HAPPY_CLAUDE_ACCOUNTS_ROOT: root });
+        expect(resolved).toBe(homeA);
+    });
+
+    it('no-op (undefined) when the discovered winner already equals the current env home — single-account byte-identical', () => {
+        const home = canonicalizeClaudeConfigDir(join(root, 'acctA', 'claude'))!;
+        writeTranscript(home, cwd, sessionId, [compactRec(sessionId, '2026-07-13T13:00:00.000Z')]);
+        const resolved = resolveResumeConfigDir(['--resume', sessionId], cwd, home, { CLAUDE_CONFIG_DIR: home, HAPPY_CLAUDE_ACCOUNTS_ROOT: root });
+        expect(resolved).toBeUndefined();
+    });
+
+    it('no-op (undefined) when no transcript exists anywhere for the resumed session — default fallback', () => {
+        const staleHome = canonicalizeClaudeConfigDir(join(root, 'default', 'claude'));
+        const resolved = resolveResumeConfigDir(['--resume', sessionId], cwd, undefined, { CLAUDE_CONFIG_DIR: staleHome });
+        expect(resolved).toBeUndefined();
+    });
+
+    it('codex-F2: a persisted binding with NO transcript on disk is a no-op, not a switch to the missing home', () => {
+        const persistedButEmpty = canonicalizeClaudeConfigDir(join(root, 'acctStale', 'claude'))!;
+        mkdirSync(join(root, 'acctStale', 'claude'), { recursive: true }); // home exists, no transcript for this session
+        const envHome = canonicalizeClaudeConfigDir(join(root, 'default', 'claude'));
+        const resolved = resolveResumeConfigDir(['--resume', sessionId], cwd, persistedButEmpty, { CLAUDE_CONFIG_DIR: envHome, HAPPY_CLAUDE_ACCOUNTS_ROOT: root });
+        expect(resolved).toBeUndefined();
+    });
+
+    it('codex-F1: unset CLAUDE_CONFIG_DIR with the only transcript in the default ~/.claude home is a no-op', () => {
+        const defaultHome = canonicalizeClaudeConfigDir(join(homedir(), '.claude'))!;
+        const uniqueCwd = join(root, 'default-home-cwd'); // unique cwd → unique projectId under the real default home
+        writeTranscript(defaultHome, uniqueCwd, sessionId, [compactRec(sessionId, '2026-07-13T13:00:00.000Z')]);
+        try {
+            const resolved = resolveResumeConfigDir(['--resume', sessionId], uniqueCwd, undefined, {}); // env unset
+            expect(resolved).toBeUndefined();
+        } finally {
+            rmSync(join(defaultHome, 'projects', projectId(uniqueCwd)), { recursive: true, force: true });
+        }
+    });
+
+    it('self-heals a stale persisted binding to the richer discovered home (mass-reboot after a prior buggy resume)', () => {
+        const homeGood = canonicalizeClaudeConfigDir(join(root, 'acctGood', 'claude'))!;
+        const homeStale = canonicalizeClaudeConfigDir(join(root, 'acctStale', 'claude'))!;
+        writeTranscript(homeGood, cwd, sessionId, [normalRec(sessionId, '2026-07-13T10:00:00.000Z'), compactRec(sessionId, '2026-07-13T13:00:00.000Z')]);
+        writeTranscript(homeStale, cwd, sessionId, [normalRec(sessionId, '2026-07-13T09:00:00.000Z')]);
+        const resolved = resolveResumeConfigDir(['--resume', sessionId], cwd, homeStale, { CLAUDE_CONFIG_DIR: homeStale, HAPPY_CLAUDE_ACCOUNTS_ROOT: root });
+        expect(resolved).toBe(homeGood);
+    });
+
+    it('forwards the divergent-lineage hook and stays a no-op when the target-lineage winner is already the env home', () => {
+        const homeEnv = canonicalizeClaudeConfigDir(join(root, 'acctEnv', 'claude'))!;
+        const homeDiv = canonicalizeClaudeConfigDir(join(root, 'acctDiv', 'claude'))!;
+        writeTranscript(homeEnv, cwd, sessionId, [compactRec(sessionId, '2026-07-13T13:00:00.000Z')]);
+        writeTranscript(homeDiv, cwd, sessionId, [normalRec('different-lineage-uuid', '2026-07-13T20:00:00.000Z')]);
+        const events: string[] = [];
+        const resolved = resolveResumeConfigDir(['--resume', sessionId], cwd, undefined, { CLAUDE_CONFIG_DIR: homeEnv, HAPPY_CLAUDE_ACCOUNTS_ROOT: root }, { onDivergentEvent: (m) => events.push(m) });
+        expect(resolved).toBeUndefined();
+        expect(events).toHaveLength(1);
     });
 });
 
