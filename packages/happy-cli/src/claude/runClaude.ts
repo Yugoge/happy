@@ -30,6 +30,7 @@ import { claudeLocal } from '@/claude/claudeLocal';
 import { createSessionScanner } from '@/claude/utils/sessionScanner';
 import { Session } from './session';
 import { applySandboxPermissionPolicy, resolveInitialClaudePermissionMode } from './utils/permissionMode';
+import { deriveResumeSeed, seedClaudeConfigDirFromEnv } from './utils/claudeConfigDir';
 
 /** JavaScript runtime to use for spawning Claude Code */
 export type JsRuntime = 'node' | 'bun'
@@ -80,6 +81,19 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     
     const workingDirectory = process.cwd();
     const sessionTag = options.recoverSessionId || randomUUID();
+
+    // M2 — Startup ordering seed: canonicalize process.env.CLAUDE_CONFIG_DIR and
+    // seed the per-session claudeEnvVars overlay BEFORE the message queue / loop is
+    // created, so the correct account home is applied on every (re)spawn and is not
+    // clobbered by a stale overlay. Unset CLAUDE_CONFIG_DIR is a strict no-op.
+    const claudeConfigDirSeed = seedClaudeConfigDirFromEnv(process.env);
+    if (claudeConfigDirSeed.overlay) {
+        options.claudeEnvVars = { ...(options.claudeEnvVars ?? {}), CLAUDE_CONFIG_DIR: claudeConfigDirSeed.overlay };
+    }
+    // M5b — seed the NEW happy session's initial binding from the --resume arg +
+    // canonical env, so a crash before the first query still leaves a recovery
+    // binding for the next daemon recovery. Empty on the non-resume path.
+    const resumeSeed = deriveResumeSeed(options.claudeArgs, process.env);
 
     // Log environment info at startup
     logger.debugLargeJson('[START] Happy process started', getEnvironmentInfo());
@@ -144,6 +158,9 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
         flavor: 'claude',
         sandbox: sandboxConfig?.enabled ? sandboxConfig : null,
         dangerouslySkipPermissions,
+        // M5b — {claudeSessionId, currentClaudeConfigDir} seeded from the --resume
+        // arg + canonical env (empty spread on the non-resume path).
+        ...resumeSeed,
     };
     const response = options.recoverSessionId
         ? await api.reconnectSession(options.recoverSessionId, metadata)
@@ -310,7 +327,7 @@ export async function runClaude(credentials: Credentials, options: StartOptions 
     let currentAppendSystemPrompt: string | undefined = undefined; // Track current append system prompt
     let currentAllowedTools: string[] | undefined = undefined; // Track current allowed tools
     let currentDisallowedTools: string[] | undefined = undefined; // Track current disallowed tools
-    let currentClaudeConfigDir: string | undefined = undefined; // Track current Claude account config dir (sticky)
+    let currentClaudeConfigDir: string | undefined = claudeConfigDirSeed.sticky; // Track current Claude account config dir (sticky); M2 seeds from canonical env
     session.onUserMessage((message) => {
 
         // Resolve permission mode from meta - pass through as-is, mapping happens at SDK boundary

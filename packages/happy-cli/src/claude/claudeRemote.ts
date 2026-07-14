@@ -3,32 +3,85 @@ import { query, type QueryOptions, type SDKMessage, type SDKSystemMessage, Abort
 import { mapToClaudeMode } from "./utils/permissionMode";
 import { claudeCheckSession } from "./utils/claudeCheckSession";
 import { join, resolve } from 'node:path';
-import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
+import { existsSync, copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { projectPath } from "@/projectPath";
 import { parseSpecialCommand } from "@/parsers/specialCommands";
 import { logger } from "@/lib";
 import { PushableAsyncIterable } from "@/utils/PushableAsyncIterable";
 import { getProjectPath } from "./utils/path";
+import { canonicalizeClaudeConfigDir, compareTranscriptScore, scoreTranscript } from "./utils/claudeConfigDir";
 import { awaitFileExist } from "@/modules/watcher/awaitFileExist";
 import { systemPrompt } from "./utils/systemPrompt";
 import { PermissionResult } from "./sdk/types";
 import type { JsRuntime } from "./runClaude";
 
+/** Outcome of a guarded transcript migration (M4), returned so callers/tests can assert the decision. */
+export type MigrationDecision =
+    | 'no-source'
+    | 'copied'
+    | 'dest-richer-noop'
+    | 'identical-noop'
+    | 'divergent-noclobber'
+    | 'tied-noclobber';
+
 /**
  * Copy a resumable Claude session .jsonl from one account's config dir into
  * another's, so that switching CLAUDE_CONFIG_DIR mid-session still resumes with
  * full conversation context. The project sub-path is derived identically to
- * getProjectPath() (only the config-dir prefix differs between accounts). The
- * source account is the most complete at switch time (its query just ended), so
- * the destination is overwritten. Best-effort: callers guard with try/catch.
+ * getProjectPath() (only the config-dir prefix differs between accounts).
+ *
+ * M4 — lineage-and-richness guard (never mtime): copy IFF the destination is
+ * absent OR (same-lineage AND the source strictly dominates the destination by
+ * the content-derived tuple). If the destination dominates/equals → no-op. If the
+ * two files diverge in lineage or tie on richness → clobber NOTHING and surface a
+ * user-visible session event (passed via onEvent so it is NOT swallowed by the
+ * caller's best-effort try/catch).
  */
-function migrateClaudeSessionFile(fromConfigDir: string, toConfigDir: string, workingDirectory: string, sessionId: string): void {
+export function migrateClaudeSessionFile(
+    fromConfigDir: string,
+    toConfigDir: string,
+    workingDirectory: string,
+    sessionId: string,
+    onEvent?: (message: string) => void,
+): MigrationDecision {
     const projectId = resolve(workingDirectory).replace(/[^a-zA-Z0-9-]/g, '-');
     const src = join(fromConfigDir, 'projects', projectId, `${sessionId}.jsonl`);
-    if (!existsSync(src)) return; // nothing to migrate (e.g. first spawn)
+    if (!existsSync(src)) return 'no-source'; // nothing to migrate (e.g. first spawn)
     const destDir = join(toConfigDir, 'projects', projectId);
-    mkdirSync(destDir, { recursive: true });
-    copyFileSync(src, join(destDir, `${sessionId}.jsonl`));
+    const dest = join(destDir, `${sessionId}.jsonl`);
+
+    if (!existsSync(dest)) {
+        mkdirSync(destDir, { recursive: true });
+        copyFileSync(src, dest);
+        return 'copied';
+    }
+
+    const srcScore = scoreTranscript(src, sessionId);
+    const destScore = scoreTranscript(dest, sessionId);
+
+    // Divergent lineage: both name the same session file but their content
+    // sessionId disagrees — never clobber, surface the decision.
+    if (!(srcScore.lineage && destScore.lineage)) {
+        onEvent?.(`Claude transcript lineage mismatch for session ${sessionId}; keeping both account copies (no overwrite).`);
+        return 'divergent-noclobber';
+    }
+
+    const cmp = compareTranscriptScore(srcScore, destScore);
+    if (cmp > 0) {
+        mkdirSync(destDir, { recursive: true });
+        copyFileSync(src, dest);
+        return 'copied';
+    }
+    if (cmp < 0) {
+        return 'dest-richer-noop';
+    }
+    // Equal richness tuple: a byte-identical file is a harmless no-op; a genuine
+    // tie on different content must not clobber and is surfaced.
+    if (readFileSync(src).equals(readFileSync(dest))) {
+        return 'identical-noop';
+    }
+    onEvent?.(`Claude transcript tie for session ${sessionId}; keeping both account copies (no overwrite).`);
+    return 'tied-noclobber';
 }
 
 export async function claudeRemote(opts: {
@@ -117,12 +170,17 @@ export async function claudeRemote(opts: {
     // authenticates as the new account. process.env carries the active dir across
     // restarts; claudeEnvVars is updated too so loop.ts:73 re-application stays in
     // sync with the last-selected account (correct prior-dir on the next switch).
-    const selectedConfigDir = initial.mode.claudeConfigDir;
-    if (selectedConfigDir && selectedConfigDir !== process.env.CLAUDE_CONFIG_DIR) {
-        const priorConfigDir = process.env.CLAUDE_CONFIG_DIR;
+    // M3 — canonicalize both sides so ~/relative/trailing-slash variants of the
+    // same account compare equal (a spurious switch would migrate/repoint needlessly).
+    const selectedConfigDir = canonicalizeClaudeConfigDir(initial.mode.claudeConfigDir);
+    const currentEnvConfigDir = canonicalizeClaudeConfigDir(process.env.CLAUDE_CONFIG_DIR);
+    if (selectedConfigDir && selectedConfigDir !== currentEnvConfigDir) {
+        const priorConfigDir = currentEnvConfigDir;
         if (startFrom && priorConfigDir) {
             try {
-                migrateClaudeSessionFile(priorConfigDir, selectedConfigDir, opts.path, startFrom);
+                // M4 — the guard emits the divergent/tied decision via onCompletionEvent
+                // (outside this best-effort try/catch swallow), never clobbering a richer file.
+                migrateClaudeSessionFile(priorConfigDir, selectedConfigDir, opts.path, startFrom, opts.onCompletionEvent);
             } catch (e) {
                 logger.debug(`[claudeRemote] Claude session-file migration failed, context may reset: ${e}`);
             }
@@ -136,8 +194,9 @@ export async function claudeRemote(opts: {
     // initial account and any post-switch value). Mirrors the currentModelCode
     // emitter: purely additive REPORTING so the app can show the current account
     // in any session. When the env is unset (e.g. daemon default), do not report.
-    if (opts.onAccountConfigDir && process.env.CLAUDE_CONFIG_DIR) {
-        opts.onAccountConfigDir(process.env.CLAUDE_CONFIG_DIR);
+    const activeConfigDir = canonicalizeClaudeConfigDir(process.env.CLAUDE_CONFIG_DIR);
+    if (opts.onAccountConfigDir && activeConfigDir) {
+        opts.onAccountConfigDir(activeConfigDir);
     }
 
     // Report the current query's SELECTED model + permission keys once per query

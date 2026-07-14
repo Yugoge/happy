@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getProjectPath } from './path';
-import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 // Store original env
 const originalEnv = { ...process.env };
@@ -138,11 +139,13 @@ describe('getProjectPath', () => {
             expect(result).toBe(join('/custom/claude/config', 'projects', '-Users-steve-projects-my-app'));
         });
 
-        it('should handle relative CLAUDE_CONFIG_DIR path', () => {
+        it('should canonicalize a relative CLAUDE_CONFIG_DIR path to absolute (M3)', () => {
+            // M3 canonicalizes the account home via resolve(); a relative value is
+            // resolved to an absolute path so every transcript read resolves the same dir.
             process.env.CLAUDE_CONFIG_DIR = './config/claude';
             const workingDir = '/Users/steve/projects/my-app';
             const result = getProjectPath(workingDir);
-            expect(result).toBe(join('./config/claude', 'projects', '-Users-steve-projects-my-app'));
+            expect(result).toBe(join(resolve('./config/claude'), 'projects', '-Users-steve-projects-my-app'));
         });
 
         it('should fallback to default when CLAUDE_CONFIG_DIR is empty string', () => {
@@ -159,6 +162,33 @@ describe('getProjectPath', () => {
             const workingDir = '/Users/steve/projects/my-app';
             const result = getProjectPath(workingDir);
             expect(result).toBe(join('/custom/claude/config/', 'projects', '-Users-steve-projects-my-app'));
+        });
+    });
+
+    describe('M3 canonicalization parity + default no-regression (AC5 / AC13)', () => {
+        it('AC13: default (CLAUDE_CONFIG_DIR unset) resolves to the exact pre-fix default projects dir', () => {
+            delete process.env.CLAUDE_CONFIG_DIR;
+            const workingDir = '/Users/steve/projects/my-app';
+            // Pre-fix behaviour: join(join(homedir(), '.claude'), 'projects', projectId)
+            const expected = join(join(homedir(), '.claude'), 'projects', '-Users-steve-projects-my-app');
+            expect(getProjectPath(workingDir)).toBe(expected);
+        });
+
+        it('AC5: trailing-slash and double-slash variants of one account resolve to one identical projects dir', () => {
+            const workingDir = '/Users/steve/projects/my-app';
+            process.env.CLAUDE_CONFIG_DIR = '/root/.claude';
+            const canonical = getProjectPath(workingDir);
+            process.env.CLAUDE_CONFIG_DIR = '/root/.claude/';
+            expect(getProjectPath(workingDir)).toBe(canonical);
+            process.env.CLAUDE_CONFIG_DIR = '/root//.claude';
+            expect(getProjectPath(workingDir)).toBe(canonical);
+            expect(canonical).toBe(join('/root/.claude', 'projects', '-Users-steve-projects-my-app'));
+        });
+
+        it('AC5: a leading ~ in CLAUDE_CONFIG_DIR expands to the home directory', () => {
+            const workingDir = '/Users/steve/projects/my-app';
+            process.env.CLAUDE_CONFIG_DIR = '~/.claude';
+            expect(getProjectPath(workingDir)).toBe(join(resolve(join(homedir(), '.claude')), 'projects', '-Users-steve-projects-my-app'));
         });
     });
 });

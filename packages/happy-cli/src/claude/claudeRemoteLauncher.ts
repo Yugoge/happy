@@ -19,6 +19,7 @@ import { createSessionScanner } from "./utils/sessionScanner";
 import { getAskUserQuestionToolCallIds } from "./utils/questionNotification";
 import { isStopHookFeedback } from "./utils/stopHookFilter";
 import { createCurrentModelCodeEmitter, type CurrentModelCodeEmitter } from "./utils/currentModelCodeEmitter";
+import { canonicalizeClaudeConfigDir } from "./utils/claudeConfigDir";
 
 interface PermissionsField {
     date: number;
@@ -266,9 +267,12 @@ function initServices(session: Session): Services {
     // case where the account is unchanged across restarts of a long-running session.
     let lastEmittedConfigDir: string | undefined;
     const emitAccountConfigDir = (dir: string) => {
-        if (lastEmittedConfigDir === dir) return;
-        lastEmittedConfigDir = dir;
-        session.client.updateMetadata(m => ({ ...m, currentClaudeConfigDir: dir }));
+        // M3 — canonicalize at emit so the persisted binding is one stable form and
+        // the change-guard compares canonical values (no redundant metadata writes).
+        const canonical = canonicalizeClaudeConfigDir(dir);
+        if (!canonical || lastEmittedConfigDir === canonical) return;
+        lastEmittedConfigDir = canonical;
+        session.client.updateMetadata(m => ({ ...m, currentClaudeConfigDir: canonical }));
     };
     // Emit metadata.currentModelMode / currentPermissionMode from the current query's
     // SELECTED keys at each query start, so the app restores the user's model/permission

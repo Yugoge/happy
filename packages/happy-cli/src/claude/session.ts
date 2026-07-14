@@ -3,6 +3,7 @@ import { MessageQueue2 } from "@/utils/MessageQueue2";
 import { EnhancedMode } from "./loop";
 import { logger } from "@/ui/logger";
 import { notifyDaemonSessionStarted } from "@/daemon/controlClient";
+import { canonicalizeClaudeConfigDir } from "./utils/claudeConfigDir";
 import type { JsRuntime } from "./runClaude";
 import type { SandboxConfig } from "@/persistence";
 
@@ -112,11 +113,19 @@ export class Session {
     onSessionFound = (sessionId: string) => {
         this.sessionId = sessionId;
 
-        // Update metadata with Claude Code session ID
+        // Update metadata with Claude Code session ID + the active account home in
+        // ONE atomic write (M5a), so daemon recovery reads one consistent
+        // {claudeSessionId, currentClaudeConfigDir} binding. The account home is the
+        // canonical active CLAUDE_CONFIG_DIR (omitted for single-account/default).
+        const activeConfigDir = canonicalizeClaudeConfigDir(process.env.CLAUDE_CONFIG_DIR);
         this.client.updateMetadata((metadata) => {
             // Re-notify daemon with updated metadata containing claudeSessionId
             // The initial webhook (before Claude starts) lacks this field
-            const updated = { ...metadata, claudeSessionId: sessionId };
+            const updated = {
+                ...metadata,
+                claudeSessionId: sessionId,
+                ...(activeConfigDir ? { currentClaudeConfigDir: activeConfigDir } : {}),
+            };
             notifyDaemonSessionStarted(this.client.sessionId, updated).catch(err =>
                 logger.debug(`[Session] Failed to update daemon with claudeSessionId: ${err}`)
             );

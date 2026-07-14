@@ -582,9 +582,11 @@ export async function startDaemon(): Promise<void> {
         await fs.access(launch.cwd);
 
         return spawnTrackedHappyProcess({
+          // Merge the resume-launch env patch (M1) so the recovery child's
+          // CLAUDE_CONFIG_DIR is the persisted account home, not the daemon default.
           args: launch.args,
           cwd: launch.cwd,
-          env: { ...process.env },
+          env: { ...process.env, ...launch.env },
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
