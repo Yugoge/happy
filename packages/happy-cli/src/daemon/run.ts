@@ -754,29 +754,29 @@ export async function startDaemon(): Promise<void> {
           }
       }
       if (bundleReplaced) {
-          logger.debug('[DAEMON RUN] Daemon bundle replaced on disk, handing off to new daemon');
-
-          clearInterval(restartOnStaleVersionAndHeartbeat);
-
-          // Release ownership BEFORE spawning the new daemon. Otherwise the spawned
-          // `daemon start` reads our still-present daemon.state.json, sees
-          // isDaemonRunningCurrentlyInstalledHappyVersion() === true, and exits —
-          // leaving nothing running once we also exit.
-          apiMachine.shutdown();
-          await stopControlServer();
-          await releaseDaemonLock(daemonLockHandle);
-          await cleanupDaemonState();
-          await stopCaffeinate();
-
+          // Report the newer bundle and keep running it. We do NOT hand off: this
+          // branch used to tear down every subsystem, spawn a detached successor with
+          // its output discarded, and exit(0) without ever confirming the successor
+          // was alive — so a successor that failed to start left zero daemons, no log,
+          // and nothing to bring it back. Confirm-then-relinquish cannot fix that:
+          // readiness has no identity binding (controlClient.ts:118-133 only checks
+          // "state file exists && that pid is alive") and the start refusal compares
+          // package.json's version, not the bundle (controlClient.ts:142-160) — so a
+          // predecessor holding its state open to await confirmation is confirmed by
+          // its OWN state. Upgrades are operator-driven by design: a restart adopts
+          // the new bundle. Do not restore the handoff.
+          //
+          // Disarm first. run.ts:748 already treats 0 as "detection disabled", so this
+          // is one-shot with no new state and cannot re-fire on every heartbeat.
+          initialBundleMtimeMs = 0;
           try {
-              spawnHappyCLI(['daemon', 'start'], {
-                  detached: true,
-                  stdio: 'ignore'
-              });
-              process.exit(0);
-          } catch (error) {
-              logger.debug('[DAEMON RUN][FATAL] Failed to spawn new daemon — all subsystems already torn down; exiting with code 1', error);
-              process.exit(1);
+              logger.debug(`[DAEMON RUN] A newer bundle is present at ${bundlePath}. This daemon keeps running the version it loaded at startup; restart the daemon to adopt the new bundle.`);
+          } catch {
+              // Load-bearing, not boilerplate: logger.ts:227 rethrows the append
+              // failure when DEBUG is set, and a throw escaping this async callback
+              // reaches unhandledRejection (run.ts:91-97) -> requestShutdown -> the
+              // daemon dies. Reporting must never become a way to lose the daemon.
+              // Never rethrow, and never log from here — the logger is what just failed.
           }
       }
 
