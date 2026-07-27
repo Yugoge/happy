@@ -1797,6 +1797,215 @@ describe('mapCodexMcpMessageToSessionEnvelopes — D.5 subagent lifecycle merge'
     });
 });
 
+describe('mapCodexMcpMessageToSessionEnvelopes — Codex 0.144.4 sub-agent activity', () => {
+    function step(message: Record<string, unknown>, prior: any) {
+        return mapCodexMcpMessageToSessionEnvelopes(message, prior);
+    }
+
+    const agentThreadId = '019fa2e7-3fca-7100-a0e9-2c7812b9ac23';
+    const agentPath = '/root/agent_render_live';
+
+    it('does not fabricate a lifecycle for malformed or unknown activity', () => {
+        const malformed = step({
+            type: 'sub_agent_activity',
+            event_id: 'bad-activity',
+            kind: 'unknown',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, { currentTurnId: 'turn-malformed', emittedCollabBeginCallIds: new Set<string>() });
+        expect(malformed.envelopes).toHaveLength(0);
+        expect(malformed.subagentLifecycles.size).toBe(0);
+        expect(malformed.providerSubagentToSessionSubagent.size).toBe(0);
+    });
+
+    it('uses agent_thread_id as the durable parent while event_id only deduplicates operations', () => {
+        const started = step({
+            type: 'sub_agent_activity',
+            event_id: 'call_ypdbzxxoWfNA6VPRyS4fmxyj',
+            kind: 'started',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, { currentTurnId: 'turn-activity', emittedCollabBeginCallIds: new Set<string>() });
+
+        const lifecycleStarts = started.envelopes.filter(
+            (envelope) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle',
+        );
+        expect(lifecycleStarts).toHaveLength(1);
+        const sessionSubagent = (lifecycleStarts[0].ev as any).args.sessionSubagent as string;
+        expect((lifecycleStarts[0].ev as any).args).toMatchObject({
+            agentNickname: 'agent_render_live',
+        });
+        expect(isCuid(sessionSubagent)).toBe(true);
+        expect(started.providerSubagentToSessionSubagent.get(agentThreadId)).toBe(sessionSubagent);
+
+        const duplicate = step({
+            type: 'sub_agent_activity',
+            event_id: 'call_ypdbzxxoWfNA6VPRyS4fmxyj',
+            kind: 'started',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, started);
+        expect(duplicate.envelopes).toHaveLength(0);
+
+        const interacted = step({
+            type: 'sub_agent_activity',
+            event_id: 'call_ZSASUqJS1JTbg8qucYlAb8ex',
+            kind: 'interacted',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, duplicate);
+        expect(interacted.subagentLifecycles.size).toBe(1);
+        expect(interacted.subagentLifecycles.get(sessionSubagent)?.state).toBe('running');
+        expect(interacted.envelopes.filter(
+            (envelope) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle',
+        )).toHaveLength(0);
+    });
+
+    it('binds reordered activity and spawn records to one parent and reactivates after interruption', () => {
+        const activity = step({
+            type: 'sub_agent_activity',
+            event_id: 'call_N18zShy9cYsugcWJhr5aZGdR',
+            kind: 'started',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, { currentTurnId: 'turn-reordered', emittedCollabBeginCallIds: new Set<string>() });
+        const sessionSubagent = activity.providerSubagentToSessionSubagent.get(agentThreadId)!;
+
+        const spawn = step({
+            type: 'collab_agent_call_begin',
+            call_id: 'call_N18zShy9cYsugcWJhr5aZGdR',
+            tool: 'spawnAgent',
+            prompt: 'inspect current protocol',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, activity);
+        expect(spawn.subagentLifecycles.size).toBe(1);
+        expect(spawn.envelopes.filter(
+            (envelope) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle',
+        )).toHaveLength(0);
+
+        const interrupted = step({
+            type: 'sub_agent_activity',
+            event_id: 'call_1shwlYIfQqEF5ADZjWPtCNK9',
+            kind: 'interrupted',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, spawn);
+        expect(interrupted.subagentLifecycles.get(sessionSubagent)?.state).toBe('errored');
+        expect(interrupted.envelopes).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                ev: expect.objectContaining({
+                    t: 'tool-call-end',
+                    call: `lifecycle:${sessionSubagent}`,
+                    result: expect.objectContaining({ status: 'interrupted', lifecycle_state: 'errored' }),
+                }),
+            }),
+        ]));
+
+        const reactivated = step({
+            type: 'sub_agent_activity',
+            event_id: 'call_Nf3sn5ypJ28o6aFalcvELTSr',
+            kind: 'interacted',
+            agent_thread_id: agentThreadId,
+            agent_path: agentPath,
+        }, interrupted);
+        expect(reactivated.subagentLifecycles.size).toBe(1);
+        expect(reactivated.subagentLifecycles.get(sessionSubagent)?.state).toBe('running');
+        expect(reactivated.envelopes).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                ev: expect.objectContaining({
+                    t: 'tool-call-start',
+                    call: `lifecycle:${sessionSubagent}`,
+                    name: 'functions.subagent_lifecycle',
+                }),
+            }),
+        ]));
+    });
+
+    it('applies the deterministic targetless-wait policy for zero, one, and multiple active parents', () => {
+        const zeroBegin = step({
+            type: 'collab_agent_call_begin',
+            call_id: 'wait-zero',
+            tool: 'wait',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, { currentTurnId: 'turn-zero', emittedCollabBeginCallIds: new Set<string>() });
+        const zeroEnd = step({
+            type: 'collab_agent_call_end',
+            call_id: 'wait-zero',
+            tool: 'wait',
+            status: 'completed',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, zeroBegin);
+        expect(zeroBegin.envelopes.filter((envelope) => envelope.subagent === undefined)).toHaveLength(1);
+        expect(zeroEnd.envelopes.filter((envelope) => envelope.subagent === undefined)).toHaveLength(1);
+
+        const one = step({
+            type: 'sub_agent_activity',
+            event_id: 'spawn-one',
+            kind: 'started',
+            agent_thread_id: 'thread-one',
+            agent_path: '/root/qa_single_lifecycle',
+        }, { currentTurnId: 'turn-one', emittedCollabBeginCallIds: new Set<string>() });
+        const oneSsn = one.providerSubagentToSessionSubagent.get('thread-one')!;
+        const oneBegin = step({
+            type: 'collab_agent_call_begin',
+            call_id: 'wait-one',
+            tool: 'wait',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, one);
+        const oneEnd = step({
+            type: 'collab_agent_call_end',
+            call_id: 'wait-one',
+            tool: 'wait',
+            status: 'completed',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, oneBegin);
+        expect(oneBegin.envelopes.filter((envelope) => envelope.subagent === oneSsn)).toHaveLength(1);
+        expect(oneBegin.envelopes.filter((envelope) => envelope.subagent === undefined)).toHaveLength(0);
+        expect(oneEnd.envelopes.filter((envelope) => envelope.subagent === oneSsn)).toHaveLength(1);
+
+        const first = step({
+            type: 'sub_agent_activity',
+            event_id: 'spawn-a',
+            kind: 'started',
+            agent_thread_id: 'thread-a',
+            agent_path: '/root/qa_parallel_a',
+        }, { currentTurnId: 'turn-many', emittedCollabBeginCallIds: new Set<string>() });
+        const second = step({
+            type: 'sub_agent_activity',
+            event_id: 'spawn-b',
+            kind: 'started',
+            agent_thread_id: 'thread-b',
+            agent_path: '/root/qa_parallel_b',
+        }, first);
+        const manyBegin = step({
+            type: 'collab_agent_call_begin',
+            call_id: 'wait-many',
+            tool: 'wait',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, second);
+        const manyEnd = step({
+            type: 'collab_agent_call_end',
+            call_id: 'wait-many',
+            tool: 'wait',
+            status: 'completed',
+            receiverThreadIds: [],
+            agentsStates: {},
+        }, manyBegin);
+        expect(manyBegin.subagentLifecycles.size).toBe(2);
+        expect(manyBegin.envelopes.filter((envelope) => envelope.subagent === undefined)).toHaveLength(1);
+        expect(manyEnd.envelopes.filter((envelope) => envelope.subagent === undefined)).toHaveLength(1);
+    });
+});
+
 // Item 2 (spec-20260607-124814): an unavailable functions.request_user_input must be
 // producer-normalized into an error-shaped tool-call-end the EXISTING app reducer
 // (typesRaw.isSessionToolEndError) recognizes, so the failure card + detail page render.

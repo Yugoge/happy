@@ -1060,6 +1060,104 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         closeAgent: 'close_agent',
     };
 
+    if (type === 'sub_agent_activity') {
+        const eventId = typeof message.event_id === 'string' ? message.event_id : '';
+        const agentThreadId = typeof message.agent_thread_id === 'string' ? message.agent_thread_id : '';
+        const agentPath = typeof message.agent_path === 'string' ? message.agent_path : '';
+        const kind = message.kind;
+        const validKind = kind === 'started' || kind === 'interacted' || kind === 'interrupted';
+        const dedupeKey = `activity:${eventId}`;
+
+        if (!eventId || !agentThreadId || !agentPath || !validKind
+            || emittedCollabBeginCallIds.has(dedupeKey)) {
+            return {
+                currentTurnId: state.currentTurnId,
+                startedSubagents,
+                activeSubagents,
+                providerSubagentToSessionSubagent,
+                subagentLifecycles,
+                emittedCollabBeginCallIds,
+                waitTargetsByCallId,
+                envelopes: [],
+            };
+        }
+        emittedCollabBeginCallIds.add(dedupeKey);
+
+        // If spawn_agent already allocated a provisional lifecycle for this
+        // operation, bind the durable thread to it. If activity arrives first,
+        // allocate the session-protocol cuid once, key it by the durable thread,
+        // and make the later spawn record reuse it via callSubagentKey(eventId).
+        const sessionSubagent = providerSubagentToSessionSubagent.get(agentThreadId)
+            ?? providerSubagentToSessionSubagent.get(callSubagentKey(eventId))
+            ?? createId();
+        providerSubagentToSessionSubagent.set(agentThreadId, sessionSubagent);
+        providerSubagentToSessionSubagent.set(callSubagentKey(eventId), sessionSubagent);
+
+        const pathParts = agentPath.split('/').filter((part) => part.length > 0);
+        const activityNickname = pathParts[pathParts.length - 1] ?? agentPath;
+        const envelopes: SessionEnvelope[] = [];
+        let entry = subagentLifecycles.get(sessionSubagent);
+
+        if ((kind === 'started' || kind === 'interacted') && !entry) {
+            emitLifecycleStart(
+                sessionSubagent,
+                eventId,
+                agentPath,
+                activityNickname,
+                opts,
+                subagentLifecycles,
+                envelopes,
+            );
+            entry = subagentLifecycles.get(sessionSubagent);
+        } else if (entry) {
+            promoteRealAgentNickname(sessionSubagent, activityNickname, subagentLifecycles);
+            if (!entry.prompt) entry.prompt = agentPath;
+        }
+
+        if (entry && kind === 'interrupted') {
+            emitLifecycleEnd(
+                sessionSubagent,
+                'errored',
+                { status: 'interrupted', lifecycle_state: 'errored' },
+                opts,
+                subagentLifecycles,
+                envelopes,
+            );
+        } else if (entry && kind === 'interacted') {
+            const wasTerminal = entry.state === 'completed' || entry.state === 'errored';
+            entry.state = 'running';
+            if (wasTerminal) {
+                // Reopen the same lifecycle call rather than allocating a second
+                // parent. activity_event_id keeps replay dedupe operation-aware.
+                envelopes.push(createEnvelope('agent', {
+                    t: 'tool-call-start',
+                    call: entry.lifecycleEnvelopeCall,
+                    name: LIFECYCLE_ENVELOPE_NAME,
+                    title: 'Subagent',
+                    description: entry.prompt || sessionSubagent,
+                    args: {
+                        sessionSubagent,
+                        prompt: entry.prompt,
+                        agentNickname: entry.agentNickname,
+                        lifecycle_state: 'started',
+                        activity_event_id: eventId,
+                    },
+                }, opts));
+            }
+        }
+
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            subagentLifecycles,
+            emittedCollabBeginCallIds,
+            waitTargetsByCallId,
+            envelopes,
+        };
+    }
+
     if (type === 'collab_agent_call_begin') {
         // Cycle 8 (Path A+): real spawn-begin per event_mapping.rs:75-86 has empty receiver_thread_ids;
         // for spawn_agent allocate provisional ssn keyed on call_id, bind receiverThreadId at spawn-end.

@@ -682,6 +682,34 @@ function mapEventMsg(payload: Record<string, unknown>, state: ReplayState): Sess
         return mapImageGenerationEnd(payload, state);
     }
 
+    if (payload.type === 'sub_agent_activity') {
+        const eventId = typeof payload.event_id === 'string' ? payload.event_id : '';
+        const agentThreadId = typeof payload.agent_thread_id === 'string' ? payload.agent_thread_id : '';
+        const agentPath = typeof payload.agent_path === 'string' ? payload.agent_path : '';
+        const kind = payload.kind;
+        const validKind = kind === 'started' || kind === 'interacted' || kind === 'interrupted';
+        const parentTurnId = state.mapper.currentTurnId;
+        const recordTime = state.mapper.recordTime;
+        const envelopes = mapWithState(payload, state);
+
+        // Current spawn outputs only carry task_name. Capture the child binding
+        // from activity while the mapper's durable thread -> lifecycle mapping
+        // is available, before task_complete clears per-turn mapper state.
+        if (eventId && agentThreadId && agentPath && validKind
+            && (kind === 'started' || kind === 'interacted')) {
+            const sessionSubagent = state.mapper.providerSubagentToSessionSubagent?.get(agentThreadId);
+            if (sessionSubagent && !state.childSpawnBindings.has(agentThreadId)) {
+                state.childSpawnBindings.set(agentThreadId, {
+                    agentId: agentThreadId,
+                    sessionSubagent,
+                    parentTurnId,
+                    recordTime,
+                });
+            }
+        }
+        return envelopes;
+    }
+
     return mapWithState(payload, state);
 }
 
@@ -733,6 +761,11 @@ function envelopeDedupeKey(envelope: SessionEnvelope): string {
         return `${envelope.role}:text:${turn}:${subagent}:${event.thinking ? 'thinking' : 'visible'}:${hashValue(event.text)}`;
     }
     if (event.t === 'tool-call-start' || event.t === 'tool-call-end') {
+        if (event.t === 'tool-call-start'
+            && event.name === 'functions.subagent_lifecycle'
+            && typeof event.args.activity_event_id === 'string') {
+            return `${envelope.role}:${event.t}:${turn}:${subagent}:${event.call}:${event.args.activity_event_id}`;
+        }
         return `${envelope.role}:${event.t}:${turn}:${subagent}:${event.call}`;
     }
     if (event.t === 'turn-start') {

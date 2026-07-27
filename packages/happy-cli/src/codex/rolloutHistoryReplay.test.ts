@@ -13,6 +13,130 @@ afterEach(async () => {
     tempDirs.length = 0;
 });
 
+describe('replayCodexRolloutHistory — Codex 0.144.4 sub-agent activity', () => {
+    it('reconstructs one durable lifecycle and merges its child rollout without legacy agent_id output', async () => {
+        const codexHome = await createCodexHome();
+        const parentThread = '019fa2e5-0000-7000-8000-parent';
+        const agentThreadId = '019fa2e7-3fca-7100-a0e9-2c7812b9ac23';
+        const spawnEventId = 'call_ypdbzxxoWfNA6VPRyS4fmxyj';
+        await writeRollout(codexHome, parentThread, 'rollout-2026-07-27T09-00-00', [
+            { type: 'session_meta', payload: { id: parentThread } },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-current' } },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call',
+                    name: 'spawn_agent',
+                    call_id: spawnEventId,
+                    arguments: JSON.stringify({ message: 'inspect current protocol' }),
+                },
+            },
+            {
+                type: 'event_msg',
+                payload: {
+                    type: 'sub_agent_activity',
+                    event_id: spawnEventId,
+                    kind: 'started',
+                    agent_thread_id: agentThreadId,
+                    agent_path: '/root/agent_render_live',
+                },
+            },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call_output',
+                    call_id: spawnEventId,
+                    output: JSON.stringify({ task_name: '/root/agent_render_live' }),
+                },
+            },
+            {
+                type: 'event_msg',
+                payload: {
+                    type: 'sub_agent_activity',
+                    event_id: 'call_ZSASUqJS1JTbg8qucYlAb8ex',
+                    kind: 'interacted',
+                    agent_thread_id: agentThreadId,
+                    agent_path: '/root/agent_render_live',
+                },
+            },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call',
+                    name: 'wait_agent',
+                    call_id: 'call_wait_current',
+                    arguments: JSON.stringify({}),
+                },
+            },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call_output',
+                    call_id: 'call_wait_current',
+                    output: JSON.stringify({ message: 'Wait completed.', timed_out: false }),
+                },
+            },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'turn-current' } },
+        ]);
+        await writeRollout(codexHome, agentThreadId, 'rollout-2026-07-27T09-01-00', [
+            {
+                type: 'session_meta',
+                payload: {
+                    id: agentThreadId,
+                    source: { subagent: { thread_spawn: { parent_thread_id: parentThread, depth: 1 } } },
+                },
+            },
+            { type: 'event_msg', payload: { type: 'task_started', turn_id: 'child-turn' } },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call',
+                    name: 'exec_command',
+                    call_id: 'child-exec',
+                    arguments: JSON.stringify({ cmd: 'pwd' }),
+                },
+            },
+            {
+                type: 'response_item',
+                payload: { type: 'function_call_output', call_id: 'child-exec', output: '/tmp\n' },
+            },
+            { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'child-turn' } },
+        ]);
+
+        const session = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+        const result = await replayCodexRolloutHistory({
+            threadId: parentThread,
+            session,
+            codexHome,
+        });
+
+        expect(result.status).toBe('replayed');
+        const envelopes = session.sendSessionProtocolMessage.mock.calls.map(([envelope]) => envelope);
+        const lifecycleStarts = envelopes.filter(
+            (envelope: any) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle',
+        );
+        expect(lifecycleStarts).toHaveLength(1);
+        const sessionSubagent = lifecycleStarts[0].ev.args.sessionSubagent;
+        expect(lifecycleStarts[0].ev.args.agentNickname).toBe('agent_render_live');
+        expect(envelopes.filter(
+            (envelope: any) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.wait_agent'
+                && envelope.subagent === undefined,
+        )).toHaveLength(0);
+        expect(envelopes).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                subagent: sessionSubagent,
+                ev: expect.objectContaining({ t: 'tool-call-start', call: 'child-exec' }),
+            }),
+        ]));
+    });
+});
+
 async function createCodexHome(): Promise<string> {
     const dir = await mkdtemp(join(tmpdir(), 'codex-rollout-replay-'));
     tempDirs.push(dir);

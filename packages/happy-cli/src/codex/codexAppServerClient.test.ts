@@ -566,6 +566,127 @@ describe('CodexAppServerClient sandbox integration', () => {
         await client.disconnect();
     });
 
+    it('normalizes Codex 0.144.4 subAgentActivity items and deduplicates each event id', async () => {
+        const proc = createMockProcess({
+            pid: 3006,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: 'thread-activity', path: '/tmp/thread-activity' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const events: Array<Record<string, unknown>> = [];
+        client.setEventHandler((msg) => {
+            events.push(msg as Record<string, unknown>);
+        });
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+
+        const stdout = proc.stdout as NodeJS.ReadableStream & { push: (chunk: string) => void };
+        const activity = {
+            method: 'item/started',
+            params: {
+                threadId: 'thread-activity',
+                turnId: 'turn-activity',
+                item: {
+                    type: 'subAgentActivity',
+                    id: 'call_ypdbzxxoWfNA6VPRyS4fmxyj',
+                    kind: 'started',
+                    agentThreadId: '019fa2e7-3fca-7100-a0e9-2c7812b9ac23',
+                    agentPath: '/root/agent_render_live',
+                },
+            },
+        };
+        pushJsonLine(stdout, activity);
+        pushJsonLine(stdout, activity);
+        pushJsonLine(stdout, {
+            method: 'item/started',
+            params: {
+                ...activity.params,
+                item: {
+                    ...activity.params.item,
+                    id: 'call_ZSASUqJS1JTbg8qucYlAb8ex',
+                    kind: 'interacted',
+                },
+            },
+        });
+        pushJsonLine(stdout, {
+            method: 'item/started',
+            params: {
+                ...activity.params,
+                item: {
+                    ...activity.params.item,
+                    id: 'call_1shwlYIfQqEF5ADZjWPtCNK9',
+                    kind: 'interrupted',
+                },
+            },
+        });
+        pushJsonLine(stdout, {
+            method: 'item/started',
+            params: {
+                ...activity.params,
+                item: { ...activity.params.item, id: 'bad-kind', kind: 'unknown' },
+            },
+        });
+        pushJsonLine(stdout, {
+            method: 'item/started',
+            params: {
+                ...activity.params,
+                item: { ...activity.params.item, id: 'missing-thread', agentThreadId: '' },
+            },
+        });
+
+        await waitFor(() => events.filter((event) => event.type === 'sub_agent_activity').length === 3);
+        expect(events.filter((event) => event.type === 'sub_agent_activity')).toEqual([
+            expect.objectContaining({
+                type: 'sub_agent_activity',
+                event_id: 'call_ypdbzxxoWfNA6VPRyS4fmxyj',
+                kind: 'started',
+                agent_thread_id: '019fa2e7-3fca-7100-a0e9-2c7812b9ac23',
+                agent_path: '/root/agent_render_live',
+                threadId: 'thread-activity',
+                turnId: 'turn-activity',
+            }),
+            expect.objectContaining({
+                type: 'sub_agent_activity',
+                event_id: 'call_ZSASUqJS1JTbg8qucYlAb8ex',
+                kind: 'interacted',
+                agent_thread_id: '019fa2e7-3fca-7100-a0e9-2c7812b9ac23',
+            }),
+            expect.objectContaining({
+                type: 'sub_agent_activity',
+                event_id: 'call_1shwlYIfQqEF5ADZjWPtCNK9',
+                kind: 'interrupted',
+                agent_thread_id: '019fa2e7-3fca-7100-a0e9-2c7812b9ac23',
+            }),
+        ]);
+
+        await client.disconnect();
+    });
+
     it('keeps child final answers from completing the root turn', async () => {
         let releaseRootCompletion!: () => void;
         const rootCompletionAllowed = new Promise<void>((resolve) => {

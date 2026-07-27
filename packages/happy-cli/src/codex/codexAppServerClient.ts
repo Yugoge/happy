@@ -241,6 +241,7 @@ export class CodexAppServerClient {
     private rawFileChangesByItemId = new Map<string, LegacyPatchChanges>();
     private approvedMcpElicitationsForSession = new Set<string>();
     private rawChildThreadIds = new Set<string>();
+    private rawSubAgentActivityEventIds = new Set<string>();
 
     // Handlers set by the consumer (runCodex.ts)
     private eventHandler: ((msg: EventMsg) => void) | null = null;
@@ -605,6 +606,34 @@ export class CodexAppServerClient {
                 });
                 return true;
             }
+        }
+
+        // Codex 0.144.4 replaced the spawn result's legacy agent_id/nickname
+        // relationship with a dedicated ThreadItem. The activity event's id
+        // identifies this operation; agentThreadId identifies the durable child.
+        if (item.type === 'subAgentActivity') {
+            const eventId = typeof item.id === 'string' ? item.id : '';
+            const agentThreadId = typeof item.agentThreadId === 'string' ? item.agentThreadId : '';
+            const agentPath = typeof item.agentPath === 'string' ? item.agentPath : '';
+            const kind = item.kind;
+            const validKind = kind === 'started' || kind === 'interacted' || kind === 'interrupted';
+
+            if (!eventId || !agentThreadId || !agentPath || !validKind
+                || this.rawSubAgentActivityEventIds.has(eventId)) {
+                return true;
+            }
+
+            this.rawSubAgentActivityEventIds.add(eventId);
+            this.rawChildThreadIds.add(agentThreadId);
+            this.eventHandler?.({
+                type: 'sub_agent_activity',
+                event_id: eventId,
+                agent_thread_id: agentThreadId,
+                agent_path: agentPath,
+                kind,
+                ...eventContext,
+            });
+            return true;
         }
 
         if (item.type === 'dynamicToolCall') {
@@ -975,6 +1004,7 @@ export class CodexAppServerClient {
             this.threadDefaults = null;
             this.approvedMcpElicitationsForSession.clear();
             this.rawChildThreadIds.clear();
+            this.rawSubAgentActivityEventIds.clear();
         }
 
         // Fail in-flight requests from this process generation.
@@ -1048,6 +1078,8 @@ export class CodexAppServerClient {
         const result = await this.request('thread/start', params) as NewConversationResponse;
         this._threadId = result.thread.id;
         this._turnId = null;
+        this.rawChildThreadIds.clear();
+        this.rawSubAgentActivityEventIds.clear();
         if (typeof result.model === 'string' && result.model.length > 0) this._lastModel = result.model;
         this.rememberThreadDefaults(opts);
         logger.debug('[CodexAppServer] Thread started:', this._threadId);
