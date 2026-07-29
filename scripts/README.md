@@ -8,6 +8,8 @@
 
 ## Files
 - `deploy.sh` - deploy.sh — Foolproof dev → prod patch promotion for happy monorepo
+- `happy-safe-restart.sh` - Staging copy of the single sanctioned daemon+web rebuild+restart path (ticket 20260726-165120); executed copy lives at /root/bin/happy-safe-restart via happy-safe-restart-deploy.sh; supersedes all prior restart tooling (see INDEX.md dispositions)
+- `happy-safe-restart-deploy.sh` - Provenance-embedding deploy step for happy-safe-restart.sh (user-run; --dest /tmp permitted for QA)
 - `postinstall.cjs` - cjs file
 - `pretool-block-production.sh` - Hook: PreToolUse (mcp__playwright__browser_navigate, mcp__playwright__browser_run_code, WebFetch)
 - `release.cjs` - cjs file
