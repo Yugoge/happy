@@ -463,14 +463,17 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                 if (existingMessageId) {
                     // Update existing tool message with permission info
                     const message = state.messages.get(existingMessageId);
-                    if (message?.tool && !message.tool.permission) {
-                        if (ENABLE_LOGGING) {
-                            console.log(`[REDUCER] Updating existing tool ${permId} with permission`);
+                    if (message?.tool) {
+                        if (!message.tool.permission) {
+                            if (ENABLE_LOGGING) {
+                                console.log(`[REDUCER] Updating existing tool ${permId} with permission`);
+                            }
+                            message.tool.permission = {
+                                id: permId,
+                                status: 'pending'
+                            };
                         }
-                        message.tool.permission = {
-                            id: permId,
-                            status: 'pending'
-                        };
+                        message.tool.input = mergeToolInputs(request.arguments, message.tool.input);
                         changed.add(existingMessageId);
                     }
                 } else {
@@ -790,6 +793,15 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                         if (message?.tool) {
                             message.realID = msg.id;
                             message.tool.input = mergeToolInputs(message.tool.input, c.input);
+                            // Fast-path: synthesize pending permission for request_user_input with questions
+                            if (
+                                c.name === 'functions.request_user_input' &&
+                                message.tool.input &&
+                                Array.isArray((message.tool.input as Record<string, unknown>).questions) &&
+                                !message.tool.permission
+                            ) {
+                                message.tool.permission = { id: c.id, status: 'pending' };
+                            }
                             message.tool.description = c.description;
                             message.tool.startedAt = msg.createdAt;
                             // If permission was approved and shown as completed (no tool), now it's running
@@ -859,6 +871,17 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                                     toolCall.result = { error: permission.reason };
                                 }
                             }
+                        }
+
+                        // Fast-path: synthesize pending permission for request_user_input with questions
+                        // Keep state as 'running' (normal permission lookup would set 'error' for pending status).
+                        if (
+                            c.name === 'functions.request_user_input' &&
+                            toolCall.input &&
+                            Array.isArray((toolCall.input as Record<string, unknown>).questions) &&
+                            !toolCall.permission
+                        ) {
+                            toolCall.permission = { id: c.id, status: 'pending' };
                         }
 
                         let mid = allocateId();

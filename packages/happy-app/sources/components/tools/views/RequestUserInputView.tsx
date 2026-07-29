@@ -131,7 +131,7 @@ export const RequestUserInputView = React.memo<ToolViewProps>(({ tool, sessionId
         setSubmittedAnswerText(responseText || null);
 
         try {
-            await sessionAllow(sessionId, tool.permission.id, undefined, undefined, undefined, responseText, answersRecord);
+            await sessionAllow(sessionId, tool.permission.id, undefined, undefined, 'approved', responseText, answersRecord);
         } catch (error) {
             console.error('Failed to submit request_user_input answer:', error);
             // codex#1: the RPC failed — reopen the form so the user can retry rather
