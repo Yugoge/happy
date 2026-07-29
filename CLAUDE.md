@@ -274,10 +274,13 @@ Claude SDK output (stream-json JSONL)
 ```bash
 bash /root/bin/happy-session-recovery.sh save       # Save current session snapshot
 bash /root/bin/happy-session-recovery.sh check      # Check saved sessions
-bash /root/bin/happy-session-recovery.sh restore     # Restore saved sessions
+bash /root/bin/happy-session-recovery.sh recover <uuid> <work-dir> --home /root/.happy-dev --flavor claude  # Restore ONE session (surgical)
+bash /root/bin/happy-session-recovery.sh restore     # Restore ALL saved sessions (whole fleet)
 bash /root/bin/happy-session-recovery.sh history 10  # Show event history
 bash /root/bin/happy-session-recovery.sh snapshots 48  # Show snapshots from last 48h
 ```
+
+**Single-session recovery — use `recover`, NOT `restore`.** `recover <uuid> [work-dir] [--home <path>] [--flavor claude|codex]` resumes exactly one session: spawns a `happy-sessions.slice` transient unit with `--resume <uuid>`, rewrites only that UUID's mapping line, **no daemon restart** (blast radius = 1). `restore` is all-or-nothing across every home — never use it for a single session. **Compact/account-switch gotcha**: `recover` picks `CLAUDE_CONFIG_DIR` by **newest-mtime `<uuid>.jsonl`** across `/root/.claude` + `/var/lib/claude-accounts/*/claude`. Auto-compact is in-place (same UUID); with per-session account switching the real history can live under a different account home, and a bad prior resume can leave a stale copy with a *newer* mtime → `recover` resumes the stale (e.g. pre-compact) history. Fix: make the correct history the newest-mtime copy (unify both home copies) before recovering.
 
 ### Recovery Files
 
@@ -472,15 +475,13 @@ A subagent that changes daemon code MUST pick exactly one of:
    ```
    Verify the change against the sandbox daemon. The live `happy-daemon-dev.service` is untouched.
 
-2. **PAUSE-PENDING-USER**: output a REQUEST naming the SOP command (`/root/bin/happy-restart.sh --target dev`) and stop. User runs it.
+2. **PAUSE-PENDING-USER**: output a REQUEST naming the SOP command (`/root/bin/happy-safe-restart --target dev`) and stop. User runs it.
 
 **Forbidden** for subagents (in any cycle): direct `systemctl restart happy-daemon-*`, daemon HTTP `POST /stop`, `kill` against `happy-cli` PIDs, writing the restart command into a `/tmp/*.sh` to bypass the bash-safety hook.
 
-### Daemon restart SOP (user-only entry point)
+### Daemon restart SOP — happy-safe-restart (single sanctioned path)
 
-`/root/bin/happy-restart.sh --target dev` is the only sanctioned daemon restart path for the dev daemon. It runs pre-flight save → graceful stop → start → post-flight recover + audit log. Subagents must never invoke it directly; they output a REQUEST and let the user run it from a TTY.
-
-Note: `safe-daemon-restart.sh` does NOT exist — this was a phantom reference. The actual script is `happy-restart.sh`.
+`/root/bin/happy-safe-restart --target <dev|prod>` is THE single sanctioned rebuild+restart path for the happy daemon + web stack (ticket 20260726-165120). It supersedes all prior restart tooling (including the legacy `/root/bin` restart SOP script, which remains user-only history). It runs a 9-phase gated chain: read-only preconditions (human gate, prod unit preflight), self-suicide check, session baseline + snapshot save, rebuild, sandboxed dist probe, version-consistency check, HTTP-graceful stop with script-owned death poll, env-pinned start, identity-bound post-verify with zero-session-loss enforcement. Callable by humans AND agents (deliberate policy relaxation): the bash-safety hook standing-allows exactly that sole-command shape. Prod non-dry runs hard-require a TTY-issued `claude-allow-restart default` grant at script level; dev non-dry runs auto-permit only during a live dev-overnight session (else `claude-allow-restart dev`). Staging source: `scripts/happy-safe-restart.sh`, deployed via `scripts/happy-safe-restart-deploy.sh` (user-run); the staging copy refuses to run undeployed. On any refusal, agents relay the printed instruction and stop — never fall back to raw systemctl/docker/kill.
 
 ### Hook bypass — project-specific consequences
 
