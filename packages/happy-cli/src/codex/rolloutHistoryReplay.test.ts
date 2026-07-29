@@ -16,12 +16,25 @@ afterEach(async () => {
 describe('replayCodexRolloutHistory — Codex 0.144.4 sub-agent activity', () => {
     it('reconstructs one durable lifecycle and merges its child rollout without legacy agent_id output', async () => {
         const codexHome = await createCodexHome();
-        const parentThread = '019fa2e5-0000-7000-8000-parent';
-        const agentThreadId = '019fa2e7-3fca-7100-a0e9-2c7812b9ac23';
+        const parentThread = '019fa399-e3b1-7622-afb0-01ea400ae19c';
+        const agentThreadId = '019fa39a-3f7d-78a2-b842-af361d12122d';
         const spawnEventId = 'call_ypdbzxxoWfNA6VPRyS4fmxyj';
         await writeRollout(codexHome, parentThread, 'rollout-2026-07-27T09-00-00', [
             { type: 'session_meta', payload: { id: parentThread } },
             { type: 'event_msg', payload: { type: 'task_started', turn_id: 'turn-current' } },
+            {
+                type: 'response_item',
+                payload: {
+                    type: 'function_call',
+                    name: 'exec_command',
+                    call_id: 'root-exec',
+                    arguments: JSON.stringify({ cmd: 'pwd' }),
+                },
+            },
+            {
+                type: 'response_item',
+                payload: { type: 'function_call_output', call_id: 'root-exec', output: '/tmp/project\n' },
+            },
             {
                 type: 'response_item',
                 payload: {
@@ -39,6 +52,18 @@ describe('replayCodexRolloutHistory — Codex 0.144.4 sub-agent activity', () =>
                     kind: 'started',
                     agent_thread_id: agentThreadId,
                     agent_path: '/root/agent_render_live',
+                },
+            },
+            {
+                type: 'event_msg',
+                payload: {
+                    // A child send_message targets the root. This is reverse
+                    // activity, not evidence for a second "/root" child.
+                    type: 'sub_agent_activity',
+                    event_id: 'call_child_send_message',
+                    kind: 'interacted',
+                    agent_thread_id: parentThread,
+                    agent_path: '/root',
                 },
             },
             {
@@ -123,6 +148,10 @@ describe('replayCodexRolloutHistory — Codex 0.144.4 sub-agent activity', () =>
         expect(lifecycleStarts).toHaveLength(1);
         const sessionSubagent = lifecycleStarts[0].ev.args.sessionSubagent;
         expect(lifecycleStarts[0].ev.args.agentNickname).toBe('agent_render_live');
+        expect(lifecycleStarts.some(
+            (envelope: any) => envelope.ev.args.agentNickname === 'root'
+                || envelope.ev.args.sessionSubagent === parentThread,
+        )).toBe(false);
         expect(envelopes.filter(
             (envelope: any) => envelope.ev.t === 'tool-call-start'
                 && envelope.ev.name === 'functions.wait_agent'
@@ -133,7 +162,41 @@ describe('replayCodexRolloutHistory — Codex 0.144.4 sub-agent activity', () =>
                 subagent: sessionSubagent,
                 ev: expect.objectContaining({ t: 'tool-call-start', call: 'child-exec' }),
             }),
+            expect.objectContaining({
+                ev: expect.objectContaining({ t: 'tool-call-start', call: 'root-exec' }),
+            }),
         ]));
+        const rootExec = envelopes.find(
+            (envelope: any) => envelope.ev.t === 'tool-call-start' && envelope.ev.call === 'root-exec',
+        );
+        expect(rootExec?.subagent).toBeUndefined();
+        expect(envelopes.filter((envelope: any) => envelope.ev.t === 'turn-end')).toHaveLength(1);
+
+        // Refreshing the same rollout preserves the same ownership/card counts.
+        const refreshedSession = {
+            sendSessionProtocolMessage: vi.fn(),
+            sendSessionEvent: vi.fn(),
+            flush: vi.fn().mockResolvedValue(undefined),
+        };
+        const refreshed = await replayCodexRolloutHistory({
+            threadId: parentThread,
+            session: refreshedSession,
+            codexHome,
+        });
+        expect(refreshed.status).toBe('replayed');
+        const refreshedEnvelopes = refreshedSession.sendSessionProtocolMessage.mock.calls
+            .map(([envelope]) => envelope);
+        expect(refreshedEnvelopes.filter(
+            (envelope: any) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle',
+        )).toHaveLength(1);
+        expect(refreshedEnvelopes.find(
+            (envelope: any) => envelope.ev.t === 'tool-call-start' && envelope.ev.call === 'root-exec',
+        )?.subagent).toBeUndefined();
+        expect(refreshedEnvelopes.find(
+            (envelope: any) => envelope.ev.t === 'tool-call-start' && envelope.ev.call === 'child-exec',
+        )?.subagent).toBeDefined();
+        expect(refreshedEnvelopes.filter((envelope: any) => envelope.ev.t === 'turn-end')).toHaveLength(1);
     });
 });
 

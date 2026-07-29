@@ -76,8 +76,6 @@ export class CodexPermissionHandler extends BasePermissionHandler {
         itemId: string,
         questions: ToolRequestUserInputQuestion[],
     ): Promise<Record<string, string> | null> {
-        this.advertiseAnswersCapability();
-
         const input = { questions };
         const result = await new Promise<PermissionResult>((resolve, reject) => {
             this.pendingRequests.set(itemId, {
@@ -86,7 +84,35 @@ export class CodexPermissionHandler extends BasePermissionHandler {
                 toolName: REQUEST_USER_INPUT_TOOL,
                 input,
             });
-            this.addPendingRequestToState(itemId, REQUEST_USER_INPUT_TOOL, input);
+            // Fast path: emit questions via message stream (ACP tool-call) so the card appears
+            // without waiting for AsyncLock + emitWithAck RTT in updateAgentState.
+            this.session.sendAgentMessage('codex', {
+                type: 'tool-call',
+                callId: itemId,
+                id: itemId,
+                name: REQUEST_USER_INPUT_TOOL,
+                input,
+            });
+            // Merged single updateAgentState: advertises capability + registers request
+            // in one RTT instead of two sequential network calls.
+            this.session.updateAgentState((currentState) => {
+                const currentCaps = currentState.capabilities;
+                return {
+                    ...currentState,
+                    capabilities: {
+                        ...(currentCaps && typeof currentCaps === 'object' ? currentCaps : {}),
+                        askUserQuestionAnswersInPermission: true,
+                    },
+                    requests: {
+                        ...currentState.requests,
+                        [itemId]: {
+                            tool: REQUEST_USER_INPUT_TOOL,
+                            arguments: input,
+                            createdAt: Date.now()
+                        }
+                    }
+                };
+            });
             logger.debug(`${this.getLogPrefix()} request_user_input registered (${itemId}, ${questions.length} question(s))`);
         });
 

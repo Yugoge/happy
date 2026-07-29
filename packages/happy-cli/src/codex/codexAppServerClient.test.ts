@@ -687,6 +687,161 @@ describe('CodexAppServerClient sandbox integration', () => {
         await client.disconnect();
     });
 
+    it('consumes reverse child-to-root activity without suppressing root completion', async () => {
+        const rootThreadId = '019fa399-e3b1-7622-afb0-01ea400ae19c';
+        const childThreadId = '019fa39a-3f7d-78a2-b842-af361d12122d';
+        const proc = createMockProcess({
+            pid: 3008,
+            onRequest: (msg, stdout) => {
+                if (msg.method === 'thread/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                thread: { id: rootThreadId, path: '/tmp/root-thread' },
+                                model: 'gpt-test',
+                                modelProvider: 'openai',
+                                cwd: '/tmp/project',
+                                approvalPolicy: 'never',
+                                sandbox: { type: 'dangerFullAccess' },
+                                reasoningEffort: null,
+                            },
+                        });
+                    }, 0);
+                }
+
+                if (msg.method === 'turn/start' && msg.id != null) {
+                    setTimeout(() => {
+                        pushJsonLine(stdout, {
+                            id: msg.id,
+                            result: {
+                                turn: { id: 'root-turn', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'turn/started',
+                            params: {
+                                threadId: rootThreadId,
+                                turn: { id: 'root-turn', items: [], status: 'inProgress', error: null },
+                            },
+                        });
+                        // Normal root -> child activity teaches the adapter the child wrapper.
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: rootThreadId,
+                                turnId: 'root-turn',
+                                item: {
+                                    type: 'subAgentActivity',
+                                    id: 'spawn-child',
+                                    kind: 'started',
+                                    agentThreadId: childThreadId,
+                                    agentPath: '/root/restart_root_cause',
+                                },
+                            },
+                        });
+                        // A child send_message produces the reverse shape: the target is ROOT.
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: childThreadId,
+                                turnId: 'child-turn',
+                                item: {
+                                    type: 'subAgentActivity',
+                                    id: 'child-send-message',
+                                    kind: 'interacted',
+                                    agentThreadId: rootThreadId,
+                                    agentPath: '/root',
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: rootThreadId,
+                                turnId: 'root-turn',
+                                item: {
+                                    type: 'commandExecution',
+                                    id: 'root-exec',
+                                    command: ['pwd'],
+                                    cwd: '/tmp/project',
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/started',
+                            params: {
+                                threadId: childThreadId,
+                                turnId: 'child-turn',
+                                item: {
+                                    type: 'commandExecution',
+                                    id: 'child-exec',
+                                    command: ['rg', 'restart'],
+                                    cwd: '/tmp/project',
+                                },
+                            },
+                        });
+                        pushJsonLine(stdout, {
+                            method: 'item/completed',
+                            params: {
+                                threadId: rootThreadId,
+                                turnId: 'root-turn',
+                                item: {
+                                    type: 'agentMessage',
+                                    id: 'root-final',
+                                    text: 'root completed',
+                                    phase: 'final_answer',
+                                },
+                            },
+                        });
+                        // A second completion signal must remain deduplicated.
+                        pushJsonLine(stdout, {
+                            method: 'turn/completed',
+                            params: {
+                                threadId: rootThreadId,
+                                turn: { id: 'root-turn', items: [], status: 'completed', error: null },
+                            },
+                        });
+                    }, 0);
+                }
+            },
+        });
+        mockSpawn.mockImplementation(() => proc);
+
+        const { CodexAppServerClient } = await import('./codexAppServerClient');
+        const client = new CodexAppServerClient();
+        const events: Array<Record<string, unknown>> = [];
+        client.setEventHandler((msg) => {
+            events.push(msg as Record<string, unknown>);
+        });
+
+        await client.connect();
+        await client.startThread({
+            model: 'gpt-test',
+            cwd: '/tmp/project',
+            approvalPolicy: 'never',
+            sandbox: 'danger-full-access',
+        });
+
+        await expect(client.sendTurnAndWait('investigate restart', { turnTimeoutMs: 150 }))
+            .resolves.toEqual({ aborted: false });
+        expect(events.filter((event) => event.type === 'task_complete')).toHaveLength(1);
+        expect(events.filter((event) => event.type === 'sub_agent_activity')).toEqual([
+            expect.objectContaining({
+                event_id: 'spawn-child',
+                agent_thread_id: childThreadId,
+                agent_path: '/root/restart_root_cause',
+            }),
+        ]);
+        expect(events).toEqual(expect.arrayContaining([
+            expect.objectContaining({ type: 'exec_command_begin', callId: 'root-exec', threadId: rootThreadId }),
+            expect.objectContaining({ type: 'exec_command_begin', callId: 'child-exec', threadId: childThreadId }),
+            expect.objectContaining({ type: 'agent_message', message: 'root completed', threadId: rootThreadId }),
+        ]));
+
+        await client.disconnect();
+    });
+
     it('keeps child final answers from completing the root turn', async () => {
         let releaseRootCompletion!: () => void;
         const rootCompletionAllowed = new Promise<void>((resolve) => {

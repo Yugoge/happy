@@ -246,7 +246,7 @@ const COLLAB_REPLAY_TOOL_MAP = new Map<string, string>([
     ['resume_agent', 'resumeAgent'],
 ]);
 
-function createReplayState(): ReplayState {
+function createReplayState(rootThreadId: string): ReplayState {
     return {
         mapper: {
             // Cycle 9 (NO-regression fix): mark this CodexTurnState as the replay path so replay-only
@@ -254,6 +254,7 @@ function createReplayState(): ReplayState {
             // across every mapWithState rebuild below so it persists for the whole replay record loop. The
             // live caller (runCodex.ts) never sets this, keeping live byte-equal to baseline.
             replay: true,
+            rootThreadId,
             currentTurnId: null,
             startedSubagents: new Set<string>(),
             activeSubagents: new Set<string>(),
@@ -285,6 +286,9 @@ function mapWithState(message: Record<string, unknown>, state: ReplayState): Ses
         // Cycle 9 (NO-regression fix): the mapper result omits `replay`; preserve it across the rebuild so
         // the replay-only fan-out stays gated ON for the entire replay loop.
         replay: true,
+        // Preserve the replay root identity so child -> root activity can never
+        // be rebound as a child lifecycle after any mapper-state rebuild.
+        rootThreadId: state.mapper.rootThreadId,
         currentTurnId: mapped.currentTurnId,
         startedSubagents: mapped.startedSubagents,
         activeSubagents: mapped.activeSubagents,
@@ -688,6 +692,14 @@ function mapEventMsg(payload: Record<string, unknown>, state: ReplayState): Sess
         const agentPath = typeof payload.agent_path === 'string' ? payload.agent_path : '';
         const kind = payload.kind;
         const validKind = kind === 'started' || kind === 'interacted' || kind === 'interrupted';
+
+        // Child -> parent interactions point agent_thread_id at the replay root.
+        // They are not spawn/lifecycle evidence and must not create a root child
+        // binding (which would recursively merge the parent rollout into itself).
+        if (agentThreadId && agentThreadId === state.mapper.rootThreadId) {
+            return [];
+        }
+
         const parentTurnId = state.mapper.currentTurnId;
         const recordTime = state.mapper.recordTime;
         const envelopes = mapWithState(payload, state);
@@ -1197,7 +1209,7 @@ async function replayFiles(opts: {
     session: ReplaySession;
     home: string;
 }): Promise<CodexRolloutHistoryReplayResult> {
-    const state = createReplayState();
+    const state = createReplayState(opts.threadId);
     let recordsRead = 0;
 
     // Cycle 8: buffer the parent envelope stream rather than streaming inline, so (M1/INV-3) merged

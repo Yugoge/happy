@@ -20,6 +20,10 @@ import {
 
 export type CodexTurnState = {
     currentTurnId: string | null;
+    // Optional root Codex thread identity. The live app-server adapter filters
+    // reverse child -> root activity before mapping; replay and direct callers
+    // provide this as a defense-in-depth protocol boundary.
+    rootThreadId?: string;
     startedSubagents?: Set<string>;
     activeSubagents?: Set<string>;
     providerSubagentToSessionSubagent?: Map<string, string>;
@@ -1069,6 +1073,7 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         const dedupeKey = `activity:${eventId}`;
 
         if (!eventId || !agentThreadId || !agentPath || !validKind
+            || (state.rootThreadId !== undefined && agentThreadId === state.rootThreadId)
             || emittedCollabBeginCallIds.has(dedupeKey)) {
             return {
                 currentTurnId: state.currentTurnId,

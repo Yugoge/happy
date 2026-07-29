@@ -623,6 +623,14 @@ export class CodexAppServerClient {
                 return true;
             }
 
+            // Activity is directional: when a child uses send_message against its
+            // parent, agentThreadId is the ROOT target rather than a newly spawned
+            // child. Treat the item as consumed, but never poison rawChildThreadIds
+            // with the root or fabricate a /root lifecycle.
+            if (agentThreadId === this._threadId) {
+                return true;
+            }
+
             this.rawSubAgentActivityEventIds.add(eventId);
             this.rawChildThreadIds.add(agentThreadId);
             this.eventHandler?.({

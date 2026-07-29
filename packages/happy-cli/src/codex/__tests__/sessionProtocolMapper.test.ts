@@ -1818,6 +1818,92 @@ describe('mapCodexMcpMessageToSessionEnvelopes — Codex 0.144.4 sub-agent activ
         expect(malformed.providerSubagentToSessionSubagent.size).toBe(0);
     });
 
+    it('rejects reverse activity targeting the root while preserving root and child tool ownership', () => {
+        const rootThreadId = '019fa399-e3b1-7622-afb0-01ea400ae19c';
+        const childThreadId = '019fa39a-3f7d-78a2-b842-af361d12122d';
+        const reverse = step({
+            type: 'sub_agent_activity',
+            event_id: 'child-send-message',
+            kind: 'interacted',
+            agent_thread_id: rootThreadId,
+            agent_path: '/root',
+        }, {
+            currentTurnId: 'root-turn',
+            rootThreadId,
+            emittedCollabBeginCallIds: new Set<string>(),
+        });
+
+        expect(reverse.envelopes).toHaveLength(0);
+        expect(reverse.subagentLifecycles.size).toBe(0);
+        expect(reverse.providerSubagentToSessionSubagent.size).toBe(0);
+        expect(reverse.emittedCollabBeginCallIds?.has('activity:child-send-message')).toBe(false);
+
+        const rootTool = step({
+            type: 'exec_command_begin',
+            call_id: 'root-exec',
+            command: ['pwd'],
+            threadId: rootThreadId,
+            turnId: 'root-turn',
+        }, { ...reverse, rootThreadId });
+        const rootExec = rootTool.envelopes.find(
+            (envelope) => envelope.ev.t === 'tool-call-start' && envelope.ev.call === 'root-exec',
+        );
+        expect(rootExec).toBeDefined();
+        expect(rootExec?.subagent).toBeUndefined();
+
+        const childActivity = step({
+            type: 'sub_agent_activity',
+            event_id: 'spawn-child',
+            kind: 'started',
+            agent_thread_id: childThreadId,
+            agent_path: '/root/restart_root_cause',
+        }, {
+            ...rootTool,
+            rootThreadId,
+            emittedCollabBeginCallIds: rootTool.emittedCollabBeginCallIds ?? new Set<string>(),
+        });
+        const sessionSubagent = childActivity.providerSubagentToSessionSubagent.get(childThreadId);
+        expect(sessionSubagent).toBeDefined();
+        expect(childActivity.envelopes.filter(
+            (envelope) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle',
+        )).toHaveLength(1);
+        expect(childActivity.envelopes.some(
+            (envelope) => envelope.ev.t === 'tool-call-start'
+                && envelope.ev.name === 'functions.subagent_lifecycle'
+                && (envelope.ev.args.agentNickname === 'root'
+                    || envelope.ev.args.sessionSubagent === rootThreadId),
+        )).toBe(false);
+
+        const childTool = step({
+            type: 'exec_command_begin',
+            call_id: 'child-exec',
+            command: ['rg', 'restart'],
+            threadId: childThreadId,
+            turnId: 'child-turn',
+        }, { ...childActivity, rootThreadId });
+        const childExec = childTool.envelopes.find(
+            (envelope) => envelope.ev.t === 'tool-call-start' && envelope.ev.call === 'child-exec',
+        );
+        expect(childExec).toBeDefined();
+        expect(childExec?.subagent).toBe(sessionSubagent);
+
+        const completed = step({ type: 'task_complete', turn_id: 'root-turn' }, childTool);
+        expect(completed.envelopes.filter((envelope) => envelope.ev.t === 'turn-end')).toHaveLength(1);
+        expect(completed.envelopes).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                ev: expect.objectContaining({
+                    t: 'tool-call-end',
+                    call: `lifecycle:${sessionSubagent}`,
+                    result: expect.objectContaining({
+                        status: 'completed',
+                        lifecycle_state: 'completed',
+                    }),
+                }),
+            }),
+        ]));
+    });
+
     it('uses agent_thread_id as the durable parent while event_id only deduplicates operations', () => {
         const started = step({
             type: 'sub_agent_activity',

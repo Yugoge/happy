@@ -96,6 +96,15 @@ import { handleResumeCommand } from '@/resume/handleResumeCommand'
       process.exit(1)
     }
     return;
+  } else if (subcommand === 'version') {
+    // Side-effect-free compiled-version probe (happy-safe-restart phase 4,
+    // ticket 20260726-165120). Prints the version and exits BEFORE auth
+    // (authAndSetupMachineIfNeeded below) and the daemon auto-start takeover
+    // check (isDaemonRunningCurrentlyInstalledHappyVersion) — unlike
+    // `--version`, which prints and deliberately does NOT exit, continuing
+    // into auth + auto-start (the documented daemon-suicide kill vector).
+    console.log(packageJson.version);
+    process.exit(0);
   } else if (subcommand === 'bye') {
     console.log('Bye!');
     process.exit(0);
